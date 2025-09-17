@@ -46,6 +46,7 @@ export default function CheckoutPage() {
     estimatedTime: "",
     notes: "",
   });
+  const [additionalNotes, setAdditionalNotes] = useState("");
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     email: "",
@@ -201,9 +202,30 @@ export default function CheckoutPage() {
           }));
         }
 
+        // Pre-fill additional notes from any service
+        if (parsedData.additionalInfo) {
+          console.log(
+            "12. Pre-filling additional notes:",
+            parsedData.additionalInfo
+          );
+          setAdditionalNotes(parsedData.additionalInfo);
+        } else if (parsedData.jokiDetails?.notes) {
+          console.log(
+            "12. Pre-filling notes from joki details:",
+            parsedData.jokiDetails.notes
+          );
+          setAdditionalNotes(parsedData.jokiDetails.notes);
+        } else if (parsedData.jokiDetails?.additionalInfo) {
+          console.log(
+            "12. Pre-filling additional info from joki details:",
+            parsedData.jokiDetails.additionalInfo
+          );
+          setAdditionalNotes(parsedData.jokiDetails.additionalInfo);
+        }
+
         // Don't clear sessionStorage immediately - keep it for potential refresh
         console.log(
-          "12. Data loaded successfully, sessionStorage will be cleared on successful payment"
+          "13. Data loaded successfully, sessionStorage will be cleared on successful payment"
         );
       } catch (error) {
         console.error("8. Error parsing sessionStorage data:", error);
@@ -410,6 +432,12 @@ export default function CheckoutPage() {
           : robloxPassword,
       jokiDetails:
         checkoutData.serviceType === "joki" ? jokiDetails : undefined,
+      robuxInstantDetails:
+        checkoutData.serviceType === "robux" &&
+        checkoutData.serviceCategory === "robux_instant" &&
+        additionalNotes.trim()
+          ? { notes: additionalNotes.trim() }
+          : undefined,
       customerInfo: {
         ...customerInfo,
         // Tambahkan userId ke customerInfo jika user sudah login
@@ -1057,6 +1085,31 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Additional Notes only for Robux Instant */}
+                {checkoutData.serviceType === "robux" &&
+                  checkoutData.serviceCategory === "robux_instant" && (
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-800 mb-4">
+                        Catatan Tambahan
+                      </h3>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Instruksi Khusus
+                          <span className="text-gray-500 text-xs ml-2">
+                            (Opsional - Informasi tambahan untuk admin)
+                          </span>
+                        </label>
+                        <textarea
+                          value={additionalNotes}
+                          onChange={(e) => setAdditionalNotes(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-black transition-colors bg-white/70"
+                          placeholder="Contoh: Prioritas pengiriman, metode transfer yang diinginkan, dll..."
+                        />
+                      </div>
+                    </div>
+                  )}
 
                 {/* Terms */}
                 <div className="flex items-start">

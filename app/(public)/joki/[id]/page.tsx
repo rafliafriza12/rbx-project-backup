@@ -99,6 +99,7 @@ export default function JokiDetailPage() {
         gameName: joki.gameName,
         itemName: selectedItem.itemName,
         description: selectedItem.description,
+        notes: additionalInfo, // Kirim additionalInfo sebagai notes
         additionalInfo: additionalInfo,
         requirements: joki.requirements,
         features: joki.features,
@@ -326,15 +327,25 @@ export default function JokiDetailPage() {
 
             <div>
               <label className="text-sm font-bold mb-1 block text-black">
-                Informasi Tambahan (Opsional)
+                Kode Keamanan (Opsional)
               </label>
               <textarea
-                placeholder="Berikan informasi tambahan seperti target level, item yang diinginkan, dll..."
+                placeholder="Berikan informasi kode keamanan jika akun anda memiliki 2 step verification"
                 value={additionalInfo}
                 onChange={(e) => setAdditionalInfo(e.target.value)}
                 rows={3}
                 className="w-full py-2 px-3 outline-none text-sm text-black border border-black rounded"
               />
+              <h1 className="text-xs">
+                Klik link berikut untuk melihat kode keamanan anda.{" "}
+                <Link
+                  className="underline text-blue-500"
+                  href={"https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"}
+                  target="_blank"
+                >
+                  Kode keamanan
+                </Link>
+              </h1>
             </div>
           </div>
 

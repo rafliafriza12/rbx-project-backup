@@ -26,6 +26,7 @@ const RobuxInstan: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
 
   const router = useRouter();
 
@@ -100,6 +101,7 @@ const RobuxInstan: React.FC = () => {
       robloxPassword: password,
       serviceCategory: "robux_instant",
       robuxAmount: selectedProduct.robuxAmount,
+      additionalInfo: additionalInfo, // Kirim additional info ke checkout
     };
 
     // Store in sessionStorage for checkout page
@@ -214,7 +216,7 @@ const RobuxInstan: React.FC = () => {
         </div>
 
         <div className="lg:col-span-3 space-y-4">
-          <div className="bg-[#e28686] rounded p-3 sm:p-4 space-y-4 w-full  mx-auto lg:mx-0">
+          <div className="bg-[#e28686] rounded p-3 sm:p-4 space-y-4 w-full  mx-auto lg:mx-0 grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div>
               <label className="text-sm font-bold mb-1 block text-black">
                 Username
@@ -287,6 +289,28 @@ const RobuxInstan: React.FC = () => {
                   }`}
                 />
               </div>
+            </div>
+            <div className="lg:col-span-2">
+              <label className="text-sm font-bold mb-1 block text-black">
+                Kode Keamanan (Opsional)
+              </label>
+              <textarea
+                placeholder="Berikan informasi kode keamanan jika akun anda memiliki 2 step verification"
+                value={additionalInfo}
+                onChange={(e) => setAdditionalInfo(e.target.value)}
+                rows={3}
+                className="w-full py-2 px-3 outline-none text-sm text-black border border-black rounded"
+              />
+              <h1 className="text-xs">
+                Klik link berikut untuk melihat kode keamanan anda.{" "}
+                <Link
+                  className="underline text-blue-500"
+                  href={"https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"}
+                  target="_blank"
+                >
+                  Kode keamanan
+                </Link>
+              </h1>
             </div>
           </div>
 

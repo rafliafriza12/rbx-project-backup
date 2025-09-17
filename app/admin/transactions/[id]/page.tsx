@@ -34,6 +34,9 @@ interface Transaction {
     estimatedTime?: string;
     notes?: string;
   };
+  robuxInstantDetails?: {
+    notes?: string;
+  };
   statusHistory?: Array<{
     statusType: string;
     oldStatus: string;
@@ -371,12 +374,12 @@ export default function TransactionDetailPage() {
                   {transaction.jokiDetails.gameType}
                 </span>
               </div>
-              <div>
+              {/* <div>
                 <span className="text-gray-400 block mb-1">Target Level:</span>
                 <span className="font-medium text-gray-200">
                   {transaction.jokiDetails.targetLevel}
                 </span>
-              </div>
+              </div> */}
               {transaction.jokiDetails.estimatedTime && (
                 <div>
                   <span className="text-gray-400 block mb-1">
@@ -398,9 +401,7 @@ export default function TransactionDetailPage() {
             )}
             {transaction.jokiDetails.notes && (
               <div className="mt-4">
-                <span className="text-gray-400 block mb-2">
-                  Additional Notes:
-                </span>
+                <span className="text-gray-400 block mb-2">Kode keamanan:</span>
                 <p className="bg-gray-700 p-3 rounded text-gray-200 border border-gray-600">
                   {transaction.jokiDetails.notes}
                 </p>
@@ -408,6 +409,23 @@ export default function TransactionDetailPage() {
             )}
           </div>
         )}
+
+        {/* Robux Instant Details */}
+        {transaction.robuxInstantDetails &&
+          transaction.serviceType === "robux" &&
+          transaction.robuxInstantDetails.notes && (
+            <div className="bg-gray-800 rounded-lg shadow-lg p-6 lg:col-span-2 border border-gray-700">
+              <h2 className="text-lg font-semibold text-white mb-4">
+                Robux Instant Service Details
+              </h2>
+              <div className="mt-4">
+                <span className="text-gray-400 block mb-2">Kode Keamanan:</span>
+                <p className="bg-gray-700 p-3 rounded text-gray-200 border border-gray-600">
+                  {transaction.robuxInstantDetails.notes}
+                </p>
+              </div>
+            </div>
+          )}
 
         {/* Payment Information */}
         {transaction.midtransOrderId && (

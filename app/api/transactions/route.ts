@@ -233,6 +233,7 @@ export async function POST(request: NextRequest) {
       robloxUsername,
       robloxPassword,
       jokiDetails,
+      robuxInstantDetails,
       customerInfo,
       userId,
     } = body;
@@ -248,6 +249,7 @@ export async function POST(request: NextRequest) {
       robloxUsername: robloxUsername ? "[PRESENT]" : "[MISSING]",
       robloxPassword: robloxPassword ? "[PRESENT]" : "[MISSING]",
       jokiDetails,
+      robuxInstantDetails,
       customerInfo,
       userId,
       "customerInfo.userId": customerInfo?.userId,
@@ -329,6 +331,7 @@ export async function POST(request: NextRequest) {
       robloxUsername,
       robloxPassword: robloxPassword || "", // Empty string for gamepass and robux_5_hari
       jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
+      robuxInstantDetails: robuxInstantDetails || undefined,
       customerInfo: {
         ...customerInfo,
         userId: userId || null, // Store userId in customerInfo

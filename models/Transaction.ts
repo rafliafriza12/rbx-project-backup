@@ -93,6 +93,11 @@ const transactionSchema = new mongoose.Schema(
       notes: String,
     },
 
+    // Data Tambahan untuk Robux Instant
+    robuxInstantDetails: {
+      notes: String,
+    },
+
     // Data Pembayaran Midtrans
     midtransOrderId: {
       type: String,
