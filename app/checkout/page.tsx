@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";
+import Link from "next/link";
 
 interface CheckoutData {
   serviceType: string;
@@ -1066,8 +1067,22 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
+                        <h3 className="text-lg font-medium text-gray-800 mb-4">
+                          Kode Keamanan (Opsional)
+                        </h3>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Catatan Tambahan
+                          <span className="text-gray-500 text-xs ml-2">
+                            Klik link berikut untuk melihat kode keamanan anda.{" "}
+                            <Link
+                              className="underline text-blue-500"
+                              href={
+                                "https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"
+                              }
+                              target="_blank"
+                            >
+                              Kode keamanan
+                            </Link>
+                          </span>
                         </label>
                         <textarea
                           value={jokiDetails.notes}
@@ -1079,7 +1094,6 @@ export default function CheckoutPage() {
                           }
                           rows={2}
                           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-black transition-colors bg-white/70"
-                          placeholder="Instruksi khusus atau catatan lainnya..."
                         />
                       </div>
                     </div>
@@ -1091,13 +1105,21 @@ export default function CheckoutPage() {
                   checkoutData.serviceCategory === "robux_instant" && (
                     <div>
                       <h3 className="text-lg font-medium text-gray-800 mb-4">
-                        Catatan Tambahan
+                        Kode Keamanan (Opsional)
                       </h3>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Instruksi Khusus
                           <span className="text-gray-500 text-xs ml-2">
-                            (Opsional - Informasi tambahan untuk admin)
+                            Klik link berikut untuk melihat kode keamanan anda.{" "}
+                            <Link
+                              className="underline text-blue-500"
+                              href={
+                                "https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"
+                              }
+                              target="_blank"
+                            >
+                              Kode keamanan
+                            </Link>
                           </span>
                         </label>
                         <textarea
@@ -1105,7 +1127,6 @@ export default function CheckoutPage() {
                           onChange={(e) => setAdditionalNotes(e.target.value)}
                           rows={3}
                           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-black transition-colors bg-white/70"
-                          placeholder="Contoh: Prioritas pengiriman, metode transfer yang diinginkan, dll..."
                         />
                       </div>
                     </div>
