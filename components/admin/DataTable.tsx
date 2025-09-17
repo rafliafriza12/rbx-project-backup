@@ -83,7 +83,7 @@ const DataTable: React.FC<DataTableProps> = ({
             </tr>
           </thead>
           <tbody className="bg-gray-800 divide-y divide-gray-600">
-            {data.length === 0 ? (
+            {data?.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -113,7 +113,7 @@ const DataTable: React.FC<DataTableProps> = ({
                 </td>
               </tr>
             ) : (
-              data.map((row, index) => (
+              data?.map((row, index) => (
                 <tr
                   key={row._id || index}
                   className="hover:bg-gray-700 transition-colors"
