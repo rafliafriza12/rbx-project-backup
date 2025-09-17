@@ -44,6 +44,10 @@ export async function GET(
       quantity: transaction.quantity,
       unitPrice: transaction.unitPrice,
       totalAmount: transaction.totalAmount,
+      // Discount fields
+      discountPercentage: transaction.discountPercentage || 0,
+      discountAmount: transaction.discountAmount || 0,
+      finalAmount: transaction.finalAmount || transaction.totalAmount,
       robloxUsername: transaction.robloxUsername,
       robloxPassword: transaction.robloxPassword,
       jokiDetails: transaction.jokiDetails || {},
@@ -125,6 +129,10 @@ export async function POST(request: NextRequest) {
       quantity: transaction.quantity,
       unitPrice: transaction.unitPrice,
       totalAmount: transaction.totalAmount,
+      // Discount fields
+      discountPercentage: transaction.discountPercentage || 0,
+      discountAmount: transaction.discountAmount || 0,
+      finalAmount: transaction.finalAmount || transaction.totalAmount,
       robloxUsername: transaction.robloxUsername,
       robloxPassword: transaction.robloxPassword,
       jokiDetails: transaction.jokiDetails || {},

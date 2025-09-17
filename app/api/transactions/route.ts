@@ -78,7 +78,10 @@ export async function GET(request: NextRequest) {
         "Username",
         "Service Type",
         "Service Name",
-        "Amount",
+        "Subtotal",
+        "Discount %",
+        "Discount Amount",
+        "Final Amount",
         "Payment Status",
         "Order Status",
         "Customer Name",
@@ -92,6 +95,9 @@ export async function GET(request: NextRequest) {
         t.serviceType,
         t.serviceName,
         t.totalAmount,
+        t.discountPercentage || 0,
+        t.discountAmount || 0,
+        t.finalAmount || t.totalAmount,
         t.paymentStatus,
         t.orderStatus,
         t.customerInfo?.name || "-",
@@ -159,10 +165,19 @@ export async function GET(request: NextRequest) {
         paymentStatus: "failed",
       });
 
-      // Calculate total revenue
+      // Calculate total revenue using finalAmount or totalAmount
       const revenueResult = await Transaction.aggregate([
         { $match: { paymentStatus: "settlement" } },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $ifNull: ["$finalAmount", "$totalAmount"],
+              },
+            },
+          },
+        },
       ]);
 
       statistics = {

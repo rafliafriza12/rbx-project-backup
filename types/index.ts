@@ -35,6 +35,10 @@ export interface Transaction {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  // Discount Information
+  discountPercentage?: number;
+  discountAmount?: number;
+  finalAmount?: number;
   robloxUsername: string;
   robloxPassword?: string;
   jokiDetails?: JokiDetails;

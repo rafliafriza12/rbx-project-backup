@@ -175,8 +175,14 @@ export default function RiwayatPage() {
         return (
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
-      if (sortBy === "amount_high") return b.totalAmount - a.totalAmount;
-      if (sortBy === "amount_low") return a.totalAmount - b.totalAmount;
+      if (sortBy === "amount_high")
+        return (
+          (b.finalAmount || b.totalAmount) - (a.finalAmount || a.totalAmount)
+        );
+      if (sortBy === "amount_low")
+        return (
+          (a.finalAmount || a.totalAmount) - (b.finalAmount || b.totalAmount)
+        );
       return 0;
     });
 
@@ -318,8 +324,25 @@ export default function RiwayatPage() {
 
                     {/* Amount and Action */}
                     <div className="flex flex-col sm:items-end gap-2">
-                      <div className="text-lg sm:text-xl font-bold text-rose-600">
-                        Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                      <div className="text-right">
+                        {/* Show discount info if available */}
+                        {(transaction.discountPercentage || 0) > 0 && (
+                          <div className="text-sm text-gray-500 mb-1">
+                            <span className="line-through">
+                              Rp{" "}
+                              {transaction.totalAmount.toLocaleString("id-ID")}
+                            </span>
+                            <span className="ml-2 text-green-600 font-medium">
+                              -{transaction.discountPercentage}%
+                            </span>
+                          </div>
+                        )}
+                        <div className="text-lg sm:text-xl font-bold text-rose-600">
+                          Rp{" "}
+                          {(
+                            transaction.finalAmount || transaction.totalAmount
+                          ).toLocaleString("id-ID")}
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Link

@@ -315,8 +315,28 @@ export default function TransactionDetailPage() {
                 </div>
               </div>
               <div className="lg:text-right">
-                <div className="text-3xl sm:text-4xl font-bold text-rose-600 mb-2">
-                  Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                <div className="space-y-1">
+                  {/* Show discount info if available */}
+                  {(transaction.discountPercentage || 0) > 0 && (
+                    <>
+                      <div className="text-lg text-gray-500 line-through">
+                        Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                      </div>
+                      <div className="text-sm text-green-600 font-medium">
+                        Diskon {transaction.discountPercentage}% (-Rp{" "}
+                        {(transaction.discountAmount || 0).toLocaleString(
+                          "id-ID"
+                        )}
+                        )
+                      </div>
+                    </>
+                  )}
+                  <div className="text-3xl sm:text-4xl font-bold text-rose-600 mb-2">
+                    Rp{" "}
+                    {(
+                      transaction.finalAmount || transaction.totalAmount
+                    ).toLocaleString("id-ID")}
+                  </div>
                 </div>
                 <div className="text-gray-600">Total Pembayaran</div>
               </div>
@@ -362,18 +382,34 @@ export default function TransactionDetailPage() {
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600 font-medium">Subtotal:</span>
                     <span className="font-semibold text-gray-900">
-                      Rp{" "}
-                      {(
-                        transaction.quantity * transaction.unitPrice
-                      ).toLocaleString("id-ID")}
+                      Rp {transaction.totalAmount.toLocaleString("id-ID")}
                     </span>
                   </div>
+
+                  {/* Show discount if available */}
+                  {(transaction.discountPercentage || 0) > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">
+                        Diskon ({transaction.discountPercentage}%):
+                      </span>
+                      <span className="font-semibold text-green-600">
+                        -Rp{" "}
+                        {(transaction.discountAmount || 0).toLocaleString(
+                          "id-ID"
+                        )}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center py-3 border-t-2 border-gray-200 mt-4">
                     <span className="text-lg font-bold text-gray-900">
-                      Total:
+                      Total Bayar:
                     </span>
                     <span className="text-lg font-bold text-rose-600">
-                      Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                      Rp{" "}
+                      {(
+                        transaction.finalAmount || transaction.totalAmount
+                      ).toLocaleString("id-ID")}
                     </span>
                   </div>
                 </div>

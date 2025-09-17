@@ -15,6 +15,10 @@ interface Transaction {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  // Discount fields
+  discountPercentage?: number;
+  discountAmount?: number;
+  finalAmount?: number;
   robloxUsername: string;
   robloxPassword?: string; // Optional password
   paymentStatus: string;
@@ -333,8 +337,26 @@ export default function TransactionsPage() {
     {
       key: "totalAmount",
       label: "Amount",
-      render: (value: number) => (
-        <span className="font-medium">{formatCurrency(value)}</span>
+      render: (value: number, row: Transaction) => (
+        <div className="text-sm">
+          {row.discountPercentage && row.discountPercentage > 0 ? (
+            <div className="space-y-1">
+              <div className="text-gray-500 line-through text-xs">
+                {formatCurrency(value)}
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="font-medium text-green-400">
+                  {formatCurrency(row.finalAmount || value)}
+                </span>
+                <span className="bg-green-600 text-white px-1 py-0.5 rounded text-xs">
+                  -{row.discountPercentage}%
+                </span>
+              </div>
+            </div>
+          ) : (
+            <span className="font-medium">{formatCurrency(value)}</span>
+          )}
+        </div>
       ),
     },
     {
@@ -531,7 +553,7 @@ export default function TransactionsPage() {
                   (transactions || []).reduce(
                     (sum, t) =>
                       t.paymentStatus === "settlement"
-                        ? sum + t.totalAmount
+                        ? sum + (t.finalAmount || t.totalAmount)
                         : sum,
                     0
                   )
@@ -712,10 +734,42 @@ export default function TransactionsPage() {
                       provided (may be required for this service)
                     </p>
                   )}
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Amount:</span>{" "}
-                  {formatCurrency(selectedTransaction.totalAmount)}
-                </p>
+
+                {/* Amount with discount info */}
+                {selectedTransaction.discountPercentage &&
+                selectedTransaction.discountPercentage > 0 ? (
+                  <div className="text-sm">
+                    <div className="text-gray-600">
+                      <span className="font-medium">Subtotal:</span>{" "}
+                      <span className="line-through">
+                        {formatCurrency(selectedTransaction.totalAmount)}
+                      </span>
+                    </div>
+                    <div className="text-gray-600">
+                      <span className="font-medium">
+                        Discount ({selectedTransaction.discountPercentage}%):
+                      </span>{" "}
+                      <span className="text-green-600">
+                        -
+                        {formatCurrency(
+                          selectedTransaction.discountAmount || 0
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-gray-800 font-semibold">
+                      <span className="font-medium">Final Amount:</span>{" "}
+                      {formatCurrency(
+                        selectedTransaction.finalAmount ||
+                          selectedTransaction.totalAmount
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Amount:</span>{" "}
+                    {formatCurrency(selectedTransaction.totalAmount)}
+                  </p>
+                )}
               </div>
 
               {/* Payment Status */}

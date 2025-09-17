@@ -13,6 +13,10 @@ interface Transaction {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  // Discount fields
+  discountPercentage?: number;
+  discountAmount?: number;
+  finalAmount?: number;
   robloxUsername: string;
   robloxPassword?: string;
   paymentStatus: string;
@@ -210,14 +214,46 @@ export default function TransactionDetailPage() {
                 {formatCurrency(transaction.unitPrice)}
               </span>
             </div>
-            <div className="flex justify-between border-t border-gray-600 pt-3">
-              <span className=" font-semibold text-gray-200">
-                Total Amount:
-              </span>
-              <span className="font-bold text-lg text-white">
-                {formatCurrency(transaction.totalAmount)}
-              </span>
-            </div>
+
+            {/* Price breakdown with discount */}
+            {transaction.discountPercentage &&
+            transaction.discountPercentage > 0 ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Subtotal:</span>
+                  <span className="font-medium text-gray-200">
+                    {formatCurrency(transaction.totalAmount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">
+                    Discount ({transaction.discountPercentage}%):
+                  </span>
+                  <span className="font-medium text-green-400">
+                    -{formatCurrency(transaction.discountAmount || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-gray-600 pt-3">
+                  <span className="font-semibold text-gray-200">
+                    Final Amount:
+                  </span>
+                  <span className="font-bold text-lg text-white">
+                    {formatCurrency(
+                      transaction.finalAmount || transaction.totalAmount
+                    )}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between border-t border-gray-600 pt-3">
+                <span className="font-semibold text-gray-200">
+                  Total Amount:
+                </span>
+                <span className="font-bold text-lg text-white">
+                  {formatCurrency(transaction.totalAmount)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

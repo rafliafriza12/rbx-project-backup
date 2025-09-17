@@ -275,8 +275,24 @@ export default function TrackOrderPage() {
                   <div className="mb-2">
                     {getStatusBadge(transaction.orderStatus)}
                   </div>
-                  <div className="text-xl sm:text-2xl font-bold text-rose-600">
-                    Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                  <div className="text-right">
+                    {/* Show discount info if available */}
+                    {(transaction.discountPercentage || 0) > 0 && (
+                      <div className="text-sm text-gray-500 mb-1">
+                        <span className="line-through">
+                          Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                        </span>
+                        <span className="ml-2 text-green-600 font-medium">
+                          -{transaction.discountPercentage}%
+                        </span>
+                      </div>
+                    )}
+                    <div className="text-xl sm:text-2xl font-bold text-rose-600">
+                      Rp{" "}
+                      {(
+                        transaction.finalAmount || transaction.totalAmount
+                      ).toLocaleString("id-ID")}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -299,6 +315,43 @@ export default function TrackOrderPage() {
                       <span className="text-gray-600">Quantity:</span>
                       <span className="font-medium text-gray-800">
                         {transaction.quantity}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Harga Satuan:</span>
+                      <span className="font-medium text-gray-800">
+                        Rp {transaction.unitPrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Subtotal:</span>
+                      <span className="font-medium text-gray-800">
+                        Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    {/* Show discount if available */}
+                    {(transaction.discountPercentage || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          Diskon ({transaction.discountPercentage}%):
+                        </span>
+                        <span className="font-medium text-green-600">
+                          -Rp{" "}
+                          {(transaction.discountAmount || 0).toLocaleString(
+                            "id-ID"
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-gray-200 pt-2">
+                      <span className="text-gray-800 font-semibold">
+                        Total Bayar:
+                      </span>
+                      <span className="font-bold text-rose-600">
+                        Rp{" "}
+                        {(
+                          transaction.finalAmount || transaction.totalAmount
+                        ).toLocaleString("id-ID")}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -473,8 +526,22 @@ export default function TrackOrderPage() {
                   <p className="text-xs sm:text-sm text-gray-600">
                     Total Pembayaran:
                   </p>
+                  {/* Show discount info if available */}
+                  {(transaction.discountPercentage || 0) > 0 && (
+                    <div className="text-xs text-gray-500 mb-1">
+                      <span className="line-through">
+                        Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                      </span>
+                      <span className="ml-1 text-green-600 font-medium">
+                        -{transaction.discountPercentage}%
+                      </span>
+                    </div>
+                  )}
                   <p className="text-lg sm:text-xl font-bold text-rose-600">
-                    Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                    Rp{" "}
+                    {(
+                      transaction.finalAmount || transaction.totalAmount
+                    ).toLocaleString("id-ID")}
                   </p>
                 </div>
               </div>
