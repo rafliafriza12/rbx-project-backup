@@ -28,7 +28,6 @@ export async function GET(
     // Transform data untuk frontend
     const transformedTransactions = transactions.map((transaction) => ({
       _id: transaction._id.toString(),
-      userId: transaction.userId?.toString() || null,
       serviceType: transaction.serviceType,
       serviceId: transaction.serviceId.toString(),
       serviceName: transaction.serviceName,

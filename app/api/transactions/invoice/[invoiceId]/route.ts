@@ -36,7 +36,6 @@ export async function GET(
     // Transform data untuk frontend
     const transformedTransaction = {
       _id: transaction._id.toString(),
-      userId: transaction.userId?.toString() || null,
       serviceType: transaction.serviceType,
       serviceId: transaction.serviceId.toString(),
       serviceName: transaction.serviceName,
@@ -121,7 +120,6 @@ export async function POST(request: NextRequest) {
     // Transform data untuk frontend
     const transformedTransaction = {
       _id: transaction._id.toString(),
-      userId: transaction.userId?.toString() || null,
       serviceType: transaction.serviceType,
       serviceId: transaction.serviceId.toString(),
       serviceName: transaction.serviceName,

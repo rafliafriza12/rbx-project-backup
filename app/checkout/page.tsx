@@ -415,7 +415,7 @@ export default function CheckoutPage() {
         // Tambahkan userId ke customerInfo jika user sudah login
         ...(user && !isGuestCheckout ? { userId: (user as any)?.id } : {}),
       },
-      userId: isGuestCheckout ? null : (user as any)?._id, // null untuk guest
+      userId: isGuestCheckout ? null : (user as any)?.id, // null untuk guest, gunakan id bukan _id
     };
 
     console.log("=== CHECKOUT SUBMIT DEBUG ===");
@@ -426,6 +426,10 @@ export default function CheckoutPage() {
       "Will include password:",
       checkoutData.serviceType !== "gamepass"
     );
+    console.log("User object:", user);
+    console.log("User ID from user.id:", (user as any)?.id);
+    console.log("User ID from user._id:", (user as any)?._id);
+    console.log("Is guest checkout:", isGuestCheckout);
     console.log("Final request data:", {
       ...requestData,
       robloxPassword: requestData.robloxPassword

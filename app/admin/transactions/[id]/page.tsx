@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 interface Transaction {
   _id: string;
   invoiceId: string;
-  userId?: string;
   serviceType: string;
   serviceName: string;
   serviceImage?: string;
@@ -23,6 +22,7 @@ interface Transaction {
   orderStatus: string;
   adminNotes?: string;
   customerInfo?: {
+    userId?: string;
     name: string;
     email: string;
     phone?: string;

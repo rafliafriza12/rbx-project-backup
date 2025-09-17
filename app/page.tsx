@@ -7,16 +7,36 @@ import { useRouter } from "next/navigation";
 import "./globals.css";
 import PublicLayout from "./(public)/layout";
 
+interface RBX5Stats {
+  totalStok: number;
+  totalOrder: number;
+  totalTerjual: number;
+  hargaPer100Robux: number;
+}
+
 export default function HomePage() {
   //ini baru ditambahkan
   const [user, setUser] = useState<any>(null);
   const [discount, setDiscount] = useState(0);
+
+  // RBX5 Stats state
+  const [rbx5Stats, setRbx5Stats] = useState<RBX5Stats>({
+    totalStok: 0,
+    totalOrder: 0,
+    totalTerjual: 0,
+    hargaPer100Robux: 13000,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Robux input state
+  const [robuxAmount, setRobuxAmount] = useState<number>(0);
+  const [totalPrice, setTotalPrice] = useState<number>(0);
   useEffect(() => {
     // Check if user logged in
     const token = localStorage.getItem("auth_token");
     if (token) {
       // Get user data to check discount
-      fetch("http://localhost:8000/api/me", {
+      fetch("/api/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -31,7 +51,83 @@ export default function HomePage() {
           localStorage.removeItem("auth_token");
         });
     }
+
+    // Fetch RBX5 statistics
+    fetchRbx5Stats();
   }, []);
+
+  // Function to fetch RBX5 statistics
+  const fetchRbx5Stats = async () => {
+    try {
+      const response = await fetch("/api/rbx5-stats");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setRbx5Stats(data.data);
+        }
+      } else {
+        console.error("Failed to fetch RBX5 stats");
+      }
+    } catch (error) {
+      console.error("Error fetching RBX5 stats:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  // Function to calculate price based on robux amount
+  const calculateTotalPrice = (robux: number) => {
+    if (robux <= 0 || !rbx5Stats.hargaPer100Robux) return 0;
+
+    // Calculate base price: (robux / 100) * price per 100 robux
+    const basePrice = Math.ceil((robux / 100) * rbx5Stats.hargaPer100Robux);
+
+    // Apply discount if user is logged in
+    if (discount > 0) {
+      const discountAmount = (basePrice * discount) / 100;
+      return basePrice - discountAmount;
+    }
+
+    return basePrice;
+  };
+
+  // Fetch RBX5 stats on component mount
+  // useEffect(() => {
+  //   fetchRbx5Stats();
+  // }, [fetchRbx5Stats]);
+
+  // Handle robux input change
+  const handleRobuxChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    setRobuxAmount(numValue);
+    setTotalPrice(calculateTotalPrice(numValue));
+  };
+
+  // Handle redirect to RBX5 page with robux amount
+  const handleBuyNow = () => {
+    if (robuxAmount <= 0) {
+      alert("Silakan masukkan jumlah Robux yang valid");
+      return;
+    }
+
+    console.log("Preparing data for RBX5:", { robuxAmount, totalPrice });
+
+    // Prepare data for RBX5 page
+    const rbx5Data = {
+      robuxAmount: robuxAmount,
+      totalPrice: totalPrice,
+      fromHomePage: true,
+    };
+
+    // Store in sessionStorage for RBX5 page
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("rbx5InputData", JSON.stringify(rbx5Data));
+      console.log("Data stored in sessionStorage:", rbx5Data);
+    }
+
+    // Redirect to RBX5 page
+    router.push("/rbx5");
+  };
 
   // Di bagian harga produk, tampilkan discount jika ada
   const calculatePrice = (basePrice: number) => {
@@ -128,11 +224,11 @@ export default function HomePage() {
           />
 
           <div className="absolute bottom-[-20px] -right-[-60px] xl:-right-[-100px] bg-[#f6c3ca] px-3 sm:px-4 py-3 rounded-xl rotate-[-17deg] shadow text-xs sm:text-sm text-center font-semibold max-w-[120px] sm:max-w-[140px] w-full">
-            99999+ R$ <br /> Stok Tersedia
+            {rbx5Stats.totalStok} R$ <br /> Stok Tersedia
           </div>
 
           <div className="absolute bottom-[-20px] -left-[2px] bg-[#f6c3ca] px-3 sm:px-4 py-3 rounded-xl rotate-[17deg] shadow text-xs sm:text-sm text-center font-semibold max-w-[120px] sm:max-w-[140px] w-full">
-            99999+ <br /> Total Terjual
+            {rbx5Stats.totalTerjual} <br /> Total Terjual
           </div>
         </div>
       </section>
@@ -160,6 +256,9 @@ export default function HomePage() {
                   <input
                     type="number"
                     placeholder="0"
+                    value={robuxAmount === 0 ? "" : robuxAmount.toString()}
+                    onChange={(e) => handleRobuxChange(e.target.value)}
+                    min="1"
                     className="bg-transparent text-white w-full outline-none placeholder-white text-base sm:text-lg"
                   />
                   <span className="ml-2 text-white font-bold text-sm sm:text-base">
@@ -172,13 +271,31 @@ export default function HomePage() {
                     TOTAL HARGA:
                   </p>
                   <p className="text-base sm:text-lg lg:text-xl font-bold">
-                    Rp. 140000
+                    {loadingStats ? (
+                      <span className="text-sm">Loading...</span>
+                    ) : totalPrice > 0 ? (
+                      <>
+                        Rp. {totalPrice.toLocaleString()}
+                        {discount > 0 && (
+                          <div className="text-xs text-green-200">
+                            Diskon {discount}% diterapkan
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      "Rp. 0"
+                    )}
                   </p>
                 </div>
 
-                <Link
-                  href="/invoice/robux-instant?product=Robux%20Instant&amount=100&price=140000"
-                  className="w-full sm:w-auto sm:max-w-[270px] bg-[#e23b3b] hover:bg-[#d12a2a] py-2 sm:py-3 rounded-lg font-bold text-white text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 shadow-md mx-auto transition-all duration-300 transform hover:scale-105"
+                <button
+                  onClick={handleBuyNow}
+                  disabled={robuxAmount <= 0 || loadingStats}
+                  className={`w-full sm:w-auto sm:max-w-[270px] p-2 sm:py-3 rounded-lg font-bold text-white text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 shadow-md mx-auto transition-all duration-300 ${
+                    robuxAmount <= 0 || loadingStats
+                      ? "bg-gray-500 cursor-not-allowed opacity-50"
+                      : "bg-[#e23b3b] hover:bg-[#d12a2a] transform hover:scale-105"
+                  }`}
                 >
                   <Image
                     src="/cart.png"
@@ -188,7 +305,7 @@ export default function HomePage() {
                     className="sm:w-5 sm:h-5"
                   />
                   <span>BELI SEKARANG</span>
-                </Link>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-white lg:w-80">
@@ -206,7 +323,11 @@ export default function HomePage() {
                     </p>
                   </div>
                   <p className="font-extrabold text-lg sm:text-xl text-white">
-                    99999 R$
+                    {loadingStats ? (
+                      <span className="text-sm">Loading...</span>
+                    ) : (
+                      `${rbx5Stats.totalStok.toLocaleString()} R$`
+                    )}
                   </p>
                 </div>
 
@@ -223,21 +344,33 @@ export default function HomePage() {
                       PESANAN TERJUAL
                     </p>
                   </div>
-                  <p className="font-extrabold text-xl text-white">99999++</p>
+                  <p className="font-extrabold text-xl text-white">
+                    {loadingStats ? (
+                      <span className="text-sm">Loading...</span>
+                    ) : (
+                      `${rbx5Stats.totalTerjual.toLocaleString()} R$`
+                    )}
+                  </p>
                 </div>
 
-                <div className="bg-[#e5b7b7] p-5 rounded-xl shadow-md text-left">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-[#e5b7b7] p-5 rounded-xl shadow-md text-center lg:text-left">
+                  <div className="flex items-center justify-center lg:justify-start gap-2 mb-2 sm:mb-3">
                     <Image src="/ord.png" alt="order" width={24} height={24} />
                     <p className="font-medium text-sm text-white">
                       TOTAL ORDER
                     </p>
                   </div>
-                  <p className="font-extrabold text-xl text-white">1234</p>
+                  <p className="font-extrabold text-xl text-white">
+                    {loadingStats ? (
+                      <span className="text-sm">Loading...</span>
+                    ) : (
+                      rbx5Stats.totalOrder.toLocaleString()
+                    )}
+                  </p>
                 </div>
 
-                <div className="bg-[#e5b7b7] p-5 rounded-xl shadow-md text-left">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-[#e5b7b7] p-5 rounded-xl shadow-md text-center lg:text-left">
+                  <div className="flex items-center justify-center lg:justify-start gap-2 mb-2 sm:mb-3">
                     <Image
                       src="/rux.png"
                       alt="harga robux"
@@ -249,8 +382,14 @@ export default function HomePage() {
                     </p>
                   </div>
                   <p className="font-extrabold text-xl text-white">
-                    Rp.1300{" "}
-                    <span className="text-sm font-semibold">/ 100R$</span>
+                    {loadingStats ? (
+                      <span className="text-sm">Loading...</span>
+                    ) : (
+                      <>
+                        Rp.{rbx5Stats.hargaPer100Robux.toLocaleString()}{" "}
+                        <span className="text-sm font-semibold">/ 100R$</span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>

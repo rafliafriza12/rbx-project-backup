@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import User from "@/models/User";
 import MidtransService from "@/lib/midtrans";
 
 // GET - Get transaction by ID atau invoice ID
@@ -21,7 +22,7 @@ export async function GET(
         { invoiceId: transactionId },
         { midtransOrderId: transactionId },
       ],
-    }).populate("userId", "username email");
+    }).populate("customerInfo.userId", "username email");
 
     if (!transaction) {
       return NextResponse.json(
@@ -87,8 +88,77 @@ export async function PUT(
       );
     }
 
+    // Store old status untuk comparison
+    const oldPaymentStatus = transaction.paymentStatus;
+    const oldOrderStatus = transaction.orderStatus;
+
+    // Debug: Log transaction structure
+    console.log("Transaction structure:", {
+      _id: transaction._id,
+      customerInfo: transaction.customerInfo,
+      hasUserId: !!transaction.customerInfo?.userId,
+    });
+
     // Update status menggunakan method
     await transaction.updateStatus(statusType, newStatus, notes, updatedBy);
+    console.log("halooo");
+
+    // Debug: Check all conditions for spendedMoney update
+    console.log("=== Debug spendedMoney update conditions ===");
+    console.log("statusType:", statusType);
+    console.log("newStatus:", newStatus);
+    console.log("oldPaymentStatus:", oldPaymentStatus);
+    console.log(
+      "transaction.customerInfo?.userId:",
+      transaction.customerInfo?.userId
+    );
+    console.log("statusType === 'payment':", statusType === "payment");
+    console.log("newStatus === 'settlement':", newStatus === "settlement");
+    console.log(
+      "oldPaymentStatus !== 'settlement':",
+      oldPaymentStatus !== "settlement"
+    );
+    console.log(
+      "!!transaction.customerInfo?.userId:",
+      !!transaction.customerInfo?.userId
+    );
+
+    // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
+    if (
+      statusType === "payment" &&
+      newStatus === "settlement" &&
+      oldPaymentStatus !== "settlement" &&
+      transaction.customerInfo?.userId
+    ) {
+      console.log("halooo 1");
+      console.log("Entering spendedMoney update logic");
+      try {
+        // Update spendedMoney user
+        const user = await User.findById(transaction.customerInfo.userId);
+        if (user) {
+          // Gunakan finalAmount, fallback ke totalAmount untuk safety
+          const amountToAdd =
+            transaction.finalAmount || transaction.totalAmount;
+          console.log("finalAmount:", transaction.finalAmount);
+          console.log("totalAmount:", transaction.totalAmount);
+          console.log("amount to add : ", amountToAdd);
+          user.spendedMoney += amountToAdd;
+          await user.save();
+
+          console.log(
+            `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`
+          );
+        } else {
+          console.log(
+            "User not found with ID:",
+            transaction.customerInfo.userId
+          );
+        }
+      } catch (userUpdateError) {
+        console.error("Error updating user spendedMoney:", userUpdateError);
+        // Don't fail the transaction update if user update fails
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -184,13 +184,6 @@ const PublicAppHeader: React.FC = () => {
             >
               Login
             </Link>
-            <Link
-              href={"/admin-login"}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
-              title="Admin Login"
-            >
-              Admin
-            </Link>
           </>
         )}
       </div>
@@ -222,7 +215,7 @@ const PublicAppHeader: React.FC = () => {
                                   ? "opacity-100 translate-y-0"
                                   : "opacity-0 -translate-y-2 pointer-events-none"
                               }
-                              bg-[rgba(255,255,255,0.6)] backdrop-blur-md shadow-lg rounded-b-xl`}
+                              bg-[rgba(255,255,255,1)] backdrop-blur-md shadow-lg rounded-b-xl`}
       >
         <Link
           href="/"
@@ -282,7 +275,7 @@ const PublicAppHeader: React.FC = () => {
               : "text-black hover:text-red-600"
           }`}
         >
-          🔍 Lacak Pesanan
+          Lacak Pesanan
         </Link>
 
         <div className="flex flex-col gap-2 pt-4">
@@ -307,23 +300,17 @@ const PublicAppHeader: React.FC = () => {
             <>
               <Link
                 href={"/register"}
-                className="bg-[#CE3535] text-white py-2 rounded-lg font-semibold 
+                className="bg-[#CE3535] text-white p-2 rounded-lg font-semibold 
                                     hover:bg-[#b32f2f] transition duration-300 transform hover:scale-105"
               >
                 Sign up
               </Link>
               <Link
                 href={"/login"}
-                className="border border-black text-black py-2 rounded-lg font-semibold 
+                className="border border-black text-black p-2 rounded-lg font-semibold 
                                     hover:bg-black hover:text-white transition duration-300 transform hover:scale-105"
               >
                 Login
-              </Link>
-              <Link
-                href={"/admin-login"}
-                className="text-center text-blue-600 hover:text-blue-800 underline text-sm"
-              >
-                Admin Login
               </Link>
             </>
           )}

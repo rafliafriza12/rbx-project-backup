@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const query: any = {};
 
     if (userId && !isAdmin) {
-      query.userId = userId;
+      query["customerInfo.userId"] = userId;
     }
 
     if (status) {
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     if (isExport) {
       const exportTransactions = await Transaction.find(query)
         .sort({ createdAt: -1 })
-        .populate("userId", "username email");
+        .populate("customerInfo.userId", "username email");
 
       // Convert to CSV
       const csvHeaders = [
@@ -250,6 +250,8 @@ export async function POST(request: NextRequest) {
       jokiDetails,
       customerInfo,
       userId,
+      "customerInfo.userId": customerInfo?.userId,
+      "userId from body": userId,
     });
 
     // Validasi input - userId opsional untuk guest checkout
@@ -314,7 +316,6 @@ export async function POST(request: NextRequest) {
 
     // Buat transaksi baru
     const transactionData: any = {
-      userId,
       serviceType,
       serviceId,
       serviceName,
@@ -330,8 +331,20 @@ export async function POST(request: NextRequest) {
       jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
       customerInfo: {
         ...customerInfo,
+        userId: userId || null, // Store userId in customerInfo
       },
     };
+
+    console.log("=== Transaction Data Debug ===");
+    console.log("Final userId for customerInfo:", userId || null);
+    console.log("Final customerInfo:", {
+      ...customerInfo,
+      userId: userId || null,
+    });
+    console.log(
+      "Final transactionData.customerInfo:",
+      transactionData.customerInfo
+    );
 
     // Only add serviceCategory for robux services
     if (serviceType === "robux" && serviceCategory) {

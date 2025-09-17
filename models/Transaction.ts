@@ -13,11 +13,6 @@ const transactionSchema = new mongoose.Schema(
         return `INV-${timestamp}-${random}`;
       },
     },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: false, // Allow guest checkout
-    },
 
     // Detail Layanan
     serviceType: {
@@ -195,7 +190,7 @@ const transactionSchema = new mongoose.Schema(
 );
 
 // Indexes untuk performa (menghapus index yang sudah unique di schema)
-transactionSchema.index({ userId: 1 });
+transactionSchema.index({ "customerInfo.userId": 1 });
 transactionSchema.index({ paymentStatus: 1, orderStatus: 1 });
 transactionSchema.index({ createdAt: -1 });
 

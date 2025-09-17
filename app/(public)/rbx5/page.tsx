@@ -28,6 +28,21 @@ interface UserPlace {
   thumbnail: string | null;
 }
 
+interface RBX5Stats {
+  totalStok: number;
+  totalOrder: number;
+  totalTerjual: number;
+  hargaPer100Robux: number;
+}
+
+interface StockAccountsInfo {
+  totalAccounts: number;
+  activeAccounts: number;
+  inactiveAccounts: number;
+  totalRobux: number;
+  averageRobuxPerAccount: number;
+}
+
 export default function Rbx5Page() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +52,18 @@ export default function Rbx5Page() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
+
+  // Statistics state
+  const [stats, setStats] = useState<RBX5Stats>({
+    totalStok: 0,
+    totalOrder: 0,
+    totalTerjual: 0,
+    hargaPer100Robux: 13000,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [stockAccountsInfo, setStockAccountsInfo] =
+    useState<StockAccountsInfo | null>(null);
+  const [showStockInfo, setShowStockInfo] = useState(false);
 
   // Place selection states
   const [userPlaces, setUserPlaces] = useState<UserPlace[]>([]);
@@ -55,10 +82,12 @@ export default function Rbx5Page() {
   const [lastCheckedRobuxAmount, setLastCheckedRobuxAmount] = useState<
     number | null
   >(null); // Track robux amount that was checked
+  const [homepageDataProcessed, setHomepageDataProcessed] = useState(false); // Track if homepage data was processed
 
   const sliderRef = useRef<HTMLInputElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const [thumbLeft, setThumbLeft] = useState("0px");
+  const [isFromHomepage, setIsFromHomepage] = useState(false);
   const [showEwalletOptions, setShowEwalletOptions] = useState(false);
   const [showQrisOptions, setShowQrisOptions] = useState(false);
   const [showVaOptions, setShowVaOptions] = useState(false);
@@ -176,8 +205,74 @@ export default function Rbx5Page() {
     };
   }, []);
 
+  // Check for data from homepage
+  useEffect(() => {
+    const checkHomepageData = () => {
+      try {
+        const storedData = sessionStorage.getItem("rbx5InputData");
+        console.log("Checking for homepage data:", storedData);
+
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          console.log("Parsed homepage data:", data);
+
+          if (data.fromHomePage && data.robuxAmount) {
+            console.log(
+              "Setting robux amount from homepage:",
+              data.robuxAmount
+            );
+            setRobux(data.robuxAmount);
+            setIsFromHomepage(true);
+            setHomepageDataProcessed(true);
+
+            // Immediately calculate and set thumb position
+            const calculateThumbPosition = (robuxValue: number) => {
+              const maxRobux = 1000;
+              const percent = Math.min(robuxValue / maxRobux, 1);
+              // Use a fixed width calculation since we don't have slider ref yet
+              const estimatedSliderWidth = 740; // max-w-[740px] from CSS
+              const thumbWidth = 50;
+              const offset = percent * (estimatedSliderWidth - thumbWidth);
+
+              console.log("Immediate thumb calculation:", {
+                robux: robuxValue,
+                percent,
+                estimatedSliderWidth,
+                thumbWidth,
+                offset,
+                finalPosition: `${offset}px`,
+              });
+
+              return `${offset}px`;
+            };
+
+            const newThumbLeft = calculateThumbPosition(data.robuxAmount);
+            setThumbLeft(newThumbLeft);
+            console.log("Set thumbLeft immediately to:", newThumbLeft);
+
+            // Clear the data so it doesn't persist on page refresh
+            sessionStorage.removeItem("rbx5InputData");
+          } else {
+            setHomepageDataProcessed(true);
+          }
+        } else {
+          console.log("No homepage data found in sessionStorage");
+          setHomepageDataProcessed(true);
+        }
+      } catch (error) {
+        console.error("Error reading homepage data:", error);
+        setHomepageDataProcessed(true);
+      }
+    };
+
+    checkHomepageData();
+  }, []);
+
   // Fetch products from database
   useEffect(() => {
+    // Wait for homepage data to be processed first
+    if (!homepageDataProcessed) return;
+
     const fetchProducts = async () => {
       try {
         const response = await fetch("/api/products?category=robux_5_hari");
@@ -189,9 +284,10 @@ export default function Rbx5Page() {
           );
           setProducts(sortedProducts);
 
-          // Don't set default selection - let user choose via slider
-          if (sortedProducts && sortedProducts.length > 0) {
-            setRobux(0); // Start with 0, no selection
+          // Only set to 0 if no robux amount was set from homepage
+          if (sortedProducts && sortedProducts.length > 0 && robux === 0) {
+            // Don't override robux if it was set from homepage
+            // setRobux(0); - Remove this line to avoid resetting homepage value
           }
         } else {
           console.error("Failed to fetch products");
@@ -217,9 +313,51 @@ export default function Rbx5Page() {
       }
     };
 
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/rbx5-stats");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setStats(data.data);
+            console.log("RBX5 Stats loaded:", data.data);
+          } else {
+            console.error("Failed to parse RBX5 stats:", data);
+          }
+        } else {
+          console.error("Failed to fetch RBX5 stats, status:", response.status);
+          const errorData = await response.json().catch(() => null);
+          console.error("Error details:", errorData);
+        }
+      } catch (error) {
+        console.error("Error fetching RBX5 stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    const fetchStockAccountsInfo = async () => {
+      try {
+        const response = await fetch("/api/stock-accounts");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.stats) {
+            setStockAccountsInfo(data.stats);
+            console.log("Stock accounts info loaded:", data.stats);
+          }
+        } else {
+          console.error("Failed to fetch stock accounts info");
+        }
+      } catch (error) {
+        console.error("Error fetching stock accounts info:", error);
+      }
+    };
+
     fetchProducts();
     fetchRobuxPricing();
-  }, []);
+    fetchStats();
+    fetchStockAccountsInfo();
+  }, [homepageDataProcessed, robux]); // Wait for homepage data and depend on robux value
 
   // Effect to detect robux amount changes and reset gamepass check status
   useEffect(() => {
@@ -388,20 +526,44 @@ export default function Rbx5Page() {
   useEffect(() => {
     const updateThumb = () => {
       const slider = sliderRef.current;
-      if (!slider) return;
+      if (!slider) {
+        console.log("Slider ref not found during regular update");
+        return;
+      }
 
-      const maxRobux = 1000; // Fixed maximum value
-      const percent = Math.min(robux / maxRobux, 1); // Ensure percent doesn't exceed 1
+      const maxRobux = 1000;
+      const percent = Math.min(robux / maxRobux, 1);
       const sliderWidth = slider.offsetWidth;
       const thumbWidth = 50;
       const offset = percent * (sliderWidth - thumbWidth);
+
+      console.log("Regular update calculation:", {
+        robux,
+        percent,
+        sliderWidth,
+        thumbWidth,
+        offset,
+        finalPosition: `${offset}px`,
+      });
+
       setThumbLeft(`${offset}px`);
     };
 
+    // Update immediately without timeout
     updateThumb();
+
     window.addEventListener("resize", updateThumb);
-    return () => window.removeEventListener("resize", updateThumb);
+    return () => {
+      window.removeEventListener("resize", updateThumb);
+    };
   }, [robux]);
+
+  // Reset homepage flag after regular update
+  useEffect(() => {
+    if (isFromHomepage) {
+      setIsFromHomepage(false);
+    }
+  }, [thumbLeft]);
 
   // Check if all required fields are filled
   const isFormValid =
@@ -471,6 +633,42 @@ export default function Rbx5Page() {
     }
   };
 
+  // Function to refresh statistics
+  const refreshStats = async () => {
+    setLoadingStats(true);
+    try {
+      // Fetch both stats and stock accounts info in parallel
+      const [statsResponse, stockResponse] = await Promise.all([
+        fetch("/api/rbx5-stats"),
+        fetch("/api/stock-accounts"),
+      ]);
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        if (statsData.success && statsData.data) {
+          setStats(statsData.data);
+        }
+      }
+
+      if (stockResponse.ok) {
+        const stockData = await stockResponse.json();
+        if (stockData.success && stockData.stats) {
+          setStockAccountsInfo(stockData.stats);
+        }
+      }
+
+      toast.success("Statistik berhasil diperbarui!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error("Error refreshing stats:", error);
+      toast.error("Terjadi kesalahan saat memperbarui statistik");
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -485,24 +683,103 @@ export default function Rbx5Page() {
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-2 text-black">
           Beli Robux
         </h1>
-        <p className="text-center text-sm sm:text-base text-gray-800 mb-6 sm:mb-8">
-          Robux akan otomatis di tambahkan ke akunmu melalui gamepass resmi.
-        </p>
+        <div className="flex items-center justify-center mb-4 max-w-4xl mx-auto">
+          <p className="text-center text-sm sm:text-base text-gray-800">
+            Robux akan otomatis di tambahkan ke akunmu melalui gamepass resmi.
+          </p>
+          {/* <button
+            onClick={refreshStats}
+            disabled={loadingStats}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#CE3535] text-white rounded-lg hover:bg-[#b12d2d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            {loadingStats ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            ) : (
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            )}
+            {loadingStats ? "Memuat..." : "Refresh"}
+          </button> */}
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6 max-w-4xl items-center mx-auto">
           {[
-            { label: "Total Stok", value: "10.000 R$", img: "/stok.png" },
-            { label: "Total Order", value: "500 Order", img: "/order.png" },
-            { label: "Terjual", value: "97.200 R$", img: "/terjual.png" },
+            {
+              label: "Total Stok",
+              value: loadingStats ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
+                </div>
+              ) : (
+                `${stats.totalStok.toLocaleString()} R$`
+              ),
+              img: "/stok.png",
+              hasInfo: true,
+              infoContent: stockAccountsInfo ? (
+                <div className="text-xs text-left">
+                  <div className="font-semibold mb-1">Detail Stok Akun:</div>
+                  <div>Total Akun: {stockAccountsInfo.totalAccounts}</div>
+                  <div>Akun Aktif: {stockAccountsInfo.activeAccounts}</div>
+                  <div>Akun Nonaktif: {stockAccountsInfo.inactiveAccounts}</div>
+                  <div>
+                    Rata-rata per Akun:{" "}
+                    {stockAccountsInfo.averageRobuxPerAccount.toLocaleString()}{" "}
+                    R$
+                  </div>
+                </div>
+              ) : null,
+            },
+            {
+              label: "Total Order",
+              value: loadingStats ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
+                </div>
+              ) : (
+                `${stats.totalOrder} Order`
+              ),
+              img: "/order.png",
+              hasInfo: false,
+            },
+            {
+              label: "Terjual",
+              value: loadingStats ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
+                </div>
+              ) : (
+                `${stats.totalTerjual.toLocaleString()} R$`
+              ),
+              img: "/terjual.png",
+              hasInfo: false,
+            },
             {
               label: "Harga Robux",
-              value: "Rp.13.000 / 100 R$",
+              value: loadingStats ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-pulse bg-gray-300 h-4 w-20 rounded"></div>
+                </div>
+              ) : (
+                `Rp.${stats.hargaPer100Robux.toLocaleString()} / 100 R$`
+              ),
               img: "/harga.png",
+              hasInfo: false,
             },
           ].map((item, i) => (
             <div
               key={i}
-              className="relative w-full h-auto  bg-[#f8b8b8] border-2 border-[#CE3535] rounded-2xl px-2 sm:px-3 py-2 md:py-5 flex items-center justify-center text-center"
+              className="relative w-full h-auto bg-[#f8b8b8] border-2 border-[#CE3535] rounded-2xl px-2 sm:px-3 py-2 md:py-5 flex items-center justify-center text-center group"
             >
               <img
                 src={item.img}
@@ -510,10 +787,35 @@ export default function Rbx5Page() {
                 className="absolute top-1 left-3 w-6 h-6 object-contain"
               />
 
+              {/* Info Icon for items with additional info */}
+              {item.hasInfo && item.infoContent && (
+                <div className="absolute top-1 right-2">
+                  <div className="relative">
+                    <svg
+                      className="w-4 h-4 text-gray-600 hover:text-gray-800 cursor-help"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-black text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                      {item.infoContent}
+                      <div className="absolute top-full right-4 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="text-[13px] leading-tight">
                 <div className="text-gray-700">{item.label}</div>
                 <div className="text-black font-extrabold text-sm">
-                  {item.value}
+                  {typeof item.value === "string" ? item.value : item.value}
                 </div>
               </div>
             </div>
@@ -601,7 +903,9 @@ export default function Rbx5Page() {
 
           <div
             ref={thumbRef}
-            className="absolute top-1/2 -translate-y-1/2 text-nowrap bg-[#CE3535] text-black text-[10px] font-bold h-[28px] px-3 rounded-lg flex items-center justify-center pointer-events-none z-20 transition-all duration-300 ease-in-out"
+            className={`absolute top-1/2 -translate-y-1/2 text-nowrap bg-[#CE3535] text-black text-[10px] font-bold h-[28px] px-3 rounded-lg flex items-center justify-center pointer-events-none z-20 ${
+              isFromHomepage ? "" : "transition-all duration-300 ease-in-out"
+            }`}
             style={{ left: thumbLeft }}
           >
             {robux} R$
