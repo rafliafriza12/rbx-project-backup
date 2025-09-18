@@ -14,6 +14,21 @@ interface RBX5Stats {
   hargaPer100Robux: number;
 }
 
+interface Gamepass {
+  _id: string;
+  gameName: string;
+  imgUrl: string;
+  caraPesan: string[];
+  features: string[];
+  showOnHomepage: boolean;
+  developer: string;
+  item: {
+    itemName: string;
+    imgUrl: string;
+    price: number;
+  }[];
+}
+
 export default function HomePage() {
   //ini baru ditambahkan
   const [user, setUser] = useState<any>(null);
@@ -27,6 +42,10 @@ export default function HomePage() {
     hargaPer100Robux: 13000,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+
+  // Gamepass state
+  const [gamepasses, setGamepasses] = useState<Gamepass[]>([]);
+  const [loadingGamepasses, setLoadingGamepasses] = useState(true);
 
   // Robux input state
   const [robuxAmount, setRobuxAmount] = useState<number>(0);
@@ -54,6 +73,9 @@ export default function HomePage() {
 
     // Fetch RBX5 statistics
     fetchRbx5Stats();
+
+    // Fetch homepage gamepasses
+    fetchHomepageGamepasses();
   }, []);
 
   // Function to fetch RBX5 statistics
@@ -72,6 +94,29 @@ export default function HomePage() {
       console.error("Error fetching RBX5 stats:", error);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  // Function to fetch homepage gamepasses
+  const fetchHomepageGamepasses = async () => {
+    try {
+      const response = await fetch("/api/gamepass");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Filter only gamepasses that should be shown on homepage
+          const homepageGamepasses = data.data.filter(
+            (gamepass: Gamepass) => gamepass.showOnHomepage
+          );
+          setGamepasses(homepageGamepasses);
+        }
+      } else {
+        console.error("Failed to fetch gamepasses");
+      }
+    } catch (error) {
+      console.error("Error fetching gamepasses:", error);
+    } finally {
+      setLoadingGamepasses(false);
     }
   };
 
@@ -143,21 +188,6 @@ export default function HomePage() {
   };
   // 2. Buat ref untuk menargetkan section pembelian
   const pembelianRef = useRef<HTMLDivElement>(null);
-
-  const games = [
-    {
-      title: "Strongest battleground",
-      image: "/stonges.png",
-    },
-    {
-      title: "Anime Last Stand",
-      image: "/anime_last.png",
-    },
-    {
-      title: "All Star Tower Defense",
-      image: "/all_star.png",
-    },
-  ];
 
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -408,32 +438,44 @@ export default function HomePage() {
           untuk mewujudkan semua impian Roblox-mu!
         </p>
 
-        <div className="flex flex-wrap justify-center gap-25">
-          {games.map((game, index) => (
-            <button
-              key={index}
-              onClick={() =>
-                router.push(
-                  `/gamepass/${game.title.toLowerCase().replace(/ /g, "-")}`
-                )
-              }
-              className="relative w-[230px] h-[310px] focus:outline-none active:scale-95 transition duration-300 transform hover:scale-105"
-            >
-              <div className="absolute top-1.5 left-2 w-full h-full bg-[#a45d5d] rounded-3xl"></div>
+        {loadingGamepasses ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+            <span className="ml-3 text-gray-600">Memuat game...</span>
+          </div>
+        ) : gamepasses.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">
+              Belum ada game tersedia saat ini
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-8">
+            {gamepasses.map((gamepass, index) => (
+              <button
+                key={gamepass._id}
+                onClick={() => router.push(`/gamepass/${gamepass._id}`)}
+                className="relative w-[230px] h-[310px] focus:outline-none active:scale-95 transition duration-300 transform hover:scale-105"
+              >
+                <div className="absolute top-1.5 left-2 w-full h-full bg-[#a45d5d] rounded-3xl"></div>
 
-              <div className="relative w-full h-full bg-[#c18585] rounded-3xl overflow-hidden z-10">
-                <img
-                  src={game.image}
-                  alt={game.title}
-                  className="w-full h-[230px] object-cover rounded-t-3xl"
-                />
-                <div className="px-4 py-4 text-white text-xl font-bold">
-                  {game.title}
+                <div className="relative w-full h-full bg-[#c18585] rounded-3xl overflow-hidden z-10">
+                  <img
+                    src={gamepass.imgUrl}
+                    alt={gamepass.gameName}
+                    className="w-full h-[230px] object-cover rounded-t-3xl"
+                  />
+                  <div className="px-4 pt-4 text-white text-xl font-bold">
+                    {gamepass.gameName}
+                  </div>
+                  <div className="px-4 pb-2 text-white/80 text-sm">
+                    by {gamepass.developer}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="relative py-20 px-4 md:px-20">

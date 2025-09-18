@@ -16,6 +16,8 @@ interface Gamepass {
   imgUrl: string;
   caraPesan: string[];
   features: string[];
+  showOnHomepage: boolean;
+  developer: string;
   item: GamepassItem[];
 }
 
@@ -45,11 +47,11 @@ export default function GamepassDetailPage() {
       const response = await fetch(`/api/gamepass/${gamepassId}`);
       const data = await response.json();
 
-      if (response.ok) {
-        setGamepass(data.gamepass);
+      if (data.success) {
+        setGamepass(data.data);
         // Auto select first item if available
-        if (data.gamepass.item.length > 0) {
-          setSelectedItem(data.gamepass.item[0]);
+        if (data.data.item.length > 0) {
+          setSelectedItem(data.data.item[0]);
         }
       } else {
         setError(data.error || "Gamepass tidak ditemukan");
@@ -144,7 +146,7 @@ export default function GamepassDetailPage() {
         </div>
       </div>
 
-      <section className="max-w-6xl mx-auto bg-[#e28686] rounded-lg  sm:p-4 mt-4 sm:mt-6 z-10 relative flex flex-col sm:flex-row gap-3 sm:gap-4 shadow-lg">
+      <section className="max-w-6xl mx-auto bg-[#c86f6f] rounded-lg  sm:p-4 mt-4 sm:mt-6 z-10 relative flex flex-col sm:flex-row gap-3 sm:gap-4 shadow-lg">
         <div className="flex-shrink-0 self-center sm:self-start ">
           <Image
             src={gamepass.imgUrl}
@@ -161,7 +163,7 @@ export default function GamepassDetailPage() {
               {gamepass.gameName}
             </h1>
             <p className="text-sm text-black/80">
-              Gamer Robot Inc <span className="text-blue-600">✔️</span>
+              {gamepass.developer} <span className="text-blue-600">✔️</span>
             </p>
           </div>
 

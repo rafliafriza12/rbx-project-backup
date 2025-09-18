@@ -5,6 +5,8 @@ export interface IGamepass extends Document {
   imgUrl: string;
   caraPesan: string[];
   features: string[];
+  showOnHomepage: boolean;
+  developer: string;
   item: {
     itemName: string;
     imgUrl: string;
@@ -47,6 +49,16 @@ const GamepassSchema: Schema = new Schema(
         message: "Minimal satu fitur diperlukan",
       },
     },
+    showOnHomepage: {
+      type: Boolean,
+      default: false,
+    },
+    developer: {
+      type: String,
+      required: [true, "Developer diperlukan"],
+      trim: true,
+      maxlength: [100, "Nama developer tidak boleh lebih dari 100 karakter"],
+    },
     item: {
       type: [
         {
@@ -84,6 +96,47 @@ const GamepassSchema: Schema = new Schema(
 // Index for better query performance
 GamepassSchema.index({ gameName: 1 });
 GamepassSchema.index({ createdAt: -1 });
+GamepassSchema.index({ showOnHomepage: 1 });
+
+// Static method to check homepage limit
+GamepassSchema.statics.canAddToHomepage = async function (excludeId?: string) {
+  const count = await this.countDocuments({
+    showOnHomepage: true,
+    ...(excludeId && { _id: { $ne: excludeId } }),
+  });
+  return count < 3;
+};
+
+// Pre-save middleware to validate homepage limit
+GamepassSchema.pre("save", async function (next) {
+  if (this.showOnHomepage && this.isModified("showOnHomepage")) {
+    const canAdd = await (this.constructor as any).canAddToHomepage(this._id);
+    if (!canAdd) {
+      const error = new Error(
+        "Maksimal 3 gamepass yang dapat ditampilkan di homepage"
+      );
+      return next(error);
+    }
+  }
+  next();
+});
+
+// Pre-update middleware to validate homepage limit on findByIdAndUpdate
+GamepassSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate() as any;
+
+  if (update && update.showOnHomepage === true) {
+    const gamepassId = this.getQuery()._id;
+    const canAdd = await (this.model as any).canAddToHomepage(gamepassId);
+    if (!canAdd) {
+      const error = new Error(
+        "Maksimal 3 gamepass yang dapat ditampilkan di homepage"
+      );
+      return next(error);
+    }
+  }
+  next();
+});
 
 export default mongoose.models.Gamepass ||
   mongoose.model<IGamepass>("Gamepass", GamepassSchema);

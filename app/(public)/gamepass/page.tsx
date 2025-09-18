@@ -10,6 +10,8 @@ interface Gamepass {
   imgUrl: string;
   caraPesan: string[];
   features: string[];
+  showOnHomepage: boolean;
+  developer: string;
   item: {
     itemName: string;
     imgUrl: string;
@@ -35,8 +37,8 @@ export default function GamepassPage() {
       const response = await fetch("/api/gamepass");
       const data = await response.json();
 
-      if (response.ok) {
-        setGamepasses(data.gamepasses);
+      if (data.success) {
+        setGamepasses(data.data);
       } else {
         setError(data.error || "Gagal mengambil data gamepass");
       }
@@ -79,12 +81,12 @@ export default function GamepassPage() {
         </div>
       ) : (
         <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 px-4 sm:px-6 max-w-4xl mx-auto">
-          {gamepasses.length === 0 ? (
+          {gamepasses?.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <p className="text-gray-500 mb-4">Belum ada gamepass tersedia</p>
             </div>
           ) : (
-            gamepasses.map((gamepass) => {
+            gamepasses?.map((gamepass) => {
               const slug = gamepass.gameName.toLowerCase().replace(/ /g, "-");
               return (
                 <Link

@@ -83,7 +83,6 @@ export async function PUT(
     if (
       !gamepassData.gameName ||
       !gamepassData.imgUrl ||
-      !gamepassData.developer ||
       !gamepassData.caraPesan?.length ||
       !gamepassData.features?.length ||
       !gamepassData.item?.length
@@ -92,20 +91,6 @@ export async function PUT(
         { error: "Semua field wajib diisi" },
         { status: 400 }
       );
-    }
-
-    // Check homepage limit if trying to set showOnHomepage to true
-    if (gamepassData.showOnHomepage) {
-      const canAdd = await (Gamepass as any).canAddToHomepage(params.id);
-      if (!canAdd) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Maksimal 3 gamepass yang dapat ditampilkan di homepage",
-          },
-          { status: 400 }
-        );
-      }
     }
 
     // Update gamepass

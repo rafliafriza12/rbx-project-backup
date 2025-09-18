@@ -41,15 +41,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Ambil semua gamepass, urutkan berdasarkan tanggal terbaru
-    const gamepasses = await Gamepass.find({}).sort({ createdAt: -1 });
+    const gamepasses = await Gamepass.find({})
+      .select(
+        "gameName imgUrl caraPesan features showOnHomepage developer item createdAt updatedAt"
+      )
+      .sort({ createdAt: -1 });
 
-    return NextResponse.json(
-      {
-        message: "Gamepass berhasil diambil",
-        gamepasses,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      data: gamepasses,
+    });
   } catch (error: any) {
     console.error("Get gamepasses error:", error);
     return NextResponse.json(
@@ -86,20 +87,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
-    const gameName = formData.get("gameName") as string;
-    const caraPesan = JSON.parse((formData.get("caraPesan") as string) || "[]");
-    const features = JSON.parse((formData.get("features") as string) || "[]");
-    const items = JSON.parse((formData.get("items") as string) || "[]");
-    const gameImage = formData.get("gameImage") as File;
+    const gamepassData = await request.json();
 
     // Validation
     if (
-      !gameName ||
-      !gameImage ||
-      !caraPesan.length ||
-      !features.length ||
-      !items.length
+      !gamepassData.gameName ||
+      !gamepassData.imgUrl ||
+      !gamepassData.developer ||
+      !gamepassData.caraPesan?.length ||
+      !gamepassData.features?.length ||
+      !gamepassData.item?.length
     ) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
@@ -107,65 +104,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload game image to cloudinary
-    const gameImageUpload = await uploadToCloudinary(
-      gameImage,
-      "gamepass/games"
-    );
-    if (!gameImageUpload.success) {
-      return NextResponse.json(
-        { error: "Gagal mengupload gambar game" },
-        { status: 400 }
-      );
-    }
-
-    // Process items and upload their images
-    const processedItems = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const itemImageKey = `itemImage_${i}`;
-      const itemImage = formData.get(itemImageKey) as File;
-
-      if (!itemImage) {
+    // Check homepage limit if trying to set showOnHomepage to true
+    if (gamepassData.showOnHomepage) {
+      const canAdd = await (Gamepass as any).canAddToHomepage();
+      if (!canAdd) {
         return NextResponse.json(
-          { error: `Gambar untuk item ${item.itemName} diperlukan` },
+          {
+            success: false,
+            error: "Maksimal 3 gamepass yang dapat ditampilkan di homepage",
+          },
           { status: 400 }
         );
       }
-
-      const itemImageUpload = await uploadToCloudinary(
-        itemImage,
-        "gamepass/items"
-      );
-      if (!itemImageUpload.success) {
-        return NextResponse.json(
-          { error: `Gagal mengupload gambar untuk item ${item.itemName}` },
-          { status: 400 }
-        );
-      }
-
-      processedItems.push({
-        itemName: item.itemName,
-        imgUrl: itemImageUpload.url,
-        price: parseFloat(item.price),
-      });
     }
 
     // Create new gamepass
-    const newGamepass = new Gamepass({
-      gameName,
-      imgUrl: gameImageUpload.url,
-      caraPesan,
-      features,
-      item: processedItems,
-    });
-
+    const newGamepass = new Gamepass(gamepassData);
     await newGamepass.save();
 
     return NextResponse.json(
       {
+        success: true,
         message: "Gamepass berhasil dibuat",
-        gamepass: newGamepass,
+        data: newGamepass,
       },
       { status: 201 }
     );
@@ -176,11 +137,20 @@ export async function POST(request: NextRequest) {
       const messages = Object.values(error.errors).map(
         (err: any) => err.message
       );
-      return NextResponse.json({ error: messages.join(", ") }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: messages.join(", "),
+        },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(
-      { error: "Terjadi kesalahan server" },
+      {
+        success: false,
+        error: "Terjadi kesalahan server",
+      },
       { status: 500 }
     );
   }

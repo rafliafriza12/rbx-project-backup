@@ -126,7 +126,7 @@ const RobuxInstan: React.FC = () => {
       <div className="max-w-6xl mx-auto px-2">
         <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] relative rounded-lg overflow-hidden">
           <Image
-            src="/banner2.png"
+            src="/rbx_instant.png"
             alt="banner"
             fill
             className="object-cover"
