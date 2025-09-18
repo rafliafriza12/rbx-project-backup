@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import ReviewSection from "@/components/ReviewSection";
 
 interface JokiItem {
   itemName: string;
@@ -119,6 +120,8 @@ export default function JokiPage() {
           )}
         </div>
       )}
+
+      {/* Review Section */}
     </div>
   );
 }

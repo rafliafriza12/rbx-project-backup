@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
+import { toast } from "react-toastify";
 
 interface OrderData {
   type: "gamepass" | "robux5" | "robux-instant" | "joki";
@@ -251,7 +252,7 @@ function UniversalInvoiceContent() {
 
   const handleCreateOrder = () => {
     if (!paymentMethod || !validateForm()) {
-      alert("Mohon lengkapi semua data yang diperlukan");
+      toast.error("Mohon lengkapi semua data yang diperlukan");
       return;
     }
 

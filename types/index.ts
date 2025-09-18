@@ -71,3 +71,40 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+export interface Review {
+  _id: string;
+  username: string;
+  serviceType: "robux" | "gamepass" | "joki";
+  serviceCategory?: "robux_instant" | "robux_5_hari";
+  serviceId?: string;
+  serviceName?: string;
+  rating: number;
+  comment: string;
+  isApproved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewApiResponse extends ApiResponse<Review[]> {
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface AdminReviewsResponse extends ApiResponse<Review[]> {
+  stats: {
+    total: number;
+    approved: number;
+    pending: number;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}

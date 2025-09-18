@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import ReviewSection from "@/components/ReviewSection";
 
 interface Gamepass {
   _id: string;
@@ -118,6 +119,8 @@ export default function GamepassPage() {
           )}
         </div>
       )}
+
+      {/* Review Section */}
     </div>
   );
 }

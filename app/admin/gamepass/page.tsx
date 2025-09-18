@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
 import GamepassManager from "@/components/admin/GamepassManager";
 
@@ -75,13 +76,13 @@ export default function AdminGamepassPage() {
       if (data.success) {
         setGamepasses([data.data, ...gamepasses]);
         setShowCreateModal(false);
-        alert("Gamepass berhasil dibuat!");
+        toast.success("Gamepass berhasil dibuat!");
       } else {
-        alert(data.error || "Gagal membuat gamepass");
+        toast.error(data.error || "Gagal membuat gamepass");
       }
     } catch (error) {
       console.error("Error creating gamepass:", error);
-      alert("Terjadi kesalahan saat membuat gamepass");
+      toast.error("Terjadi kesalahan saat membuat gamepass");
     }
   };
 
@@ -108,13 +109,13 @@ export default function AdminGamepassPage() {
           )
         );
         setEditingGamepass(null);
-        alert("Gamepass berhasil diperbarui!");
+        toast.success("Gamepass berhasil diperbarui!");
       } else {
-        alert(data.error || "Gagal memperbarui gamepass");
+        toast.error(data.error || "Gagal memperbarui gamepass");
       }
     } catch (error) {
       console.error("Error updating gamepass:", error);
-      alert("Terjadi kesalahan saat memperbarui gamepass");
+      toast.error("Terjadi kesalahan saat memperbarui gamepass");
     }
   };
 
@@ -133,13 +134,13 @@ export default function AdminGamepassPage() {
 
       if (data.success) {
         setGamepasses(gamepasses.filter((gp) => gp._id !== id));
-        alert("Gamepass berhasil dihapus!");
+        toast.success("Gamepass berhasil dihapus!");
       } else {
-        alert(data.error || "Gagal menghapus gamepass");
+        toast.error(data.error || "Gagal menghapus gamepass");
       }
     } catch (error) {
       console.error("Error deleting gamepass:", error);
-      alert("Terjadi kesalahan saat menghapus gamepass");
+      toast.error("Terjadi kesalahan saat menghapus gamepass");
     }
   };
 
@@ -150,7 +151,7 @@ export default function AdminGamepassPage() {
       (gp) => gp.showOnHomepage
     ).length;
     if (!currentStatus && currentHomepageCount >= 3) {
-      alert("Maksimal 3 gamepass yang dapat ditampilkan di homepage");
+      toast.warning("Maksimal 3 gamepass yang dapat ditampilkan di homepage");
       return;
     }
 
@@ -171,12 +172,19 @@ export default function AdminGamepassPage() {
             gp._id === id ? { ...gp, showOnHomepage: !currentStatus } : gp
           )
         );
+        toast.success(
+          `Gamepass ${
+            !currentStatus ? "ditambahkan ke" : "dihapus dari"
+          } homepage`
+        );
       } else {
-        alert(data.message || data.error || "Gagal mengubah status homepage");
+        toast.error(
+          data.message || data.error || "Gagal mengubah status homepage"
+        );
       }
     } catch (error) {
       console.error("Error toggling homepage:", error);
-      alert("Terjadi kesalahan saat mengubah status homepage");
+      toast.error("Terjadi kesalahan saat mengubah status homepage");
     }
   };
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 // 1. Import useRef dari React
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import "./globals.css";
 import PublicLayout from "./(public)/layout";
 
@@ -151,7 +152,7 @@ export default function HomePage() {
   // Handle redirect to RBX5 page with robux amount
   const handleBuyNow = () => {
     if (robuxAmount <= 0) {
-      alert("Silakan masukkan jumlah Robux yang valid");
+      toast.error("Silakan masukkan jumlah Robux yang valid");
       return;
     }
 

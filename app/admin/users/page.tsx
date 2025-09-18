@@ -194,7 +194,7 @@ export default function UsersPage() {
 
   const handleDelete = async (userId: string, userRole: string) => {
     if (userRole === "admin") {
-      alert("Admin users require special permission to delete!");
+      toast.warning("Admin users require special permission to delete!");
       return;
     }
     if (confirm("Are you sure you want to delete this user?")) {

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
+import ReviewSection from "@/components/ReviewSection";
 
 interface Product {
   _id: string;
@@ -1304,6 +1305,13 @@ export default function Rbx5Page() {
             </div>
           </div>
         </section>
+        <div className="max-w-4xl mx-auto">
+          <ReviewSection
+            serviceType="robux"
+            serviceCategory="robux_5_hari"
+            title="Reviews Robux 5 Hari"
+          />
+        </div>
       </main>
 
       {/* Place Selection Modal */}
@@ -1561,6 +1569,8 @@ export default function Rbx5Page() {
           </div>
         </div>
       )}
+
+      {/* Review Section */}
     </>
   );
 }

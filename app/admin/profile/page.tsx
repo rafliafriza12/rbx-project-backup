@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 interface ActivityLog {
   id: number;
@@ -95,13 +96,13 @@ export default function ProfilePage() {
     // API call to update profile
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setLoading(false);
-    alert("Profile updated successfully!");
+    toast.success("Profile updated successfully!");
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordData.new !== passwordData.confirm) {
-      alert("New passwords do not match!");
+      toast.error("New passwords do not match!");
       return;
     }
     setLoading(true);
@@ -109,7 +110,7 @@ export default function ProfilePage() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setLoading(false);
     setPasswordData({ current: "", new: "", confirm: "" });
-    alert("Password changed successfully!");
+    toast.success("Password changed successfully!");
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {

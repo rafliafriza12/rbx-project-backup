@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import ReviewSection from "@/components/ReviewSection";
 
 interface GamepassItem {
   itemName: string;
@@ -279,6 +280,16 @@ export default function GamepassDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* Review Section */}
+      {gamepass && (
+        <ReviewSection
+          serviceType="gamepass"
+          serviceId={gamepass._id}
+          serviceName={gamepass.gameName}
+          title={`Reviews ${gamepass.gameName}`}
+        />
+      )}
     </main>
   );
 }

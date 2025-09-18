@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import ReviewSection from "@/components/ReviewSection";
 
 interface JokiItem {
   itemName: string;
@@ -455,6 +456,16 @@ export default function JokiDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* Review Section */}
+      {joki && (
+        <ReviewSection
+          serviceType="joki"
+          serviceId={joki._id}
+          serviceName={joki.gameName}
+          title={`Reviews ${joki.gameName}`}
+        />
+      )}
     </main>
   );
 }

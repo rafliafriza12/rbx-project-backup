@@ -16,6 +16,7 @@ const menuItems: MenuItem[] = [
   { title: "Dashboard", icon: "📊", href: "/admin/dashboard" },
   { title: "Transaksi", icon: "📦", href: "/admin/transactions" },
   { title: "Users", icon: "👥", href: "/admin/users" },
+  { title: "Reviews", icon: "⭐", href: "/admin/reviews" },
   { title: "Roles", icon: "🎭", href: "/admin/roles" },
   { title: "Produk Robux", icon: "🎮", href: "/admin/products" },
   { title: "Harga Robux", icon: "💰", href: "/admin/robux-pricing" },

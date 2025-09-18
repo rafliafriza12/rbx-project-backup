@@ -7,6 +7,8 @@ interface Transaction {
   _id: string;
   invoiceId: string;
   serviceType: string;
+  serviceId: string;
+  serviceCategory?: string;
   serviceName: string;
   serviceImage?: string;
   quantity: number;
@@ -37,6 +39,13 @@ interface Transaction {
   robuxInstantDetails?: {
     notes?: string;
   };
+  gamepass?: {
+    id: number;
+    name: string;
+    price: number;
+    productId: number;
+    sellerId: number;
+  };
   statusHistory?: Array<{
     statusType: string;
     oldStatus: string;
@@ -58,6 +67,7 @@ export default function TransactionDetailPage() {
   const router = useRouter();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processingPurchase, setProcessingPurchase] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -137,6 +147,55 @@ export default function TransactionDetailPage() {
       </span>
     );
   };
+
+  const handleManualGamepassPurchase = async () => {
+    if (!transaction?.gamepass) {
+      toast.error("Gamepass data not found");
+      return;
+    }
+
+    setProcessingPurchase(true);
+    try {
+      const response = await fetch(
+        `/api/transactions/${transaction._id}/manual-gamepass-purchase`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Gamepass purchase completed successfully!");
+        // Refresh transaction data
+        fetchTransaction(transaction._id);
+      } else {
+        toast.error(data.error || "Failed to process gamepass purchase");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to process gamepass purchase");
+    } finally {
+      setProcessingPurchase(false);
+    }
+  };
+
+  // Check if this is robux_5_hari with non-ObjectId serviceId
+  const isRobux5Hari =
+    transaction?.serviceType === "robux" &&
+    transaction?.serviceCategory === "robux_5_hari" &&
+    transaction?.serviceId &&
+    !transaction.serviceId.match(/^[0-9a-fA-F]{24}$/);
+
+  // Check if manual purchase button should be shown
+  const showManualPurchaseButton =
+    isRobux5Hari &&
+    transaction?.paymentStatus === "settlement" &&
+    transaction?.orderStatus === "failed" &&
+    transaction?.gamepass;
 
   if (loading) {
     return (
@@ -259,6 +318,67 @@ export default function TransactionDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Gamepass Information - Only for robux_5_hari with custom serviceId */}
+        {isRobux5Hari && transaction.gamepass && (
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-white">
+                Gamepass Information
+              </h2>
+              {showManualPurchaseButton && (
+                <button
+                  onClick={handleManualGamepassPurchase}
+                  disabled={processingPurchase}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                >
+                  {processingPurchase ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <span>Retry Purchase</span>
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Gamepass Name:</span>
+                <span className="font-medium text-gray-200">
+                  {transaction.gamepass.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Gamepass ID:</span>
+                <span className="font-medium text-gray-200">
+                  {transaction.gamepass.id}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Product ID:</span>
+                <span className="font-medium text-gray-200">
+                  {transaction.gamepass.productId}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Seller ID:</span>
+                <span className="font-medium text-gray-200">
+                  {transaction.gamepass.sellerId}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-gray-600 pt-3">
+                <span className="font-semibold text-gray-200">
+                  Gamepass Price:
+                </span>
+                <span className="font-bold text-lg text-blue-400">
+                  {transaction.gamepass.price} Robux
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Status Information */}
         <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">

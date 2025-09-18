@@ -4,6 +4,7 @@ import Link from "next/link";
 // 1. Import useRef dari React
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import ReviewSection from "@/components/ReviewSection";
 // import './globals.css'
 
 export default function HomePage() {
@@ -234,6 +235,13 @@ export default function HomePage() {
           © 2025 RobuxID
         </p>
       </footer>
+
+      {/* Review Section */}
+      <ReviewSection
+        serviceType="robux"
+        serviceCategory="robux_instant"
+        title="Reviews Robux Instant"
+      />
     </div>
   );
 }
