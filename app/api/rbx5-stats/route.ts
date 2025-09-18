@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
         { serviceType: "robux", serviceCategory: "robux_5_hari" },
       ],
       paymentStatus: "settlement",
-    }).populate("serviceId");
+      orderStatus: "completed",
+    });
 
     // console.log("Sold transactions found:", soldTransactions.length);
 
@@ -56,20 +57,9 @@ export async function GET(request: NextRequest) {
 
     for (const transaction of soldTransactions) {
       try {
-        if (
-          transaction.serviceId &&
-          typeof transaction.serviceId === "object"
-        ) {
-          const product = transaction.serviceId as any;
-          if (product.robuxAmount && transaction.quantity) {
-            totalTerjual += product.robuxAmount * transaction.quantity;
-          }
-        }
-        // Jika tidak ada serviceId (custom robux), gunakan estimasi dari harga
-        else if (!transaction.serviceId && transaction.finalAmount) {
-          // Estimasi robux berdasarkan harga (asumsi 130 rupiah per robux)
-          const estimatedRobux = Math.floor(transaction.finalAmount / 130);
-          totalTerjual += estimatedRobux * (transaction.quantity || 1);
+        if (transaction.gamepass && transaction.gamepass.price) {
+          totalTerjual +=
+            transaction.gamepass.price * (transaction.quantity || 1);
         }
       } catch (error) {
         console.warn("Error processing transaction:", transaction._id, error);

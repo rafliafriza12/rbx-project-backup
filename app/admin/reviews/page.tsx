@@ -199,29 +199,29 @@ export default function AdminReviewsPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6  min-h-screen">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">
+        <h1 className="text-2xl font-bold text-white mb-4">
           Review Management
         </h1>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-800">
+          <div className="bg-slate-800 border border-gray-700 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-400">
               Total Reviews
             </h3>
-            <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+            <p className="text-2xl font-bold text-blue-300">{stats.total}</p>
           </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-green-800">Approved</h3>
-            <p className="text-2xl font-bold text-green-600">
+          <div className="bg-slate-800 border border-gray-700 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold text-green-400">Approved</h3>
+            <p className="text-2xl font-bold text-green-300">
               {stats.approved}
             </p>
           </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-yellow-800">Pending</h3>
-            <p className="text-2xl font-bold text-yellow-600">
+          <div className="bg-slate-800 border border-gray-700 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold text-yellow-400">Pending</h3>
+            <p className="text-2xl font-bold text-yellow-300">
               {stats.pending}
             </p>
           </div>
@@ -232,7 +232,7 @@ export default function AdminReviewsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 rounded-md"
+            className="px-3 py-2 bg-slate-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -242,7 +242,7 @@ export default function AdminReviewsPage() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md"
+            className="px-3 py-2 bg-slate-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Services</option>
             <option value="robux">Robux</option>
@@ -256,7 +256,7 @@ export default function AdminReviewsPage() {
               setServiceFilter("");
               setCurrentPage(1);
             }}
-            className="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+            className="px-3 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 border border-gray-600"
           >
             Reset Filters
           </button>
@@ -264,8 +264,10 @@ export default function AdminReviewsPage() {
 
         {/* Bulk Actions */}
         {selectedReviews.length > 0 && (
-          <div className="bg-blue-50 p-4 rounded-lg mb-4">
-            <p className="mb-2">{selectedReviews.length} review(s) selected</p>
+          <div className="bg-slate-800 border border-gray-700 p-4 rounded-lg mb-4">
+            <p className="mb-2 text-white">
+              {selectedReviews.length} review(s) selected
+            </p>
             <div className="flex gap-2">
               <button
                 onClick={() => handleBulkAction("approve")}
@@ -294,10 +296,10 @@ export default function AdminReviewsPage() {
       </div>
 
       {/* Reviews Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-slate-800 border border-gray-700 rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-slate-900">
               <tr>
                 <th className="px-6 py-3 text-left">
                   <input
@@ -307,65 +309,63 @@ export default function AdminReviewsPage() {
                       reviews.length > 0
                     }
                     onChange={handleSelectAll}
-                    className="rounded border-gray-300"
+                    className="rounded border-gray-600 bg-slate-700"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Service
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"></th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Comment
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-slate-800 divide-y divide-gray-700">
               {loading ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-4 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
                   </td>
                 </tr>
               ) : reviews.length > 0 ? (
                 reviews.map((review) => (
-                  <tr key={review._id} className="hover:bg-gray-50">
+                  <tr key={review._id} className="hover:bg-slate-700">
                     <td className="px-6 py-4">
                       <input
                         type="checkbox"
                         checked={selectedReviews.includes(review._id)}
                         onChange={() => handleSelectReview(review._id)}
-                        className="rounded border-gray-300"
+                        className="rounded border-gray-600 bg-slate-700"
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-white">
                         {review.username}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-white">
                         <div className="font-medium">{review.serviceType}</div>
                         {review.serviceCategory && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-400">
                             {review.serviceCategory}
                           </div>
                         )}
                         {review.serviceName && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-400">
                             {review.serviceName}
                           </div>
                         )}
@@ -375,14 +375,14 @@ export default function AdminReviewsPage() {
                       {renderStars(review.rating)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-gray-300 max-w-xs truncate">
                         {review.comment}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(review.isApproved)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {new Date(review.createdAt).toLocaleDateString("id-ID")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -392,7 +392,7 @@ export default function AdminReviewsPage() {
                             onClick={() =>
                               handleSingleAction(review._id, "approve")
                             }
-                            className="text-green-600 hover:text-green-900"
+                            className="text-green-400 hover:text-green-300"
                           >
                             ✓
                           </button>
@@ -402,7 +402,7 @@ export default function AdminReviewsPage() {
                             onClick={() =>
                               handleSingleAction(review._id, "reject")
                             }
-                            className="text-yellow-600 hover:text-yellow-900"
+                            className="text-yellow-400 hover:text-yellow-300"
                           >
                             ⏸
                           </button>
@@ -411,7 +411,7 @@ export default function AdminReviewsPage() {
                           onClick={() =>
                             handleSingleAction(review._id, "delete")
                           }
-                          className="text-red-600 hover:text-red-900 ml-2"
+                          className="text-red-400 hover:text-red-300 ml-2"
                         >
                           🗑
                         </button>
@@ -423,7 +423,7 @@ export default function AdminReviewsPage() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-6 py-4 text-center text-gray-500"
+                    className="px-6 py-4 text-center text-gray-400"
                   >
                     Tidak ada review ditemukan
                   </td>

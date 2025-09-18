@@ -454,18 +454,18 @@ export default function JokiDetailPage() {
               />
             </button>
           </div>
+          {joki && (
+            <ReviewSection
+              serviceType="joki"
+              serviceId={joki._id}
+              serviceName={joki.gameName}
+              title={`Reviews ${joki.gameName}`}
+            />
+          )}
         </div>
       </section>
 
       {/* Review Section */}
-      {joki && (
-        <ReviewSection
-          serviceType="joki"
-          serviceId={joki._id}
-          serviceName={joki.gameName}
-          title={`Reviews ${joki.gameName}`}
-        />
-      )}
     </main>
   );
 }

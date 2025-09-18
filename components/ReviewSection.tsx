@@ -124,7 +124,7 @@ export default function ReviewSection({
           <span
             key={star}
             className={`text-xl cursor-pointer transition-colors ${
-              star <= rating ? "text-yellow-400" : "text-gray-300"
+              star <= rating ? "text-yellow-400" : "text-rose-300"
             } ${interactive ? "hover:text-yellow-400" : ""}`}
             onClick={() => interactive && onRate && onRate(star)}
           >
@@ -142,14 +142,14 @@ export default function ReviewSection({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
+    <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-xl border border-rose-200 p-6 mt-8">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-2xl font-bold text-gray-800 mb-2">{title}</h3>
           {reviews.length > 0 && (
             <div className="flex items-center gap-3">
               {renderStars(Math.round(getAverageRating()))}
-              <span className="text-gray-600">
+              <span className="text-gray-700">
                 {getAverageRating().toFixed(1)} dari 5 ({reviews.length} review
                 {reviews.length > 1 ? "s" : ""})
               </span>
@@ -158,7 +158,7 @@ export default function ReviewSection({
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-500/90 transition-all duration-300 transform hover:scale-105 shadow-lg"
         >
           {showForm ? "Tutup" : "Tulis Review"}
         </button>
@@ -168,9 +168,11 @@ export default function ReviewSection({
       {showForm && (
         <form
           onSubmit={submitReview}
-          className="bg-gray-50 p-4 rounded-lg mb-6"
+          className="bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 p-6 rounded-xl mb-6 shadow-sm"
         >
-          <h4 className="font-semibold mb-4">Tulis Review Anda</h4>
+          <h4 className="font-semibold mb-4 text-gray-800">
+            Tulis Review Anda
+          </h4>
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -180,7 +182,7 @@ export default function ReviewSection({
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-rose-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
               placeholder="Masukkan username Anda"
               required
             />
@@ -193,7 +195,7 @@ export default function ReviewSection({
             {renderStars(rating, true, setRating)}
           </div>
 
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Comment
             </label>
@@ -201,24 +203,24 @@ export default function ReviewSection({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-rose-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
               placeholder="Bagikan pengalaman Anda..."
               required
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               type="submit"
               disabled={submitting}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-md"
             >
               {submitting ? "Mengirim..." : "Kirim Review"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-md"
             >
               Batal
             </button>
@@ -229,29 +231,31 @@ export default function ReviewSection({
       {/* Reviews List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading reviews...</p>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading reviews...</p>
           </div>
         ) : reviews.length > 0 ? (
           reviews.map((review) => (
             <div
               key={review._id}
-              className="border border-gray-200 rounded-lg p-4"
+              className="bg-white/70 backdrop-blur-sm border border-rose-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <strong className="text-gray-800">{review.username}</strong>
+                    <strong className="text-gray-800 font-semibold">
+                      {review.username}
+                    </strong>
                     {renderStars(review.rating)}
                   </div>
                   {review.serviceName && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-rose-600 font-medium">
                       Service: {review.serviceName}
                     </p>
                   )}
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-500 bg-rose-50 px-3 py-1 rounded-full">
                   {new Date(review.createdAt).toLocaleDateString("id-ID")}
                 </span>
               </div>
@@ -259,8 +263,9 @@ export default function ReviewSection({
             </div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-600 mb-2">
+          <div className="text-center py-12 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-200">
+            <div className="text-6xl mb-4">💭</div>
+            <p className="text-gray-600 mb-2 font-medium">
               Belum ada review untuk service ini
             </p>
             <p className="text-sm text-gray-500">

@@ -278,18 +278,18 @@ export default function GamepassDetailPage() {
               />
             </button>
           </div>
+          {gamepass && (
+            <ReviewSection
+              serviceType="gamepass"
+              serviceId={gamepass._id}
+              serviceName={gamepass.gameName}
+              title={`Reviews ${gamepass.gameName}`}
+            />
+          )}
         </div>
       </section>
 
       {/* Review Section */}
-      {gamepass && (
-        <ReviewSection
-          serviceType="gamepass"
-          serviceId={gamepass._id}
-          serviceName={gamepass.gameName}
-          title={`Reviews ${gamepass.gameName}`}
-        />
-      )}
     </main>
   );
 }

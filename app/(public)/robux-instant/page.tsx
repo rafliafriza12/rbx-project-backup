@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import ReviewSection from "@/components/ReviewSection";
 
 interface Product {
   _id: string;
@@ -369,6 +370,13 @@ const RobuxInstan: React.FC = () => {
                 className="sm:w-5 sm:h-5"
               />
             </button>
+          </div>
+          <div className="w-full">
+            <ReviewSection
+              serviceType="robux"
+              serviceCategory="robux_instant"
+              title="Reviews Robux Instant"
+            />
           </div>
         </div>
       </section>
