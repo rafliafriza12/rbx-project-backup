@@ -457,7 +457,7 @@ export default function Rbx5Page() {
         `/api/check-gamepass?universeId=${selectedPlace.placeId}&expectedRobux=${expectedRobux}`
       );
       const data = await response.json();
-
+      // console.log(data);
       setGamepassCheckResult(data);
 
       if (data.success) {
@@ -602,6 +602,8 @@ export default function Rbx5Page() {
       // Add gamepass information
       gamepassAmount: getGamepassAmount(),
       gamepassCreated: gamepassInstructionShown,
+      // Add gamepass details from check result
+      gamepass: gamepassCheckResult?.gamepass || null,
     };
 
     // Store in sessionStorage for checkout page

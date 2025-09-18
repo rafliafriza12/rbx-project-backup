@@ -327,7 +327,7 @@ export default function JokiDetailPage() {
 
             <div>
               <label className="text-sm font-bold mb-1 block text-black">
-                Kode Keamanan (Opsional)
+                Backup Code (Opsional)
               </label>
               <textarea
                 placeholder="Berikan informasi kode keamanan jika akun anda memiliki 2 step verification"
@@ -343,7 +343,7 @@ export default function JokiDetailPage() {
                   href={"https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"}
                   target="_blank"
                 >
-                  Kode keamanan
+                  Backup Code
                 </Link>
               </h1>
             </div>

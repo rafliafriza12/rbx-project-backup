@@ -138,6 +138,11 @@ export default function CheckoutPage() {
       try {
         const parsedData = JSON.parse(sessionData);
         console.log("8. Parsed session data successfully:", parsedData);
+        console.log("8a. Gamepass data check:", {
+          hasGamepass: !!(parsedData as any).gamepass,
+          gamepassData: (parsedData as any).gamepass,
+          serviceCategory: parsedData.serviceCategory,
+        });
 
         const baseAmount = parsedData.quantity * parsedData.unitPrice;
         const discount = calculateDiscount(baseAmount);
@@ -158,6 +163,22 @@ export default function CheckoutPage() {
           discountPercentage: discount.discountPercentage,
           discountAmount: discount.discountAmount,
           finalAmount: discount.finalAmount,
+          // Include all additional data from rbx5 or other services
+          ...((parsedData as any).gamepass && {
+            gamepass: (parsedData as any).gamepass,
+          }),
+          ...((parsedData as any).selectedPlace && {
+            selectedPlace: (parsedData as any).selectedPlace,
+          }),
+          ...((parsedData as any).robuxAmount && {
+            robuxAmount: (parsedData as any).robuxAmount,
+          }),
+          ...((parsedData as any).gamepassAmount && {
+            gamepassAmount: (parsedData as any).gamepassAmount,
+          }),
+          ...((parsedData as any).gamepassCreated && {
+            gamepassCreated: (parsedData as any).gamepassCreated,
+          }),
         });
 
         // Pre-fill form data if available
@@ -439,6 +460,13 @@ export default function CheckoutPage() {
         additionalNotes.trim()
           ? { notes: additionalNotes.trim() }
           : undefined,
+      // Add gamepass details for robux_5_hari service
+      gamepass:
+        checkoutData.serviceType === "robux" &&
+        checkoutData.serviceCategory === "robux_5_hari" &&
+        (checkoutData as any).gamepass
+          ? (checkoutData as any).gamepass
+          : undefined,
       customerInfo: {
         ...customerInfo,
         // Tambahkan userId ke customerInfo jika user sudah login
@@ -449,7 +477,17 @@ export default function CheckoutPage() {
 
     console.log("=== CHECKOUT SUBMIT DEBUG ===");
     console.log("Service Type:", checkoutData.serviceType);
+    console.log("Service Category:", checkoutData.serviceCategory);
     console.log("Is gamepass:", checkoutData.serviceType === "gamepass");
+    console.log(
+      "Is robux_5_hari:",
+      checkoutData.serviceType === "robux" &&
+        checkoutData.serviceCategory === "robux_5_hari"
+    );
+    console.log(
+      "Gamepass data in checkoutData:",
+      (checkoutData as any).gamepass
+    );
     console.log("RobloxPassword state value:", robloxPassword);
     console.log(
       "Will include password:",

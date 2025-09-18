@@ -236,6 +236,7 @@ export async function POST(request: NextRequest) {
       robuxInstantDetails,
       customerInfo,
       userId,
+      gamepass, // Tambahkan gamepass untuk robux_5_hari
     } = body;
 
     console.log("Extracted fields:", {
@@ -254,6 +255,8 @@ export async function POST(request: NextRequest) {
       userId,
       "customerInfo.userId": customerInfo?.userId,
       "userId from body": userId,
+      gamepass: gamepass ? "[PRESENT]" : "[NOT_PROVIDED]",
+      "gamepass content": gamepass,
     });
 
     // Validasi input - userId opsional untuk guest checkout
@@ -337,6 +340,15 @@ export async function POST(request: NextRequest) {
         userId: userId || null, // Store userId in customerInfo
       },
     };
+
+    // Tambahkan data gamepass untuk service robux_5_hari
+    if (
+      serviceType === "robux" &&
+      serviceCategory === "robux_5_hari" &&
+      gamepass
+    ) {
+      transactionData.gamepass = gamepass;
+    }
 
     console.log("=== Transaction Data Debug ===");
     console.log("Final userId for customerInfo:", userId || null);

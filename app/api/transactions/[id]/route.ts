@@ -2,7 +2,160 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
+import StockAccount from "@/models/StockAccount";
 import MidtransService from "@/lib/midtrans";
+
+// Function to process gamepass purchase for robux_5_hari
+async function processGamepassPurchase(transaction: any) {
+  try {
+    console.log(
+      "Processing gamepass purchase for transaction:",
+      transaction.invoiceId
+    );
+    console.log("Gamepass data:", transaction.gamepass);
+
+    const gamepassPrice = transaction.gamepass.price;
+
+    // Cari akun yang memiliki robux sama atau lebih dari price gamepass
+    const suitableAccount = await StockAccount.findOne({
+      robux: { $gte: gamepassPrice },
+      status: "active",
+    }).sort({ robux: 1 }); // Sort ascending untuk menggunakan akun dengan robux paling sedikit yang mencukupi
+
+    if (!suitableAccount) {
+      console.log("No suitable account found for gamepass purchase");
+      // Update order status to failed
+      await transaction.updateStatus(
+        "order",
+        "failed",
+        `Tidak ada akun dengan robux mencukupi (diperlukan: ${gamepassPrice})`,
+        null
+      );
+      return;
+    }
+
+    console.log("Suitable account found:", suitableAccount.username);
+
+    // Validate dan update account data terlebih dahulu
+    const updateAccountResponse = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+      }/api/admin/stock-accounts/${suitableAccount._id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          robloxCookie: suitableAccount.robloxCookie,
+        }),
+      }
+    );
+
+    if (!updateAccountResponse.ok) {
+      console.error("Failed to update account data");
+      await transaction.updateStatus(
+        "order",
+        "failed",
+        "Gagal memvalidasi akun stock",
+        null
+      );
+      return;
+    }
+
+    const updatedAccountData = await updateAccountResponse.json();
+
+    if (!updatedAccountData.success) {
+      console.error("Account validation failed:", updatedAccountData.message);
+      await transaction.updateStatus(
+        "order",
+        "failed",
+        `Validasi akun gagal: ${updatedAccountData.message}`,
+        null
+      );
+      return;
+    }
+
+    // Cek apakah robux masih mencukupi setelah update
+    if (updatedAccountData.stockAccount.robux < gamepassPrice) {
+      console.log("Account robux insufficient after update");
+      await transaction.updateStatus(
+        "order",
+        "failed",
+        `Robux tidak mencukupi setelah validasi (tersedia: ${updatedAccountData.stockAccount.robux}, diperlukan: ${gamepassPrice})`,
+        null
+      );
+      return;
+    }
+
+    // Lakukan purchase gamepass
+    const purchaseResponse = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+      }/api/buy-pass`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          robloxCookie: suitableAccount.robloxCookie,
+          productId: transaction.gamepass.productId,
+          price: transaction.gamepass.price,
+          sellerId: transaction.gamepass.sellerId,
+        }),
+      }
+    );
+
+    const purchaseResult = await purchaseResponse.json();
+
+    if (purchaseResult.success) {
+      console.log("Gamepass purchase successful");
+
+      // Update order status to completed
+      await transaction.updateStatus(
+        "order",
+        "completed",
+        `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
+        null
+      );
+
+      // Update account data setelah purchase
+      await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        }/api/admin/stock-accounts/${suitableAccount._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            robloxCookie: suitableAccount.robloxCookie,
+          }),
+        }
+      );
+    } else {
+      console.error("Gamepass purchase failed:", purchaseResult.message);
+      await transaction.updateStatus(
+        "order",
+        "failed",
+        `Pembelian gamepass gagal: ${purchaseResult.message}`,
+        null
+      );
+    }
+  } catch (error) {
+    console.error("Error processing gamepass purchase:", error);
+    await transaction.updateStatus(
+      "order",
+      "failed",
+      `Error saat memproses pembelian gamepass: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+      null
+    );
+  }
+}
 
 // GET - Get transaction by ID atau invoice ID
 export async function GET(
@@ -158,6 +311,21 @@ export async function PUT(
         console.error("Error updating user spendedMoney:", userUpdateError);
         // Don't fail the transaction update if user update fails
       }
+    }
+
+    // Khusus untuk robux_5_hari: proses gamepass purchase saat payment status diubah ke settlement
+    if (
+      statusType === "payment" &&
+      newStatus === "settlement" &&
+      oldPaymentStatus !== "settlement" &&
+      transaction.serviceType === "robux" &&
+      transaction.serviceCategory === "robux_5_hari" &&
+      transaction.gamepass
+    ) {
+      console.log(
+        "Admin changed payment to settlement - processing gamepass purchase"
+      );
+      await processGamepassPurchase(transaction);
     }
 
     return NextResponse.json({

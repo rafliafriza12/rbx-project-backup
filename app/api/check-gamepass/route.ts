@@ -63,10 +63,9 @@ export async function GET(request: NextRequest) {
         gamepass: {
           id: matchingGamepass.id,
           name: matchingGamepass.name,
+          sellerId: matchingGamepass.sellerId,
+          productId: matchingGamepass.productId,
           price: matchingGamepass.price,
-          isForSale: matchingGamepass.isForSale,
-          description: matchingGamepass.description,
-          created: matchingGamepass.created,
         },
         allGamepasses: gamepassData.data.map((gp: any) => ({
           id: gp.id,

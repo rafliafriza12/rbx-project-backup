@@ -230,15 +230,15 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-4 mt-6 lg:hidden">
             <div className="bg-[#f6c3ca] px-3 sm:px-4 py-3 rounded-xl text-center shadow-md">
               <div className="text-lg sm:text-xl font-bold text-black">
-                99999+
+                {rbx5Stats.totalStok}
               </div>
               <div className="text-xs sm:text-sm text-gray-700">R$ Stok</div>
             </div>
             <div className="bg-[#f6c3ca] px-3 sm:px-4 py-3 rounded-xl text-center shadow-md">
               <div className="text-lg sm:text-xl font-bold text-black">
-                99999+
+                {rbx5Stats.totalTerjual}
               </div>
-              <div className="text-xs sm:text-sm text-gray-700">Terjual</div>
+              <div className="text-xs sm:text-sm text-gray-700">R$ Terjual</div>
             </div>
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function HomePage() {
           </div>
 
           <div className="absolute bottom-[-20px] -left-[2px] bg-[#f6c3ca] px-3 sm:px-4 py-3 rounded-xl rotate-[17deg] shadow text-xs sm:text-sm text-center font-semibold max-w-[120px] sm:max-w-[140px] w-full">
-            {rbx5Stats.totalTerjual} <br /> Total Terjual
+            {rbx5Stats.totalTerjual} R$ <br /> Total Terjual
           </div>
         </div>
       </section>

@@ -25,7 +25,7 @@ const transactionSchema = new mongoose.Schema(
       required: false, // Only for robux services
     },
     serviceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and String
       required: true,
     },
     serviceName: {
@@ -96,6 +96,15 @@ const transactionSchema = new mongoose.Schema(
     // Data Tambahan untuk Robux Instant
     robuxInstantDetails: {
       notes: String,
+    },
+
+    // Data Gamepass untuk Robux 5 Hari
+    gamepass: {
+      id: Number,
+      name: String,
+      price: Number,
+      productId: Number,
+      sellerId: Number,
     },
 
     // Data Pembayaran Midtrans
