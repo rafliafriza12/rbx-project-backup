@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+// Force dynamic rendering to avoid suspense issues
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 
@@ -18,7 +21,7 @@ interface Transaction {
   midtransOrderId: string;
 }
 
-export default function TransactionPendingPage() {
+function TransactionPendingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
@@ -421,5 +424,19 @@ export default function TransactionPendingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TransactionPendingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+        </div>
+      }
+    >
+      <TransactionPendingContent />
+    </Suspense>
   );
 }

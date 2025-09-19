@@ -115,7 +115,7 @@ async function processGamepassPurchase(transaction: any) {
     );
 
     const purchaseResult = await purchaseResponse.json();
-
+    console.log(purchaseResult);
     if (purchaseResult.success) {
       console.log("Gamepass purchase successful");
 

@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     // Get total count for pagination
     const totalPipeline = [...leaderboardPipeline, { $count: "total" }];
-    const totalResult = await Transaction.aggregate(totalPipeline);
+    const totalResult = await Transaction.aggregate(totalPipeline as any);
     const total = totalResult[0]?.total || 0;
 
     // Get paginated results with ranking
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       },
     ];
 
-    const leaderboardData = await Transaction.aggregate(dataPipeline);
+    const leaderboardData = await Transaction.aggregate(dataPipeline as any);
 
     // Add rank to each entry based on their position
     const rankedData = leaderboardData.map((entry, index) => ({

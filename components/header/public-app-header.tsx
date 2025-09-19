@@ -78,6 +78,16 @@ const PublicAppHeader: React.FC = () => {
           Jasa Joki
         </Link>
         <Link
+          href="/leaderboard"
+          className={`${
+            pathname.includes("leaderboard")
+              ? "text-red-500 font-bold"
+              : "hover:text-red-600"
+          }`}
+        >
+          Leaderboard
+        </Link>
+        <Link
           href="/track-order"
           className={`${
             pathname.includes("track-order")
@@ -86,16 +96,6 @@ const PublicAppHeader: React.FC = () => {
           }`}
         >
           Cek Pesanan
-        </Link>
-        <Link
-          href="/leaderboard"
-          className={`${
-            pathname.includes("leaderboard")
-              ? "text-red-500 font-bold"
-              : "hover:text-red-600"
-          }`}
-        >
-          🏆 Leaderboard
         </Link>
       </nav>
 
@@ -278,6 +278,16 @@ const PublicAppHeader: React.FC = () => {
           Jasa Joki
         </Link>
         <Link
+          href="/leaderboard"
+          className={`block font-medium py-2 ${
+            pathname === "/leaderboard"
+              ? "text-red-500 font-bold"
+              : "text-black hover:text-red-600"
+          }`}
+        >
+          Leaderboard
+        </Link>
+        <Link
           href="/track-order"
           className={`block font-medium py-2 ${
             pathname === "/track-order"
@@ -286,16 +296,6 @@ const PublicAppHeader: React.FC = () => {
           }`}
         >
           Lacak Pesanan
-        </Link>
-        <Link
-          href="/leaderboard"
-          className={`block font-medium py-2 ${
-            pathname === "/leaderboard"
-              ? "text-red-500 font-bold"
-              : "text-black hover:text-red-600"
-          }`}
-        >
-          🏆 Leaderboard
         </Link>
 
         <div className="flex flex-col gap-2 pt-4">

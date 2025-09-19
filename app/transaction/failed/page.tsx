@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 
@@ -18,7 +18,7 @@ interface Transaction {
   midtransOrderId: string;
 }
 
-export default function TransactionFailedPage() {
+function TransactionFailedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
@@ -425,5 +425,19 @@ export default function TransactionFailedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TransactionFailedPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+        </div>
+      }
+    >
+      <TransactionFailedContent />
+    </Suspense>
   );
 }

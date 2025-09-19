@@ -4,9 +4,10 @@ import StockAccount from "@/models/StockAccount";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { robloxCookie } = await req.json();
 
     if (!robloxCookie) {
@@ -47,7 +48,7 @@ export async function PUT(
 
     // Update the stock account
     const updatedAccount = await StockAccount.findByIdAndUpdate(
-      params.id,
+      id,
       {
         userId: user.id,
         username: user.name,
@@ -82,12 +83,13 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await connectDB();
 
-    const deletedAccount = await StockAccount.findByIdAndDelete(params.id);
+    const deletedAccount = await StockAccount.findByIdAndDelete(id);
 
     if (!deletedAccount) {
       return NextResponse.json(

@@ -343,14 +343,16 @@ export async function PUT(
 }
 
 // DELETE - Cancel transaction
+
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const transactionId = params.id;
+    const { id } = await params;
+    const transactionId = id;
 
     // Cari transaksi
     const transaction = await Transaction.findOne({

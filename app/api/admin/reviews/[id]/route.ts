@@ -5,13 +5,14 @@ import Review from "@/models/Review";
 // PUT - Update single review status
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
     const { action } = await request.json();
-    const reviewId = params.id;
+    const { id } = await params;
+    const reviewId = id;
 
     if (!["approve", "reject"].includes(action)) {
       return NextResponse.json(
@@ -50,12 +51,13 @@ export async function PUT(
 // DELETE - Delete single review
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const reviewId = params.id;
+    const { id } = await params;
+    const reviewId = id;
 
     const review = await Review.findByIdAndDelete(reviewId);
 
