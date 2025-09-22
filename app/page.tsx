@@ -211,7 +211,7 @@ export default function HomePage() {
         <div className="w-full lg:w-[55%] space-y-4 sm:space-y-6 text-center lg:text-left">
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold leading-tight">
             Wujudkan Impianmu di Roblox <br />
-            dengan Robux dari <span className="text-red-600">RobuxID</span>
+            dengan Robux dari <span className="text-red-600">RobuxNet</span>
           </h1>
           <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed max-w-2xl mx-auto lg:mx-0">
             RobuxID hadir untuk mewujudkan semua impian Roblox-mu! Dengan harga
