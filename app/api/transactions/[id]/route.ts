@@ -4,6 +4,7 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import StockAccount from "@/models/StockAccount";
 import MidtransService from "@/lib/midtrans";
+import mongoose from "mongoose";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -168,13 +169,19 @@ export async function GET(
     const { id } = await params;
     const transactionId = id;
 
-    // Cari berdasarkan MongoDB ID atau invoice ID
+    // Buat array kondisi query
+    const conditions: any[] = [
+      { invoiceId: transactionId },
+      { midtransOrderId: transactionId },
+    ];
+
+    // Hanya push _id kalau valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(transactionId)) {
+      conditions.push({ _id: transactionId });
+    }
+
     const transaction = await Transaction.findOne({
-      $or: [
-        { _id: transactionId },
-        { invoiceId: transactionId },
-        { midtransOrderId: transactionId },
-      ],
+      $or: conditions,
     }).populate("customerInfo.userId", "username email");
 
     if (!transaction) {

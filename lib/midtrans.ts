@@ -192,10 +192,9 @@ class MidtransService {
         process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
       requestBody.callbacks = {
-        finish: params.callbackUrls.finish || `${baseUrl}/transaction/success`,
-        error: params.callbackUrls.error || `${baseUrl}/transaction/failed`,
-        pending:
-          params.callbackUrls.pending || `${baseUrl}/transaction/pending`,
+        finish: params.callbackUrls.finish || `${baseUrl}/transaction`,
+        error: params.callbackUrls.error || `${baseUrl}/transaction`,
+        pending: params.callbackUrls.pending || `${baseUrl}/transaction`,
       };
 
       console.log("=== MIDTRANS CALLBACKS DEBUG ===");

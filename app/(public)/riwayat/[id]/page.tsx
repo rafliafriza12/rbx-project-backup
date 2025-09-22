@@ -38,11 +38,12 @@ export default function TransactionDetailPage() {
     try {
       setLoading(true);
       const response = await fetch(`/api/transactions/${params.id}`);
-      const data: ApiResponse<Transaction> = await response.json();
+      const data: ApiResponse<any> = await response.json();
+      console.log(data.data);
 
       if (response.ok && data.data) {
         // Verify that this transaction belongs to the current user
-        if (data.data.customerInfo?.userId !== user?.id) {
+        if (data.data.customerInfo?.userId?._id !== user?.id) {
           toast.error("Anda tidak memiliki akses ke transaksi ini");
           router.push("/riwayat");
           return;

@@ -421,9 +421,9 @@ export async function POST(request: NextRequest) {
         customer,
         expiryHours: 24,
         callbackUrls: {
-          finish: `${baseUrl}/transaction/success?order_id=${midtransOrderId}`,
-          error: `${baseUrl}/transaction/failed?order_id=${midtransOrderId}`,
-          pending: `${baseUrl}/transaction/pending?order_id=${midtransOrderId}`,
+          finish: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
+          error: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
+          pending: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
         },
       });
 

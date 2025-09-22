@@ -319,6 +319,7 @@ export default function Rbx5Page() {
         const response = await fetch("/api/rbx5-stats");
         if (response.ok) {
           const data = await response.json();
+          console.log("data rbx : ", data);
           if (data.success && data.data) {
             setStats(data.data);
             console.log("RBX5 Stats loaded:", data.data);
