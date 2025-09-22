@@ -96,7 +96,7 @@ function TransactionSuccessContent() {
           </button>
 
           <button
-            onClick={() => router.push("/profile/transactions")}
+            onClick={() => router.push("/riwayat")}
             className="w-full bg-gray-500 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-colors font-medium"
           >
             📋 Lihat Riwayat Transaksi

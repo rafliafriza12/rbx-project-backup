@@ -339,7 +339,7 @@ function TransactionPendingContent() {
               {/* Secondary Actions */}
               <div className="flex gap-4">
                 <button
-                  onClick={() => router.push("/transactions")}
+                  onClick={() => router.push("/riwayat")}
                   className="flex-1 bg-gray-500 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-colors font-medium"
                 >
                   Lihat Semua Transaksi
