@@ -58,7 +58,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} antialiased`}
       >
-        <NextTopLoader color="#CE3535" showSpinner={false} />
+        <NextTopLoader
+          color="#00F5FF"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #00F5FF,0 0 5px #00F5FF"
+          zIndex={99999}
+        />
         <GoogleAuthProvider>
           <AuthProvider>{children}</AuthProvider>
         </GoogleAuthProvider>

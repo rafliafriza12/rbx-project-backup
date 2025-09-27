@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 const PublicAppFooter: React.FC = () => {
   return (
-    <footer className="bg-black text-white px-6 md:px-16 py-10 mt-10">
+    <footer className="bg-[#1E0E38] text-white px-6 md:px-16 py-10 mt-10 border-t border-[#7C4DFF]/30">
       <div className="grid md:grid-cols-4 gap-8">
         <div>
           <Image

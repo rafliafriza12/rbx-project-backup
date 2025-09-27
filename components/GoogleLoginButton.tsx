@@ -46,10 +46,10 @@ export default function GoogleLoginButton({
         disabled
         className={`${
           width === "full" ? "w-full" : "w-auto"
-        } flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed`}
+        } flex items-center justify-center py-3 px-4 border border-primary-300 rounded-lg bg-primary-50 cursor-not-allowed`}
       >
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900 mr-3"></div>
-        <span className="text-gray-500 font-medium">Memproses...</span>
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-700 mr-3"></div>
+        <span className="text-primary-600 font-medium">Memproses...</span>
       </button>
     );
   }

@@ -675,26 +675,43 @@ export default function Rbx5Page() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex justify-center items-center ">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#67E8F9]"></div>
       </div>
     );
   }
 
   return (
     <>
-      <main className="pt-6 sm:pt-8 md:pt-10 px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-2 text-black">
-          Beli Robux
-        </h1>
-        <div className="flex items-center justify-center mb-4 max-w-4xl mx-auto">
-          <p className="text-center text-sm sm:text-base text-gray-800">
-            Robux akan otomatis di tambahkan ke akunmu melalui gamepass resmi.
-          </p>
+      <main className="pt-6 sm:pt-8 md:pt-10 px-4 sm:px-6 md:px-8 min-h-screen relative">
+        {/* Background Grid */}
+        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px] pointer-events-none"></div>
+
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/10 to-blue-600/5 rounded-full blur-3xl animate-pulse"></div>
+          <div
+            className="absolute bottom-20 left-0 w-80 h-80 bg-gradient-to-tr from-cyan-600/10 to-purple-600/5 rounded-full blur-3xl animate-pulse"
+            style={{ animationDelay: "2s" }}
+          ></div>
+        </div>
+
+        <div className="relative z-10 p-8 rounded-2xl max-w-7xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-2 text-white animate-in fade-in slide-in-from-top-5 duration-1000">
+            Beli{" "}
+            <span className="text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text">
+              Robux
+            </span>
+          </h1>
+          <div className="flex items-center justify-center mb-4 max-w-4xl mx-auto">
+            <p className="text-center text-sm sm:text-base text-gray-300">
+              Robux akan otomatis di tambahkan ke akunmu melalui gamepass resmi.
+            </p>
+          </div>
           {/* <button
             onClick={refreshStats}
             disabled={loadingStats}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#CE3535] text-white rounded-lg hover:bg-[#b12d2d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-button-primary text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {loadingStats ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
@@ -783,12 +800,12 @@ export default function Rbx5Page() {
           ].map((item, i) => (
             <div
               key={i}
-              className="relative w-full h-auto bg-[#f8b8b8] border-2 border-[#CE3535] rounded-2xl px-2 sm:px-3 py-2 md:py-5 flex items-center justify-center text-center group"
+              className="relative w-full h-auto bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-2 sm:px-3 py-2 md:py-5 flex items-center justify-center text-center group transition-all duration-500 ease-out hover:-translate-y-2 hover:scale-[1.02] hover:bg-white/20 hover:border-cyan-400/40 hover:shadow-lg hover:shadow-cyan-400/10"
             >
               <img
                 src={item.img}
                 alt={item.label}
-                className="absolute top-1 left-3 w-6 h-6 object-contain"
+                className="absolute top-2 left-3 w-6 h-6 object-contain invert-[1]"
               />
 
               {/* Info Icon for items with additional info */}
@@ -808,17 +825,17 @@ export default function Rbx5Page() {
                     </svg>
 
                     {/* Tooltip */}
-                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-black text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                       {item.infoContent}
-                      <div className="absolute top-full right-4 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                      <div className="absolute top-full right-4 border-l-4 border-r-4 border-t-4 border-transparent border-t-cyan-500/20"></div>
                     </div>
                   </div>
                 </div>
               )}
 
               <div className="text-[13px] leading-tight">
-                <div className="text-gray-700">{item.label}</div>
-                <div className="text-black font-extrabold text-sm">
+                <div className="text-gray-300">{item.label}</div>
+                <div className="text-[#ffffff] font-extrabold text-sm ">
                   {typeof item.value === "string" ? item.value : item.value}
                 </div>
               </div>
@@ -827,32 +844,32 @@ export default function Rbx5Page() {
         </div>
 
         <div className="mb-6">
-          <h2 className="text-black text-sm sm:text-base font-bold mb-4 text-left max-w-4xl mx-auto ">
+          <h2 className="text-white text-sm sm:text-base font-bold mb-4 text-left max-w-4xl mx-auto">
             PILIH JUMLAH ROBUX
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 justify-center max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 justify-center max-w-4xl mx-auto">
             {products.map((product, i) => (
               <button
                 key={product._id}
                 onClick={() => handlePackageSelect(product)}
-                className={`w-full  border-2 rounded-2xl px-3 py-2 flex flex-col justify-center transform transition duration-300 hover:scale-105 active:scale-95 ${
+                className={`w-full rounded-2xl px-3 py-2 flex flex-col justify-center transform transition duration-300 hover:scale-105  ${
                   selectedPackage?._id === product._id
-                    ? "bg-[#FF9C01] border-[#FF9C01] shadow-lg"
-                    : "bg-[#f8b8b8] border-[#CE3535]"
+                    ? "bg-cyan-400/20 backdrop-blur-sm border border-cyan-400/60"
+                    : "bg-white/10 backdrop-blur-sm border border-white/20"
                 }`}
               >
-                <div className="flex items-center gap-2 text-gray-700 text-xs mb-[2px] justify-center">
+                <div className="flex items-center gap-2 text-gray-300 text-xs mb-[2px] justify-center">
                   <img
                     src="/money.png"
                     alt="money icon"
-                    className="w-5 h-5 sm:w-6 sm:h-6"
+                    className="w-5 h-5 sm:w-6 sm:h-6 invert-[1]"
                   />
                   <span>{product.robuxAmount} R$</span>
                 </div>
-                <div className="text-black text-sm font-extrabold leading-tight">
+                <div className="text-white text-sm font-extrabold leading-tight ">
                   {formatCurrency(getFinalPrice(product))}
                   {product.discountPercentage && (
-                    <div className="text-xs text-gray-500 line-through">
+                    <div className="text-xs text-gray-400 line-through">
                       {formatCurrency(product.price)}
                     </div>
                   )}
@@ -865,7 +882,7 @@ export default function Rbx5Page() {
         <div className="relative w-full max-w-[740px] mx-auto mt-10 mb-14">
           <div className="absolute top-1/2 -translate-y-1/2 w-full h-3 bg-gray-300 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#CE3535] transition-all duration-300 ease-in-out"
+              className="h-full bg-gradient-button-primary transition-all duration-300 ease-in-out"
               style={{
                 width: `${(robux / 1000) * 100}%`,
               }}
@@ -907,7 +924,7 @@ export default function Rbx5Page() {
 
           <div
             ref={thumbRef}
-            className={`absolute top-1/2 -translate-y-1/2 text-nowrap bg-[#CE3535] text-black text-[10px] font-bold h-[28px] px-3 rounded-lg flex items-center justify-center pointer-events-none z-20 ${
+            className={`absolute top-1/2 -translate-y-1/2 text-nowrap bg-white/20 backdrop-blur-sm border border-white/30 text-white text-[10px] font-bold h-[28px] px-3 rounded-lg flex items-center justify-center pointer-events-none z-20 ${
               isFromHomepage ? "" : "transition-all duration-300 ease-in-out"
             }`}
             style={{ left: thumbLeft }}
@@ -917,18 +934,18 @@ export default function Rbx5Page() {
         </div>
 
         <div className="mt-8 sm:mt-10 md:mt-12 max-w-[740px] mx-auto px-2">
-          <div className="bg-[rgba(188,188,188,0.5)] rounded-xl px-4 sm:px-6 pt-6 pb-6 sm:pb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-h-[170px] relative">
-            <div className="w-fit text-black text-xs sm:text-sm font-bold rounded-md px-3 py-1 absolute left-2 top-2">
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 sm:px-6 pt-6 pb-6 sm:pb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-h-[170px] relative transition-all duration-500  hover:border-cyan-400/30">
+            <div className="w-fit text-white text-xs sm:text-sm font-bold rounded-md px-3 py-1 absolute left-2 top-2">
               MASUKAN JUMLAH CUSTOM
             </div>
 
             <div className="flex flex-col items-center justify-center pt-6">
               <div className="w-full max-w-[260px]">
-                <p className="font-semibold text-sm mb-2 text-black ml-3">
+                <p className="font-semibold text-sm mb-2 text-white ml-3">
                   Jumlah Robux
                 </p>
                 <div className="flex rounded overflow-hidden w-full">
-                  <span className="bg-[#E05D5D] text-white font-bold text-sm px-4 sm:px-5 py-3 flex items-center justify-center">
+                  <span className="bg-gradient-button-secondary text-white font-bold text-sm px-4 sm:px-5 py-3 flex items-center justify-center">
                     R$
                   </span>
                   <input
@@ -947,7 +964,7 @@ export default function Rbx5Page() {
                     }}
                     min="1"
                     placeholder="Cth. 100"
-                    className="flex-1 bg-[#e39c9c] text-black font-semibold outline-none px-3 sm:px-4 py-3 text-sm placeholder:text-gray-700"
+                    className="flex-1 bg-white/10 backdrop-blur-sm border border-white/20 text-base font-semibold outline-none px-3 sm:px-4 py-3 placeholder:!text-white/60  focus:border-cyan-400/50 focus:bg-white/15 focus:shadow-lg focus:shadow-cyan-400/10 transition-all duration-300 hover:border-cyan-400/30"
                   />
                 </div>
               </div>
@@ -955,11 +972,11 @@ export default function Rbx5Page() {
 
             <div className="flex flex-col items-center justify-center pt-6 lg:pt-6">
               <div className="w-full max-w-[260px]">
-                <p className="font-semibold text-sm mb-2 text-black ml-3">
+                <p className="font-semibold text-sm mb-2 text-white ml-3">
                   Harga Total
                 </p>
                 <div className="flex rounded overflow-hidden w-full">
-                  <span className="bg-[#E05D5D] text-white font-bold text-sm px-4 sm:px-5 py-3 flex items-center justify-center">
+                  <span className="bg-gradient-button-secondary text-white font-bold text-sm px-4 sm:px-5 py-3 flex items-center justify-center">
                     Rp
                   </span>
                   <input
@@ -972,7 +989,7 @@ export default function Rbx5Page() {
                         : "0"
                     }
                     readOnly
-                    className="flex-1 bg-[#e39c9c] text-black font-semibold outline-none px-3 sm:px-4 py-3 text-sm"
+                    className="flex-1 bg-white/10 backdrop-blur-sm border border-white/20 text-base font-semibold outline-none px-3 sm:px-4 py-3  focus:border-cyan-400/50 focus:bg-white/15 focus:shadow-lg focus:shadow-cyan-400/10 transition-all duration-300 hover:border-cyan-400/30"
                   />
                 </div>
               </div>
@@ -982,7 +999,7 @@ export default function Rbx5Page() {
 
         <section className="max-w-[740px] mx-auto mt-8 sm:mt-10 md:mt-12 px-4 flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
           <div className="w-full lg:w-[200px] flex justify-center lg:justify-start">
-            <div className="bg-[#D4A4A5] rounded-full w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] flex items-center justify-center">
+            <div className="bg-gradient-elegant-secondary/20 rounded-full w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] flex items-center justify-center border border-[#67E8F9]/30">
               <Image
                 src="/koin.png"
                 alt="coin icon"
@@ -994,10 +1011,10 @@ export default function Rbx5Page() {
           </div>
 
           <div className="flex-1">
-            <h3 className="text-black font-bold text-sm mb-1">
+            <h3 className="text-white font-bold text-sm mb-1">
               1. MASUKAN USERNAME
             </h3>
-            <p className="text-sm text-black mb-3 max-w-md">
+            <p className="text-sm text-gray-300 mb-3 max-w-md">
               Masukkan Username Anda untuk memastikan Robux akan dikirim ke akun
               yang benar.
             </p>
@@ -1008,14 +1025,14 @@ export default function Rbx5Page() {
                 placeholder="MASUKAN USERNAME"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className={`w-full py-3 px-4 rounded-md text-sm text-black font-medium pr-10 outline-none transition-all ${
+                className={`w-full py-3 px-4 rounded-md text-sm text-white font-medium pr-10 outline-none transition-all hover:scale-[1.02] focus:scale-[1.02] ${
                   userInfo
-                    ? "bg-[#e8f5e8] border-2 border-green-400"
+                    ? "bg-gradient-success/10 border-2 border-green-400/50"
                     : username && userSearchError
-                    ? "bg-[#f1bcbc] border-2 border-red-400"
+                    ? "bg-gradient-elegant-secondary/10 border-2 border-red-400/50"
                     : username
-                    ? "bg-[#f1bcbc] border-2 border-yellow-400"
-                    : "bg-[#f1bcbc]"
+                    ? "bg-gradient-warning/10 border-2 border-yellow-400/50"
+                    : "bg-gradient-elegant-secondary/10"
                 }`}
               />
               {isSearchingUser ? (
@@ -1035,7 +1052,7 @@ export default function Rbx5Page() {
 
             {/* User Info Display */}
             {userInfo && (
-              <div className="bg-[#e8f5e8] border-2 border-green-400 rounded-lg p-3 mb-3 w-full max-w-md">
+              <div className="bg-gradient-success/10 border-2 border-green-400/50 rounded-lg p-3 mb-3 w-full max-w-md">
                 <div className="flex items-center gap-3">
                   {userInfo.avatar ? (
                     <img
@@ -1082,7 +1099,7 @@ export default function Rbx5Page() {
             {/* Place Selection */}
             {userInfo && (
               <div className="w-full max-w-md mb-3">
-                <h4 className="text-sm font-bold text-black mb-2">
+                <h4 className="text-sm font-bold text-white mb-2">
                   2. PILIH GAME/PLACE
                 </h4>
 
@@ -1096,7 +1113,7 @@ export default function Rbx5Page() {
                     </div>
                   </div>
                 ) : placesError ? (
-                  <div className="bg-[#f1bcbc] border-2 border-red-400 rounded-lg p-3">
+                  <div className="bg-gradient-elegant-secondary/10 border-2 border-red-400/50 rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <div className="text-red-500">
                         <svg
@@ -1138,7 +1155,7 @@ export default function Rbx5Page() {
                     </div>
                   </div>
                 ) : selectedPlace ? (
-                  <div className="bg-[#e8f5e8] border-2 border-green-400 rounded-lg p-3">
+                  <div className="bg-gradient-success/10 border-2 border-green-400/50 rounded-lg p-3">
                     <div className="flex items-center gap-3">
                       {selectedPlace.thumbnail ? (
                         <img
@@ -1173,7 +1190,7 @@ export default function Rbx5Page() {
                 ) : (
                   <button
                     onClick={() => setShowPlaceModal(true)}
-                    className="w-full bg-[#f1bcbc] border-2 border-[#CE3535] rounded-lg p-3 text-center hover:bg-[#e39c9c] transition-colors"
+                    className="w-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-400/30 rounded-lg p-3 text-center hover:from-cyan-500/20 hover:to-blue-500/20 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10 transition-all duration-300"
                   >
                     <div className="flex items-center justify-center gap-2">
                       <svg
@@ -1201,7 +1218,7 @@ export default function Rbx5Page() {
               username &&
               username.length >= 2 &&
               !isSearchingUser && (
-                <div className="bg-[#f1bcbc] border-2 border-red-400 rounded-lg p-3 mb-3 w-full max-w-md">
+                <div className="bg-gradient-elegant-secondary/10 border-2 border-red-400/50 rounded-lg p-3 mb-3 w-full max-w-md">
                   <div className="flex items-center gap-2">
                     <div className="text-red-500">
                       <svg
@@ -1235,7 +1252,7 @@ export default function Rbx5Page() {
               </div>
             )}
 
-            <p className="text-[11px] text-gray-700 mb-3 leading-tight">
+            <p className="text-[11px] text-white/70 mb-3 leading-tight">
               Ketik minimal 2 karakter untuk mencari Username. Tunggu 1 detik
               setelah selesai mengetik untuk mencari otomatis.
               <br />
@@ -1244,10 +1261,10 @@ export default function Rbx5Page() {
             </p>
 
             <div className="mt-6">
-              <h3 className="text-black font-bold text-sm mb-3">
+              <h3 className="text-white font-bold text-sm mb-3">
                 3. LANJUTKAN PEMBELIAN
               </h3>
-              <p className="text-sm text-black mb-4 max-w-md">
+              <p className="text-sm text-gray-300 mb-4 max-w-md">
                 {!userInfo
                   ? "Masukkan username terlebih dahulu untuk melanjutkan."
                   : !selectedPlace
@@ -1267,7 +1284,7 @@ export default function Rbx5Page() {
                   <div className="mb-4">
                     <button
                       onClick={() => setShowGamepassModal(true)}
-                      className="bg-[#FF9C01] text-white font-bold py-3 px-6 rounded-xl hover:bg-[#e6890a] transition-colors shadow-md"
+                      className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
                     >
                       📋 Buat GamePass ({getGamepassAmount().toLocaleString()}{" "}
                       R$)
@@ -1288,9 +1305,9 @@ export default function Rbx5Page() {
               <button
                 onClick={handlePurchase}
                 disabled={!isFormValid}
-                className={`font-bold py-3 px-6 rounded-xl w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-md ${
+                className={`font-bold py-3 px-6 rounded-xl w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto flex items-center justify-center gap-2 transition-all duration-500 ease-out transform ${
                   isFormValid
-                    ? "bg-[#CE3535] text-white hover:scale-105 active:scale-95 hover:shadow-lg cursor-pointer"
+                    ? "bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white hover:scale-105 hover:shadow-xl hover:shadow-cyan-400/25 active:scale-95 cursor-pointer"
                     : "bg-gray-400 text-gray-600 cursor-not-allowed opacity-50"
                 }`}
               >
@@ -1321,7 +1338,7 @@ export default function Rbx5Page() {
           <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-white">
                   Pilih Game/Place
                 </h3>
                 <button
@@ -1402,7 +1419,7 @@ export default function Rbx5Page() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 truncate">
+                          <h4 className="font-medium text-white truncate">
                             {place.name}
                           </h4>
                           <p className="text-sm text-gray-600">
@@ -1434,10 +1451,10 @@ export default function Rbx5Page() {
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-cyan-500/20">
               <button
                 onClick={() => setShowPlaceModal(false)}
-                className="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-base rounded-lg transition-all duration-300 hover:bg-white/20 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10 focus:border-cyan-400/50"
               >
                 Tutup
               </button>
@@ -1448,13 +1465,13 @@ export default function Rbx5Page() {
 
       {/* Gamepass Creation Modal */}
       {showGamepassModal && selectedPlace && robux > 0 && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-[5px] flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-[5px] flex items-center justify-center z-50 p-4">
+          <div className="bg-white/15 backdrop-blur-md border border-white/30 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl shadow-cyan-400/10 animate-in zoom-in-95 duration-500">
             {/* Header */}
-            <div className="bg-[#CE3535] p-4 text-white text-center relative">
+            <div className="bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 p-4 text-white text-center relative">
               <button
                 onClick={() => setShowGamepassModal(false)}
-                className="absolute right-3 top-3 text-white hover:text-gray-200"
+                className="absolute right-3 top-3 text-white hover:text-cyan-200 hover:rotate-90 transition-all duration-300 hover:scale-110"
               >
                 <svg
                   className="w-5 h-5"
@@ -1470,24 +1487,28 @@ export default function Rbx5Page() {
                   />
                 </svg>
               </button>
-              <h3 className="text-lg font-bold">Buat GamePass</h3>
-              <p className="text-sm opacity-90">di game {selectedPlace.name}</p>
+              <h3 className="text-xl font-bold text-gradient-primary">
+                Buat GamePass
+              </h3>
+              <p className="text-sm text-cyan-300">
+                di game {selectedPlace.name}
+              </p>
             </div>
 
             <div className="p-6">
               {/* Amount Display */}
-              <div className="bg-[#f8b8b8] border-2 border-[#CE3535] rounded-xl p-4 mb-4 text-center">
-                <div className="text-2xl font-bold text-[#CE3535] mb-1">
+              <div className="bg-gradient-elegant-secondary/10 border-2 border-cyan-500/50 rounded-xl p-4 mb-4 text-center">
+                <div className="text-2xl font-bold text-gradient-primary mb-1">
                   {getGamepassAmount().toLocaleString()} R$
                 </div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-neutral-base">
                   {robux.toLocaleString()} R$ + 43% fee
                 </div>
               </div>
 
               {/* Tutorial Video */}
               <div className="mb-4">
-                <h4 className="text-sm font-bold text-[#CE3535] mb-2">
+                <h4 className="text-sm font-bold text-gradient-primary mb-2">
                   Tutorial Cara Membuat GamePass
                 </h4>
                 <div className="rounded-xl overflow-hidden">
@@ -1507,29 +1528,29 @@ export default function Rbx5Page() {
               {/* Instructions */}
               <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-3 text-sm">
-                  <div className="bg-[#CE3535] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <div className="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
                     1
                   </div>
-                  <span className="text-gray-700">
+                  <span className="text-base">
                     Buka Roblox Studio → pilih game "{selectedPlace.name}"
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <div className="bg-[#CE3535] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <div className="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
                     2
                   </div>
-                  <span className="text-gray-700">
+                  <span className="text-base">
                     Create → Game Pass → set harga{" "}
-                    <strong>
+                    <strong className="text-gradient-primary">
                       {getGamepassAmount().toLocaleString()} Robux
                     </strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <div className="bg-[#CE3535] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <div className="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
                     3
                   </div>
-                  <span className="text-gray-700">
+                  <span className="text-base">
                     Publish dan pastikan GamePass aktif
                   </span>
                 </div>
@@ -1543,8 +1564,8 @@ export default function Rbx5Page() {
                   className={`flex-1 py-3 px-4 rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                     lastCheckedRobuxAmount !== robux &&
                     lastCheckedRobuxAmount !== null
-                      ? "bg-[#FF9C01] text-white hover:bg-[#e6890a]" // Orange if needs recheck
-                      : "bg-[#CE3535] text-white hover:bg-[#b12d2d]" // Red if normal
+                      ? "bg-gradient-warning text-white hover:opacity-90" // Orange if needs recheck
+                      : "bg-gradient-button-primary text-white hover:opacity-90" // Red if normal
                   }`}
                 >
                   {isCheckingGamepass ? (
@@ -1561,7 +1582,7 @@ export default function Rbx5Page() {
                 </button>
                 <button
                   onClick={() => setShowGamepassModal(false)}
-                  className="px-6 bg-[#f8b8b8] text-gray-700 py-3 rounded-xl font-medium hover:bg-[#e39c9c] transition-colors"
+                  className="px-6 glass-card glass-card-hover text-base py-3 rounded-xl font-medium transition-colors"
                 >
                   Batal
                 </button>
