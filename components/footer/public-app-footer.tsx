@@ -13,7 +13,7 @@ const PublicAppFooter: React.FC = () => {
             className="mb-2"
           />
           <p className="text-sm text-gray-400 pl-[4px]">
-            RobuxID, kami mengutamakan kecepatan, keamanan, dan harga yang
+            RobuxNet, kami mengutamakan kecepatan, keamanan, dan harga yang
             bersahabat. Beli Robux tanpa khawatir, nikmati pengiriman kilat, dan
             pilih metode pembayaran favorit Anda. Pengalaman bermain Roblox
             terbaik, dimulai dari sini!
