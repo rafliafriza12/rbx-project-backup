@@ -31,7 +31,7 @@ const PublicAppHeader: React.FC = () => {
     setIsProfileOpen(false);
   }, [pathname]);
   return (
-    <header className="flex w-full justify-between px-4 md:px-20 py-4 items-center sticky top-0 z-[9999] backdrop-blur-md bg-gradient-elegant-primary/95 shadow-lg border-b border-cyan-400/30 glass-card">
+    <header className="flex w-full justify-between px-4 lg:px-20 py-4 items-center sticky top-0 z-[9999] backdrop-blur-md  shadow-neon-purple border-b border-primary-100 hover:shadow-[0px_7px_50px_#f63ae6] duration-500">
       <Image
         src="/logo.png"
         alt="RID Logo"
@@ -40,14 +40,14 @@ const PublicAppHeader: React.FC = () => {
         className="object-contain"
       />
 
-      <nav className="space-x-6 font-medium hidden md:flex">
+      <nav className="space-x-6 font-medium hidden lg:flex">
         <Link
           href="/"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname === "/"
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
+              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
           }`}
         >
           Home
@@ -55,10 +55,10 @@ const PublicAppHeader: React.FC = () => {
         <Link
           href="/rbx5"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname === "/rbx5"
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
+              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
           }`}
         >
           Robux 5 Hari
@@ -66,10 +66,10 @@ const PublicAppHeader: React.FC = () => {
         <Link
           href="/robux-instant"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("robux-instant")
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
+              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
           }`}
         >
           Robux Instan
@@ -77,10 +77,10 @@ const PublicAppHeader: React.FC = () => {
         <Link
           href="/gamepass"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("gamepass")
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
+              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
           }`}
         >
           Gamepass
@@ -88,10 +88,10 @@ const PublicAppHeader: React.FC = () => {
         <Link
           href="/joki"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("joki")
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
+              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
           }`}
         >
           Jasa Joki
@@ -99,10 +99,10 @@ const PublicAppHeader: React.FC = () => {
         <Link
           href="/leaderboard"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("leaderboard")
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-purple font-bold text-drop-shadow-sm bg-neon-purple/8"
+              : "text-white hover:text-neon-purple font-medium hover:bg-neon-purple/5 hover:text-drop-shadow-sm"
           }`}
         >
           Leaderboard
@@ -110,17 +110,17 @@ const PublicAppHeader: React.FC = () => {
         <Link
           href="/track-order"
           onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 ${
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("track-order")
-              ? "text-cyan-400 font-bold drop-shadow-[0px_0px_9px_#00F5FF]"
-              : "text-white hover:text-cyan-400 hover:drop-shadow-[0px_0px_6px_#00F5FF] font-medium"
+              ? "text-neon-purple font-bold text-drop-shadow-sm bg-neon-purple/8"
+              : "text-white hover:text-neon-purple font-medium hover:bg-neon-purple/5 hover:text-drop-shadow-sm"
           }`}
         >
           Cek Pesanan
         </Link>
       </nav>
 
-      <div className="space-x-4 hidden md:flex items-center">
+      <div className="space-x-4 hidden lg:flex items-center">
         {user ? (
           // Tampilan setelah login
           <div className="relative">
@@ -155,26 +155,26 @@ const PublicAppHeader: React.FC = () => {
               </svg>
             </button>
 
-            {/* Dropdown Profile */}
+            {/* Enhanced Dropdown Profile */}
             {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 glass-card bg-gradient-elegant-primary/95 rounded-lg shadow-xl z-50 py-2 border border-cyan-400/30 glow-cyan">
+              <div className="absolute right-0 mt-2 w-48 neon-card backdrop-blur-md rounded-xl shadow-neon-purple z-50 py-2 border border-neon-purple/30 overflow-hidden">
                 <Link
                   href="/profile"
                   onClick={handleLinkClick}
-                  className="block px-4 py-2 text-sm text-white hover:bg-cyan-400/20 hover:text-cyan-400 rounded-lg mx-2 transition-all duration-300"
+                  className="block px-4 py-2 text-sm text-white hover:bg-neon-purple/20 hover:text-neon-purple rounded-lg mx-2 transition-all duration-300"
                 >
                   Profil Saya
                 </Link>
                 <Link
                   href="/riwayat"
                   onClick={handleLinkClick}
-                  className="block px-4 py-2 text-sm text-white hover:bg-cyan-400/20 hover:text-cyan-400 rounded-lg mx-2 transition-all duration-300"
+                  className="block px-4 py-2 text-sm text-white hover:bg-neon-pink/20 hover:text-neon-pink rounded-lg mx-2 transition-all duration-300"
                 >
                   Riwayat Pesanan
                 </Link>
                 {isAdmin() && (
                   <>
-                    <hr className="my-1 border-cyan-400/30 mx-2" />
+                    <hr className="my-1 border-neon-purple/30 mx-2" />
                     <Link
                       href="/admin/dashboard"
                       onClick={handleLinkClick}
@@ -191,7 +191,7 @@ const PublicAppHeader: React.FC = () => {
                     </Link>
                   </>
                 )}
-                <hr className="my-1 border-cyan-400/30 mx-2" />
+                <hr className="my-1 border-neon-purple/30 mx-2" />
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-400/20 hover:text-rose-300 rounded-lg mx-2 transition-all duration-300"
@@ -202,29 +202,29 @@ const PublicAppHeader: React.FC = () => {
             )}
           </div>
         ) : (
-          // Tampilan sebelum login
+          // Enhanced Auth Buttons for Desktop
           <>
             <Link
               href={"/register"}
-              className="bg-gradient-button-primary text-white px-6 py-2 rounded-lg font-semibold glow-cyan
-                                   transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:brightness-110"
+              className="relative px-6 py-2.5 btn-neon-primary text-white font-bold rounded-xl border border-neon-purple/50 hover:border-neon-pink/50 transition-all duration-300  group overflow-hidden"
             >
-              Sign up
+              <span className="relative z-10">Sign up</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-purple opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
             </Link>
+
             <Link
               href={"/login"}
-              className="border-2 border-[#00FF88] text-[#00FF88] px-6 py-2 rounded-lg font-semibold
-                                 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:glow-mint
-                                 hover:bg-[#00FF88] hover:text-[#3E1E68]"
+              className="relative px-6 py-2.5 border-2 border-neon-purple text-neon-purple font-bold rounded-xl hover:bg-neon-purple hover:text-white transition-all duration-300 group overflow-hidden backdrop-blur-sm"
             >
-              Login
+              <span className="relative z-10">Login</span>
+              <div className="absolute inset-0 bg-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </Link>
           </>
         )}
       </div>
 
       <button
-        className="md:hidden text-white focus:outline-none"
+        className="lg:hidden text-white focus:outline-none"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
         <svg
@@ -243,22 +243,22 @@ const PublicAppHeader: React.FC = () => {
       </button>
 
       <div
-        className={`absolute top-full left-0 w-full z-50 md:hidden px-6 py-4
+        className={`absolute top-full left-0 w-full z-50 lg:hidden px-6 py-4
                               transform transition-all duration-300 ease-in-out
                               ${
                                 isMenuOpen
                                   ? "opacity-100 translate-y-0"
                                   : "opacity-0 -translate-y-2 pointer-events-none"
                               }
-                              glass-card bg-gradient-elegant-primary/95 backdrop-blur-md shadow-xl rounded-b-xl border border-cyan-400/30 glow-white`}
+                              neon-card backdrop-blur-md shadow-neon-purple rounded-b-xl border border-neon-pink/30`}
       >
         <Link
           href="/"
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname === "/"
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
           }`}
         >
           Home
@@ -268,8 +268,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname === "/rbx5"
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
           }`}
         >
           Robux 5 Hari
@@ -279,8 +279,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("robux-instant")
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
           }`}
         >
           Robux Instan
@@ -290,8 +290,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("gamepass")
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
           }`}
         >
           Gamepass
@@ -301,8 +301,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("joki")
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
           }`}
         >
           Jasa Joki
@@ -312,8 +312,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("leaderboard")
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-purple font-bold bg-neon-purple/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-purple hover:bg-neon-purple/10"
           }`}
         >
           Leaderboard
@@ -323,49 +323,53 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("track-order")
-              ? "text-cyan-400 font-bold bg-cyan-400/20 glow-cyan"
-              : "text-white hover:text-cyan-400 hover:bg-cyan-400/10"
+              ? "text-neon-purple font-bold bg-neon-purple/20 text-drop-shadow-sm"
+              : "text-white hover:text-neon-purple hover:bg-neon-purple/10"
           }`}
         >
           Lacak Pesanan
         </Link>
 
-        <div className="flex flex-col gap-3 pt-4 border-t border-cyan-400/30 mt-2">
+        <div className="flex flex-col gap-3 pt-4 border-t border-neon-purple/30 mt-2">
           {user ? (
             // Tampilan Profile di Mobile Menu
             <>
               <Link
                 href="/profile"
                 onClick={handleLinkClick}
-                className="text-center bg-gradient-elegant-secondary text-white py-3 rounded-lg font-semibold transition-all duration-300 hover:opacity-90 glow-emerald"
+                className="text-center bg-gradient-to-r from-neon-purple/80 to-neon-pink/80 text-white py-3 rounded-lg font-semibold transition-all duration-300 hover:from-neon-purple hover:to-neon-pink shadow-[0_0_15px_rgba(179,84,195,0.4)]"
               >
                 Profil Saya
               </Link>
               <button
                 onClick={handleLogout}
-                className="bg-gradient-accent text-white py-3 rounded-lg font-semibold transition-all duration-300 hover:opacity-90 glow-rose"
+                className="bg-gradient-to-r from-rose-500/80 to-red-600/80 hover:from-rose-500 hover:to-red-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(244,63,94,0.4)]"
               >
                 Logout
               </button>
             </>
           ) : (
-            // Tampilan Tombol di Mobile Menu
+            // Enhanced Mobile Auth Buttons
             <>
               <Link
                 href={"/register"}
                 onClick={handleLinkClick}
-                className="bg-gradient-elegant-primary text-white p-3 rounded-lg font-semibold glow-cyan text-center
-                                    hover:opacity-90 transition-all duration-300 transform hover:scale-105"
+                className="relative btn-neon-primary text-white py-3 px-4 rounded-xl font-bold text-center
+                                    transition-all duration-300 shadow-[0_0_20px_rgba(179,84,195,0.4)] hover:shadow-[0_0_30px_rgba(246,58,230,0.6)] 
+                                    border border-neon-purple/50 hover:border-neon-pink/50 group overflow-hidden"
               >
-                Sign up
+                <span className="relative z-10">Sign up</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-purple opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
               </Link>
+
               <Link
                 href={"/login"}
                 onClick={handleLinkClick}
-                className="border-2 border-emerald-400 text-emerald-400 p-3 rounded-lg font-semibold text-center
-                                    hover:bg-emerald-400 hover:text-[#3E1E68] hover:glow-emerald transition-all duration-300 transform hover:scale-105"
+                className="relative border-2 border-neon-purple text-neon-purple py-3 px-4 rounded-xl font-bold text-center
+                                    hover:bg-neon-purple hover:text-white transition-all duration-300 group overflow-hidden backdrop-blur-sm"
               >
-                Login
+                <span className="relative z-10">Login</span>
+                <div className="absolute inset-0 bg-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
             </>
           )}

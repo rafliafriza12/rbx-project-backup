@@ -3,6 +3,28 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
+import {
+  Gem,
+  Rocket,
+  Users,
+  Star,
+  RefreshCw,
+  Info,
+  Coins,
+  TrendingUp,
+  DollarSign,
+  ShoppingCart,
+  Eye,
+  Search,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  Play,
+  Gamepad2,
+  FileText,
+  Sparkles,
+} from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
 
 interface Product {
@@ -676,512 +698,714 @@ export default function Rbx5Page() {
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center ">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#67E8F9]"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-400"></div>
       </div>
     );
   }
 
   return (
     <>
-      <main className="pt-6 sm:pt-8 md:pt-10 px-4 sm:px-6 md:px-8 min-h-screen relative">
-        {/* Background Grid */}
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px] pointer-events-none"></div>
+      <main className="min-h-screen">
+        {/* Reduced floating elements */}
 
-        {/* Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/10 to-blue-600/5 rounded-full blur-3xl animate-pulse"></div>
-          <div
-            className="absolute bottom-20 left-0 w-80 h-80 bg-gradient-to-tr from-cyan-600/10 to-purple-600/5 rounded-full blur-3xl animate-pulse"
-            style={{ animationDelay: "2s" }}
-          ></div>
-        </div>
+        {/* Hero Section */}
+        <section className="relative py-8 lg:py-12">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8">
+              {/* Premium Badge */}
+              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-2xl text-sm text-white/80 font-semibold mb-8 backdrop-blur-sm shadow-lg hover:shadow-primary-100/20 transition-all duration-300">
+                <div className="flex items-center mr-2">
+                  {/* <span className="w-2 h-2 bg-primary-100 rounded-full animate-pulse mr-2"></span> */}
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                Robux Premium - GamePass Official
+              </div>
 
-        <div className="relative z-10 p-8 rounded-2xl max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-2 text-white animate-in fade-in slide-in-from-top-5 duration-1000">
-            Beli{" "}
-            <span className="text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text">
-              Robux
-            </span>
-          </h1>
-          <div className="flex items-center justify-center mb-4 max-w-4xl mx-auto">
-            <p className="text-center text-sm sm:text-base text-gray-300">
-              Robux akan otomatis di tambahkan ke akunmu melalui gamepass resmi.
-            </p>
+              {/* Enhanced Main Heading */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-[0.9] tracking-tight">
+                RBX <span className="text-primary-100">5 Hari</span>{" "}
+              </h1>
+
+              {/* Enhanced Description */}
+              <p className="text-lg sm:text-base text-white/80 max-w-3xl mx-auto mb-8 font-light">
+                Robux akan otomatis ditambahkan ke akunmu melalui{" "}
+                <span className="text-primary-100 font-medium">
+                  gamepass resmi
+                </span>
+                .
+                <br className="hidden sm:block" />
+                Proses{" "}
+                <span className="text-primary-200 font-medium">
+                  cepat
+                </span>, <span className="text-white font-medium">aman</span>,
+                dan{" "}
+                <span className="text-primary-100 font-medium">terpercaya</span>
+                .
+              </p>
+            </div>
           </div>
-          {/* <button
-            onClick={refreshStats}
-            disabled={loadingStats}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-button-primary text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            {loadingStats ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-            ) : (
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            )}
-            {loadingStats ? "Memuat..." : "Refresh"}
-          </button> */}
-        </div>
+        </section>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6 max-w-4xl items-center mx-auto">
-          {[
-            {
-              label: "Total Stok",
-              value: loadingStats ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
-                </div>
-              ) : (
-                `${stats.totalStok.toLocaleString()} R$`
-              ),
-              img: "/stok.png",
-              hasInfo: true,
-              infoContent: stockAccountsInfo ? (
-                <div className="text-xs text-left">
-                  <div className="font-semibold mb-1">Detail Stok Akun:</div>
-                  <div>Total Akun: {stockAccountsInfo.totalAccounts}</div>
-                  <div>Akun Aktif: {stockAccountsInfo.activeAccounts}</div>
-                  <div>Akun Nonaktif: {stockAccountsInfo.inactiveAccounts}</div>
-                  <div>
-                    Rata-rata per Akun:{" "}
-                    {stockAccountsInfo.averageRobuxPerAccount.toLocaleString()}{" "}
-                    R$
-                  </div>
-                </div>
-              ) : null,
-            },
-            {
-              label: "Total Order",
-              value: loadingStats ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
-                </div>
-              ) : (
-                `${stats.totalOrder} Order`
-              ),
-              img: "/order.png",
-              hasInfo: false,
-            },
-            {
-              label: "Terjual",
-              value: loadingStats ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
-                </div>
-              ) : (
-                `${stats.totalTerjual.toLocaleString()} R$`
-              ),
-              img: "/terjual.png",
-              hasInfo: false,
-            },
-            {
-              label: "Harga Robux",
-              value: loadingStats ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-pulse bg-gray-300 h-4 w-20 rounded"></div>
-                </div>
-              ) : (
-                `Rp.${stats.hargaPer100Robux.toLocaleString()} / 100 R$`
-              ),
-              img: "/harga.png",
-              hasInfo: false,
-            },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="relative w-full h-auto bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-2 sm:px-3 py-2 md:py-5 flex items-center justify-center text-center group transition-all duration-500 ease-out hover:-translate-y-2 hover:scale-[1.02] hover:bg-white/20 hover:border-cyan-400/40 hover:shadow-lg hover:shadow-cyan-400/10"
-            >
-              <img
-                src={item.img}
-                alt={item.label}
-                className="absolute top-2 left-3 w-6 h-6 object-contain invert-[1]"
-              />
+        {/* Enhanced Stats Section */}
+        <section className="relative py-6">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Section Header */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-200/20 to-primary-300/20 border border-primary-200/40 rounded-2xl text-sm text-white/80 font-medium mb-6 backdrop-blur-sm">
+                Statistik Real-time
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-3 leading-tight">
+                Data <span className="text-primary-100">Terkini</span>
+              </h2>
+            </div>
 
-              {/* Info Icon for items with additional info */}
-              {item.hasInfo && item.infoContent && (
-                <div className="absolute top-1 right-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
+              {[
+                {
+                  label: "Total Stok",
+                  value: loadingStats ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
+                    </div>
+                  ) : (
+                    `${stats.totalStok.toLocaleString()} R$`
+                  ),
+                  img: "/stok.png",
+                  hasInfo: true,
+                  infoContent: stockAccountsInfo ? (
+                    <div className="text-xs text-left">
+                      <div className="font-semibold mb-1">
+                        Detail Stok Akun:
+                      </div>
+                      <div>Total Akun: {stockAccountsInfo.totalAccounts}</div>
+                      <div>Akun Aktif: {stockAccountsInfo.activeAccounts}</div>
+                      <div>
+                        Akun Nonaktif: {stockAccountsInfo.inactiveAccounts}
+                      </div>
+                      <div>
+                        Rata-rata per Akun:{" "}
+                        {stockAccountsInfo.averageRobuxPerAccount.toLocaleString()}{" "}
+                        R$
+                      </div>
+                    </div>
+                  ) : null,
+                },
+                {
+                  label: "Total Order",
+                  value: loadingStats ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
+                    </div>
+                  ) : (
+                    `${stats.totalOrder} Order`
+                  ),
+                  img: "/order.png",
+                  hasInfo: false,
+                },
+                {
+                  label: "Terjual",
+                  value: loadingStats ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-pulse bg-gray-300 h-4 w-16 rounded"></div>
+                    </div>
+                  ) : (
+                    `${stats.totalTerjual.toLocaleString()} R$`
+                  ),
+                  img: "/terjual.png",
+                  hasInfo: false,
+                },
+                {
+                  label: "Harga Robux",
+                  value: loadingStats ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-pulse bg-gray-300 h-4 w-20 rounded"></div>
+                    </div>
+                  ) : (
+                    `Rp.${stats.hargaPer100Robux.toLocaleString()} / 100 R$`
+                  ),
+                  img: "/harga.png",
+                  hasInfo: false,
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="group relative bg-gradient-to-br from-white/10 via-transparent to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 text-center transition-all duration-700 hover:-translate-y-4 hover:shadow-2xl hover:shadow-white/20 hover:border-white/40"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <div className="relative">
-                    <svg
-                      className="w-4 h-4 text-gray-600 hover:text-gray-800 cursor-help"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <div className="w-16 h-16 bg-gradient-to-br from-white/20 to-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                      {i === 0 && <Gem className="text-white w-8 h-8" />}
+                      {i === 1 && (
+                        <ShoppingCart className="text-white w-8 h-8" />
+                      )}
+                      {i === 2 && <TrendingUp className="text-white w-8 h-8" />}
+                      {i === 3 && <Coins className="text-white w-8 h-8" />}
+                    </div>
 
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                      {item.infoContent}
-                      <div className="absolute top-full right-4 border-l-4 border-r-4 border-t-4 border-transparent border-t-cyan-500/20"></div>
+                    {/* Info Icon for items with additional info */}
+                    {item.hasInfo && item.infoContent && (
+                      <div className="absolute top-3 right-3">
+                        <div className="relative">
+                          {/* <Info className="w-4 h-4 text-cyan-400 hover:text-cyan-300 cursor-help" /> */}
+
+                          {/* Modern Tooltip */}
+                          <div className="absolute bottom-full right-0 mb-2 w-48 bg-slate-800/90 backdrop-blur-lg border border-slate-600/50 text-white text-xs rounded-xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-10 shadow-xl">
+                            {item.infoContent}
+                            <div className="absolute top-full right-4 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-600/50"></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-center">
+                      <div className="text-xl font-black text-white mb-2 group-hover:text-neon-pink transition-colors duration-300">
+                        {typeof item.value === "string"
+                          ? item.value
+                          : item.value}
+                      </div>
+                      <div className="text-white/70 text-sm font-medium">
+                        {item.label}
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
-
-              <div className="text-[13px] leading-tight">
-                <div className="text-gray-300">{item.label}</div>
-                <div className="text-[#ffffff] font-extrabold text-sm ">
-                  {typeof item.value === "string" ? item.value : item.value}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        </section>
 
-        <div className="mb-6">
-          <h2 className="text-white text-sm sm:text-base font-bold mb-4 text-left max-w-4xl mx-auto">
-            PILIH JUMLAH ROBUX
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 justify-center max-w-4xl mx-auto">
-            {products.map((product, i) => (
-              <button
-                key={product._id}
-                onClick={() => handlePackageSelect(product)}
-                className={`w-full rounded-2xl px-3 py-2 flex flex-col justify-center transform transition duration-300 hover:scale-105  ${
-                  selectedPackage?._id === product._id
-                    ? "bg-cyan-400/20 backdrop-blur-sm border border-cyan-400/60"
-                    : "bg-white/10 backdrop-blur-sm border border-white/20"
-                }`}
-              >
-                <div className="flex items-center gap-2 text-gray-300 text-xs mb-[2px] justify-center">
-                  <img
-                    src="/money.png"
-                    alt="money icon"
-                    className="w-5 h-5 sm:w-6 sm:h-6 invert-[1]"
-                  />
-                  <span>{product.robuxAmount} R$</span>
-                </div>
-                <div className="text-white text-sm font-extrabold leading-tight ">
-                  {formatCurrency(getFinalPrice(product))}
-                  {product.discountPercentage && (
-                    <div className="text-xs text-gray-400 line-through">
-                      {formatCurrency(product.price)}
+        {/* Enhanced Package Selection Section */}
+        <section className="relative py-16 lg:py-20">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-100/10 to-primary-200/10 border border-primary-100/30 rounded-2xl text-sm text-white/80 font-semibold mb-6 backdrop-blur-sm">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Paket Premium Robux
+              </div>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight">
+                Pilih <span className="text-primary-100">Paket Robux</span>
+                <br />
+                <span className="text-transparent bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text">
+                  Terbaik
+                </span>
+              </h2>
+              <p className="text-xl text-white/80 max-w-3xl mx-auto font-light">
+                Pilih jumlah Robux yang sesuai dengan kebutuhanmu.{" "}
+                <span className="text-primary-100 font-medium">
+                  Proses instan
+                </span>{" "}
+                dan{" "}
+                <span className="text-primary-200 font-medium">
+                  harga terbaik
+                </span>
+                .
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 justify-center max-w-5xl mx-auto mb-8">
+              {products.map((product, i) => (
+                <button
+                  key={product._id}
+                  onClick={() => handlePackageSelect(product)}
+                  className={`group relative backdrop-blur-xl border rounded-2xl p-4 sm:p-6 transition-all duration-700 hover:-translate-y-2 hover:shadow-xl ${
+                    selectedPackage?._id === product._id
+                      ? "bg-gradient-to-br from-primary-100/20 via-primary-200/10 to-primary-100/20 border-primary-100/60 shadow-lg shadow-primary-100/30"
+                      : "bg-gradient-to-br from-white/10 via-transparent to-white/5 border-white/20 hover:border-white/40 hover:shadow-white/20"
+                  }`}
+                >
+                  {selectedPackage?._id === product._id && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full flex items-center justify-center shadow-lg shadow-primary-100/50">
+                      <CheckCircle2 className="w-4 h-4 text-white" />
                     </div>
                   )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="relative w-full max-w-[740px] mx-auto mt-10 mb-14">
-          <div className="absolute top-1/2 -translate-y-1/2 w-full h-3 bg-gray-300 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-button-primary transition-all duration-300 ease-in-out"
-              style={{
-                width: `${(robux / 1000) * 100}%`,
-              }}
-            />
-          </div>
+                  {/* Background glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary-100/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-          <input
-            ref={sliderRef}
-            type="range"
-            min={0}
-            max={1000}
-            step={100}
-            value={robux}
-            onChange={(e) => setRobux(Number(e.target.value))}
-            className="w-full h-3 bg-transparent appearance-none relative z-10"
-            style={{
-              WebkitAppearance: "none",
-              MozAppearance: "none",
-            }}
-          />
+                  <div className="relative flex flex-col items-center text-center">
+                    <div
+                      className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 ${
+                        selectedPackage?._id === product._id
+                          ? "from-primary-100/30 to-primary-200/20"
+                          : "from-primary-100/20 to-primary-200/10"
+                      }`}
+                    >
+                      <DollarSign
+                        className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                          selectedPackage?._id === product._id
+                            ? "text-white"
+                            : "text-white"
+                        }`}
+                      />
+                    </div>
 
-          {/* Hide default thumb */}
-          <style jsx>{`
-            input[type="range"]::-webkit-slider-thumb {
-              -webkit-appearance: none;
-              appearance: none;
-              height: 0;
-              width: 0;
-              background: transparent;
-              cursor: pointer;
-            }
-            input[type="range"]::-moz-range-thumb {
-              height: 0;
-              width: 0;
-              background: transparent;
-              cursor: pointer;
-            }
-          `}</style>
+                    <div
+                      className={`text-lg sm:text-xl font-bold mb-2 group-hover:scale-105 transition-all duration-300 ${
+                        selectedPackage?._id === product._id
+                          ? "text-primary-100"
+                          : "text-white "
+                      }`}
+                    >
+                      {product.robuxAmount.toLocaleString()} R$
+                    </div>
 
-          <div
-            ref={thumbRef}
-            className={`absolute top-1/2 -translate-y-1/2 text-nowrap bg-white/20 backdrop-blur-sm border border-white/30 text-white text-[10px] font-bold h-[28px] px-3 rounded-lg flex items-center justify-center pointer-events-none z-20 ${
-              isFromHomepage ? "" : "transition-all duration-300 ease-in-out"
-            }`}
-            style={{ left: thumbLeft }}
-          >
-            {robux} R$
-          </div>
-        </div>
+                    <div
+                      className={`font-bold text-sm sm:text-base mb-2 px-2 sm:px-3 py-1 rounded-lg transition-all duration-300 ${
+                        selectedPackage?._id === product._id
+                          ? "text-primary-100 bg-gradient-to-r from-primary-100/20 to-primary-200/20"
+                          : "text-white  group-hover:bg-gradient-to-r group-hover:from-primary-100/10 group-hover:to-primary-200/10"
+                      }`}
+                    >
+                      {formatCurrency(getFinalPrice(product))}
+                    </div>
 
-        <div className="mt-8 sm:mt-10 md:mt-12 max-w-[740px] mx-auto px-2">
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 sm:px-6 pt-6 pb-6 sm:pb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-h-[170px] relative transition-all duration-500  hover:border-cyan-400/30">
-            <div className="w-fit text-white text-xs sm:text-sm font-bold rounded-md px-3 py-1 absolute left-2 top-2">
-              MASUKAN JUMLAH CUSTOM
+                    {product.discountPercentage && (
+                      <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2">
+                        <div className="text-xs text-slate-400 line-through">
+                          {formatCurrency(product.price)}
+                        </div>
+                        <div className="bg-gradient-to-r from-primary-100 to-primary-200 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg">
+                          -{product.discountPercentage}%
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
 
-            <div className="flex flex-col items-center justify-center pt-6">
-              <div className="w-full max-w-[260px]">
-                <p className="font-semibold text-sm mb-2 text-white ml-3">
-                  Jumlah Robux
-                </p>
-                <div className="flex rounded overflow-hidden w-full">
-                  <span className="bg-gradient-button-secondary text-white font-bold text-sm px-4 sm:px-5 py-3 flex items-center justify-center">
-                    R$
+            {/* Custom Slider Section */}
+            <div className="mt-8 mb-8">
+              <div className="text-center mb-8">
+                {/* Section Badge */}
+                <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-200/20 to-primary-300/20 border border-primary-200/40 rounded-2xl text-sm text-primary-200 font-medium mb-6 backdrop-blur-sm">
+                  <span className="w-2 h-2 bg-primary-200 rounded-full mr-2 animate-pulse"></span>
+                  Custom Amount
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                  Pilih Jumlah <span className="text-primary-100">Custom</span>
+                </h3>
+                <p className="text-white/70 text-base">
+                  Geser untuk memilih jumlah Robux yang{" "}
+                  <span className="text-primary-200 font-medium">
+                    diinginkan
                   </span>
-                  <input
-                    type="number"
-                    value={robux || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "" || value === "0") {
-                        setRobux(0);
-                      } else {
-                        const numValue = parseInt(value);
-                        if (!isNaN(numValue) && numValue > 0) {
-                          setRobux(numValue);
+                </p>
+              </div>
+
+              <div className="relative w-full max-w-5xl mx-auto mb-16">
+                <input
+                  ref={sliderRef}
+                  type="range"
+                  min={0}
+                  max={1000}
+                  step={50}
+                  value={robux}
+                  onChange={(e) => setRobux(Number(e.target.value))}
+                  className="w-full h-3 bg-gradient-to-r from-primary-900/50 to-primary-800/50 rounded-full appearance-none cursor-pointer slider-custom"
+                />
+
+                {/* Moving Tooltip Below Slider */}
+                <div
+                  className="absolute top-10 transition-all duration-200 ease-out z-10 pointer-events-none"
+                  style={{
+                    left: `calc(${Math.min(robux / 1000, 1) * 100}% - ${
+                      Math.min(robux / 1000, 1) * 24
+                    }px + 12px)`,
+                    transform: "translateX(-50%)",
+                  }}
+                >
+                  <div className="bg-gradient-to-r from-primary-100/95 to-primary-200/95 backdrop-blur-sm text-white text-sm font-bold px-4 py-2 rounded-xl shadow-xl border border-primary-100/40 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <Gem className="w-4 h-4" />
+                      {robux.toLocaleString()} R$
+                    </div>
+                    {/* Arrow pointing up to slider */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-primary-100/95"></div>
+                  </div>
+                </div>
+
+                {/* Simple Slider Styling */}
+                <style jsx>{`
+                  .slider-custom {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    outline: none;
+                    background: linear-gradient(
+                      to right,
+                      #b354c3 0%,
+                      #b354c3 ${(robux / 1000) * 100}%,
+                      rgba(179, 84, 195, 0.2) ${(robux / 1000) * 100}%,
+                      rgba(179, 84, 195, 0.2) 100%
+                    );
+                    border-radius: 50px;
+                    border: 1px solid rgba(179, 84, 195, 0.3);
+                  }
+
+                  .slider-custom::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    height: 24px;
+                    width: 24px;
+                    background: linear-gradient(135deg, #b354c3, #f4c5e7);
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    cursor: grab;
+                    box-shadow: 0 4px 12px rgba(179, 84, 195, 0.4);
+                  }
+
+                  .slider-custom::-webkit-slider-thumb:active {
+                    cursor: grabbing;
+                    transform: scale(1.1);
+                  }
+
+                  .slider-custom::-moz-range-thumb {
+                    height: 24px;
+                    width: 24px;
+                    background: linear-gradient(135deg, #b354c3, #f4c5e7);
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    cursor: grab;
+                    box-shadow: 0 4px 12px rgba(179, 84, 195, 0.4);
+                    -moz-appearance: none;
+                  }
+
+                  .slider-custom::-moz-range-thumb:active {
+                    cursor: grabbing;
+                    transform: scale(1.1);
+                  }
+
+                  .slider-custom::-moz-range-track {
+                    background: transparent;
+                  }
+                `}</style>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Enhanced Custom Robux Input Section */}
+        <section className="max-w-5xl mx-auto mt-8 px-4">
+          <div className="bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-2xl p-6 sm:p-8 shadow-xl shadow-primary-100/20 hover:shadow-primary-100/30 transition-all duration-500 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 via-transparent to-primary-200/5 rounded-2xl"></div>
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary-100/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-primary-200/10 rounded-full blur-2xl"></div>
+
+            {/* Header Badge */}
+            <div className="relative flex items-center justify-center mb-6">
+              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-2xl backdrop-blur-sm shadow-lg">
+                <Sparkles className="w-5 h-5 text-primary-100 mr-2" />
+                <span className="text-white font-bold text-sm tracking-wide">
+                  MASUKAN JUMLAH CUSTOM
+                </span>
+              </div>
+            </div>
+
+            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+              {/* Robux Amount Input */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-lg flex items-center justify-center">
+                    <Gem className="w-4 h-4 text-primary-100" />
+                  </div>
+                  <h3 className="text-white font-bold text-base">
+                    <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                      Jumlah Robux
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl blur-sm group-focus-within:blur-md transition-all duration-300"></div>
+                  <div className="relative flex rounded-xl overflow-hidden backdrop-blur-xl border border-primary-200/40 group-focus-within:border-primary-100/60 transition-all duration-300">
+                    <div className="bg-gradient-to-r from-primary-100/30 to-primary-200/20 text-white font-bold text-sm px-5 py-4 flex items-center justify-center border-r border-primary-200/30">
+                      <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent font-extrabold">
+                        R$
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      value={robux || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || value === "0") {
+                          setRobux(0);
+                        } else {
+                          const numValue = parseInt(value);
+                          if (!isNaN(numValue) && numValue > 0) {
+                            setRobux(numValue);
+                          }
                         }
-                      }
-                    }}
-                    min="1"
-                    placeholder="Cth. 100"
-                    className="flex-1 bg-white/10 backdrop-blur-sm border border-white/20 text-base font-semibold outline-none px-3 sm:px-4 py-3 placeholder:!text-white/60  focus:border-cyan-400/50 focus:bg-white/15 focus:shadow-lg focus:shadow-cyan-400/10 transition-all duration-300 hover:border-cyan-400/30"
-                  />
+                      }}
+                      min="1"
+                      placeholder="Contoh: 500"
+                      className="flex-1 bg-gradient-to-r from-primary-600/20 to-primary-700/10 text-white text-lg font-bold outline-none px-4 py-4 placeholder:text-white/50 focus:bg-primary-600/30 transition-all duration-300"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="w-1 h-1 bg-primary-200 rounded-full animate-pulse"></div>
+                  <p className="text-xs text-white/70">
+                    Masukan jumlah Robux yang diinginkan (minimum 1 R$)
+                  </p>
+                </div>
+              </div>
+
+              {/* Price Display */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 text-primary-100" />
+                  </div>
+                  <h3 className="text-white font-bold text-base">
+                    <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                      Harga Total
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-green-400/20 rounded-xl blur-sm transition-all duration-300"></div>
+                  <div className="relative flex rounded-xl overflow-hidden backdrop-blur-xl border border-emerald-400/40">
+                    <div className="bg-gradient-to-r from-emerald-500/30 to-green-500/20 text-white font-bold text-sm px-5 py-4 flex items-center justify-center border-r border-emerald-400/30">
+                      <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent font-extrabold">
+                        Rp
+                      </span>
+                    </div>
+                    <div className="flex-1 bg-gradient-to-r from-emerald-500/10 to-green-500/5 text-white text-lg font-bold px-4 py-4 flex items-center">
+                      {getCurrentPrice() > 0 ? (
+                        <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+                          {formatCurrency(getCurrentPrice())
+                            .replace("Rp", "")
+                            .trim()}
+                        </span>
+                      ) : (
+                        <span className="text-white/50">0</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <p className="text-xs text-white/70">
+                    Harga akan otomatis terhitung berdasarkan jumlah Robux
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center pt-6 lg:pt-6">
-              <div className="w-full max-w-[260px]">
-                <p className="font-semibold text-sm mb-2 text-white ml-3">
-                  Harga Total
-                </p>
-                <div className="flex rounded overflow-hidden w-full">
-                  <span className="bg-gradient-button-secondary text-white font-bold text-sm px-4 sm:px-5 py-3 flex items-center justify-center">
-                    Rp
+            {/* Price Info Banner */}
+            {robux > 0 && (
+              <div className="mt-6 bg-gradient-to-r from-primary-100/10 to-primary-200/10 border border-primary-100/30 rounded-xl p-4 backdrop-blur-sm">
+                <div className="flex items-center justify-center gap-3 text-center">
+                  <TrendingUp className="w-5 h-5 text-primary-100" />
+                  <span className="text-white font-medium">
+                    Kamu akan mendapat{" "}
+                    <span className="text-primary-100 font-bold">
+                      {robux.toLocaleString()} R$
+                    </span>{" "}
+                    dengan harga{" "}
+                    <span className="text-primary-200 font-bold">
+                      {formatCurrency(getCurrentPrice())}
+                    </span>
                   </span>
+                  <Sparkles className="w-5 h-5 text-primary-200" />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Simplified Form Section */}
+        <section className="max-w-5xl mx-auto mt-8 px-4">
+          <div className="bg-gradient-to-br from-primary-900/30 via-primary-800/20 to-primary-700/30 backdrop-blur-xl border border-primary-100/20 rounded-2xl p-6 shadow-xl shadow-primary-100/10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Username Input Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-xl flex items-center justify-center">
+                    <Users className="w-5 h-5 text-primary-100" />
+                  </div>
+                  <h3 className="text-white font-bold text-lg">
+                    <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                      1. MASUKAN USERNAME
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="relative">
                   <input
                     type="text"
-                    value={
-                      getCurrentPrice() > 0
-                        ? formatCurrency(getCurrentPrice())
-                            .replace("Rp", "")
-                            .trim()
-                        : "0"
-                    }
-                    readOnly
-                    className="flex-1 bg-white/10 backdrop-blur-sm border border-white/20 text-base font-semibold outline-none px-3 sm:px-4 py-3  focus:border-cyan-400/50 focus:bg-white/15 focus:shadow-lg focus:shadow-cyan-400/10 transition-all duration-300 hover:border-cyan-400/30"
+                    placeholder="Masukan Username Roblox"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className={`w-full py-3 px-4 rounded-xl text-white font-medium pr-12 outline-none transition-all duration-300 backdrop-blur-xl ${
+                      userInfo
+                        ? "bg-gradient-to-r from-emerald-500/30 to-emerald-600/20 border-2 border-emerald-400/60"
+                        : username && userSearchError
+                        ? "bg-gradient-to-r from-red-500/30 to-red-600/20 border-2 border-red-400/60"
+                        : "bg-gradient-to-r from-primary-600/30 to-primary-700/20 border-2 border-primary-200/50 focus:border-primary-100/80"
+                    } placeholder:text-white/50`}
                   />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <section className="max-w-[740px] mx-auto mt-8 sm:mt-10 md:mt-12 px-4 flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
-          <div className="w-full lg:w-[200px] flex justify-center lg:justify-start">
-            <div className="bg-gradient-elegant-secondary/20 rounded-full w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] flex items-center justify-center border border-[#67E8F9]/30">
-              <Image
-                src="/koin.png"
-                alt="coin icon"
-                width={60}
-                height={60}
-                className="sm:w-20 sm:h-20"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1">
-            <h3 className="text-white font-bold text-sm mb-1">
-              1. MASUKAN USERNAME
-            </h3>
-            <p className="text-sm text-gray-300 mb-3 max-w-md">
-              Masukkan Username Anda untuk memastikan Robux akan dikirim ke akun
-              yang benar.
-            </p>
-
-            <div className="relative mb-2 w-full max-w-md">
-              <input
-                type="text"
-                placeholder="MASUKAN USERNAME"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={`w-full py-3 px-4 rounded-md text-sm text-white font-medium pr-10 outline-none transition-all hover:scale-[1.02] focus:scale-[1.02] ${
-                  userInfo
-                    ? "bg-gradient-success/10 border-2 border-green-400/50"
-                    : username && userSearchError
-                    ? "bg-gradient-elegant-secondary/10 border-2 border-red-400/50"
-                    : username
-                    ? "bg-gradient-warning/10 border-2 border-yellow-400/50"
-                    : "bg-gradient-elegant-secondary/10"
-                }`}
-              />
-              {isSearchingUser ? (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
-                </div>
-              ) : (
-                <Image
-                  src="/search.png"
-                  alt="search icon"
-                  width={16}
-                  height={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                />
-              )}
-            </div>
-
-            {/* User Info Display */}
-            {userInfo && (
-              <div className="bg-gradient-success/10 border-2 border-green-400/50 rounded-lg p-3 mb-3 w-full max-w-md">
-                <div className="flex items-center gap-3">
-                  {userInfo.avatar ? (
-                    <img
-                      src={userInfo.avatar}
-                      alt="Avatar"
-                      className="w-12 h-12 rounded-full bg-gray-200"
-                    />
+                  {isSearchingUser ? (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary-100" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-gray-600 text-xs">No Avatar</span>
+                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
+                  )}
+                </div>
+
+                <p className="text-xs text-white/70">
+                  Ketik minimal 2 karakter untuk mencari username secara
+                  otomatis
+                </p>
+
+                {/* User Status Messages */}
+                {userSearchError &&
+                  username &&
+                  username.length >= 2 &&
+                  !isSearchingUser && (
+                    <div className="bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-400/60 rounded-xl p-3">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400" />
+                        <span className="text-sm text-red-300">
+                          {userSearchError}
+                        </span>
+                      </div>
                     </div>
                   )}
-                  <div className="flex-1">
-                    <div className="text-sm font-bold text-green-700">
-                      {userInfo.username}
-                    </div>
-                    {userInfo.displayName &&
-                      userInfo.displayName !== userInfo.username && (
-                        <div className="text-xs text-green-600">
-                          Display Name: {userInfo.displayName}
-                        </div>
-                      )}
-                    <div className="text-xs text-green-600">
-                      ID: {userInfo.id}
-                    </div>
-                  </div>
-                  <div className="text-green-500">
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      ></path>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Place Selection */}
-            {userInfo && (
-              <div className="w-full max-w-md mb-3">
-                <h4 className="text-sm font-bold text-white mb-2">
-                  2. PILIH GAME/PLACE
-                </h4>
+                {isSearchingUser && username && username.length >= 2 && (
+                  <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-400/60 rounded-xl p-3">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
+                      <span className="text-sm text-yellow-300">
+                        Mencari user...
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* User Info & Actions Section */}
+              <div className="space-y-4 h-full">
+                {userInfo ? (
+                  <>
+                    {/* User Info Display */}
+                    <div className="bg-gradient-to-br h-full from-emerald-500/25 via-emerald-400/15 to-green-500/25 border border-emerald-400/60 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        {userInfo.avatar ? (
+                          <img
+                            src={userInfo.avatar}
+                            alt="Avatar"
+                            className="w-12 h-12 rounded-xl bg-slate-600 ring-2 ring-emerald-400/60"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400/30 to-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-400/60">
+                            <Users className="w-6 h-6 text-emerald-400" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="text-white font-bold">
+                            {userInfo.username}
+                          </div>
+                          <div className="text-xs text-emerald-300">
+                            ID: {userInfo.id}
+                          </div>
+                          {userInfo.displayName &&
+                            userInfo.displayName !== userInfo.username && (
+                              <div className="text-xs text-emerald-300">
+                                Display: {userInfo.displayName}
+                              </div>
+                            )}
+                        </div>
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-gradient-to-br from-primary-600/25 via-primary-500/15 to-primary-700/25 border border-primary-200/50 rounded-xl p-6 text-center">
+                    <Users className="w-12 h-12 text-primary-200 mx-auto mb-3 opacity-50" />
+                    <p className="text-white/70">
+                      Masukan username untuk melihat info akun
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Place Selection and Purchase Actions - only show when user info exists */}
+        {userInfo && (
+          <section className="max-w-5xl mx-auto px-4 pb-8 mt-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Place Selection Section */}
+              <div className="bg-gradient-to-br from-primary-900/30 via-primary-800/20 to-primary-700/30 backdrop-blur-xl border border-primary-100/20 rounded-2xl p-6 shadow-xl shadow-primary-100/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-xl flex items-center justify-center">
+                    <Gamepad2 className="w-5 h-5 text-primary-100" />
+                  </div>
+                  <h3 className="text-white font-bold text-lg">
+                    <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                      2. PILIH GAME/PLACE
+                    </span>
+                  </h3>
+                </div>
 
                 {isLoadingPlaces ? (
-                  <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent"></div>
-                      <span className="text-sm text-yellow-700">
+                  <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-400/60 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
+                      <span className="text-white">
                         Mengambil daftar game...
                       </span>
                     </div>
                   </div>
                 ) : placesError ? (
-                  <div className="bg-gradient-elegant-secondary/10 border-2 border-red-400/50 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="text-red-500">
-                        <svg
-                          className="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          ></path>
-                        </svg>
-                      </div>
-                      <span className="text-sm text-red-700">
-                        {placesError}
-                      </span>
+                  <div className="bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-400/60 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-400" />
+                      <span className="text-white">{placesError}</span>
                     </div>
                   </div>
                 ) : userPlaces.length === 0 ? (
-                  <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="text-gray-500">
-                        <svg
-                          className="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                            clipRule="evenodd"
-                          ></path>
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600">
+                  <div className="bg-gradient-to-br from-primary-600/20 to-primary-700/20 border border-primary-200/40 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <Info className="w-5 h-5 text-primary-200" />
+                      <span className="text-white/80">
                         User ini tidak memiliki game yang dapat dipilih
                       </span>
                     </div>
                   </div>
                 ) : selectedPlace ? (
-                  <div className="bg-gradient-success/10 border-2 border-green-400/50 rounded-lg p-3">
+                  <div className="bg-gradient-to-br from-emerald-500/25 to-green-500/25 border border-emerald-400/60 rounded-xl p-4">
                     <div className="flex items-center gap-3">
                       {selectedPlace.thumbnail ? (
                         <img
                           src={selectedPlace.thumbnail}
                           alt="Game thumbnail"
-                          className="w-12 h-12 rounded bg-gray-200 object-cover"
+                          className="w-12 h-12 rounded-lg bg-slate-600 object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded bg-gray-300 flex items-center justify-center">
-                          <span className="text-gray-600 text-xs">No Img</span>
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-400/30 to-emerald-500/20 flex items-center justify-center">
+                          <Gamepad2 className="w-6 h-6 text-emerald-400" />
                         </div>
                       )}
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-green-700">
+                        <div className="text-white font-bold">
                           {selectedPlace.name}
                         </div>
-                        <div className="text-xs text-green-600">
+                        <div className="text-xs text-emerald-300">
                           Visits: {selectedPlace.visits.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-green-600">
-                          Place ID: {selectedPlace.placeId}
                         </div>
                       </div>
                       <button
                         onClick={() => setShowPlaceModal(true)}
-                        className="text-blue-500 hover:text-blue-700 text-xs font-medium"
+                        className="bg-cyan-500/30 hover:bg-cyan-500/40 text-cyan-300 text-xs font-medium px-3 py-1 rounded-lg transition-all"
                       >
                         Ganti
                       </button>
@@ -1190,139 +1414,109 @@ export default function Rbx5Page() {
                 ) : (
                   <button
                     onClick={() => setShowPlaceModal(true)}
-                    className="w-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-400/30 rounded-lg p-3 text-center hover:from-cyan-500/20 hover:to-blue-500/20 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10 transition-all duration-300"
+                    className="w-full bg-gradient-to-br from-primary-600/30 to-primary-700/30 border border-primary-200/40 rounded-xl p-4 text-center hover:from-primary-500/30 hover:to-primary-600/30 transition-all"
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <svg
-                        className="w-5 h-5 text-gray-600"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                      <span className="text-sm font-medium text-gray-700">
-                        Pilih Game/Place ({userPlaces.length} tersedia)
-                      </span>
+                    <div className="flex items-center justify-center gap-3">
+                      <Gamepad2 className="w-5 h-5 text-primary-200" />
+                      <div>
+                        <div className="text-white font-medium">
+                          Pilih Game/Place
+                        </div>
+                        <div className="text-xs text-primary-300">
+                          {userPlaces.length} game tersedia
+                        </div>
+                      </div>
                     </div>
                   </button>
                 )}
               </div>
-            )}
 
-            {/* Error Display */}
-            {userSearchError &&
-              username &&
-              username.length >= 2 &&
-              !isSearchingUser && (
-                <div className="bg-gradient-elegant-secondary/10 border-2 border-red-400/50 rounded-lg p-3 mb-3 w-full max-w-md">
-                  <div className="flex items-center gap-2">
-                    <div className="text-red-500">
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                    </div>
-                    <span className="text-sm text-red-700">
-                      {userSearchError}
-                    </span>
+              {/* Purchase Actions Section */}
+              <div className="bg-gradient-to-br from-primary-900/30 via-primary-800/20 to-primary-700/30 backdrop-blur-xl border border-primary-100/20 rounded-2xl p-6 shadow-xl shadow-primary-100/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-xl flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-primary-100" />
                   </div>
+                  <h3 className="text-white font-bold text-lg">
+                    <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                      3. LANJUTKAN PEMBELIAN
+                    </span>
+                  </h3>
                 </div>
-              )}
 
-            {/* Loading indicator for search */}
-            {isSearchingUser && username && username.length >= 2 && (
-              <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 mb-3 w-full max-w-md">
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent"></div>
-                  <span className="text-sm text-yellow-700">
-                    Mencari user...
-                  </span>
-                </div>
-              </div>
-            )}
+                <div className="space-y-4">
+                  {/* Status Info */}
+                  <div className="bg-gradient-to-br from-primary-600/25 to-primary-700/25 border border-primary-200/50 rounded-xl p-4">
+                    <p className="text-sm text-white/80">
+                      {!selectedPlace
+                        ? "Pilih game/place tempat Robux akan dikirim."
+                        : robux <= 0
+                        ? "Pilih jumlah Robux yang ingin dibeli."
+                        : !gamepassInstructionShown
+                        ? "Buat gamepass sesuai instruksi untuk melanjutkan."
+                        : "Semua data sudah lengkap. Klik tombol di bawah untuk melanjutkan ke pembayaran."}
+                    </p>
+                  </div>
 
-            <p className="text-[11px] text-white/70 mb-3 leading-tight">
-              Ketik minimal 2 karakter untuk mencari Username. Tunggu 1 detik
-              setelah selesai mengetik untuk mencari otomatis.
-              <br />
-              Kami hanya meminta username, bukan password. Pastikan Anda menulis
-              Username dengan benar.
-            </p>
-
-            <div className="mt-6">
-              <h3 className="text-white font-bold text-sm mb-3">
-                3. LANJUTKAN PEMBELIAN
-              </h3>
-              <p className="text-sm text-gray-300 mb-4 max-w-md">
-                {!userInfo
-                  ? "Masukkan username terlebih dahulu untuk melanjutkan."
-                  : !selectedPlace
-                  ? "Pilih game/place tempat Robux akan dikirim."
-                  : robux <= 0
-                  ? "Pilih jumlah Robux yang ingin dibeli."
-                  : !gamepassInstructionShown
-                  ? "Buat gamepass sesuai instruksi untuk melanjutkan."
-                  : "Semua data sudah lengkap. Klik tombol di bawah untuk melanjutkan ke pembayaran."}
-              </p>
-
-              {/* Tombol Buat GamePass */}
-              {userInfo &&
-                selectedPlace &&
-                robux > 0 &&
-                !gamepassInstructionShown && (
-                  <div className="mb-4">
+                  {/* GamePass Button */}
+                  {selectedPlace && robux > 0 && !gamepassInstructionShown && (
                     <button
                       onClick={() => setShowGamepassModal(true)}
-                      className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
+                      className="w-full bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
                     >
-                      📋 Buat GamePass ({getGamepassAmount().toLocaleString()}{" "}
-                      R$)
+                      <Gamepad2 className="w-5 h-5" />
+                      <span>
+                        Buat GamePass ({getGamepassAmount().toLocaleString()}{" "}
+                        R$)
+                      </span>
                     </button>
-                  </div>
-                )}
+                  )}
 
-              {/* Warning message if gamepass needs recheck */}
-              {lastCheckedRobuxAmount !== null &&
-                lastCheckedRobuxAmount !== robux &&
-                robux > 0 && (
-                  <div className="bg-orange-100 border border-orange-400 text-orange-700 px-4 py-3 rounded-xl text-sm text-center mb-4">
-                    ⚠️ Jumlah Robux telah diubah. Silakan cek GamePass ulang
-                    sebelum melanjutkan pembelian.
-                  </div>
-                )}
+                  {/* Warning for gamepass recheck */}
+                  {lastCheckedRobuxAmount !== null &&
+                    lastCheckedRobuxAmount !== robux &&
+                    robux > 0 && (
+                      <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-400/60 rounded-xl p-3">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-orange-400" />
+                          <div>
+                            <div className="text-sm font-medium text-white">
+                              Perhatian
+                            </div>
+                            <div className="text-xs text-orange-300">
+                              Jumlah Robux telah diubah. Silakan cek GamePass
+                              ulang.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-              <button
-                onClick={handlePurchase}
-                disabled={!isFormValid}
-                className={`font-bold py-3 px-6 rounded-xl w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto flex items-center justify-center gap-2 transition-all duration-500 ease-out transform ${
-                  isFormValid
-                    ? "bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white hover:scale-105 hover:shadow-xl hover:shadow-cyan-400/25 active:scale-95 cursor-pointer"
-                    : "bg-gray-400 text-gray-600 cursor-not-allowed opacity-50"
-                }`}
-              >
-                Beli Sekarang
-                <Image
-                  src="/beli.png"
-                  alt="cart"
-                  width={18}
-                  height={18}
-                  className="sm:w-5 sm:h-5"
-                />
-              </button>
+                  {/* Purchase Button */}
+                  <button
+                    onClick={handlePurchase}
+                    disabled={!isFormValid}
+                    className={`w-full font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 ${
+                      isFormValid
+                        ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105 hover:shadow-xl"
+                        : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
+                    }`}
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>Beli Sekarang</span>
+                    {isFormValid && (
+                      <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+                        Rp {getCurrentPrice().toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* Reviews Section */}
         <div className="max-w-4xl mx-auto">
           <ReviewSection
             serviceType="robux"
@@ -1332,58 +1526,54 @@ export default function Rbx5Page() {
         </div>
       </main>
 
-      {/* Place Selection Modal */}
+      {/* Enhanced Place Selection Modal */}
       {showPlaceModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-[5px] flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white">
-                  Pilih Game/Place
-                </h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in-0 duration-300">
+          <div className="bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-xl border border-primary-100/30 rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-2xl shadow-primary-100/20 animate-in slide-in-from-bottom-4 duration-300">
+            {/* Enhanced Header */}
+            <div className="relative bg-gradient-to-r from-primary-100/20 to-primary-200/20 p-6 border-b border-primary-100/20">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 to-primary-200/5"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-xl flex items-center justify-center">
+                    <Gamepad2 className="w-5 h-5 text-primary-100" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">
+                      <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                        Pilih Game/Place
+                      </span>
+                    </h3>
+                    <p className="text-sm text-white/70 mt-1">
+                      Pilih salah satu game/place dari{" "}
+                      <span className="text-primary-200 font-medium">
+                        {userInfo?.username}
+                      </span>
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowPlaceModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="w-8 h-8 bg-gradient-to-br from-primary-600/30 to-primary-700/20 hover:from-primary-500/40 hover:to-primary-600/30 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 group"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                Pilih salah satu game/place dari {userInfo?.username}
-              </p>
             </div>
 
-            <div className="p-4 max-h-96 overflow-y-auto">
+            {/* Enhanced Content Area */}
+            <div className="p-6 max-h-96 overflow-y-auto">
               {userPlaces.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 mb-2">
-                    <svg
-                      className="w-12 h-12 mx-auto"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-primary-200" />
                   </div>
-                  <p className="text-gray-600">Tidak ada game yang tersedia</p>
+                  <p className="text-white/70 text-sm">
+                    Tidak ada game yang tersedia
+                  </p>
+                  <p className="text-white/50 text-xs mt-1">
+                    User belum memiliki game yang dapat dipilih
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1398,50 +1588,57 @@ export default function Rbx5Page() {
                           setTimeout(() => setShowGamepassModal(true), 300);
                         }
                       }}
-                      className={`w-full p-3 rounded-lg border-2 text-left transition-colors ${
+                      className={`w-full p-4 rounded-xl border text-left transition-all duration-300 group hover:scale-[1.02] ${
                         selectedPlace?.placeId === place.placeId
-                          ? "border-green-400 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                          ? "border-primary-100/60 bg-gradient-to-br from-primary-100/20 via-primary-200/10 to-primary-100/20 shadow-lg shadow-primary-100/30"
+                          : "border-primary-600/30 hover:border-primary-100/50 hover:bg-gradient-to-br hover:from-primary-600/20 hover:to-primary-700/20 bg-gradient-to-br from-primary-800/20 to-primary-900/20"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         {place.thumbnail ? (
-                          <img
-                            src={place.thumbnail}
-                            alt={place.name}
-                            className="w-12 h-12 rounded bg-gray-200 object-cover flex-shrink-0"
-                          />
+                          <div className="relative">
+                            <img
+                              src={place.thumbnail}
+                              alt={place.name}
+                              className="w-12 h-12 rounded-xl bg-primary-700/30 object-cover flex-shrink-0 ring-2 ring-primary-200/20"
+                            />
+                            {selectedPlace?.placeId === place.placeId && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full border-2 border-white flex items-center justify-center">
+                                <CheckCircle2 className="w-2 h-2 text-white" />
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                          <div className="w-12 h-12 rounded bg-gray-300 flex items-center justify-center flex-shrink-0">
-                            <span className="text-gray-600 text-xs">
-                              No Img
-                            </span>
+                          <div
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ring-2 ${
+                              selectedPlace?.placeId === place.placeId
+                                ? "bg-gradient-to-br from-primary-100/30 to-primary-200/20 ring-primary-200/40"
+                                : "bg-gradient-to-br from-primary-700/30 to-primary-800/20 ring-primary-200/20"
+                            }`}
+                          >
+                            <Gamepad2
+                              className={`w-6 h-6 ${
+                                selectedPlace?.placeId === place.placeId
+                                  ? "text-primary-100"
+                                  : "text-primary-300"
+                              }`}
+                            />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-white truncate">
+                          <h4 className="font-bold text-white truncate group-hover:text-primary-100 transition-colors">
                             {place.name}
                           </h4>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-primary-300 font-medium">
                             Visits: {place.visits.toLocaleString()}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-white/50">
                             Place ID: {place.placeId}
                           </p>
                         </div>
                         {selectedPlace?.placeId === place.placeId && (
-                          <div className="text-green-500 flex-shrink-0">
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              ></path>
-                            </svg>
+                          <div className="bg-gradient-to-br from-primary-100/20 to-primary-200/10 p-2 rounded-lg">
+                            <CheckCircle2 className="w-5 h-5 text-primary-100 flex-shrink-0" />
                           </div>
                         )}
                       </div>
@@ -1451,10 +1648,11 @@ export default function Rbx5Page() {
               )}
             </div>
 
-            <div className="p-4 border-t border-cyan-500/20">
+            {/* Enhanced Footer */}
+            <div className="p-6 border-t border-primary-100/20 bg-gradient-to-r from-primary-800/20 to-primary-900/20">
               <button
                 onClick={() => setShowPlaceModal(false)}
-                className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-base rounded-lg transition-all duration-300 hover:bg-white/20 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10 focus:border-cyan-400/50"
+                className="w-full bg-gradient-to-r from-primary-600/50 to-primary-700/50 hover:from-primary-600/70 hover:to-primary-700/70 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary-100/20 hover:scale-105"
               >
                 Tutup
               </button>
@@ -1463,126 +1661,157 @@ export default function Rbx5Page() {
         </div>
       )}
 
-      {/* Gamepass Creation Modal */}
+      {/* Enhanced Gamepass Creation Modal - Compact Version */}
       {showGamepassModal && selectedPlace && robux > 0 && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-[5px] flex items-center justify-center z-50 p-4">
-          <div className="bg-white/15 backdrop-blur-md border border-white/30 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl shadow-cyan-400/10 animate-in zoom-in-95 duration-500">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 p-4 text-white text-center relative">
-              <button
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in-0 duration-300">
+          <div className="bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-xl border border-primary-100/30 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl shadow-primary-100/20 animate-in slide-in-from-bottom-4 duration-300 flex flex-col">
+            {/* Compact Header */}
+            <div className="relative bg-gradient-to-r from-primary-100/30 via-primary-200/20 to-primary-100/30 p-4 text-center overflow-hidden flex-shrink-0">
+              {/* Background Effects */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/10 to-primary-200/10"></div>
+
+              {/* <button
                 onClick={() => setShowGamepassModal(false)}
-                className="absolute right-3 top-3 text-white hover:text-cyan-200 hover:rotate-90 transition-all duration-300 hover:scale-110"
+                className="absolute right-3 top-3 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 group backdrop-blur-sm"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-              <h3 className="text-xl font-bold text-gradient-primary">
-                Buat GamePass
-              </h3>
-              <p className="text-sm text-cyan-300">
-                di game {selectedPlace.name}
-              </p>
+                <X className="w-3 h-3 text-white/70 group-hover:text-white transition-colors" />
+              </button> */}
+
+              <div className="relative flex items-center justify-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center">
+                  <Gamepad2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    <span className="bg-gradient-to-r from-white to-primary-100 bg-clip-text text-transparent">
+                      Buat GamePass
+                    </span>
+                  </h3>
+                  <p className="text-xs text-white/70 truncate max-w-[200px]">
+                    {selectedPlace?.name}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6">
-              {/* Amount Display */}
-              <div className="bg-gradient-elegant-secondary/10 border-2 border-cyan-500/50 rounded-xl p-4 mb-4 text-center">
-                <div className="text-2xl font-bold text-gradient-primary mb-1">
-                  {getGamepassAmount().toLocaleString()} R$
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Compact Amount Display */}
+              <div className="bg-gradient-to-br from-primary-100/20 via-primary-200/10 to-primary-100/20 border border-primary-100/40 rounded-xl p-4 text-center backdrop-blur-sm">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Gem className="w-5 h-5 text-primary-100" />
+                  <div className="text-2xl font-black bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                    {getGamepassAmount().toLocaleString()} R$
+                  </div>
                 </div>
-                <div className="text-xs text-neutral-base">
+                <div className="bg-gradient-to-r from-primary-600/30 to-primary-700/20 rounded-lg px-2 py-1 text-xs text-white/80 inline-block">
                   {robux.toLocaleString()} R$ + 43% fee
                 </div>
               </div>
 
-              {/* Tutorial Video */}
-              <div className="mb-4">
-                <h4 className="text-sm font-bold text-gradient-primary mb-2">
-                  Tutorial Cara Membuat GamePass
-                </h4>
-                <div className="rounded-xl overflow-hidden">
+              {/* Compact Video Section */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-primary-100" />
+                  <h4 className="text-sm font-bold bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                    Tutorial GamePass
+                  </h4>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-primary-100/20">
                   <iframe
                     width="100%"
-                    height="200"
+                    height="160"
                     src="https://www.youtube.com/embed/0N-1478Qki0"
                     title="Tutorial Cara Membuat GamePass"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    className="w-full"
+                    className="w-full bg-black"
                   ></iframe>
                 </div>
               </div>
 
-              {/* Instructions */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    1
-                  </div>
-                  <span className="text-base">
-                    Buka Roblox Studio → pilih game "{selectedPlace.name}"
-                  </span>
+              {/* Compact Instructions */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary-100" />
+                  <h4 className="text-sm font-bold bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                    Langkah Pembuatan
+                  </h4>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    2
-                  </div>
-                  <span className="text-base">
-                    Create → Game Pass → set harga{" "}
-                    <strong className="text-gradient-primary">
-                      {getGamepassAmount().toLocaleString()} Robux
-                    </strong>
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    3
-                  </div>
-                  <span className="text-base">
-                    Publish dan pastikan GamePass aktif
-                  </span>
+
+                <div className="space-y-2">
+                  {[
+                    {
+                      step: "1",
+                      text: "Buka Roblox Studio → pilih game",
+                    },
+                    {
+                      step: "2",
+                      text: (
+                        <span>
+                          Create → Game Pass → set harga{" "}
+                          <span className="text-primary-100 font-bold">
+                            {getGamepassAmount().toLocaleString()} R$
+                          </span>
+                        </span>
+                      ),
+                    },
+                    {
+                      step: "3",
+                      text: "Publish dan aktifkan GamePass",
+                    },
+                  ].map((instruction, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 bg-gradient-to-r from-primary-600/20 to-primary-700/10 rounded-lg border border-primary-200/20"
+                    >
+                      <div className="w-6 h-6 bg-gradient-to-br from-primary-100 to-primary-200 text-white rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        {instruction.step}
+                      </div>
+                      <div className="text-white/90 text-xs leading-relaxed flex-1">
+                        {instruction.text}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
 
-              {/* Buttons */}
+            {/* Fixed Action Buttons */}
+            <div className="p-4 border-t border-primary-100/20 bg-gradient-to-r from-primary-800/20 to-primary-900/20 flex-shrink-0">
               <div className="flex gap-3">
                 <button
                   onClick={checkGamepassExists}
                   disabled={isCheckingGamepass}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm ${
                     lastCheckedRobuxAmount !== robux &&
                     lastCheckedRobuxAmount !== null
-                      ? "bg-gradient-warning text-white hover:opacity-90" // Orange if needs recheck
-                      : "bg-gradient-button-primary text-white hover:opacity-90" // Red if normal
+                      ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white" // Orange if needs recheck
+                      : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white" // Primary if normal
                   }`}
                 >
                   {isCheckingGamepass ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      Memeriksa...
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Checking...
                     </>
                   ) : lastCheckedRobuxAmount !== robux &&
                     lastCheckedRobuxAmount !== null ? (
-                    "⚠️ Cek Ulang GamePass"
+                    <>
+                      <AlertCircle className="w-4 h-4" />
+                      Cek Ulang
+                    </>
                   ) : (
-                    "Sudah Buat GamePass"
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Sudah Buat
+                    </>
                   )}
                 </button>
                 <button
                   onClick={() => setShowGamepassModal(false)}
-                  className="px-6 glass-card glass-card-hover text-base py-3 rounded-xl font-medium transition-colors"
+                  className="px-4 bg-gradient-to-r from-primary-600/50 to-primary-700/50 hover:from-primary-600/70 hover:to-primary-700/70 text-white py-3 rounded-xl font-medium transition-all duration-300 text-sm"
                 >
                   Batal
                 </button>
@@ -1591,8 +1820,6 @@ export default function Rbx5Page() {
           </div>
         </div>
       )}
-
-      {/* Review Section */}
     </>
   );
 }
