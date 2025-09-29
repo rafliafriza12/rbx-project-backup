@@ -34,7 +34,7 @@ const PublicLayout: React.FC<ILayoutProps> = ({ children }) => {
           <div className="relative z-10">
             <PublicAppHeader />
             {isHomepage && <HyperspeedBackground />}
-            <div className="w-full flex gap-10 py-10 flex-col mx-auto px-4 md:px-20 min-h-screen">
+            <div className="w-full flex gap-10 py-10 flex-col mx-auto px-4 md:px-20 min-h-screen overflow-hidden">
               {children}
             </div>
             <PublicAppFooter />

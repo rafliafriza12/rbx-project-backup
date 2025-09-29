@@ -75,17 +75,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-pink-500/5 to-transparent animate-pulse delay-500"></div>
 
         {/* Multiple glowing orbs with different sizes */}
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-neon-pink/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-neon-purple/20 rounded-full blur-3xl animate-pulse delay-700"></div>
-        <div className="absolute top-3/4 left-1/2 w-24 h-24 bg-primary-100/30 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-blue-500/20 rounded-full blur-xl animate-pulse delay-300"></div>
-        <div className="absolute bottom-1/3 left-1/3 w-20 h-20 bg-violet-500/25 rounded-full blur-2xl animate-pulse delay-1200"></div>
+        <div className="absolute top-1/4 left-1/4 w-16 h-16 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-neon-pink/20 rounded-full blur-2xl sm:blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-20 h-20 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-neon-purple/20 rounded-full blur-2xl sm:blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-3/4 left-1/2 w-12 h-12 sm:w-18 sm:h-18 md:w-24 md:h-24 bg-primary-100/30 rounded-full blur-xl sm:blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 right-1/4 w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-blue-500/20 rounded-full blur-lg sm:blur-xl animate-pulse delay-300"></div>
+        <div className="absolute bottom-1/3 left-1/3 w-10 h-10 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-violet-500/25 rounded-full blur-xl sm:blur-2xl animate-pulse delay-1200"></div>
 
         {/* Floating particles */}
-        {[...Array(12)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-white/40 rounded-full animate-pulse"
+            className="absolute w-0.5 h-0.5 sm:w-1 sm:h-1 bg-white/40 rounded-full animate-pulse"
             style={{
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
@@ -97,21 +97,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       </div>
 
       {/* Main Content */}
-      <div className="relative text-center px-8">
+      <div className="relative text-center px-4 sm:px-6 md:px-8 w-full max-w-6xl">
         {/* Enhanced Main Title */}
-        <div className="mb-8 relative">
+        <div className="mb-6 sm:mb-8 relative">
           {/* Glowing backdrop */}
-          <div className="absolute inset-0 blur-2xl opacity-50">
-            <h1 className="text-7xl md:text-8xl lg:text-9xl font-black tracking-wider bg-gradient-to-r from-neon-pink via-purple-500 to-neon-purple bg-clip-text text-transparent">
+          <div className="absolute inset-0 blur-xl sm:blur-2xl opacity-30 sm:opacity-50">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black tracking-wider bg-gradient-to-r from-neon-pink via-purple-500 to-neon-purple bg-clip-text text-transparent">
               RBXNET
             </h1>
           </div>
 
           <h1
-            className={`relative text-7xl md:text-8xl lg:text-9xl font-black tracking-wider transition-all duration-1000 ease-out ${
+            className={`relative text-4xl sm:text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black tracking-wider transition-all duration-1000 ease-out ${
               animationPhase >= 1
                 ? "opacity-100 transform translate-y-0 scale-100"
-                : "opacity-0 transform translate-y-12 scale-90"
+                : "opacity-0 transform translate-y-6 sm:translate-y-12 scale-90"
             }`}
             style={{
               background:
@@ -124,7 +124,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                   ? "gradientShift 3s ease-in-out infinite"
                   : "none",
               filter:
-                "drop-shadow(0 0 30px rgba(246, 58, 230, 0.6)) drop-shadow(0 0 60px rgba(139, 92, 246, 0.4))",
+                "drop-shadow(0 0 15px rgba(246, 58, 230, 0.6)) drop-shadow(0 0 30px rgba(139, 92, 246, 0.4))",
             }}
           >
             RBXNET
@@ -132,9 +132,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         </div>
 
         {/* Subtitle */}
-        <div className="mb-12">
+        <div className="mb-8 sm:mb-12">
           <p
-            className={`text-xl md:text-2xl lg:text-3xl font-light text-white/90 tracking-wide transition-all duration-1000 delay-500 ease-out ${
+            className={`text-sm sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-light text-white/90 tracking-wide transition-all duration-1000 delay-500 ease-out px-2 ${
               animationPhase >= 1
                 ? "opacity-100 transform translate-y-0"
                 : "opacity-0 transform translate-y-4"
@@ -153,36 +153,26 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           }`}
         >
           {/* Loading Text with glow */}
-          <div className="mb-8">
-            <p
-              className="text-white/90 text-xl font-medium mb-4 transition-all duration-500 text-center"
-              style={{
-                textShadow: "0 0 20px rgba(255, 255, 255, 0.3)",
-              }}
-            >
-              {loadingText}
-            </p>
-          </div>
 
           {/* Modern Loading Spinner */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-6 sm:mb-8">
             <div className="relative">
               {/* Outer ring */}
-              <div className="w-16 h-16 border-4 border-white/20 rounded-full"></div>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 border-3 sm:border-4 border-white/20 rounded-full"></div>
               {/* Animated ring */}
-              <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-neon-pink border-r-neon-purple rounded-full animate-spin"></div>
+              <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 border-3 sm:border-4 border-transparent border-t-neon-pink border-r-neon-purple rounded-full animate-spin"></div>
               {/* Inner pulsing dot */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
             </div>
           </div>
 
           {/* Enhanced Progress Bar */}
-          <div className="w-96 max-w-sm mx-auto mb-6">
-            <div className="flex justify-between text-sm font-medium text-white/80 mb-3">
+          <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-4 sm:mb-6 px-4">
+            <div className="flex justify-between text-xs sm:text-sm font-medium text-white/80 mb-2 sm:mb-3">
               <span>Loading</span>
               <span className="font-mono">{Math.round(loadingProgress)}%</span>
             </div>
-            <div className="relative w-full h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/20">
+            <div className="relative w-full h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/20">
               <div
                 className="h-full bg-gradient-to-r from-neon-pink via-purple-500 to-neon-purple rounded-full transition-all duration-200 ease-out relative overflow-hidden"
                 style={{
@@ -192,13 +182,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 {/* Shimmer effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
                 {/* Glow effect */}
-                <div className="absolute -top-1 -bottom-1 -left-1 -right-1 bg-gradient-to-r from-neon-pink/50 to-neon-purple/50 rounded-full blur-sm"></div>
+                <div className="absolute -top-0.5 sm:-top-1 -bottom-0.5 sm:-bottom-1 -left-0.5 sm:-left-1 -right-0.5 sm:-right-1 bg-gradient-to-r from-neon-pink/50 to-neon-purple/50 rounded-full blur-sm"></div>
               </div>
             </div>
           </div>
 
           {/* Enhanced Status Icons */}
-          <div className="flex justify-center space-x-8 mt-6">
+          <div className="flex justify-center space-x-4 sm:space-x-6 md:space-x-8 mt-4 sm:mt-6 px-4">
             {[
               {
                 Icon: Gem,
@@ -219,15 +209,18 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 color: "text-yellow-400",
               },
             ].map((item, i) => (
-              <div key={i} className="flex flex-col items-center space-y-2">
+              <div
+                key={i}
+                className="flex flex-col items-center space-y-1 sm:space-y-2"
+              >
                 <div
-                  className={`p-3 rounded-full border-2 transition-all duration-500 ${
+                  className={`p-2 sm:p-3 rounded-full border-2 transition-all duration-500 ${
                     loadingProgress > item.threshold
                       ? `opacity-100 scale-110 animate-bounce ${item.color} border-current bg-current/10 shadow-lg`
                       : "opacity-30 scale-90 text-white/30 border-white/20 bg-white/5"
                   }`}
                 >
-                  <item.Icon className="w-6 h-6" />
+                  <item.Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                 </div>
                 <span
                   className={`text-xs font-medium transition-all duration-500 ${
@@ -245,11 +238,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
         {/* Year */}
         <div
-          className={`mt-8 transition-opacity duration-500 delay-1000 ${
+          className={`mt-6 sm:mt-8 transition-opacity duration-500 delay-1000 ${
             animationPhase >= 2 ? "opacity-100" : "opacity-0"
           }`}
         >
-          <p className="text-white/60 text-sm font-medium tracking-widest">
+          <p className="text-white/60 text-xs sm:text-sm font-medium tracking-widest">
             EST - 2024
           </p>
         </div>

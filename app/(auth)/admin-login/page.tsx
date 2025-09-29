@@ -52,13 +52,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#22102A] via-[#22102A] to-[#3D1A78]">
       {/* Left side - Form */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
+      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-8 lg:p-12 relative">
         {/* Close button */}
         <Link
           href="/"
-          className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 flex items-center justify-center bg-red-500 text-white rounded-full transition-colors hover:bg-red-500"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 flex items-center justify-center bg-gradient-to-r from-primary-100 to-primary-200 text-white rounded-full transition-all duration-300 hover:from-primary-100/80 hover:to-primary-200/80 hover:scale-110 shadow-lg shadow-primary-100/25"
         >
           <svg
             width="16"
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
 
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-100/25">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -101,10 +101,10 @@ export default function AdminLoginPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
               ADMIN LOGIN
             </h1>
-            <p className="text-gray-600 text-sm sm:text-base">
+            <p className="text-white/70 text-sm sm:text-base">
               Masuk ke panel admin RobuxID
             </p>
           </div>
@@ -112,7 +112,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-3 rounded-lg backdrop-blur-sm">
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
@@ -121,7 +121,7 @@ export default function AdminLoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-white/80 mb-2"
               >
                 Email Admin
               </label>
@@ -131,7 +131,7 @@ export default function AdminLoginPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 bg-white text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-primary-100 focus:border-primary-100 outline-none transition-all duration-300 backdrop-blur-sm"
                 placeholder="Masukkan email admin"
                 required
               />
@@ -141,7 +141,7 @@ export default function AdminLoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-white/80 mb-2"
               >
                 Kata Sandi
               </label>
@@ -152,14 +152,14 @@ export default function AdminLoginPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 bg-white text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-4 py-3 pr-12 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-primary-100 focus:border-primary-100 outline-none transition-all duration-300 backdrop-blur-sm"
                   placeholder="Masukkan kata sandi"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-white/50 hover:text-white/80 transition-colors duration-300"
                 >
                   {showPassword ? (
                     <svg
@@ -208,13 +208,13 @@ export default function AdminLoginPage() {
                   name="rememberMe"
                   checked={formData.rememberMe}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary-100 bg-white/5 border-white/20 rounded focus:ring-primary-100 focus:ring-2"
                 />
-                <span className="ml-2 text-sm text-gray-600">Ingat saya</span>
+                <span className="ml-2 text-sm text-white/70">Ingat saya</span>
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-700"
+                className="text-sm text-primary-100 hover:text-primary-200 transition-colors duration-300"
               >
                 Lupa kata sandi?
               </Link>
@@ -224,10 +224,10 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-300 ${
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-300 shadow-lg ${
                 isLoading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-red-500 hover:bg-red-400 hover:scale-[1.02] active:scale-95"
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-100/80 hover:to-primary-200/80 hover:scale-[1.02] active:scale-95 shadow-primary-100/25"
               }`}
             >
               {isLoading ? (
@@ -250,12 +250,12 @@ export default function AdminLoginPage() {
       </div>
 
       {/* Right side - Image */}
-      <div className="hidden lg:block lg:w-[60%] relative bg-gradient-to-br from-red-500 to-red-400">
+      <div className="hidden lg:block lg:w-[60%] relative bg-gradient-to-br from-primary-100/20 to-primary-200/30">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white">
-            <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-8">
+            <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-8 border border-white/20">
               <svg
-                className="w-16 h-16"
+                className="w-16 h-16 text-primary-100"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -277,11 +277,11 @@ export default function AdminLoginPage() {
 
         {/* Decorative elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-16 h-16 bg-white/10 rounded-full"></div>
-          <div className="absolute bottom-32 right-32 w-12 h-12 bg-white/10 rounded-full"></div>
-          <div className="absolute top-1/2 left-10 w-8 h-8 bg-white/10 rounded-full"></div>
-          <div className="absolute top-1/4 right-20 w-6 h-6 bg-white/10 rounded-full"></div>
-          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 bg-white/10 rounded-full"></div>
+          <div className="absolute top-20 left-20 w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full border border-white/20"></div>
+          <div className="absolute bottom-32 right-32 w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full border border-white/20"></div>
+          <div className="absolute top-1/2 left-10 w-8 h-8 bg-white/10 backdrop-blur-sm rounded-full"></div>
+          <div className="absolute top-1/4 right-20 w-6 h-6 bg-white/10 backdrop-blur-sm rounded-full"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 bg-white/10 backdrop-blur-sm rounded-full"></div>
         </div>
       </div>
     </div>

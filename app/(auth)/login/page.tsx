@@ -46,13 +46,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#22102A] via-[#22102A] to-[#3D1A78]">
       {/* Left side - Form */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-[#D9D9D9] relative">
+      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-8 lg:p-12 relative">
         {/* Close button */}
         <Link
           href="/"
-          className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 flex items-center justify-center bg-[#CE3535]  rounded-full transition-colors"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 flex items-center justify-center bg-gradient-to-r from-primary-100 to-primary-200 text-white rounded-full transition-all duration-300 hover:from-primary-100/80 hover:to-primary-200/80 hover:scale-110 shadow-lg shadow-primary-100/25"
         >
           <svg
             width="16"
@@ -80,10 +80,10 @@ export default function LoginPage() {
 
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
               MASUK
             </h1>
-            <p className="text-black text-sm sm:text-base">
+            <p className="text-white/70 text-sm sm:text-base">
               Masuk ke akun RobuxID untuk melanjutkan pembelian
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-3 rounded-lg backdrop-blur-sm">
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-black mb-2"
+                className="block text-sm font-medium text-white/80 mb-2"
               >
                 Email
               </label>
@@ -110,8 +110,8 @@ export default function LoginPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-700 bg-white text-black rounded-lg  focus:ring-0 focus:border-[#CE3535] outline-none transition-all"
-                placeholder="Masukkan email "
+                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-primary-100 focus:border-primary-100 outline-none transition-all duration-300 backdrop-blur-sm"
+                placeholder="Masukkan email"
                 required
               />
             </div>
@@ -120,7 +120,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-black mb-2"
+                className="block text-sm font-medium text-white/80 mb-2"
               >
                 Kata Sandi
               </label>
@@ -131,14 +131,14 @@ export default function LoginPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 pr-12 border border-gray-700 bg-white text-black rounded-lg  focus:ring-0 focus:border-[#CE3535] outline-none transition-all"
+                  className="w-full px-4 py-3 pr-12 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-primary-100 focus:border-primary-100 outline-none transition-all duration-300 backdrop-blur-sm"
                   placeholder="Masukkan kata sandi"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-white/50 hover:text-white/80 transition-colors duration-300"
                 >
                   {showPassword ? (
                     <svg
@@ -187,9 +187,9 @@ export default function LoginPage() {
                   name="rememberMe"
                   checked={formData.rememberMe}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+                  className="w-4 h-4 text-primary-100 bg-white/5 border-white/20 rounded focus:ring-primary-100 focus:ring-2"
                 />
-                <span className="ml-2 text-sm text-gray-600">Ingat saya</span>
+                <span className="ml-2 text-sm text-white/70">Ingat saya</span>
               </label>
             </div>
 
@@ -197,10 +197,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-300 ${
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-300 shadow-lg ${
                 isLoading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-red-600 hover:bg-red-700 hover:scale-[1.02] active:scale-95"
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-100/80 hover:to-primary-200/80 hover:scale-[1.02] active:scale-95 shadow-primary-100/25"
               }`}
             >
               {isLoading ? (
@@ -216,11 +216,11 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-black"></div>
+                <div className="w-full border-t border-white/20"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-[#D9D9D9] text-black">
-                  atau daftar dengan
+                <span className="px-2 bg-gradient-to-br from-[#22102A] via-[#22102A] to-[#3D1A78] text-white/70">
+                  atau masuk dengan
                 </span>
               </div>
             </div>
@@ -230,11 +230,11 @@ export default function LoginPage() {
           </form>
 
           {/* Register link */}
-          <p className="text-center text-sm text-gray-600 mt-8">
+          <p className="text-center text-sm text-white/70 mt-8">
             Belum punya akun?{" "}
             <Link
               href="/register"
-              className="text-red-600 hover:text-red-700 font-semibold"
+              className="text-primary-100 hover:text-primary-200 font-semibold transition-colors duration-300"
             >
               Daftar sekarang
             </Link>
@@ -243,13 +243,24 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Image */}
-      <div className="hidden lg:block w-full lg:w-[60%] h-full ">
-        <div className="relative w-full h-full ">
+      <div className="hidden lg:block w-full lg:w-[60%] h-full relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-100/20 to-primary-200/30"></div>
+        <div className="relative w-full h-full">
           <img
             src={"/bg-auth.png"}
             alt="RobuxID"
-            className="w-full h-full object-cover "
+            className="w-full h-full object-cover"
           />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#22102A]/50 to-transparent"></div>
+
+          {/* Decorative elements */}
+
+          {/* Floating decorative elements */}
+          <div className="absolute top-20 left-20 w-16 h-16 bg-primary-100/20 rounded-full backdrop-blur-sm border border-primary-100/30"></div>
+          <div className="absolute bottom-32 right-32 w-12 h-12 bg-primary-200/20 rounded-full backdrop-blur-sm border border-primary-200/30"></div>
+          <div className="absolute top-1/2 left-10 w-8 h-8 bg-primary-100/30 rounded-full backdrop-blur-sm"></div>
+          <div className="absolute top-1/4 right-20 w-6 h-6 bg-primary-200/40 rounded-full backdrop-blur-sm"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 bg-primary-100/50 rounded-full backdrop-blur-sm"></div>
         </div>
       </div>
     </div>

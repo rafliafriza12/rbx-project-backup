@@ -1664,20 +1664,6 @@ export default function HomePage() {
           </div>
 
           {/* Trust Indicators - Neon Style */}
-          <div className="text-center">
-            <div className="inline-flex items-center neon-card border border-neon-pink/30 rounded-full px-8 py-4 shadow-neon-pink">
-              <div className="w-3 h-3 bg-neon-pink rounded-full animate-pulse mr-3"></div>
-              <span className="text-neon-pink font-semibold text-lg">
-                4.9/5 Rating
-              </span>
-              <span className="text-white/50 mx-3">•</span>
-              <span className="text-white/70 text-lg">50,000+ Reviews</span>
-              <span className="text-white/50 mx-3">•</span>
-              <span className="text-neon-purple font-semibold text-lg">
-                Verified Customers
-              </span>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1836,7 +1822,7 @@ export default function HomePage() {
                   <a
                     href="https://wa.me/6285753305598"
                     target="_blank"
-                    className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-400/30"
+                    className="group relative inline-flex justify-center items-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-400/30"
                   >
                     <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
                       <svg
@@ -1851,7 +1837,7 @@ export default function HomePage() {
                   </a>
                   <Link
                     href="/track-order"
-                    className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-50 hover:to-primary-100 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-100/30 border border-primary-100/30 hover:border-primary-50"
+                    className="group relative inline-flex justify-center items-center gap-3 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-50 hover:to-primary-100 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-100/30 border border-primary-100/30 hover:border-primary-50"
                   >
                     <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center group-hover:rotate-6 transition-transform duration-300">
                       <BookOpen className="w-4 h-4" />
