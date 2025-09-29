@@ -59,7 +59,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} antialiased`}
       >
         <NextTopLoader
-          color="#00F5FF"
+          color="#F63AE6"
           initialPosition={0.08}
           crawlSpeed={200}
           height={3}

@@ -270,70 +270,177 @@ const RobuxInstan: React.FC = () => {
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100/20 via-transparent to-primary-200/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 border border-primary-100/40"></div>
 
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform duration-500">
-                  <FileText className="w-4 h-4 text-primary-100" />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="relative">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-all duration-500 shadow-lg">
+                    <FileText className="w-5 h-5 text-primary-100" />
+                  </div>
+                  {/* Decorative glow */}
+                  <div className="absolute -inset-1 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-xl blur opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
                 </div>
-                <h2 className="text-white font-extrabold text-base sm:text-lg drop-shadow-lg">
-                  <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
-                    Cara Pesan
-                  </span>
-                </h2>
+                <div>
+                  <h2 className="text-white font-black text-lg sm:text-xl leading-tight">
+                    <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                      Cara Pesan
+                    </span>
+                  </h2>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    Ikuti langkah mudah ini
+                  </p>
+                </div>
               </div>
 
-              <div className="space-y-2 text-center lg:text-left">
-                <div className="flex items-start gap-2 group/step">
-                  <div className="w-6 h-6 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-full flex items-center justify-center text-primary-900 text-xs font-bold mt-0.5 group-hover/step:scale-110 transition-transform duration-300 border border-primary-100/40">
-                    1
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-white/90 text-sm font-medium leading-relaxed">
-                      Masukkan username
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 group/step">
-                  <div className="w-6 h-6 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-full flex items-center justify-center text-primary-900 text-xs font-bold mt-0.5 group-hover/step:scale-110 transition-transform duration-300 border border-primary-100/40">
-                    2
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-white/90 text-sm font-medium leading-relaxed">
-                      Masukkan password
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 group/step">
-                  <div className="w-6 h-6 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-full flex items-center justify-center text-primary-900 text-xs font-bold mt-0.5 group-hover/step:scale-110 transition-transform duration-300 border border-primary-100/40">
-                    3
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-white/90 text-sm font-medium leading-relaxed">
-                      Masukkan kode keamaan jika diperlukan
-                    </span>
+              {/* Steps dalam 2 kolom dengan ukuran konsisten */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center lg:text-left">
+                {/* Kolom Kiri */}
+                {/* Step 1 */}
+                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        1
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
+                        Username Roblox
+                      </h3>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Masukkan username akun Roblox Anda
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 group/step">
-                  <div className="w-6 h-6 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-full flex items-center justify-center text-primary-900 text-xs font-bold mt-0.5 group-hover/step:scale-110 transition-transform duration-300 border border-primary-100/40">
-                    4
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-white/90 text-sm font-medium leading-relaxed">
-                      Pilih jumlah robux
-                    </span>
+                {/* Step 2 */}
+                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
+                        <Lock className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        2
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
+                        Password Akun
+                      </h3>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Password akun untuk verifikasi
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 group/step">
-                  <div className="w-6 h-6 bg-gradient-to-br from-primary-100/30 to-primary-200/20 rounded-full flex items-center justify-center text-primary-900 text-xs font-bold mt-0.5 group-hover/step:scale-110 transition-transform duration-300 border border-primary-100/40">
-                    5
+                {/* Step 3 - Mobile only */}
+                <div className="sm:hidden group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
+                        <Shield className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        3
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
+                        Kode Keamanan
+                      </h3>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Backup code jika ada 2FA (opsional)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kolom Kanan */}
+                {/* Step 3 - Desktop only */}
+                <div className="hidden sm:block group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
+                        <Shield className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        3
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
+                        Kode Keamanan
+                      </h3>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Backup code jika ada 2FA (opsional)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
+                        <Gem className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        4
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
+                        Pilih Jumlah Robux
+                      </h3>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Tentukan paket Robux yang diinginkan
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 5 */}
+                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
+                        <ShoppingCart className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        5
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
+                        Beli Sekarang
+                      </h3>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Klik tombol untuk melanjutkan pembayaran
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer info yang simple dan konsisten */}
+              <div className="mt-6 p-4 bg-gradient-to-r from-green-500/15 to-emerald-500/15 border border-green-400/30 rounded-xl backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-400/20 rounded-lg flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4 text-green-300" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-white/90 text-sm font-medium leading-relaxed">
-                      Klik Beli Sekarang
-                    </span>
+                    <h4 className="text-green-200 font-semibold text-sm mb-1">
+                      Proses Otomatis & Aman
+                    </h4>
+                    <p className="text-green-100/80 text-xs leading-relaxed">
+                      Transaksi diproses dalam hitungan menit dengan sistem yang
+                      terpercaya
+                    </p>
                   </div>
                 </div>
               </div>

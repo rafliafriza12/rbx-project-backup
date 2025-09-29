@@ -2,6 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import {
+  Trophy,
+  Medal,
+  Award,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Crown,
+  Shield,
+  RotateCcw,
+} from "lucide-react";
 
 interface LeaderboardEntry {
   _id: string;
@@ -149,36 +164,36 @@ export default function LeaderboardPage() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return "🥇";
+        return <Trophy className="w-8 h-8 text-yellow-400" />;
       case 2:
-        return "🥈";
+        return <Medal className="w-8 h-8 text-gray-400" />;
       case 3:
-        return "🥉";
+        return <Award className="w-8 h-8 text-amber-600" />;
       default:
-        return `#${rank}`;
+        return <span className="text-xl font-bold text-white/70">#{rank}</span>;
     }
   };
 
   const getRoleBadge = (entry: LeaderboardEntry) => {
-    // Jika role adalah Regular atau tidak ada, tampilkan badge regular
     if (!entry.roleName || entry.roleName === "Regular") {
       return (
-        <span className="px-2 py-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white text-xs font-medium rounded-full">
+        <span className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 text-xs font-medium rounded-full flex items-center gap-1">
+          <Shield className="w-3 h-3" />
           Regular
         </span>
       );
     } else {
-      // Untuk role khusus (VIP, Premium, dll), tampilkan dengan style premium
       return (
         <div className="flex flex-col items-start gap-1">
-          <span className="px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold rounded-full">
-            {entry.roleName} ⭐
+          <span className="px-3 py-1.5 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 text-primary-100 text-xs font-bold rounded-full backdrop-blur-sm flex items-center gap-1">
+            <Crown className="w-3 h-3" />
+            {entry.roleName}
           </span>
-          {/* {entry.discount > 0 && (
-            <span className="text-xs text-green-600 font-medium">
+          {entry.discount > 0 && (
+            <span className="text-xs text-primary-200 font-medium">
               {entry.discount}% OFF
             </span>
-          )} */}
+          )}
         </div>
       );
     }
@@ -192,209 +207,337 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Header Section */}
-      <div className=" rounded-xl  p-6 mb-8">
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            🏆 Leaderboard Top Spenders
-          </h1>
-          <p className="text-gray-600">
-            Peringkat customer terbaik berdasarkan total pembelian
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 justify-center mb-6">
-          <div className="flex items-center gap-2">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
-              className="px-4 py-2   rounded-lg focus:outline-none focus:ring-0 "
-            >
-              <option value="all">Semua Waktu</option>
-              <option value="month">Per Bulan</option>
-              <option value="year">Per Tahun</option>
-            </select>
-          </div>
-
-          {filterType === "month" && (
-            <>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2 bg-white/80 border border-rose-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              >
-                <option value="">Pilih Bulan</option>
-                {months.map((month) => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="px-4 py-2 bg-white/80 border border-rose-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              >
-                <option value="">Pilih Tahun</option>
-                {years.map((year) => (
-                  <option key={year} value={year.toString()}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {filterType === "year" && (
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="px-4 py-2 bg-white/80 border border-rose-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-            >
-              <option value="">Pilih Tahun</option>
-              {years.map((year) => (
-                <option key={year} value={year.toString()}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          )}
-
-          <button
-            onClick={resetFilters}
-            className="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300"
-          >
-            Reset Filter
-          </button>
-        </div>
+    <div className="min-h-screen relative">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-primary-100/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-40 right-20 w-40 h-40 bg-primary-200/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 left-1/3 w-36 h-36 bg-primary-100/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Leaderboard Table */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-rose-200 overflow-hidden">
-        {loading ? (
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat data leaderboard...</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gradient-to-r from-rose-500 to-pink-500 text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                      Peringkat
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                      Username
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                      Total Pembelian
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                      Jumlah Order
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                      Terakhir Order
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                      Role
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-rose-200">
-                  {leaderboard.map((entry, index) => (
-                    <tr
-                      key={entry._id}
-                      className={`hover:bg-rose-50 transition-colors duration-200 ${
-                        entry.rank <= 3
-                          ? "bg-gradient-to-r from-yellow-50 to-orange-50"
-                          : ""
-                      }`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-2xl mr-2">
-                            {getRankIcon(entry.rank)}
-                          </span>
-                          <span className="text-lg font-bold text-gray-800">
-                            {entry.rank <= 3 ? "" : entry.rank}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-r from-rose-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                            {entry.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {entry.username}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-lg font-bold text-green-600">
-                          {formatCurrency(entry.totalSpent)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-medium">
-                          {entry.totalOrders} order
-                          {entry.totalOrders > 1 ? "s" : ""}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">
-                          {formatDate(entry.lastOrderDate)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getRoleBadge(entry)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="relative z-10">
+        {/* Header Section */}
+        <div className=" p-8 mb-8  relative overflow-hidden">
+          {/* Glow effect */}
+
+          <div className="relative">
+            <div className="text-center mb-8">
+              {/* Badge */}
+              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-2xl text-sm text-white/80 font-semibold mb-6 backdrop-blur-sm shadow-lg hover:shadow-primary-100/20 transition-all duration-300">
+                <Trophy className="w-4 h-4 text-primary-100 mr-2" />
+                Top Spenders Leaderboard
+              </div>
+
+              <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary-100 via-white to-primary-200 bg-clip-text text-transparent flex items-center justify-center gap-4">
+                <Trophy className="w-12 h-12 text-primary-100" />
+                Leaderboard
+              </h1>
+              <p className="text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+                Peringkat customer terbaik berdasarkan{" "}
+                <span className="text-primary-100 font-medium">
+                  total pembelian
+                </span>{" "}
+                dan aktivitas
+              </p>
             </div>
 
-            {/* Pagination */}
-            <div className="bg-rose-50 px-6 py-4 border-t border-rose-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Menampilkan {(pagination.page - 1) * pagination.limit + 1} -{" "}
-                  {Math.min(
-                    pagination.page * pagination.limit,
-                    pagination.total
-                  )}{" "}
-                  dari {pagination.total} top spenders
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={!pagination.hasPrev}
-                    className="px-4 py-2 bg-white border border-rose-300 rounded-lg hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex items-center gap-2">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as any)}
+                  className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
+                >
+                  <option value="all" className="bg-gray-800 text-white">
+                    Semua Waktu
+                  </option>
+                  <option value="month" className="bg-gray-800 text-white">
+                    Per Bulan
+                  </option>
+                  <option value="year" className="bg-gray-800 text-white">
+                    Per Tahun
+                  </option>
+                </select>
+              </div>
+
+              {filterType === "month" && (
+                <>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
                   >
-                    ← Previous
-                  </button>
-                  <span className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg font-medium">
-                    {pagination.page} / {pagination.pages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={!pagination.hasNext}
-                    className="px-4 py-2 bg-white border border-rose-300 rounded-lg hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    <option value="" className="bg-gray-800 text-white">
+                      Pilih Bulan
+                    </option>
+                    {months.map((month) => (
+                      <option
+                        key={month.value}
+                        value={month.value}
+                        className="bg-gray-800 text-white"
+                      >
+                        {month.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
                   >
-                    Next →
-                  </button>
+                    <option value="" className="bg-gray-800 text-white">
+                      Pilih Tahun
+                    </option>
+                    {years.map((year) => (
+                      <option
+                        key={year}
+                        value={year.toString()}
+                        className="bg-gray-800 text-white"
+                      >
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {filterType === "year" && (
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
+                >
+                  <option value="" className="bg-gray-800 text-white">
+                    Pilih Tahun
+                  </option>
+                  {years.map((year) => (
+                    <option
+                      key={year}
+                      value={year.toString()}
+                      className="bg-gray-800 text-white"
+                    >
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <button
+                onClick={resetFilters}
+                className="px-6 py-3 bg-gradient-to-r from-primary-200/20 to-primary-300/20 border border-primary-200/40 text-white rounded-xl hover:from-primary-200/30 hover:to-primary-300/30 transition-all duration-300 backdrop-blur-sm font-medium flex items-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset Filter
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Statistics Cards */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-lg hover:shadow-primary-100/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-primary-100" />
                 </div>
+                <span className="text-xs text-white/50 uppercase tracking-wider">
+                  Total Orders (Leaderboard)
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {leaderboard.length > 0
+                  ? leaderboard
+                      .reduce((total, entry) => total + entry.totalOrders, 0)
+                      .toLocaleString()
+                  : "0"}
+              </div>
+              <div className="text-sm text-white/60">
+                Dari {leaderboard.length} top spenders
               </div>
             </div>
-          </>
+
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-lg hover:shadow-primary-100/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary-100" />
+                </div>
+                <span className="text-xs text-white/50 uppercase tracking-wider">
+                  Total Customers
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {statistics?.uniqueCustomerCount
+                  ? statistics.uniqueCustomerCount.toLocaleString()
+                  : leaderboard.length.toLocaleString()}
+              </div>
+              <div className="text-sm text-white/60">
+                {statistics?.vipMembers || 0} VIP •{" "}
+                {statistics?.regularMembers || 0} Regular
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-lg hover:shadow-primary-100/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-primary-100" />
+                </div>
+                <span className="text-xs text-white/50 uppercase tracking-wider">
+                  Avg Order Value
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {statistics?.avgTransactionValue
+                  ? formatCurrency(statistics.avgTransactionValue)
+                  : leaderboard.length > 0
+                  ? formatCurrency(
+                      leaderboard.reduce(
+                        (total, entry) => total + entry.avgOrderValue,
+                        0
+                      ) / leaderboard.length
+                    )
+                  : "Rp 0"}
+              </div>
+              <div className="text-sm text-white/60">Per transaksi</div>
+            </div>
+          </div>
         )}
+
+        {/* Leaderboard Table */}
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="relative mx-auto mb-8 w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-4 border-primary-100/20"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-primary-100 border-t-transparent animate-spin"></div>
+              </div>
+              <p className="text-white/70 text-lg">
+                Memuat data leaderboard...
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gradient-to-r from-primary-900/30 via-primary-800/40 to-primary-900/30 backdrop-blur-sm">
+                    <tr>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Peringkat
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Username
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Total Pembelian
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Jumlah Order
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Terakhir Order
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Role
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {leaderboard.map((entry, index) => (
+                      <tr
+                        key={entry._id}
+                        className={`hover:bg-white/5 transition-all duration-300 group ${
+                          entry.rank <= 3
+                            ? "bg-gradient-to-r from-primary-900/20 via-primary-800/10 to-primary-900/20"
+                            : ""
+                        }`}
+                      >
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="mr-3">
+                              {getRankIcon(entry.rank)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full flex items-center justify-center text-white font-bold mr-4 shadow-lg shadow-primary-100/20">
+                              {entry.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-lg font-semibold text-white group-hover:text-primary-100 transition-colors duration-300">
+                                {entry.username}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="text-xl font-bold text-primary-100">
+                            {formatCurrency(entry.totalSpent)}
+                          </div>
+                          <div className="text-sm text-white/60 mt-1">
+                            Avg: {formatCurrency(entry.avgOrderValue)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="text-lg text-white/90 font-medium">
+                            {entry.totalOrders} order
+                            {entry.totalOrders > 1 ? "s" : ""}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="text-sm text-white/70">
+                            {formatDate(entry.lastOrderDate)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          {getRoleBadge(entry)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="bg-white/5 backdrop-blur-sm px-6 py-6 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-white/70">
+                    Menampilkan {(pagination.page - 1) * pagination.limit + 1} -{" "}
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total
+                    )}{" "}
+                    dari {pagination.total} top spenders
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() =>
+                        setCurrentPage(Math.max(1, currentPage - 1))
+                      }
+                      disabled={!pagination.hasPrev}
+                      className="px-5 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </button>
+                    <span className="px-5 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 text-white rounded-xl font-semibold backdrop-blur-sm">
+                      {pagination.page} / {pagination.pages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={!pagination.hasNext}
+                      className="px-5 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
