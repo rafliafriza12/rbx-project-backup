@@ -52,75 +52,169 @@ export default function GamepassPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="text-center px-4">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
-          Gamepass
-        </h1>
-        <p className="text-sm sm:text-base text-gray-700 max-w-xl mx-auto leading-relaxed">
-          Sudah lama mengidamkan Game Pass itu? Atau ingin punya avatar paling
-          kece di antara teman-temanmu?{" "}
-          <span className="text-red-500 font-semibold">RobuxID</span> hadir
-          untuk mewujudkan semua impian Roblox-mu!
-        </p>
+    <div className="min-h-screen  relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary-100/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-primary-200/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-3/4 left-1/2 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-          <span className="ml-3 text-gray-600">Memuat gamepass...</span>
+      <div className="relative z-10 pt-20 pb-16">
+        <div className="text-center px-4 mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white">
+            <span className="bg-gradient-to-r from-primary-100 via-primary-200 to-purple-400 bg-clip-text text-transparent">
+              Gamepass
+            </span>
+          </h1>
+          <p className="text-sm sm:text-base lg:text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
+            Sudah lama mengidamkan Game Pass itu? Atau ingin punya avatar paling
+            kece di antara teman-temanmu?{" "}
+            <span className="text-primary-100 font-semibold">RobuxID</span>{" "}
+            hadir untuk mewujudkan semua impian Roblox-mu!
+          </p>
         </div>
-      ) : error ? (
-        <div className="text-center py-12">
-          <div className="text-red-500 mb-4">{error}</div>
-          <button
-            onClick={fetchGamepasses}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Coba Lagi
-          </button>
-        </div>
-      ) : (
-        <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 px-4 sm:px-6 max-w-4xl mx-auto">
-          {gamepasses?.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 mb-4">Belum ada gamepass tersedia</p>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary-100/30 border-t-primary-100"></div>
+            <span className="ml-3 text-white/70">Memuat gamepass...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-red-400 mb-4 bg-red-500/10 border border-red-500/30 rounded-lg p-4 max-w-md mx-auto">
+              {error}
             </div>
-          ) : (
-            gamepasses?.map((gamepass) => {
-              const slug = gamepass.gameName.toLowerCase().replace(/ /g, "-");
-              return (
-                <Link
-                  key={gamepass._id}
-                  href={`/gamepass/${gamepass._id}`}
-                  className="bg-[#AD6A6A] rounded-xl shadow-md overflow-hidden w-40 sm:w-44 h-[220px] sm:h-[240px] flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl"
-                >
-                  <div className="h-40 sm:h-45 relative">
-                    <Image
-                      src={gamepass.imgUrl}
-                      alt={gamepass.gameName}
-                      fill
-                      className="object-cover"
-                    />
+            <button
+              onClick={fetchGamepasses}
+              className="bg-gradient-to-r from-primary-100 to-primary-200 text-white px-6 py-3 rounded-lg hover:from-primary-100/80 hover:to-primary-200/80 transition-all duration-300 shadow-lg shadow-primary-100/25"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        ) : (
+          <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-2  lg:grid-cols-4 gap-6 sm:gap-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            {gamepasses?.length === 0 ? (
+              <div className="col-span-full text-center py-16">
+                <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-primary-100/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg
+                      className="w-8 h-8 text-primary-100"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4-8-4m16 0v10l-8 4-8-4V7"
+                      />
+                    </svg>
                   </div>
-                  <div className="flex-1 flex items-center justify-center p-2 text-center">
-                    <div>
-                      <div className="font-semibold text-xs sm:text-sm text-gray-800 mb-1">
-                        {gamepass.gameName}
+                  <p className="text-white/70 mb-4">
+                    Belum ada gamepass tersedia
+                  </p>
+                  <p className="text-white/50 text-sm">
+                    Gamepass sedang dalam persiapan
+                  </p>
+                </div>
+              </div>
+            ) : (
+              gamepasses?.map((gamepass) => {
+                const slug = gamepass.gameName.toLowerCase().replace(/ /g, "-");
+                return (
+                  <Link
+                    key={gamepass._id}
+                    href={`/gamepass/${gamepass._id}`}
+                    className="group focus:outline-none h-full w-full block"
+                  >
+                    {/* Mobile-Optimized Purple Neon Themed Gamepass Card */}
+                    <div className="w-full relative h-full bg-gradient-to-br from-primary-600/80 via-primary-500/60 to-primary-700/80 backdrop-blur-xl border border-primary-200/20 rounded-lg sm:rounded-2xl overflow-hidden transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-primary-100/30 hover:border-primary-100 flex flex-col">
+                      {/* Price Badge - Top Right Corner */}
+                      {gamepass.item && gamepass.item.length > 0 && (
+                        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
+                          <div className="bg-gradient-to-r from-primary-100/50 to-primary-200/50 backdrop-blur-[3px] text-white/80 px-2 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-black shadow-[0_0_15px_rgba(246,58,230,0.5)] border border-primary-100/40">
+                            <span className="hidden sm:inline">
+                              Mulai dari{" "}
+                            </span>
+                            Rp{" "}
+                            {Math.min(
+                              ...gamepass.item.map((item) => item.price)
+                            ).toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Game Image - Adjusted aspect ratio for mobile */}
+                      <div className="relative aspect-[4/3] sm:aspect-[4/3] overflow-hidden flex-shrink-0">
+                        <Image
+                          src={gamepass.imgUrl}
+                          alt={gamepass.gameName}
+                          fill
+                          className="object-cover transition-all duration-500 group-hover:scale-110"
+                        />
+
+                        {/* Purple gradient overlay for better contrast */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary-800/90 via-primary-700/30 to-transparent"></div>
                       </div>
-                      <div className="text-xs text-gray-600">
-                        {gamepass.item.length} items tersedia
+
+                      {/* Card Content - Optimized for mobile */}
+                      <div className="p-2 sm:p-4 space-y-2 sm:space-y-3 flex-grow flex flex-col">
+                        {/* Game Title */}
+                        <h3 className="text-primary-50 font-bold text-sm sm:text-lg leading-tight line-clamp-2 group-hover:text-primary-100 transition-colors duration-300">
+                          {gamepass.gameName}
+                        </h3>
+
+                        {/* Game Items/Description - Hidden on mobile for space */}
+                        <div className="space-y-1 sm:space-y-2 flex-grow">
+                          {gamepass.item && gamepass.item.length > 0 && (
+                            <p className=" text-white/80 text-sm leading-relaxed line-clamp-1">
+                              {gamepass.item
+                                .slice(0, 3)
+                                .map((item) => item.itemName)
+                                .join(", ")}
+                              {gamepass.item.length > 3 && "..."}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Bottom section - Compact for mobile */}
+                        <div className="space-y-2 sm:space-y-3 mt-auto w-full">
+                          {/* Rating - More compact on mobile */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/70 text-[10px] sm:text-xs">
+                              {gamepass.item?.length || 0} items
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-400 text-[10px] sm:text-xs">
+                                ⭐
+                              </span>
+                              <span className="text-white/70 text-[10px] sm:text-xs">
+                                4.9
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Button - Now serves as visual indicator */}
+                          <div className="w-full bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(244,197,231,0.3)] border border-primary-100/30 transform  text-xs sm:text-sm text-center hover:-translate-y-1">
+                            <span className="hidden sm:inline">
+                              Lihat Game Pass
+                            </span>
+                            <span className="sm:hidden">Lihat</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              );
-            })
-          )}
-        </div>
-      )}
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        )}
 
-      {/* Review Section */}
+        {/* Review Section */}
+      </div>
     </div>
   );
 }

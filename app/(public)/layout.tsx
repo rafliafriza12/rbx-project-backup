@@ -4,6 +4,7 @@ import PublicAppHeader from "@/components/header/public-app-header";
 import PublicAppFooter from "@/components/footer/public-app-footer";
 import HyperspeedBackground from "@/components/HyperspeedBackground";
 import SplashScreen from "@/components/SplashScreen";
+import FloatingCartButton from "@/components/FloatingCartButton";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -39,6 +40,9 @@ const PublicLayout: React.FC<ILayoutProps> = ({ children }) => {
             </div>
             <PublicAppFooter />
           </div>
+
+          {/* Floating Cart Button */}
+          <FloatingCartButton />
         </div>
       )}
     </>

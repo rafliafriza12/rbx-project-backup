@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ShoppingCart } from "lucide-react";
 const PublicAppHeader: React.FC = () => {
   const { user, logout, isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -121,6 +122,21 @@ const PublicAppHeader: React.FC = () => {
       </nav>
 
       <div className="space-x-4 hidden lg:flex items-center">
+        {user && (
+          <Link
+            href="/cart"
+            onClick={handleLinkClick}
+            className={`relative p-2 rounded-lg transition-all duration-300 ${
+              pathname === "/cart"
+                ? "text-neon-pink bg-neon-pink/10"
+                : "text-white hover:text-neon-pink hover:bg-neon-pink/5"
+            }`}
+          >
+            <ShoppingCart className="w-6 h-6" />
+            {/* Cart count badge can be added here */}
+          </Link>
+        )}
+
         {user ? (
           // Tampilan setelah login
           <div className="relative">
@@ -329,6 +345,21 @@ const PublicAppHeader: React.FC = () => {
         >
           Lacak Pesanan
         </Link>
+
+        {user && (
+          <Link
+            href="/cart"
+            onClick={handleLinkClick}
+            className={`flex items-center gap-2 font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
+              pathname === "/cart"
+                ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+                : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+            }`}
+          >
+            <ShoppingCart className="w-5 h-5" />
+            Keranjang
+          </Link>
+        )}
 
         <div className="flex flex-col gap-3 pt-4 border-t border-neon-purple/30 mt-2">
           {user ? (

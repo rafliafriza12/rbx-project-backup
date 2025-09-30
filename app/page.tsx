@@ -1049,12 +1049,13 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
               {gamepasses.map((gamepass, index) => (
-                <div
+                <Link
                   key={gamepass._id}
-                  className="group focus:outline-none h-full"
+                  href={`/gamepass/${gamepass._id}`}
+                  className="group focus:outline-none h-full w-full block"
                 >
                   {/* Mobile-Optimized Purple Neon Themed Gamepass Card */}
-                  <div className="relative h-full bg-gradient-to-br from-primary-600/80 via-primary-500/60 to-primary-700/80 backdrop-blur-xl border border-primary-200/20 rounded-lg sm:rounded-2xl overflow-hidden transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-primary-100/30 hover:border-primary-100 flex flex-col">
+                  <div className="w-full relative h-full bg-gradient-to-br from-primary-600/80 via-primary-500/60 to-primary-700/80 backdrop-blur-xl border border-primary-200/20 rounded-lg sm:rounded-2xl overflow-hidden transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-primary-100/30 hover:border-primary-100 flex flex-col">
                     {/* Price Badge - Top Right Corner */}
                     {gamepass.item && gamepass.item.length > 0 && (
                       <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
@@ -1070,10 +1071,11 @@ export default function HomePage() {
 
                     {/* Game Image - Adjusted aspect ratio for mobile */}
                     <div className="relative aspect-[4/3] sm:aspect-[4/3] overflow-hidden flex-shrink-0">
-                      <img
+                      <Image
                         src={gamepass.imgUrl}
                         alt={gamepass.gameName}
-                        className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+                        fill
+                        className="object-cover transition-all duration-500 group-hover:scale-110"
                       />
 
                       {/* Purple gradient overlay for better contrast */}
@@ -1090,7 +1092,7 @@ export default function HomePage() {
                       {/* Game Items/Description - Hidden on mobile for space */}
                       <div className="space-y-1 sm:space-y-2 flex-grow">
                         {gamepass.item && gamepass.item.length > 0 && (
-                          <p className="hidden sm:block text-white/80 text-sm leading-relaxed line-clamp-1">
+                          <p className=" text-white/80 text-sm leading-relaxed line-clamp-1">
                             {gamepass.item
                               .slice(0, 3)
                               .map((item) => item.itemName)
@@ -1101,7 +1103,7 @@ export default function HomePage() {
                       </div>
 
                       {/* Bottom section - Compact for mobile */}
-                      <div className="space-y-2 sm:space-y-3 mt-auto">
+                      <div className="space-y-2 sm:space-y-3 mt-auto w-full">
                         {/* Rating - More compact on mobile */}
                         <div className="flex items-center justify-between">
                           <span className="text-white/70 text-[10px] sm:text-xs">
@@ -1117,23 +1119,17 @@ export default function HomePage() {
                           </div>
                         </div>
 
-                        {/* Action Button - Smaller on mobile */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/gamepass/${gamepass._id}`);
-                          }}
-                          className="w-full bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(244,197,231,0.3)] border border-primary-100/30 hover:border-primary-50 transform hover:-translate-y-1 active:translate-y-0 text-xs sm:text-sm"
-                        >
+                        {/* Action Button - Now serves as visual indicator */}
+                        <div className="w-full bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(244,197,231,0.3)] border border-primary-100/30 transform  text-xs sm:text-sm text-center hover:-translate-y-1">
                           <span className="hidden sm:inline">
                             Lihat Game Pass
                           </span>
                           <span className="sm:hidden">Lihat</span>
-                        </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

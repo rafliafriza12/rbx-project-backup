@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ReviewSection from "@/components/ReviewSection";
+import AddToCartButton from "@/components/AddToCartButton";
 import {
   DollarSign,
   CheckCircle2,
@@ -634,28 +635,76 @@ const RobuxInstan: React.FC = () => {
             </div>
           </div>
 
-          {/* Purchase Button */}
+          {/* Action Buttons */}
           <div className="text-center mt-4">
-            <button
-              onClick={handlePurchase}
-              disabled={!isFormValid}
-              className={`group/btn font-bold py-3 px-6 rounded-xl w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-lg relative overflow-hidden ${
-                isFormValid
-                  ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:scale-105 active:scale-95 hover:shadow-primary-100/50 cursor-pointer"
-                  : "bg-gradient-to-r from-gray-600 to-gray-700 text-white cursor-not-allowed opacity-50"
-              }`}
-            >
-              {/* Button glow effect */}
-              {isFormValid && (
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
-              )}
+            <div className="flex flex-col gap-3 w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto">
+              {/* Add to Cart Button */}
+              <AddToCartButton
+                serviceType="robux"
+                serviceId={selectedProduct?._id || ""}
+                serviceName={selectedProduct?.name || "Robux Instant"}
+                serviceImage="" // Add image if available
+                serviceCategory="robux_instant"
+                type="rbx-instant"
+                gameId="robux-instant"
+                gameName="Roblox"
+                itemName={selectedProduct?.name || "Robux Instant"}
+                imgUrl=""
+                unitPrice={selectedProduct ? getFinalPrice(selectedProduct) : 0}
+                price={selectedProduct ? getFinalPrice(selectedProduct) : 0}
+                description={`${
+                  selectedProduct?.robuxAmount || 0
+                } Robux Instant untuk akun ${username}`}
+                quantity={1}
+                robuxAmount={selectedProduct?.robuxAmount || 0}
+                estimatedTime="Instant"
+                additionalInfo={additionalInfo}
+                robuxInstantDetails={
+                  additionalInfo ? { notes: additionalInfo } : undefined
+                }
+                className={`group/btn font-bold py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-lg relative overflow-hidden ${
+                  isFormValid
+                    ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-600 text-white hover:scale-105 active:scale-95 hover:shadow-purple-600/50 cursor-pointer"
+                    : "bg-gradient-to-r from-gray-600 to-gray-700 text-white cursor-not-allowed opacity-50"
+                }`}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2 text-white">
+                  🛒 Tambah ke Keranjang
+                  {isFormValid && selectedProduct && (
+                    <span className="bg-white/20 px-3 py-1 rounded-lg text-sm ml-2">
+                      Rp {getFinalPrice(selectedProduct).toLocaleString()}
+                    </span>
+                  )}
+                </span>
+              </AddToCartButton>
 
-              <span className="relative z-10 flex items-center justify-center gap-2 text-white">
-                <ShoppingCart className="w-5 h-5" />
-                Beli Sekarang
-                <ArrowRight className="w-4 h-4 transform transition-transform duration-300 group-hover/btn:translate-x-1" />
-              </span>
-            </button>
+              {/* Purchase Button */}
+              <button
+                onClick={handlePurchase}
+                disabled={!isFormValid}
+                className={`group/btn font-bold py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-lg relative overflow-hidden ${
+                  isFormValid
+                    ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:scale-105 active:scale-95 hover:shadow-primary-100/50 cursor-pointer"
+                    : "bg-gradient-to-r from-gray-600 to-gray-700 text-white cursor-not-allowed opacity-50"
+                }`}
+              >
+                {/* Button glow effect */}
+                {isFormValid && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+                )}
+
+                <span className="relative z-10 flex items-center justify-center gap-2 text-white">
+                  <ShoppingCart className="w-5 h-5" />
+                  Beli Sekarang
+                  <ArrowRight className="w-4 h-4 transform transition-transform duration-300 group-hover/btn:translate-x-1" />
+                  {isFormValid && selectedProduct && (
+                    <span className="bg-white/20 px-3 py-1 rounded-lg text-sm ml-2">
+                      Rp {getFinalPrice(selectedProduct).toLocaleString()}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Reviews Section */}

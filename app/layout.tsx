@@ -4,6 +4,7 @@ import "./globals.css";
 import { Poppins } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
@@ -71,7 +72,9 @@ export default function RootLayout({
           zIndex={99999}
         />
         <GoogleAuthProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <CartProvider>{children}</CartProvider>
+          </AuthProvider>
         </GoogleAuthProvider>
         <ToastContainer
           position="top-right"

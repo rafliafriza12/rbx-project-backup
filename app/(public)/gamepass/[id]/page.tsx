@@ -3,12 +3,32 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import {
+  Plus,
+  Minus,
+  ShoppingCart,
+  X,
+  Check,
+  Gem,
+  FileText,
+  User,
+  Sparkles,
+  Star,
+  Crown,
+  Zap,
+  Heart,
+  Gift,
+} from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
 
 interface GamepassItem {
   itemName: string;
   imgUrl: string;
   price: number;
+}
+
+interface SelectedItem extends GamepassItem {
+  quantity: number;
 }
 
 interface Gamepass {
@@ -26,7 +46,7 @@ export default function GamepassDetailPage() {
   const [gamepass, setGamepass] = useState<Gamepass | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<GamepassItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [username, setUsername] = useState("");
 
   const params = useParams();
@@ -34,7 +54,58 @@ export default function GamepassDetailPage() {
   const gamepassId = params.id as string;
 
   // Check if all required fields are filled
-  const isFormValid = selectedItem !== null && username.trim() !== "";
+  const isFormValid = selectedItems.length > 0 && username.trim() !== "";
+
+  // Calculate total price
+  const totalPrice = selectedItems.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
+
+  // Function to handle item selection
+  const handleItemSelect = (item: GamepassItem) => {
+    const existingIndex = selectedItems.findIndex(
+      (selected) => selected.itemName === item.itemName
+    );
+
+    if (existingIndex >= 0) {
+      // Item already selected, remove it
+      setSelectedItems((prev) =>
+        prev.filter((_, index) => index !== existingIndex)
+      );
+    } else {
+      // Add new item with quantity 1
+      setSelectedItems((prev) => [...prev, { ...item, quantity: 1 }]);
+    }
+  };
+
+  // Function to update quantity
+  const updateQuantity = (itemName: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      // Remove item if quantity becomes 0
+      setSelectedItems((prev) =>
+        prev.filter((item) => item.itemName !== itemName)
+      );
+      return;
+    }
+
+    setSelectedItems((prev) =>
+      prev.map((item) =>
+        item.itemName === itemName ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  // Function to check if item is selected
+  const isItemSelected = (itemName: string) => {
+    return selectedItems.some((item) => item.itemName === itemName);
+  };
+
+  // Function to get selected item quantity
+  const getSelectedQuantity = (itemName: string) => {
+    const item = selectedItems.find((item) => item.itemName === itemName);
+    return item?.quantity || 0;
+  };
 
   useEffect(() => {
     if (gamepassId) {
@@ -50,10 +121,6 @@ export default function GamepassDetailPage() {
 
       if (data.success) {
         setGamepass(data.data);
-        // Auto select first item if available
-        if (data.data.item.length > 0) {
-          setSelectedItem(data.data.item[0]);
-        }
       } else {
         setError(data.error || "Gamepass tidak ditemukan");
       }
@@ -66,23 +133,27 @@ export default function GamepassDetailPage() {
   };
 
   const handlePurchase = () => {
-    if (!isFormValid || !selectedItem || !gamepass) return;
+    if (!isFormValid || selectedItems.length === 0 || !gamepass) return;
+
+    // For now, handle single item checkout (first selected item)
+    // TODO: Implement multi-item checkout
+    const firstItem = selectedItems[0];
 
     // Redirect to new checkout system
     const checkoutData = {
       serviceType: "gamepass",
       serviceId: gamepass._id,
-      serviceName: `${gamepass.gameName} - ${selectedItem.itemName}`,
+      serviceName: `${gamepass.gameName} - ${firstItem.itemName}`,
       serviceImage: gamepass.imgUrl,
-      quantity: 1,
-      unitPrice: selectedItem.price,
-      totalAmount: selectedItem.price,
+      quantity: firstItem.quantity,
+      unitPrice: firstItem.price,
+      totalAmount: firstItem.price * firstItem.quantity,
       robloxUsername: username,
       robloxPassword: null, // Gamepass tidak memerlukan password
       gamepassData: {
         gameName: gamepass.gameName,
-        itemName: selectedItem.itemName,
-        imgUrl: selectedItem.imgUrl,
+        itemName: firstItem.itemName,
+        imgUrl: firstItem.imgUrl,
       },
     };
 
@@ -93,203 +164,609 @@ export default function GamepassDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-        <span className="ml-3 text-gray-600">Memuat gamepass...</span>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-primary-100/20 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute top-40 right-32 w-24 h-24 bg-primary-200/15 rounded-full blur-lg animate-bounce delay-300"></div>
+          <div className="absolute bottom-32 left-40 w-28 h-28 bg-primary-100/10 rounded-full blur-2xl animate-pulse delay-700"></div>
+          <div className="absolute bottom-20 right-20 w-20 h-20 bg-primary-200/20 rounded-full blur-lg animate-bounce delay-1000"></div>
+        </div>
+
+        <div className="text-center relative z-10">
+          <div className="relative">
+            {/* Outer ring */}
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-primary-100/20 mx-auto mb-6"></div>
+            {/* Inner ring */}
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 animate-spin rounded-full h-16 w-16 border-4 border-primary-100 border-t-transparent"></div>
+            {/* Center dot */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-primary-100 rounded-full animate-pulse"></div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+              Loading Gamepass
+            </h3>
+            <div className="flex items-center justify-center gap-1">
+              <div className="w-2 h-2 bg-primary-100 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-primary-100 rounded-full animate-bounce delay-100"></div>
+              <div className="w-2 h-2 bg-primary-100 rounded-full animate-bounce delay-200"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-500 mb-4">{error}</div>
-        <button
-          onClick={() => router.back()}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors mr-2"
-        >
-          Kembali
-        </button>
-        <button
-          onClick={fetchGamepass}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Coba Lagi
-        </button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 mb-4 text-xl">{error}</div>
+          <div className="space-x-4">
+            <button
+              onClick={() => router.back()}
+              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Kembali
+            </button>
+            <button
+              onClick={fetchGamepass}
+              className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!gamepass) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Gamepass tidak ditemukan</p>
-        <button
-          onClick={() => router.push("/gamepass")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4"
-        >
-          Kembali ke Daftar Gamepass
-        </button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-primary-300 text-xl mb-4">
+            Gamepass tidak ditemukan
+          </p>
+          <button
+            onClick={() => router.push("/gamepass")}
+            className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Kembali ke Daftar Gamepass
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <main className="">
-      <div className="max-w-6xl mx-auto ">
-        <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] relative rounded-lg overflow-hidden">
-          <Image
-            src={gamepass.imgUrl}
-            alt="banner"
-            fill
-            className="object-cover"
-          />
-        </div>
+    <main className="text-white relative overflow-hidden">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-primary-100/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-primary-200/8 rounded-full blur-2xl animate-bounce delay-1000"></div>
+        <div className="absolute bottom-40 left-32 w-28 h-28 bg-primary-100/6 rounded-full blur-3xl animate-pulse delay-500"></div>
+        <div className="absolute bottom-20 right-40 w-20 h-20 bg-primary-200/10 rounded-full blur-xl animate-bounce delay-1500"></div>
+
+        {/* Floating particles */}
+        <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-primary-100/60 rounded-full animate-ping delay-300"></div>
+        <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-primary-200/70 rounded-full animate-ping delay-700"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-primary-100/50 rounded-full animate-ping delay-1000"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-1.5 h-1.5 bg-primary-200/60 rounded-full animate-ping delay-1300"></div>
       </div>
 
-      <section className="max-w-6xl mx-auto bg-[#c86f6f] rounded-lg  sm:p-4 mt-4 sm:mt-6 z-10 relative flex flex-col sm:flex-row gap-3 sm:gap-4 shadow-lg">
-        <div className="flex-shrink-0 self-center sm:self-start ">
-          <Image
-            src={gamepass.imgUrl}
-            alt={gamepass.gameName}
-            width={120}
-            height={120}
-            className=" sm:h-[150px] rounded-md object-cover mx-auto sm:mx-0"
-          />
-        </div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Game Info */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Game Image & Info */}
+            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.02] overflow-hidden">
+              {/* Enhanced Background Effects */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-100/10 via-transparent to-primary-200/10 rounded-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full blur-3xl animate-pulse group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-primary-200/15 to-primary-100/10 rounded-full blur-2xl animate-pulse delay-500 group-hover:scale-110 transition-transform duration-700"></div>
 
-        <div className="flex flex-col justify-between w-full text-center sm:text-left mx-4">
-          <div className="mt-2 sm:mt-5">
-            <h1 className="text-lg sm:text-xl font-bold text-black leading-tight">
-              {gamepass.gameName}
-            </h1>
-            <p className="text-sm text-black/80">
-              {gamepass.developer} <span className="text-blue-600">✔️</span>
-            </p>
-          </div>
+              {/* Sparkle effects */}
+              <div className="absolute top-8 right-8 w-2 h-2 bg-primary-100 rounded-full animate-ping opacity-75"></div>
+              <div className="absolute top-12 right-16 w-1 h-1 bg-primary-200 rounded-full animate-ping delay-300 opacity-60"></div>
+              <div className="absolute bottom-12 left-8 w-1.5 h-1.5 bg-primary-100/80 rounded-full animate-ping delay-700"></div>
 
-          <div className="flex flex-wrap justify-center sm:justify-start gap-x-3 sm:gap-x-5 gap-y-2 text-xs sm:text-sm font-medium text-black/80 mt-3 sm:mt-4">
-            {gamepass.features.map((feature, index) => (
-              <span key={index} className="flex items-center gap-1">
-                <span className="text-blue-500">✅</span> {feature}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+              <div className="relative z-10">
+                {/* Game Image */}
+                <div className="relative w-full h-56 rounded-2xl overflow-hidden mb-8 border-2 border-primary-100/30 shadow-lg group-hover:shadow-xl transition-all duration-500">
+                  <Image
+                    src={gamepass.imgUrl}
+                    alt={gamepass.gameName}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/20"></div>
 
-      <section className="max-w-6xl mx-auto mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-4 gap-4 ">
-        <div className="bg-[#e28686] rounded-xl p-4 w-full h-auto lg:h-[260px] flex flex-col justify-start mx-auto lg:mx-0">
-          <h2 className="text-black font-extrabold text-base sm:text-lg mb-2 text-center lg:text-left">
-            Cara pesan :
-          </h2>
-          <ol className="list-decimal list-inside text-black text-sm font-medium space-y-1 text-center lg:text-left">
-            {gamepass.caraPesan.map((cara, index) => (
-              <li key={index}>{cara}</li>
-            ))}
-          </ol>
-        </div>
+                  {/* Crown icon overlay */}
+                  {/* <div className="absolute top-4 left-4 p-2 bg-primary-100/20 backdrop-blur-sm rounded-lg border border-primary-100/40">
+                    <Crown className="w-5 h-5 text-primary-100" />
+                  </div> */}
 
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-[#e28686] rounded p-3 sm:p-4 space-y-4 w-full mx-auto lg:mx-0">
-            <div>
-              <label className="text-sm font-bold mb-1 block text-black">
-                Username
-              </label>
-              <div className="flex items-center border border-black rounded overflow-hidden bg-white w-full max-w-[520px] mx-auto lg:mx-0">
-                <div className="px-3 py-2 border-r border-black bg-[#d06565] flex items-center justify-center">
-                  <Image src="/src.png" alt="search" width={20} height={20} />
+                  {/* Premium badge */}
+                  <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full text-white text-xs font-bold shadow-lg">
+                    New
+                  </div>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Masukkan Username Roblox"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="py-2 px-3 outline-none text-sm text-black flex-1 min-w-0"
-                />
+                {/* Game Info */}
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl text-white font-bold mb-3">
+                    {gamepass.gameName}
+                  </h1>
+                  <div className="flex items-center justify-center gap-2 text-primary-200">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span className="text-sm font-medium">
+                      {gamepass.developer}
+                    </span>
+                    <Star className="w-4 h-4 fill-current" />
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-primary-100/20 rounded-lg">
+                      <Zap className="w-5 h-5 text-primary-100" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">
+                      Epic Features
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {gamepass.features.map((feature, index) => (
+                      <div
+                        key={index}
+                        className="group/feature flex items-center gap-4 p-3 bg-primary-800/30 rounded-xl border border-primary-100/20 hover:border-primary-100/40 hover:bg-primary-800/50 transition-all duration-300"
+                      >
+                        <span className="text-sm text-white font-medium">
+                          {feature}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#e28686] rounded-xl p-4 sm:p-5">
-            <h2 className="font-extrabold text-base mb-4 text-black text-center lg:text-left">
-              Pilih Item :
-            </h2>
-            {gamepass.item.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {gamepass.item.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedItem(item)}
-                    className={`rounded-xl px-3 sm:px-4 py-3 flex flex-col items-center text-center transition-all duration-300 ${
-                      selectedItem?.itemName === item.itemName
-                        ? "bg-[#FF9C01] scale-[1.01] shadow-lg"
-                        : "bg-[#d76262] hover:scale-[1.01]"
-                    }`}
-                  >
-                    <div className="relative overflow-hidden rounded-full w-[70px] h-[70px] sm:w-[90px] sm:h-[90px] flex items-center justify-center">
-                      <Image
-                        src={item.imgUrl}
-                        alt={item.itemName}
-                        fill
-                        className="w-full h-full object-cover "
-                      />
-                    </div>
+          {/* Right Column - Items & Purchase */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Cara Pesan Section */}
+            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
+              {/* Enhanced Background Effects */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-200/15 to-primary-100/10 rounded-full blur-3xl animate-pulse delay-1000 group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-primary-100/20 to-primary-200/10 rounded-full blur-2xl animate-pulse delay-500 group-hover:scale-110 transition-transform duration-700"></div>
 
-                    <div className="mt-2 text-[11px] sm:text-[13px] font-semibold text-white leading-tight">
-                      {item.itemName}
+              {/* Floating sparkles */}
+              <div className="absolute top-6 right-12 w-1.5 h-1.5 bg-primary-100/70 rounded-full animate-ping delay-200"></div>
+              <div className="absolute top-12 right-6 w-1 h-1 bg-primary-200/80 rounded-full animate-ping delay-600"></div>
+              <div className="absolute bottom-8 left-12 w-1.5 h-1.5 bg-primary-100/60 rounded-full animate-ping delay-1000"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
+                    <Gift className="w-7 h-7 text-primary-100" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white">
+                      Cara Pesan
+                    </h3>
+                    <p className="text-white/80 text-sm">
+                      Ikuti langkah mudah berikut
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {gamepass.caraPesan.map((cara, index) => (
+                    <div
+                      key={index}
+                      className="group/step relative flex items-start gap-4 p-4 bg-gradient-to-r from-primary-800/40 to-primary-700/30 rounded-2xl border border-primary-100/20 hover:border-primary-100/50 hover:bg-gradient-to-r hover:from-primary-800/60 hover:to-primary-700/50 transition-all duration-300 overflow-hidden"
+                    >
+                      {/* Step glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 to-primary-200/5 rounded-2xl opacity-0 group-hover/step:opacity-100 transition-opacity duration-300"></div>
+
+                      <div className="relative flex-shrink-0 w-8 h-8 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full flex items-center justify-center text-white font-black text-sm shadow-lg group-hover/step:scale-110 group-hover/step:shadow-primary-100/50 transition-all duration-300">
+                        {index + 1}
+                      </div>
+                      <div className="relative">
+                        <span className="text-base text-white leading-relaxed font-medium">
+                          {cara}
+                        </span>
+                      </div>
+
+                      {/* Step completion checkmark */}
+                      <div className="absolute top-2 right-2 w-4 h-4 bg-primary-100/20 rounded-full flex items-center justify-center opacity-0 group-hover/step:opacity-100 transition-opacity duration-300">
+                        <Check className="w-2.5 h-2.5 text-primary-100" />
+                      </div>
                     </div>
-                    <div className="text-[12px] sm:text-[14px] text-black font-extrabold mt-[2px]">
-                      Rp. {item.price.toLocaleString()}
-                    </div>
-                  </button>
-                ))}
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-black/70">
-                  Belum ada item tersedia untuk gamepass ini
-                </p>
+            </div>
+
+            {/* Username Input */}
+            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
+              <div className="absolute -top-10 -right-10 w-20 h-20 bg-primary-100/10 rounded-full blur-xl animate-pulse"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
+                    <User className="w-6 h-6 text-primary-100" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Username Roblox
+                    </h3>
+                    <p className="text-white/80 text-sm">
+                      Masukkan username untuk pembelian
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Contoh: PlayerName123"
+                    className="w-full px-6 py-4 bg-gradient-to-r from-primary-800/40 to-primary-700/30 border-2 border-primary-100/30 rounded-2xl text-white placeholder-primary-300 focus:outline-none focus:border-primary-100/70 focus:ring-4 focus:ring-primary-100/20 transition-all duration-300 text-lg font-medium hover:bg-gradient-to-r hover:from-primary-800/60 hover:to-primary-700/50"
+                  />
+                  {username && (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Items Grid */}
+            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
+              <div className="absolute -top-20 -left-20 w-40 h-40 bg-gradient-to-br from-primary-100/15 to-primary-200/10 rounded-full blur-3xl animate-pulse group-hover:scale-110 transition-transform duration-700"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
+                    <ShoppingCart className="w-7 h-7 text-primary-100" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white">
+                      Pilih Item Gamepass
+                    </h3>
+                    <p className="text-primary-200 text-sm">
+                      Pilih item yang ingin Anda beli (bisa lebih dari satu)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {gamepass.item.map((item, index) => {
+                    const isSelected = isItemSelected(item.itemName);
+                    const quantity = getSelectedQuantity(item.itemName);
+
+                    return (
+                      <div
+                        key={index}
+                        className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-2xl p-6 transition-all duration-500 cursor-pointer overflow-hidden ${
+                          isSelected
+                            ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-2xl shadow-primary-100/30 scale-105"
+                            : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-102"
+                        }`}
+                        onClick={() => handleItemSelect(item)}
+                      >
+                        {/* Card glow effect */}
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-2xl transition-opacity duration-300 ${
+                            isSelected
+                              ? "opacity-100"
+                              : "opacity-0 group-hover/item:opacity-100"
+                          }`}
+                        ></div>
+
+                        {/* Floating particles for selected items */}
+                        {isSelected && (
+                          <>
+                            <div className="absolute top-4 left-4 w-1 h-1 bg-primary-100/70 rounded-full animate-ping"></div>
+                            <div className="absolute top-6 left-8 w-1.5 h-1.5 bg-primary-200/60 rounded-full animate-ping delay-300"></div>
+                            <div className="absolute bottom-4 right-4 w-1 h-1 bg-primary-100/80 rounded-full animate-ping delay-500"></div>
+                          </>
+                        )}
+
+                        {/* Selection Indicator */}
+                        <div
+                          className={`absolute z-[3] top-4 right-4 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${
+                            isSelected
+                              ? "border-primary-100 bg-gradient-to-r from-primary-100 to-primary-200 scale-110"
+                              : "border-primary-100/60 bg-primary-800/50 group-hover/item:border-primary-100 group-hover/item:bg-primary-700/70"
+                          }`}
+                        >
+                          {isSelected ? (
+                            <Check className="w-5 h-5 text-primary-900 font-bold" />
+                          ) : (
+                            <Plus className="w-4 h-4 text-primary-100 group-hover/item:scale-110 transition-transform duration-300" />
+                          )}
+                        </div>
+
+                        {/* Item Image */}
+                        <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4 border-2 border-primary-100/20 shadow-lg group-hover/item:shadow-xl transition-all duration-300">
+                          <Image
+                            src={item.imgUrl}
+                            alt={item.itemName}
+                            fill
+                            className="object-cover group-hover/item:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
+                        </div>
+
+                        {/* Item Info */}
+                        <div className="relative z-10">
+                          <h4 className="font-black text-white mb-2 text-lg">
+                            {item.itemName}
+                          </h4>
+
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-1">
+                              <Gem className="w-4 h-4 text-primary-100" />
+                              <span className="text-white font-bold text-lg">
+                                {item.price.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quantity Controls - Only show when selected */}
+                          {isSelected && (
+                            <div className="mt-4 p-4 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-xl border border-primary-100/40 backdrop-blur-sm">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-primary-100 flex items-center gap-2">
+                                  <Heart className="w-4 h-4 fill-current" />
+                                  Quantity:
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateQuantity(
+                                        item.itemName,
+                                        quantity - 1
+                                      );
+                                    }}
+                                    className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110"
+                                  >
+                                    <Minus className="w-5 h-5" />
+                                  </button>
+                                  <div className="w-12 h-10 bg-gradient-to-r from-primary-100 to-primary-200 rounded-lg flex items-center justify-center">
+                                    <span className="font-black text-primary-900 text-lg">
+                                      {quantity}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateQuantity(
+                                        item.itemName,
+                                        quantity + 1
+                                      );
+                                    }}
+                                    className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110"
+                                  >
+                                    <Plus className="w-5 h-5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Subtotal */}
+                              <div className="mt-3 pt-3 border-t border-primary-100/30">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-primary-200 text-sm">
+                                    Subtotal:
+                                  </span>
+                                  <span className="text-primary-100 font-bold text-lg">
+                                    Rp{" "}
+                                    {(item.price * quantity).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Selected Items Summary */}
+            {selectedItems.length > 0 && (
+              <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary-100/10 rounded-full blur-2xl animate-pulse"></div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 rounded-2xl border border-green-400/30">
+                      <Check className="w-7 h-7 text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-white">
+                        Ringkasan Pesanan
+                      </h3>
+                      <p className="text-primary-200 text-sm">
+                        {selectedItems.length} item dipilih
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {selectedItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="group/summary flex justify-between items-center bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-2xl p-4 border border-primary-100/20 hover:border-primary-100/40 transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-r from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-primary-900 font-black text-lg">
+                            {item.quantity}
+                          </div>
+                          <div>
+                            <p className="font-bold text-white">
+                              {item.itemName}
+                            </p>
+                            <p className="text-sm text-primary-200">
+                              {item.quantity} × Rp {item.price.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right flex items-center gap-3">
+                          <div>
+                            <p className="font-black text-primary-100 text-lg">
+                              Rp {(item.price * item.quantity).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleItemSelect(item)}
+                            className="w-8 h-8 bg-red-500/20 hover:bg-red-500/40 border border-red-400/30 hover:border-red-400/60 rounded-lg flex items-center justify-center text-red-400 hover:text-red-300 transition-all duration-300 hover:scale-110"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Total Section */}
+                    <div className="mt-6 pt-6 border-t-2 border-primary-100/30">
+                      <div className="flex justify-between items-center p-4 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/40">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-gradient-to-r from-primary-100 to-primary-200 rounded-lg">
+                            <Gem className="w-6 h-6 text-primary-900" />
+                          </div>
+                          <span className="text-xl font-black text-white">
+                            Total Pembayaran:
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-3xl font-black bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                            Rp {totalPrice.toLocaleString()}
+                          </span>
+                          <p className="text-sm text-primary-200 mt-1">
+                            Sudah termasuk semua biaya
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
 
-          <div className="text-center mt-4">
-            <button
-              onClick={handlePurchase}
-              disabled={!isFormValid}
-              className={`font-bold py-3 px-6 rounded-xl w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-md ${
-                isFormValid
-                  ? "bg-[#CE3535] text-white hover:scale-105 active:scale-95 hover:shadow-lg cursor-pointer"
-                  : "bg-gray-400 text-gray-600 cursor-not-allowed opacity-50"
-              }`}
-            >
-              Beli Sekarang -{" "}
-              {selectedItem
-                ? `Rp. ${selectedItem.price.toLocaleString()}`
-                : "Pilih item dulu"}
-              <Image
-                src="/beli.png"
-                alt="cart"
-                width={18}
-                height={18}
-                className="sm:w-5 sm:h-5"
-              />
-            </button>
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-6">
+              {/* Add to Cart Button */}
+              <button
+                disabled={!isFormValid}
+                className={`group relative flex-1 py-6 px-8 rounded-2xl font-black text-lg transition-all duration-500 overflow-hidden ${
+                  isFormValid
+                    ? "bg-gradient-to-r from-primary-600 via-primary-700 to-primary-600 hover:from-primary-700 hover:via-primary-600 hover:to-primary-700 text-white shadow-2xl shadow-primary-600/40 hover:shadow-primary-600/60 transform hover:scale-105 hover:-translate-y-1"
+                    : "bg-gradient-to-r from-gray-600/50 to-gray-700/50 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {isFormValid && (
+                  <>
+                    {/* Button glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 via-primary-200/10 to-primary-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    {/* Floating particles */}
+                    <div className="absolute top-2 left-4 w-1 h-1 bg-primary-100/60 rounded-full animate-ping"></div>
+                    <div className="absolute top-4 right-6 w-1.5 h-1.5 bg-primary-200/70 rounded-full animate-ping delay-300"></div>
+                    <div className="absolute bottom-2 left-8 w-1 h-1 bg-primary-100/50 rounded-full animate-ping delay-500"></div>
+                  </>
+                )}
+
+                <div className="relative flex items-center justify-center gap-3">
+                  <div
+                    className={`p-2 rounded-lg transition-all duration-300 ${
+                      isFormValid
+                        ? "bg-white/20 group-hover:bg-white/30 group-hover:scale-110"
+                        : "bg-gray-500/20"
+                    }`}
+                  >
+                    <ShoppingCart className="w-6 h-6" />
+                  </div>
+                  <span className="group-hover:scale-105 transition-transform duration-300">
+                    Tambah ke Keranjang
+                  </span>
+                </div>
+              </button>
+
+              {/* Buy Now Button */}
+              <button
+                onClick={handlePurchase}
+                disabled={!isFormValid}
+                className={`group relative flex-1 py-6 px-8 rounded-2xl font-black text-lg transition-all duration-500 overflow-hidden ${
+                  isFormValid
+                    ? "bg-gradient-to-r from-primary-100 via-primary-200 to-primary-100 hover:from-primary-200 hover:via-primary-100 hover:to-primary-200 text-primary-900 shadow-2xl shadow-primary-100/40 hover:shadow-primary-100/60 transform hover:scale-105 hover:-translate-y-1"
+                    : "bg-gradient-to-r from-gray-600/50 to-gray-700/50 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {isFormValid && (
+                  <>
+                    {/* Button glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    {/* Success particles */}
+                    <div className="absolute top-2 right-4 w-1 h-1 bg-primary-900/60 rounded-full animate-bounce"></div>
+                    <div className="absolute top-4 left-6 w-1.5 h-1.5 bg-primary-800/70 rounded-full animate-bounce delay-200"></div>
+                    <div className="absolute bottom-2 right-8 w-1 h-1 bg-primary-900/50 rounded-full animate-bounce delay-400"></div>
+                  </>
+                )}
+
+                <div className="relative flex items-center justify-center gap-3">
+                  <div
+                    className={`p-2 rounded-lg transition-all duration-300 ${
+                      isFormValid
+                        ? "bg-primary-900/20 group-hover:bg-primary-900/30 group-hover:scale-110"
+                        : "bg-gray-500/20"
+                    }`}
+                  >
+                    <Zap className="w-6 h-6" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="group-hover:scale-105 transition-transform duration-300">
+                      Beli Sekarang
+                    </span>
+                    {isFormValid && (
+                      <div className="px-3 py-1 bg-primary-900/30 backdrop-blur-sm rounded-lg border border-primary-900/40 group-hover:bg-primary-900/40 transition-all duration-300">
+                        <span className="text-sm font-black">
+                          Rp {totalPrice.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
-          {gamepass && (
-            <ReviewSection
-              serviceType="gamepass"
-              serviceId={gamepass._id}
-              serviceName={gamepass.gameName}
-              title={`Reviews ${gamepass.gameName}`}
-            />
-          )}
         </div>
-      </section>
+      </div>
 
-      {/* Review Section */}
+      {/* Reviews Section */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <ReviewSection
+          serviceType="gamepass"
+          title={`Reviews ${gamepass.gameName}`}
+        />
+      </div>
     </main>
   );
 }

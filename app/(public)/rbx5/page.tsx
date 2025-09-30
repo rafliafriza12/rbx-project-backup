@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
+import AddToCartButton from "@/components/AddToCartButton";
 
 interface Product {
   _id: string;
@@ -1492,24 +1493,68 @@ export default function Rbx5Page() {
                       </div>
                     )}
 
-                  {/* Purchase Button */}
-                  <button
-                    onClick={handlePurchase}
-                    disabled={!isFormValid}
-                    className={`w-full font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 ${
-                      isFormValid
-                        ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105 hover:shadow-xl"
-                        : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
-                    }`}
-                  >
-                    <ShoppingCart className="w-5 h-5" />
-                    <span>Beli Sekarang</span>
-                    {isFormValid && (
-                      <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">
-                        Rp {getCurrentPrice().toLocaleString()}
-                      </span>
-                    )}
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-3">
+                    {/* Add to Cart Button */}
+                    <AddToCartButton
+                      serviceType="robux"
+                      serviceId={selectedPackage?._id || `custom_${robux}`}
+                      serviceName={
+                        selectedPackage?.name || `${robux} Robux (5 Hari)`
+                      }
+                      serviceImage="" // Add image if available
+                      serviceCategory="robux_5_hari"
+                      type="rbx5"
+                      gameId={selectedPlace?.placeId.toString() || ""}
+                      gameName={selectedPlace?.name || "Roblox"}
+                      itemName={`${robux} Robux (5 Hari)`}
+                      imgUrl=""
+                      unitPrice={getCurrentPrice()}
+                      price={getCurrentPrice()}
+                      description={`${robux} Robux untuk akun ${username} melalui gamepass di ${selectedPlace?.name}`}
+                      quantity={1}
+                      robuxAmount={robux}
+                      gamepassAmount={getGamepassAmount()}
+                      estimatedTime="5 hari"
+                      additionalInfo={
+                        selectedPlace
+                          ? `Place: ${selectedPlace.name} (${selectedPlace.placeId})`
+                          : ""
+                      }
+                      gamepass={gamepassCheckResult?.gamepass || undefined}
+                      className={`w-full font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 ${
+                        isFormValid
+                          ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-600 text-white hover:scale-105 hover:shadow-xl"
+                          : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
+                      }`}
+                    >
+                      <span>🛒 Tambah ke Keranjang</span>
+                      {isFormValid && (
+                        <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+                          Rp {getCurrentPrice().toLocaleString()}
+                        </span>
+                      )}
+                    </AddToCartButton>
+
+                    {/* Purchase Button */}
+                    <button
+                      onClick={handlePurchase}
+                      disabled={!isFormValid}
+                      className={`w-full font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 ${
+                        isFormValid
+                          ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105 hover:shadow-xl"
+                          : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
+                      }`}
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>Beli Sekarang</span>
+                      {isFormValid && (
+                        <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+                          Rp {getCurrentPrice().toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
