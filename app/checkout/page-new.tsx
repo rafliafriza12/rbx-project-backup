@@ -98,7 +98,7 @@ function CheckoutContent() {
     useState<string>("");
   const [expandedCategory, setExpandedCategory] = useState<string>("ewallet");
 
-  // Check if this is guest checkout - user bisa checkout tanpa login
+  // Check if this is guest checkout
   const isGuestCheckout = !user;
 
   // Payment methods data dengan kategori
@@ -272,34 +272,19 @@ function CheckoutContent() {
     };
   };
 
-  // Auto-fill customer info for logged in users
-  useEffect(() => {
-    if (user && !isGuestCheckout) {
-      setCustomerInfo({
-        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
-        email: user.email || "",
-        phone: user.phone || "",
-      });
-    }
-  }, [user, isGuestCheckout]);
-
   useEffect(() => {
     console.log("=== CHECKOUT PAGE DEBUG START ===");
-    console.log("User ID:", user?.id);
-    console.log("Is Guest Checkout:", !user);
+    console.log(user?.id);
     console.log("1. Component mounted, checking sessionStorage...");
 
     // Pre-fill customer info if user is logged in
     if (user && !isGuestCheckout) {
       console.log("2. User is logged in, pre-filling customer info...");
-      console.log("User data:", user);
       setCustomerInfo({
         name: (user as any).name || "",
         email: (user as any).email || "",
         phone: (user as any).phone || "",
       });
-    } else {
-      console.log("2. Guest checkout - customer info will be manually filled");
     }
 
     // Get checkout data from sessionStorage
@@ -498,12 +483,6 @@ function CheckoutContent() {
       }
     }
 
-    // For logged in users, ensure we have user data
-    if (!isGuestCheckout && !user) {
-      toast.error("Data user tidak ditemukan. Silakan login kembali.");
-      return;
-    }
-
     if (!selectedPaymentMethod) {
       toast.error("Pilih metode pembayaran terlebih dahulu");
       return;
@@ -570,19 +549,11 @@ function CheckoutContent() {
         (checkoutData as any).gamepass
           ? (checkoutData as any).gamepass
           : undefined,
-      customerInfo: isGuestCheckout
-        ? {
-            name: customerInfo.name,
-            email: customerInfo.email,
-            phone: customerInfo.phone,
-          }
-        : {
-            name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-            email: user.email,
-            phone: user.phone,
-            userId: user.id,
-          },
-      userId: isGuestCheckout ? null : user.id,
+      customerInfo: {
+        ...customerInfo,
+        ...(user && !isGuestCheckout ? { userId: (user as any)?.id } : {}),
+      },
+      userId: isGuestCheckout ? null : (user as any)?.id,
     };
 
     try {
@@ -626,7 +597,7 @@ function CheckoutContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#22102A]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-pink mx-auto mb-4"></div>
           <p className="text-primary-100 font-medium">
@@ -639,7 +610,7 @@ function CheckoutContent() {
 
   if (!checkoutData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#22102A]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700">
         <div className="text-center max-w-md mx-auto p-8 neon-card rounded-xl">
           <div className="text-neon-pink mb-6">
             <AlertTriangle className="w-20 h-20 mx-auto" />
@@ -670,35 +641,38 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#22102A] py-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 py-8">
       {/* Background Effects */}
       <div className="absolute top-20 left-10 w-20 h-20 bg-neon-pink/20 rounded-full blur-xl animate-pulse"></div>
       <div className="absolute bottom-20 right-10 w-32 h-32 bg-neon-purple/20 rounded-full blur-xl animate-pulse"></div>
 
       <div className="max-w-7xl mx-auto px-4 relative">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-3">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-6 backdrop-blur-sm">
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            Checkout Pembayaran
+          </div>
+          <h1 className="text-5xl sm:text-6xl font-black text-white mb-4">
             Selesaikan <span className="text-neon-pink">Pesanan</span>
           </h1>
-          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+          <p className="text-xl text-white/80 max-w-2xl mx-auto">
             Lengkapi data untuk melanjutkan pembayaran dengan aman
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Order Summary & Payment - Left Column */}
-          <div className="lg:col-span-1 space-y-5">
-            {/* Order Summary */}
-            <div className="neon-card rounded-2xl p-5">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center">
-                <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
-                  <Gem className="w-4 h-4 text-neon-pink" />
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Order Summary - Left Column */}
+          <div className="lg:col-span-1">
+            <div className="neon-card rounded-3xl p-6 mb-6">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+                <div className="w-8 h-8 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
+                  <Gem className="w-5 h-5 text-neon-pink" />
                 </div>
                 Ringkasan Pesanan
               </h2>
 
-              <div className="neon-card-secondary rounded-xl p-6 mb-6 text-white">
+              <div className="neon-card-secondary rounded-xl p-6 mb-6">
                 <div className="flex items-start gap-4 mb-4">
                   {checkoutData.serviceImage && (
                     <img
@@ -711,7 +685,7 @@ function CheckoutContent() {
                     <h3 className="font-semibold text-white mb-1">
                       {checkoutData.serviceName}
                     </h3>
-                    <p className="text-sm text-white capitalize mb-2">
+                    <p className="text-sm text-primary-300 capitalize mb-2">
                       {checkoutData.serviceType}
                       {checkoutData.serviceCategory &&
                         checkoutData.serviceType === "robux" && (
@@ -729,7 +703,7 @@ function CheckoutContent() {
                         )}
                     </p>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-white">
+                      <span className="text-sm text-primary-300">
                         Qty: {checkoutData.quantity}
                       </span>
                       <span className="font-medium text-white">
@@ -741,7 +715,7 @@ function CheckoutContent() {
 
                 <div className="border-t border-neon-purple/20 pt-4 space-y-3">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-white">Subtotal:</span>
+                    <span className="text-primary-300">Subtotal:</span>
                     <span className="text-white">
                       Rp {checkoutData.totalAmount.toLocaleString("id-ID")}
                     </span>
@@ -763,7 +737,7 @@ function CheckoutContent() {
 
                   {selectedPaymentMethod && (
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-white">Biaya Admin:</span>
+                      <span className="text-primary-300">Biaya Admin:</span>
                       <span className="text-white">
                         + Rp{" "}
                         {(() => {
@@ -806,122 +780,122 @@ function CheckoutContent() {
                 </div>
               </div>
             </div>
-
-            {/* Payment Method Selection */}
-            <div className="neon-card rounded-2xl p-5">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                <div className="w-7 h-7 bg-neon-purple/20 rounded-lg flex items-center justify-center mr-3">
-                  <CreditCard className="w-4 h-4 text-neon-purple" />
-                </div>
-                Pilih Metode Pembayaran
-              </h3>
-
-              <div className="space-y-3">
-                {paymentCategories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="neon-card-secondary rounded-xl overflow-hidden"
-                  >
-                    {/* Category Header */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedCategory(
-                          expandedCategory === category.id ? "" : category.id
-                        )
-                      }
-                      className="w-full p-4 flex items-center justify-between text-left hover:bg-primary-600/20 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-neon-pink/10 rounded-lg flex items-center justify-center mr-3">
-                          <category.icon className="w-4 h-4 text-neon-pink" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">
-                            {category.name}
-                          </h4>
-                          <p className="text-xs text-white">
-                            {category.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-neon-purple">
-                        {expandedCategory === category.id ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4" />
-                        )}
-                      </div>
-                    </button>
-
-                    {/* Category Methods */}
-                    {expandedCategory === category.id && (
-                      <div className="border-t border-neon-purple/20 p-4 pt-3">
-                        <div className="grid grid-cols-1 gap-3">
-                          {category.methods.map((method) => {
-                            const fee = calculatePaymentFee(
-                              checkoutData.finalAmount ||
-                                checkoutData.totalAmount,
-                              method
-                            );
-                            return (
-                              <div
-                                key={method.id}
-                                onClick={() =>
-                                  setSelectedPaymentMethod(method.id)
-                                }
-                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                                  selectedPaymentMethod === method.id
-                                    ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink"
-                                    : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="flex items-center">
-                                    <span className="text-lg mr-2">
-                                      {method.icon}
-                                    </span>
-                                    <span className="font-semibold text-white text-sm">
-                                      {method.name}
-                                    </span>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-xs text-white">
-                                      +{" "}
-                                      {method.feeType === "percentage"
-                                        ? `${method.fee}%`
-                                        : `Rp ${fee.toLocaleString("id-ID")}`}
-                                    </div>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-white">
-                                  {method.description}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* Main Form - Right Column */}
-          <div className="lg:col-span-1">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Main Form - Right Columns */}
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Payment Method Selection */}
+              <div className="neon-card rounded-3xl p-8">
+                <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <div className="w-10 h-10 bg-neon-purple/20 rounded-xl flex items-center justify-center mr-4">
+                    <CreditCard className="w-6 h-6 text-neon-purple" />
+                  </div>
+                  Pilih Metode Pembayaran
+                </h3>
+
+                <div className="space-y-4">
+                  {paymentCategories.map((category) => (
+                    <div
+                      key={category.id}
+                      className="neon-card-secondary rounded-xl overflow-hidden"
+                    >
+                      {/* Category Header */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedCategory(
+                            expandedCategory === category.id ? "" : category.id
+                          )
+                        }
+                        className="w-full p-6 flex items-center justify-between text-left hover:bg-primary-600/20 transition-colors"
+                      >
+                        <div className="flex items-center">
+                          <div className="w-12 h-12 bg-neon-pink/10 rounded-xl flex items-center justify-center mr-4">
+                            <category.icon className="w-6 h-6 text-neon-pink" />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-bold text-white">
+                              {category.name}
+                            </h4>
+                            <p className="text-sm text-primary-300">
+                              {category.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-neon-purple">
+                          {expandedCategory === category.id ? (
+                            <ChevronUp className="w-5 h-5" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Category Methods */}
+                      {expandedCategory === category.id && (
+                        <div className="border-t border-neon-purple/20 p-6 pt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {category.methods.map((method) => {
+                              const fee = calculatePaymentFee(
+                                checkoutData.finalAmount ||
+                                  checkoutData.totalAmount,
+                                method
+                              );
+                              return (
+                                <div
+                                  key={method.id}
+                                  onClick={() =>
+                                    setSelectedPaymentMethod(method.id)
+                                  }
+                                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+                                    selectedPaymentMethod === method.id
+                                      ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink"
+                                      : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center">
+                                      <span className="text-2xl mr-3">
+                                        {method.icon}
+                                      </span>
+                                      <span className="font-semibold text-white">
+                                        {method.name}
+                                      </span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-sm text-primary-300">
+                                        +{" "}
+                                        {method.feeType === "percentage"
+                                          ? `${method.fee}%`
+                                          : `Rp ${fee.toLocaleString("id-ID")}`}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-primary-300">
+                                    {method.description}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Customer Information */}
-              {isGuestCheckout && (
-                <div className="neon-card rounded-2xl p-5">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                    <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
-                      <User className="w-4 h-4 text-neon-pink" />
+              {(!user || isGuestCheckout) && (
+                <div className="neon-card rounded-3xl p-8">
+                  <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                    <div className="w-10 h-10 bg-neon-pink/20 rounded-xl flex items-center justify-center mr-4">
+                      <User className="w-6 h-6 text-neon-pink" />
                     </div>
                     Informasi Pelanggan
                   </h3>
-                  <div className="grid gap-4">
+                  <div className="grid gap-6">
                     <div>
                       <label className="block text-sm font-medium text-primary-200 mb-2">
                         Nama Lengkap <span className="text-neon-pink">*</span>
@@ -935,7 +909,7 @@ function CheckoutContent() {
                             name: e.target.value,
                           }))
                         }
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="Masukkan nama lengkap Anda"
                         required
                       />
@@ -953,7 +927,7 @@ function CheckoutContent() {
                             email: e.target.value,
                           }))
                         }
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="contoh@email.com"
                         required
                       />
@@ -971,7 +945,7 @@ function CheckoutContent() {
                             phone: e.target.value,
                           }))
                         }
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="08123456789"
                         required
                       />
@@ -980,58 +954,15 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {/* Customer Information for Logged In Users (Read-only display) */}
-              {!isGuestCheckout && user && (
-                <div className="neon-card rounded-2xl p-5">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                    <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
-                      <User className="w-4 h-4 text-neon-pink" />
-                    </div>
-                    Informasi Pelanggan
-                    <span className="ml-auto text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
-                      Auto-filled
-                    </span>
-                  </h3>
-                  <div className="grid gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Nama Lengkap
-                      </label>
-                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white">
-                        {`${user.firstName || ""} ${
-                          user.lastName || ""
-                        }`.trim() || "Tidak tersedia"}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Email
-                      </label>
-                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white">
-                        {user.email || "Tidak tersedia"}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Nomor WhatsApp
-                      </label>
-                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white">
-                        {user.phone || "Tidak tersedia"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Roblox Account */}
-              <div className="neon-card rounded-2xl p-5">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                  <div className="w-7 h-7 bg-neon-purple/20 rounded-lg flex items-center justify-center mr-3">
-                    <Gamepad2 className="w-4 h-4 text-neon-purple" />
+              <div className="neon-card rounded-3xl p-8">
+                <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <div className="w-10 h-10 bg-neon-purple/20 rounded-xl flex items-center justify-center mr-4">
+                    <Gamepad2 className="w-6 h-6 text-neon-purple" />
                   </div>
                   Data Akun Roblox
                 </h3>
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                   <div>
                     <label className="block text-sm font-medium text-primary-200 mb-2">
                       Username Roblox <span className="text-neon-pink">*</span>
@@ -1040,7 +971,7 @@ function CheckoutContent() {
                       type="text"
                       value={robloxUsername}
                       onChange={(e) => setRobloxUsername(e.target.value)}
-                      className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                      className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                       placeholder="Masukkan username Roblox"
                       required
                     />
@@ -1059,19 +990,19 @@ function CheckoutContent() {
                           type={showPassword ? "text" : "password"}
                           value={robloxPassword}
                           onChange={(e) => setRobloxPassword(e.target.value)}
-                          className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                          className="w-full p-4 pr-12 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                           placeholder="Masukkan password Roblox"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
+                          className="absolute inset-y-0 right-0 pr-4 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
                         >
                           {showPassword ? (
-                            <EyeOff className="w-4 h-4" />
+                            <EyeOff className="w-5 h-5" />
                           ) : (
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-5 h-5" />
                           )}
                         </button>
                       </div>
@@ -1082,14 +1013,14 @@ function CheckoutContent() {
 
               {/* Joki Details (conditionally rendered) */}
               {checkoutData.serviceType === "joki" && (
-                <div className="neon-card rounded-2xl p-5">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                    <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
-                      <Sparkles className="w-4 h-4 text-neon-pink" />
+                <div className="neon-card rounded-3xl p-8">
+                  <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                    <div className="w-10 h-10 bg-neon-pink/20 rounded-xl flex items-center justify-center mr-4">
+                      <Sparkles className="w-6 h-6 text-neon-pink" />
                     </div>
                     Detail Layanan Joki
                   </h3>
-                  <div className="grid gap-4">
+                  <div className="grid gap-6">
                     <div>
                       <label className="block text-sm font-medium text-primary-200 mb-2">
                         Deskripsi Layanan{" "}
@@ -1106,7 +1037,7 @@ function CheckoutContent() {
                           }))
                         }
                         rows={3}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="Deskripsi layanan akan terisi otomatis..."
                         disabled={true}
                         required
@@ -1125,7 +1056,7 @@ function CheckoutContent() {
                             gameType: e.target.value,
                           }))
                         }
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="Jenis game akan terisi otomatis..."
                         disabled={true}
                         required
@@ -1139,7 +1070,7 @@ function CheckoutContent() {
                         value={additionalNotes}
                         onChange={(e) => setAdditionalNotes(e.target.value)}
                         rows={3}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="Tambahkan catatan khusus jika diperlukan..."
                       />
                     </div>
@@ -1150,13 +1081,13 @@ function CheckoutContent() {
               {/* Additional Notes for Robux Instant */}
               {checkoutData.serviceType === "robux" &&
                 checkoutData.serviceCategory === "robux_instant" && (
-                  <div className="neon-card rounded-2xl p-5">
-                    <h3 className="text-lg font-bold text-white mb-4">
+                  <div className="neon-card rounded-3xl p-8">
+                    <h3 className="text-2xl font-bold text-white mb-6">
                       Kode Keamanan Roblox
                     </h3>
                     <div>
                       <label className="block text-sm font-medium text-primary-200 mb-2">
-                        <span className="text-white text-xs">
+                        <span className="text-primary-300 text-xs">
                           Klik link berikut untuk melihat kode keamanan anda.{" "}
                           <Link
                             className="underline text-neon-pink hover:text-neon-purple transition-colors"
@@ -1173,7 +1104,7 @@ function CheckoutContent() {
                         value={additionalNotes}
                         onChange={(e) => setAdditionalNotes(e.target.value)}
                         rows={3}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        className="w-full p-4 border-2 border-white/20 rounded-xl bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                         placeholder="Masukkan kode keamanan Roblox Anda di sini..."
                       />
                     </div>
@@ -1181,16 +1112,16 @@ function CheckoutContent() {
                 )}
 
               {/* Terms */}
-              <div className="neon-card rounded-2xl p-5">
+              <div className="neon-card rounded-3xl p-8">
                 <div className="flex items-start">
                   <input
                     type="checkbox"
                     checked={acceptTerms}
                     onChange={(e) => setAcceptTerms(e.target.checked)}
-                    className="mt-1 mr-3 w-4 h-4 text-neon-pink bg-primary-700 border-primary-600 rounded focus:ring-neon-pink focus:ring-2"
+                    className="mt-1 mr-4 w-5 h-5 text-neon-pink bg-primary-700 border-primary-600 rounded focus:ring-neon-pink focus:ring-2"
                     required
                   />
-                  <label className="text-sm text-white">
+                  <label className="text-primary-200">
                     Saya menyetujui{" "}
                     <a
                       href="#"
@@ -1217,27 +1148,27 @@ function CheckoutContent() {
                   disabled={
                     submitting || !acceptTerms || !selectedPaymentMethod
                   }
-                  className={`group relative px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 transform inline-flex items-center gap-3 w-full md:w-auto justify-center shadow-xl ${
+                  className={`group relative px-16 py-6 rounded-3xl font-black text-xl transition-all duration-500 transform inline-flex items-center gap-4 w-full md:w-auto justify-center shadow-2xl ${
                     submitting || !acceptTerms || !selectedPaymentMethod
                       ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600"
-                      : "btn-neon-primary hover:scale-105 glow-neon-pink active:scale-95"
+                      : "btn-neon-primary hover:scale-110 glow-neon-pink active:scale-95"
                   }`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative flex items-center gap-3">
+                  <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative flex items-center gap-4">
                     {submitting ? (
                       <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                         <span>Memproses...</span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+                        <CheckCircle className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
                         <span>
                           Bayar Sekarang - Rp{" "}
                           {calculateFinalAmount().toLocaleString("id-ID")}
                         </span>
-                        <Sparkles className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                        <Sparkles className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
                       </>
                     )}
                   </div>

@@ -112,8 +112,7 @@ export default function JokiPage() {
                     {joki.item && joki.item.length > 0 && (
                       <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
                         <div className="bg-gradient-to-r from-primary-100/50 to-primary-200/50 backdrop-blur-[3px] text-white/80 px-2 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-black shadow-[0_0_15px_rgba(246,58,230,0.5)] border border-primary-100/40">
-                          <span className="hidden sm:inline">Mulai dari </span>
-                          Rp {minPrice.toLocaleString()}
+                          Hot
                         </div>
                       </div>
                     )}
@@ -163,7 +162,7 @@ export default function JokiPage() {
                         </div>
 
                         {/* Action Button - Now serves as visual indicator */}
-                        <div className="w-full bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(244,197,231,0.3)] border border-primary-100/30 group-hover:border-primary-50 transform group-hover:-translate-y-1 group-active:translate-y-0 text-xs sm:text-sm text-center">
+                        <div className="w-full bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold py-2 sm:py-3 px-2 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(244,197,231,0.3)] border border-primary-100/30  transform hover:-translate-y-1 group-active:translate-y-0 text-xs sm:text-sm text-center">
                           <span className="hidden sm:inline">
                             Lihat Jasa Joki
                           </span>

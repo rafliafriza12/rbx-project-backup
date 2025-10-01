@@ -21,11 +21,20 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
 
+    console.log("=== GET TRANSACTIONS DEBUG ===");
+    console.log("Received userId:", userId);
+    console.log("isAdmin:", isAdmin);
+    console.log(
+      "All search params:",
+      Object.fromEntries(searchParams.entries())
+    );
+
     // Build query
     const query: any = {};
 
     if (userId && !isAdmin) {
       query["customerInfo.userId"] = userId;
+      console.log("Applied filter - customerInfo.userId:", userId);
     }
 
     if (status) {
@@ -119,9 +128,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (userId && !isAdmin) {
-      query.userId = userId;
-    }
+    // Remove duplicate userId filtering since it's already handled above with customerInfo.userId
+    // The Transaction model doesn't have a top-level userId field
 
     if (status) {
       if (status.includes("payment:")) {
@@ -141,14 +149,33 @@ export async function GET(request: NextRequest) {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
+    console.log("=== DATABASE QUERY DEBUG ===");
+    console.log("Final query:", JSON.stringify(query, null, 2));
+    console.log("Skip:", skip);
+    console.log("Limit:", limit);
+
     // Get transactions with pagination
     const transactions = await Transaction.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
+    console.log("Found transactions count:", transactions.length);
+    console.log(
+      "Sample transaction (first one):",
+      transactions[0]
+        ? {
+            invoiceId: transactions[0].invoiceId,
+            customerInfo: transactions[0].customerInfo,
+            paymentStatus: transactions[0].paymentStatus,
+            orderStatus: transactions[0].orderStatus,
+          }
+        : "No transactions found"
+    );
+
     // Get total count
     const total = await Transaction.countDocuments(query);
+    console.log("Total matching documents:", total);
 
     // Get statistics if admin
     let statistics = null;

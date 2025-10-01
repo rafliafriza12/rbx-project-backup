@@ -332,7 +332,7 @@ export default function ProfilePage() {
                 Total Transaksi
               </span>
               <span className="font-semibold text-white">
-                {profileData.totalTransactions}
+                {stats?.totalOrders}
               </span>
             </div>
             <div className="flex justify-between items-center py-3 border-b border-white/10">
