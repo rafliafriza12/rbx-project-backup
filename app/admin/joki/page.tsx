@@ -9,6 +9,8 @@ interface JokiItem {
   imgUrl: string;
   price: number;
   description: string;
+  syaratJoki: string[];
+  prosesJoki: string[];
 }
 
 interface Joki {
@@ -17,7 +19,6 @@ interface Joki {
   imgUrl: string;
   caraPesan: string[];
   features: string[];
-  requirements: string[];
   item: JokiItem[];
   createdAt: string;
   updatedAt: string;
@@ -27,11 +28,12 @@ interface FormData {
   gameName: string;
   caraPesan: string[];
   features: string[];
-  requirements: string[];
   items: {
     itemName: string;
     price: string;
     description: string;
+    syaratJoki: string[];
+    prosesJoki: string[];
     imageFile?: File;
     imgUrl?: string;
   }[];
@@ -50,8 +52,16 @@ export default function JokiPage() {
     gameName: "",
     caraPesan: [""],
     features: [""],
-    requirements: [""],
-    items: [{ itemName: "", price: "", description: "", imageFile: undefined }],
+    items: [
+      {
+        itemName: "",
+        price: "",
+        description: "",
+        syaratJoki: [""],
+        prosesJoki: [""],
+        imageFile: undefined,
+      },
+    ],
     gameImageFile: undefined,
   });
 
@@ -85,9 +95,15 @@ export default function JokiPage() {
       gameName: "",
       caraPesan: [""],
       features: [""],
-      requirements: [""],
       items: [
-        { itemName: "", price: "", description: "", imageFile: undefined },
+        {
+          itemName: "",
+          price: "",
+          description: "",
+          syaratJoki: [""],
+          prosesJoki: [""],
+          imageFile: undefined,
+        },
       ],
       gameImageFile: undefined,
     });
@@ -102,18 +118,24 @@ export default function JokiPage() {
 
   // Open modal for edit
   const openEditModal = (joki: Joki) => {
+    console.log("Opening edit modal for:", joki);
     setSelectedJoki(joki);
+    const mappedItems = joki.item.map((item) => ({
+      itemName: item.itemName,
+      price: item.price.toString(),
+      description: item.description,
+      syaratJoki:
+        item.syaratJoki && item.syaratJoki.length > 0 ? item.syaratJoki : [""],
+      prosesJoki:
+        item.prosesJoki && item.prosesJoki.length > 0 ? item.prosesJoki : [""],
+      imgUrl: item.imgUrl,
+    }));
+    console.log("Mapped items:", mappedItems);
     setFormData({
       gameName: joki.gameName,
       caraPesan: joki.caraPesan.length > 0 ? joki.caraPesan : [""],
       features: joki.features.length > 0 ? joki.features : [""],
-      requirements: joki.requirements.length > 0 ? joki.requirements : [""],
-      items: joki.item.map((item) => ({
-        itemName: item.itemName,
-        price: item.price.toString(),
-        description: item.description,
-        imgUrl: item.imgUrl,
-      })),
+      items: mappedItems,
     });
     setShowModal(true);
   };
@@ -128,7 +150,7 @@ export default function JokiPage() {
 
   // Handle array field changes
   const handleArrayChange = (
-    field: "caraPesan" | "features" | "requirements",
+    field: "caraPesan" | "features",
     index: number,
     value: string
   ) => {
@@ -141,7 +163,7 @@ export default function JokiPage() {
   };
 
   // Add array field
-  const addArrayField = (field: "caraPesan" | "features" | "requirements") => {
+  const addArrayField = (field: "caraPesan" | "features") => {
     setFormData((prev) => ({
       ...prev,
       [field]: [...prev[field], ""],
@@ -149,12 +171,11 @@ export default function JokiPage() {
   };
 
   // Remove array field
-  const removeArrayField = (
-    field: "caraPesan" | "features" | "requirements",
-    index: number
-  ) => {
+  const removeArrayField = (field: "caraPesan" | "features", index: number) => {
     if (formData[field].length > 1) {
-      const newArray = formData[field].filter((_, i) => i !== index);
+      const newArray = formData[field].filter(
+        (_: any, i: number) => i !== index
+      );
       setFormData((prev) => ({
         ...prev,
         [field]: newArray,
@@ -185,9 +206,73 @@ export default function JokiPage() {
       ...prev,
       items: [
         ...prev.items,
-        { itemName: "", price: "", description: "", imageFile: undefined },
+        {
+          itemName: "",
+          price: "",
+          description: "",
+          syaratJoki: [""],
+          prosesJoki: [""],
+          imageFile: undefined,
+        },
       ],
     }));
+  };
+
+  // Handle item array changes (for syaratJoki and prosesJoki)
+  const handleItemArrayChange = (
+    itemIndex: number,
+    field: "syaratJoki" | "prosesJoki",
+    arrayIndex: number,
+    value: string
+  ) => {
+    const newItems = [...formData.items];
+    const newArray = [...newItems[itemIndex][field]];
+    newArray[arrayIndex] = value;
+    newItems[itemIndex] = {
+      ...newItems[itemIndex],
+      [field]: newArray,
+    };
+    setFormData((prev) => ({
+      ...prev,
+      items: newItems,
+    }));
+  };
+
+  // Add item array field
+  const addItemArrayField = (
+    itemIndex: number,
+    field: "syaratJoki" | "prosesJoki"
+  ) => {
+    const newItems = [...formData.items];
+    newItems[itemIndex] = {
+      ...newItems[itemIndex],
+      [field]: [...newItems[itemIndex][field], ""],
+    };
+    setFormData((prev) => ({
+      ...prev,
+      items: newItems,
+    }));
+  };
+
+  // Remove item array field
+  const removeItemArrayField = (
+    itemIndex: number,
+    field: "syaratJoki" | "prosesJoki",
+    arrayIndex: number
+  ) => {
+    const newItems = [...formData.items];
+    if (newItems[itemIndex][field].length > 1) {
+      newItems[itemIndex] = {
+        ...newItems[itemIndex],
+        [field]: newItems[itemIndex][field].filter(
+          (_: any, i: number) => i !== arrayIndex
+        ),
+      };
+      setFormData((prev) => ({
+        ...prev,
+        items: newItems,
+      }));
+    }
   };
 
   // Remove item
@@ -219,21 +304,19 @@ export default function JokiPage() {
         "features",
         JSON.stringify(formData.features.filter((item) => item.trim()))
       );
-      submitData.append(
-        "requirements",
-        JSON.stringify(formData.requirements.filter((item) => item.trim()))
-      );
 
       // Add game image if provided
       if (formData.gameImageFile) {
         submitData.append("gameImage", formData.gameImageFile);
       }
 
-      // Add items
+      // Add items with syaratJoki and prosesJoki
       const itemsData = formData.items.map((item, index) => ({
         itemName: item.itemName,
         price: parseFloat(item.price),
         description: item.description,
+        syaratJoki: item.syaratJoki.filter((s) => s.trim()),
+        prosesJoki: item.prosesJoki.filter((p) => p.trim()),
         imgUrl: item.imgUrl,
         imageIndex: item.imageFile ? index : undefined,
       }));
@@ -247,9 +330,7 @@ export default function JokiPage() {
         }
       });
 
-      const url = selectedJoki
-        ? `/api/joki?id=${selectedJoki._id}`
-        : "/api/joki";
+      const url = selectedJoki ? `/api/joki/${selectedJoki._id}` : "/api/joki";
 
       const method = selectedJoki ? "PUT" : "POST";
 
@@ -258,20 +339,29 @@ export default function JokiPage() {
         body: submitData,
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Server response:", errorText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+        throw new Error(errorData.error || "Terjadi kesalahan");
+      }
+
       const data = await response.json();
 
-      if (response.ok) {
-        toast.success(
-          selectedJoki
-            ? "Joki service berhasil diupdate!"
-            : "Joki service berhasil ditambahkan!"
-        );
-        setShowModal(false);
-        resetForm();
-        fetchJokiServices();
-      } else {
-        throw new Error(data.error || "Terjadi kesalahan");
-      }
+      toast.success(
+        selectedJoki
+          ? "Joki service berhasil diupdate!"
+          : "Joki service berhasil ditambahkan!"
+      );
+      setShowModal(false);
+      resetForm();
+      fetchJokiServices();
     } catch (error: any) {
       console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan saat menyimpan");
@@ -287,18 +377,26 @@ export default function JokiPage() {
     }
 
     try {
-      const response = await fetch(`/api/joki?id=${id}`, {
+      const response = await fetch(`/api/joki/${id}`, {
         method: "DELETE",
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Delete error:", errorText);
 
-      if (response.ok) {
-        toast.success("Joki service berhasil dihapus!");
-        fetchJokiServices();
-      } else {
-        throw new Error(data.error || "Terjadi kesalahan");
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        throw new Error(errorData.error || "Terjadi kesalahan");
       }
+
+      const data = await response.json();
+      toast.success("Joki service berhasil dihapus!");
+      fetchJokiServices();
     } catch (error: any) {
       console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan saat menghapus");
@@ -573,9 +671,6 @@ export default function JokiPage() {
                     {joki.item.length} items
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {joki.requirements.length} requirements
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                     {joki.features.length} features
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
@@ -754,40 +849,6 @@ export default function JokiPage() {
                 </button>
               </div>
 
-              {/* Requirements */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Requirements *
-                </label>
-                {formData.requirements.map((requirement, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={requirement}
-                      onChange={(e) =>
-                        handleArrayChange("requirements", index, e.target.value)
-                      }
-                      placeholder={`Requirement ${index + 1}`}
-                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeArrayField("requirements", index)}
-                      className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => addArrayField("requirements")}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-blue-500"
-                >
-                  Tambah Requirement
-                </button>
-              </div>
-
               {/* Items */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -842,6 +903,97 @@ export default function JokiPage() {
                           className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
+
+                      {/* Syarat Joki */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          Syarat Joki *
+                        </label>
+                        {item.syaratJoki.map((syarat, syaratIndex) => (
+                          <div key={syaratIndex} className="flex gap-2 mb-2">
+                            <input
+                              type="text"
+                              value={syarat}
+                              onChange={(e) =>
+                                handleItemArrayChange(
+                                  index,
+                                  "syaratJoki",
+                                  syaratIndex,
+                                  e.target.value
+                                )
+                              }
+                              placeholder={`Syarat ${syaratIndex + 1}`}
+                              className="flex-1 px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeItemArrayField(
+                                  index,
+                                  "syaratJoki",
+                                  syaratIndex
+                                )
+                              }
+                              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => addItemArrayField(index, "syaratJoki")}
+                          className="mt-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 border border-green-500"
+                        >
+                          Tambah Syarat
+                        </button>
+                      </div>
+
+                      {/* Proses Joki */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          Proses Joki *
+                        </label>
+                        {item.prosesJoki.map((proses, prosesIndex) => (
+                          <div key={prosesIndex} className="flex gap-2 mb-2">
+                            <input
+                              type="text"
+                              value={proses}
+                              onChange={(e) =>
+                                handleItemArrayChange(
+                                  index,
+                                  "prosesJoki",
+                                  prosesIndex,
+                                  e.target.value
+                                )
+                              }
+                              placeholder={`Proses ${prosesIndex + 1}`}
+                              className="flex-1 px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeItemArrayField(
+                                  index,
+                                  "prosesJoki",
+                                  prosesIndex
+                                )
+                              }
+                              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => addItemArrayField(index, "prosesJoki")}
+                          className="mt-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 border border-green-500"
+                        >
+                          Tambah Proses
+                        </button>
+                      </div>
+
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-300 mb-1">
                           Gambar Item

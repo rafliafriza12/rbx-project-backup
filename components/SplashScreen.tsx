@@ -44,7 +44,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         setIsVisible(false);
         onComplete();
       }, 200);
-    }, 1400); // Reduced from 2200ms to 1400ms (total ~1.6s)
+    }, 2000); // Reduced from 2200ms to 1400ms (total ~1.6s)
 
     return () => {
       clearTimeout(timer1);
@@ -168,10 +168,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
           {/* Enhanced Progress Bar */}
           <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-4 sm:mb-6 px-4">
-            <div className="flex justify-between text-xs sm:text-sm font-medium text-white/80 mb-2 sm:mb-3">
-              <span>Loading</span>
-              <span className="font-mono">{Math.round(loadingProgress)}%</span>
-            </div>
             <div className="relative w-full h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/20">
               <div
                 className="h-full bg-gradient-to-r from-neon-pink via-purple-500 to-neon-purple rounded-full transition-all duration-200 ease-out relative overflow-hidden"
@@ -214,16 +210,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 className="flex flex-col items-center space-y-1 sm:space-y-2"
               >
                 <div
-                  className={`p-2 sm:p-3 rounded-full border-2 transition-all duration-500 ${
+                  className={`p-2 sm:p-3 rounded-full border-2 ${
                     loadingProgress > item.threshold
-                      ? `opacity-100 scale-110 animate-bounce ${item.color} border-current bg-current/10 shadow-lg`
-                      : "opacity-30 scale-90 text-white/30 border-white/20 bg-white/5"
+                      ? `opacity-100 ${item.color} border-current bg-current/10 shadow-lg`
+                      : "opacity-30 text-white/30 border-white/20 bg-white/5"
                   }`}
                 >
                   <item.Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                 </div>
                 <span
-                  className={`text-xs font-medium transition-all duration-500 ${
+                  className={`text-xs font-medium ${
                     loadingProgress > item.threshold
                       ? "text-white/80"
                       : "text-white/30"
@@ -238,7 +234,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
         {/* Year */}
         <div
-          className={`mt-6 sm:mt-8 transition-opacity duration-500 delay-1000 ${
+          className={`mt-6 sm:mt-8 transition-opacity duration-500 delay-[0.8s] ${
             animationPhase >= 2 ? "opacity-100" : "opacity-0"
           }`}
         >
@@ -255,7 +251,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-neon-pink/30"></div>
 
       {/* Enhanced CSS Animation Styles */}
-      <style jsx>{`
+      {/* <style jsx>{`
         @keyframes bounce {
           0%,
           80%,
@@ -292,7 +288,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         .floating {
           animation: float 3s ease-in-out infinite;
         }
-      `}</style>
+      `}</style> */}
     </div>
   );
 };

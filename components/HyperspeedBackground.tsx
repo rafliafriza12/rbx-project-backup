@@ -3,7 +3,7 @@ import Hyperspeed from "@/components/Hyperspeed";
 
 const HyperspeedBackground = memo(() => {
   return (
-    <div className="w-screen h-screen hidden lg:block inset-0 absolute z-[-5] overflow-hidden blur-[5px]">
+    <div className="w-screen h-screen hidden lg:block inset-0 absolute z-[-5] overflow-hidden blur-[3px]">
       <div className=" w-full h-[40vh] absolute bg-gradient-to-t from-[#22102A] to-transparent bottom-0"></div>
       <Hyperspeed
         effectOptions={{

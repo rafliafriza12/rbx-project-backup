@@ -22,17 +22,6 @@ const adminStyles = `
     box-sizing: border-box !important;
   }
   
-  /* Reset all backgrounds to admin theme */
-  .admin-layout * {
-    background: transparent !important;
-    background-image: none !important;
-    background-color: transparent !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-  
   /* Admin Layout Structure */
   .admin-layout {
     background: #0f172a !important;
@@ -100,16 +89,136 @@ const adminStyles = `
   
   .admin-layout p,
   .admin-layout span,
-  .admin-layout div,
   .admin-layout label {
     color: #f1f5f9 !important;
-    margin: 0 !important;
+  }
+  
+  .admin-layout p {
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .admin-layout label {
+    margin-bottom: 0.5rem !important;
+    display: inline-block !important;
   }
   
   .admin-layout .text-muted,
   .admin-layout .admin-text-muted {
     color: #94a3b8 !important;
   }
+  
+  /* Spacing utilities - preserve Tailwind spacing */
+  .admin-layout .space-y-1 > * + * {
+    margin-top: 0.25rem !important;
+  }
+  
+  .admin-layout .space-y-2 > * + * {
+    margin-top: 0.5rem !important;
+  }
+  
+  .admin-layout .space-y-3 > * + * {
+    margin-top: 0.75rem !important;
+  }
+  
+  .admin-layout .space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  .admin-layout .space-y-6 > * + * {
+    margin-top: 1.5rem !important;
+  }
+  
+  .admin-layout .space-y-8 > * + * {
+    margin-top: 2rem !important;
+  }
+  
+  /* Horizontal spacing */
+  .admin-layout .space-x-1 > * + * {
+    margin-left: 0.25rem !important;
+  }
+  
+  .admin-layout .space-x-2 > * + * {
+    margin-left: 0.5rem !important;
+  }
+  
+  .admin-layout .space-x-3 > * + * {
+    margin-left: 0.75rem !important;
+  }
+  
+  .admin-layout .space-x-4 > * + * {
+    margin-left: 1rem !important;
+  }
+  
+  /* Gap utilities for flex/grid */
+  .admin-layout .gap-1 {
+    gap: 0.25rem !important;
+  }
+  
+  .admin-layout .gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .admin-layout .gap-3 {
+    gap: 0.75rem !important;
+  }
+  
+  .admin-layout .gap-4 {
+    gap: 1rem !important;
+  }
+  
+  .admin-layout .gap-5 {
+    gap: 1.25rem !important;
+  }
+  
+  .admin-layout .gap-6 {
+    gap: 1.5rem !important;
+  }
+  
+  .admin-layout .gap-8 {
+    gap: 2rem !important;
+  }
+  
+  /* Margin utilities */
+  .admin-layout .mb-1 { margin-bottom: 0.25rem !important; }
+  .admin-layout .mb-2 { margin-bottom: 0.5rem !important; }
+  .admin-layout .mb-3 { margin-bottom: 0.75rem !important; }
+  .admin-layout .mb-4 { margin-bottom: 1rem !important; }
+  .admin-layout .mb-5 { margin-bottom: 1.25rem !important; }
+  .admin-layout .mb-6 { margin-bottom: 1.5rem !important; }
+  .admin-layout .mb-8 { margin-bottom: 2rem !important; }
+  
+  .admin-layout .mt-1 { margin-top: 0.25rem !important; }
+  .admin-layout .mt-2 { margin-top: 0.5rem !important; }
+  .admin-layout .mt-3 { margin-top: 0.75rem !important; }
+  .admin-layout .mt-4 { margin-top: 1rem !important; }
+  .admin-layout .mt-6 { margin-top: 1.5rem !important; }
+  .admin-layout .mt-8 { margin-top: 2rem !important; }
+  
+  .admin-layout .mr-1 { margin-right: 0.25rem !important; }
+  .admin-layout .mr-2 { margin-right: 0.5rem !important; }
+  .admin-layout .mr-3 { margin-right: 0.75rem !important; }
+  .admin-layout .mr-4 { margin-right: 1rem !important; }
+  
+  .admin-layout .ml-2 { margin-left: 0.5rem !important; }
+  .admin-layout .ml-3 { margin-left: 0.75rem !important; }
+  
+  /* Padding utilities */
+  .admin-layout .p-2 { padding: 0.5rem !important; }
+  .admin-layout .p-3 { padding: 0.75rem !important; }
+  .admin-layout .p-4 { padding: 1rem !important; }
+  .admin-layout .p-6 { padding: 1.5rem !important; }
+  .admin-layout .p-8 { padding: 2rem !important; }
+  
+  .admin-layout .px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+  .admin-layout .px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+  .admin-layout .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .admin-layout .px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+  
+  .admin-layout .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+  .admin-layout .py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+  .admin-layout .py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+  .admin-layout .py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  .admin-layout .py-6 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
   
   /* Form Elements */
   .admin-layout input,
@@ -246,11 +355,150 @@ const adminStyles = `
   
   /* Modals and Dropdowns */
   .admin-layout .modal,
-  .admin-layout .dropdown {
+  .admin-layout .dropdown,
+  .admin-layout [class*="modal"],
+  .admin-layout [class*="Modal"] {
     background: #1e293b !important;
     border: 1px solid #334155 !important;
     border-radius: 0.75rem !important;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* Modal Overlay/Backdrop */
+  .admin-layout .bg-opacity-75 {
+    background-color: rgba(17, 24, 39, 0.75) !important;
+  }
+  
+  .admin-layout .fixed.inset-0 {
+    background-color: rgba(0, 0, 0, 0.75) !important;
+  }
+  
+  /* Specific classes for cards and containers */
+  .admin-layout .bg-gray-800 {
+    background-color: #1e293b !important;
+  }
+  
+  .admin-layout .bg-gray-900 {
+    background-color: #0f172a !important;
+  }
+  
+  .admin-layout .bg-gray-700 {
+    background-color: #334155 !important;
+  }
+  
+  .admin-layout .bg-white {
+    background-color: #1e293b !important;
+  }
+  
+  .admin-layout .bg-blue-900 {
+    background-color: #1e3a8a !important;
+  }
+  
+  .admin-layout .bg-green-900 {
+    background-color: #14532d !important;
+  }
+  
+  .admin-layout .bg-purple-900 {
+    background-color: #581c87 !important;
+  }
+  
+  .admin-layout .bg-green-600 {
+    background-color: #16a34a !important;
+  }
+  
+  .admin-layout .bg-blue-600 {
+    background-color: #2563eb !important;
+  }
+  
+  .admin-layout .bg-yellow-500 {
+    background-color: #eab308 !important;
+  }
+  
+  .admin-layout .bg-green-500 {
+    background-color: #22c55e !important;
+  }
+  
+  .admin-layout .bg-red-500 {
+    background-color: #ef4444 !important;
+  }
+  
+  .admin-layout .bg-red-900\/50,
+  .admin-layout .bg-red-900 {
+    background-color: rgba(127, 29, 29, 0.5) !important;
+  }
+  
+  /* Divide colors for tables */
+  .admin-layout .divide-gray-700 > * + * {
+    border-color: #334155 !important;
+  }
+  
+  /* Border colors */
+  .admin-layout .border-gray-700 {
+    border-color: #334155 !important;
+  }
+  
+  .admin-layout .border-gray-600 {
+    border-color: #475569 !important;
+  }
+  
+  .admin-layout .border-blue-700 {
+    border-color: #1d4ed8 !important;
+  }
+  
+  .admin-layout .border-green-700 {
+    border-color: #15803d !important;
+  }
+  
+  .admin-layout .border-purple-700 {
+    border-color: #7e22ce !important;
+  }
+  
+  .admin-layout .border-blue-500 {
+    border-color: #3b82f6 !important;
+  }
+  
+  .admin-layout .border-green-500 {
+    border-color: #22c55e !important;
+  }
+  
+  .admin-layout .border-red-500 {
+    border-color: #ef4444 !important;
+  }
+  
+  /* Hover states */
+  .admin-layout .hover\:bg-gray-700:hover {
+    background-color: #334155 !important;
+  }
+  
+  .admin-layout .hover\:bg-green-700:hover {
+    background-color: #15803d !important;
+  }
+  
+  .admin-layout .hover\:bg-blue-700:hover {
+    background-color: #1d4ed8 !important;
+  }
+  
+  /* Ensure proper backgrounds for specific components */
+  .admin-layout div[class*="rounded"],
+  .admin-layout div[class*="shadow"] {
+    background: inherit !important;
+  }
+  
+  .admin-layout div[class*="p-"][class*="bg-"],
+  .admin-layout section[class*="bg-"] {
+    background: #1e293b !important;
+  }
+  
+  /* Stats Cards */
+  .admin-layout [class*="stat"],
+  .admin-layout [class*="card"] {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+  }
+  
+  /* Image containers should have transparent background */
+  .admin-layout img {
+    background: transparent !important;
   }
   
   /* Scrollbars */
@@ -270,6 +518,95 @@ const adminStyles = `
   
   .admin-layout *::-webkit-scrollbar-thumb:hover {
     background: #64748b !important;
+  }
+  
+  /* Fix for transparent elements that should have background */
+  .admin-layout .max-w-4xl,
+  .admin-layout .max-w-6xl,
+  .admin-layout .max-w-7xl {
+    background: #1e293b !important;
+  }
+  
+  /* Grid utilities */
+  .admin-layout .grid {
+    display: grid !important;
+  }
+  
+  .admin-layout .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  .admin-layout .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  .admin-layout .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  
+  @media (min-width: 768px) {
+    .admin-layout .md\\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    
+    .admin-layout .md\\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    
+    .admin-layout .md\\:space-x-3 > * + * {
+      margin-left: 0.75rem !important;
+    }
+  }
+  
+  /* Flex utilities */
+  .admin-layout .flex {
+    display: flex !important;
+  }
+  
+  .admin-layout .inline-flex {
+    display: inline-flex !important;
+  }
+  
+  .admin-layout .flex-1 {
+    flex: 1 1 0% !important;
+  }
+  
+  .admin-layout .items-center {
+    align-items: center !important;
+  }
+  
+  .admin-layout .justify-center {
+    justify-content: center !important;
+  }
+  
+  .admin-layout .justify-between {
+    justify-content: space-between !important;
+  }
+  
+  /* Rounded utilities */
+  .admin-layout .rounded {
+    border-radius: 0.25rem !important;
+  }
+  
+  .admin-layout .rounded-md {
+    border-radius: 0.375rem !important;
+  }
+  
+  .admin-layout .rounded-lg {
+    border-radius: 0.5rem !important;
+  }
+  
+  .admin-layout .rounded-full {
+    border-radius: 9999px !important;
+  }
+  
+  /* Shadow utilities */
+  .admin-layout .shadow {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .admin-layout .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
   }
 `;
 

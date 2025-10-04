@@ -164,7 +164,7 @@ export default function RegisterPage() {
                   value={formData.lastName}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-primary-100 focus:border-primary-100 outline-none transition-all duration-300 backdrop-blur-sm"
-                  placeholder="Username"
+                  placeholder="Lastname"
                   required
                 />
               </div>

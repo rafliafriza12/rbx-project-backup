@@ -28,6 +28,8 @@ interface JokiItem {
   imgUrl: string;
   price: number;
   description: string;
+  syaratJoki: string[];
+  prosesJoki: string[];
 }
 
 interface Joki {
@@ -36,11 +38,11 @@ interface Joki {
   imgUrl: string;
   caraPesan: string[];
   features: string[];
-  requirements: string[];
   item: JokiItem[];
 }
 
 export default function JokiDetailPage() {
+  const [isShowReview, setIsShowReview] = useState<boolean>(false);
   const [joki, setJoki] = useState<Joki | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,63 +59,17 @@ export default function JokiDetailPage() {
     null
   );
 
-  // Dummy data untuk syarat dan proses setiap item (versi ringkas)
-  const getItemRequirements = (itemName: string) => {
-    // Data dummy ringkas - hanya 3-4 poin utama
-    const requirements: { [key: string]: string[] } = {
-      "Level Boost": [
-        "Akun Roblox aktif minimal level 5",
-        "Tidak login selama proses boost (1-3 hari)",
-        "Password akun stabil dan benar",
-      ],
-      "Robux Farming": [
-        "Akun terverifikasi email",
-        "Tidak bermain selama farming",
-        "Akun umur minimal 30 hari",
-      ],
-      "Item Collection": [
-        "Inventory space yang cukup",
-        "Tidak dalam cooldown trading",
-        "Tidak login selama 2-5 hari",
-      ],
-      default: [
-        "Akun Roblox yang valid",
-        "Password tidak berubah",
-        "Tidak bermain selama proses",
-      ],
-    };
-    return requirements[itemName] || requirements.default;
+  // Get requirements and process for specific item from database
+  const getItemRequirements = (itemName: string): string[] => {
+    if (!joki) return [];
+    const item = joki.item.find((i) => i.itemName === itemName);
+    return item?.syaratJoki || [];
   };
 
-  const getItemProcess = (itemName: string) => {
-    // Data dummy ringkas - hanya 3-4 step utama
-    const processes: { [key: string]: string[] } = {
-      "Level Boost": [
-        "Konfirmasi pembayaran dan akun",
-        "Boost dimulai oleh team pro",
-        "Update progress setiap 12 jam",
-        "Selesai dalam 1-3 hari",
-      ],
-      "Robux Farming": [
-        "Verifikasi akun dan payment",
-        "Setup farming bot optimal",
-        "Monitoring 24/7 aman",
-        "Hasil dalam 3-7 hari",
-      ],
-      "Item Collection": [
-        "Payment dan akun check",
-        "Hunting items sesuai request",
-        "Daily progress report",
-        "Final delivery completion",
-      ],
-      default: [
-        "Pembayaran terlebih dahulu",
-        "Proses oleh joki profesional",
-        "Update progress berkala",
-        "Selesai dalam 1-3 hari",
-      ],
-    };
-    return processes[itemName] || processes.default;
+  const getItemProcess = (itemName: string): string[] => {
+    if (!joki) return [];
+    const item = joki.item.find((i) => i.itemName === itemName);
+    return item?.prosesJoki || [];
   };
 
   const params = useParams();
@@ -227,7 +183,8 @@ export default function JokiDetailPage() {
             description: item.description,
             notes: additionalInfo,
             additionalInfo: additionalInfo,
-            requirements: joki.requirements,
+            syaratJoki: item.syaratJoki,
+            prosesJoki: item.prosesJoki,
             features: joki.features,
           },
         };
@@ -546,6 +503,12 @@ export default function JokiDetailPage() {
                     </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => setIsShowReview(!isShowReview)}
+                  className="w-full py-1.5 sm:py-2 md:py-3 px-1.5 sm:px-2 md:px-4 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-md sm:rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.01] shadow hover:shadow-lg md:hover:shadow-primary-100/30 flex items-center justify-center gap-1 text-xs sm:text-xs md:text-base mt-4"
+                >
+                  {isShowReview ? "Sembunyikan" : "Lihat"} Review
+                </button>
               </div>
 
               {/* Requirements Section */}
@@ -553,32 +516,6 @@ export default function JokiDetailPage() {
 
             {/* Right Column - Order Form & Pricing */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-              <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl md:shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.005] md:hover:scale-[1.01] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-2xl sm:rounded-3xl"></div>
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    <div className="p-1.5 sm:p-2 bg-red-500/20 rounded-lg">
-                      <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-white">
-                      Syarat & Ketentuan
-                    </h3>
-                  </div>
-                  <div className="space-y-2 sm:space-y-3 grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-                    {joki.requirements.map((requirement, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center h-full gap-2 sm:gap-3 p-2 sm:p-3 bg-red-500/10 rounded-lg sm:rounded-xl border border-red-400/20"
-                      >
-                        <span className="text-xs sm:text-sm p-0 m-0 text-white font-medium leading-relaxed">
-                          {requirement}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
               {/* Account Info Form */}
               <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl md:shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.005] md:hover:scale-[1.01] overflow-hidden">
                 {/* Enhanced Background Effects */}
@@ -899,7 +836,7 @@ export default function JokiDetailPage() {
                         Order Summary
                       </h3>
                       <div className="ml-auto px-3 py-1 bg-primary-100/20 rounded-full text-primary-100 text-sm font-bold">
-                        {totalQuantity} items
+                        {selectedItemsArray.length} items
                       </div>
                     </div>
 
@@ -1013,7 +950,7 @@ export default function JokiDetailPage() {
               </div>
 
               {/* Review Section */}
-              {joki && (
+              {joki && isShowReview && (
                 <ReviewSection
                   serviceType="joki"
                   serviceId={joki._id}

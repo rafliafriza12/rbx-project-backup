@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     try {
       const { default: RobuxPricing } = await import("@/models/RobuxPricing");
-      const pricing = await RobuxPricing.findOne({ isActive: true });
+      const pricing = await RobuxPricing.findOne({});
 
       if (pricing && pricing.pricePerHundred) {
         hargaPer100Robux = pricing.pricePerHundred;

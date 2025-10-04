@@ -36,6 +36,7 @@ interface Product {
 }
 
 const RobuxInstan: React.FC = () => {
+  const [isShowReview, setIsShowReview] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [robux, setRobux] = useState(0);
@@ -250,6 +251,12 @@ const RobuxInstan: React.FC = () => {
                     <span className="font-medium">24/7 Support</span>
                   </span>
                 </div>
+                <button
+                  onClick={() => setIsShowReview(!isShowReview)}
+                  className="w-full py-1.5 sm:py-2 md:py-3 px-1.5 sm:px-2 md:px-4 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-md sm:rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.01] shadow hover:shadow-lg md:hover:shadow-primary-100/30 flex items-center justify-center gap-1 text-xs sm:text-xs md:text-base mt-4"
+                >
+                  {isShowReview ? "Sembunyikan" : "Lihat"} Review
+                </button>
               </div>
             </div>
           </div>
@@ -708,13 +715,15 @@ const RobuxInstan: React.FC = () => {
           </div>
 
           {/* Reviews Section */}
-          <div className="w-full">
-            <ReviewSection
-              serviceType="robux"
-              serviceCategory="robux_instant"
-              title="Reviews Robux Instant"
-            />
-          </div>
+          {isShowReview && (
+            <div className="w-full">
+              <ReviewSection
+                serviceType="robux"
+                serviceCategory="robux_instant"
+                title="Reviews Robux Instant"
+              />
+            </div>
+          )}
         </div>
       </section>
     </main>

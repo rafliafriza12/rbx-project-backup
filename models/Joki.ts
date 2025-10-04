@@ -20,6 +20,20 @@ const JokiItemSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  syaratJoki: [
+    {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  ],
+  prosesJoki: [
+    {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  ],
 });
 
 const JokiSchema = new mongoose.Schema(
@@ -47,13 +61,6 @@ const JokiSchema = new mongoose.Schema(
         trim: true,
       },
     ],
-    requirements: [
-      {
-        type: String,
-        required: true,
-        trim: true,
-      },
-    ],
     item: [JokiItemSchema],
   },
   {
@@ -70,6 +77,8 @@ export interface JokiItem {
   imgUrl: string;
   price: number;
   description: string;
+  syaratJoki: string[];
+  prosesJoki: string[];
 }
 
 export interface Joki {
@@ -78,7 +87,6 @@ export interface Joki {
   imgUrl: string;
   caraPesan: string[];
   features: string[];
-  requirements: string[];
   item: JokiItem[];
   createdAt: Date;
   updatedAt: Date;

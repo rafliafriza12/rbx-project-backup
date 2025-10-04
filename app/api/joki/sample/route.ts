@@ -28,12 +28,6 @@ export async function POST(request: NextRequest) {
           "Progress guarantee",
           "24/7 support",
         ],
-        requirements: [
-          "Akun Roblox level minimum 5",
-          "Tidak ada ban history",
-          "Akun harus bisa login",
-          "Tidak sedang di-joki oleh orang lain",
-        ],
         item: [
           {
             itemName: "Grinding to Level 2450",
@@ -42,6 +36,19 @@ export async function POST(request: NextRequest) {
             price: 1500000,
             description:
               "Joki grinding dari level rendah sampai max level 2450 di Third Sea",
+            syaratJoki: [
+              "Akun Roblox level minimum 5",
+              "Tidak ada ban history",
+              "Akun harus bisa login",
+              "Tidak sedang di-joki oleh orang lain",
+            ],
+            prosesJoki: [
+              "Login ke akun Anda",
+              "Grinding di map Third Sea",
+              "Farming quest dan boss",
+              "Update progress setiap hari",
+              "Selesai dalam 1-3 hari",
+            ],
           },
           {
             itemName: "All Fruits Collection",
@@ -49,6 +56,17 @@ export async function POST(request: NextRequest) {
               "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=200&h=200&fit=crop",
             price: 2000000,
             description: "Mengumpulkan semua buah legendary dan mythical",
+            syaratJoki: [
+              "Akun level 1000+",
+              "Punya beli akses Third Sea",
+              "Inventory space cukup",
+            ],
+            prosesJoki: [
+              "Survey buah yang sudah ada",
+              "Farming buah yang hilang",
+              "Trading untuk buah rare",
+              "Verifikasi koleksi lengkap",
+            ],
           },
           {
             itemName: "Complete Quest Line",
@@ -57,6 +75,17 @@ export async function POST(request: NextRequest) {
             price: 800000,
             description:
               "Menyelesaikan semua quest dari First Sea hingga Third Sea",
+            syaratJoki: [
+              "Akun sudah akses First Sea",
+              "Level minimum 100",
+              "Tidak ada quest bug",
+            ],
+            prosesJoki: [
+              "Cek quest yang belum selesai",
+              "Selesaikan quest secara berurutan",
+              "Progress dari First ke Third Sea",
+              "Konfirmasi semua quest complete",
+            ],
           },
         ],
       },
@@ -78,12 +107,6 @@ export async function POST(request: NextRequest) {
           "Money farming",
           "House decoration",
         ],
-        requirements: [
-          "Akun minimal 1 bulan",
-          "Punya beberapa pet dasar",
-          "Inventory tidak kosong",
-          "Tidak ada restriction",
-        ],
         item: [
           {
             itemName: "Mega Pet Making",
@@ -91,6 +114,18 @@ export async function POST(request: NextRequest) {
               "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop",
             price: 1200000,
             description: "Joki pembuatan mega pet dari nol sampai mega neon",
+            syaratJoki: [
+              "Akun minimal 1 bulan",
+              "Punya beberapa pet dasar",
+              "Inventory tidak kosong",
+              "Tidak ada restriction",
+            ],
+            prosesJoki: [
+              "Aging pets sampai full grown",
+              "Combine 4 pets jadi neon",
+              "Repeat untuk mega neon",
+              "Progress update berkala",
+            ],
           },
           {
             itemName: "Bucks Farming",
@@ -98,6 +133,17 @@ export async function POST(request: NextRequest) {
               "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop",
             price: 500000,
             description: "Farming bucks sampai 50k untuk membeli pet eggs",
+            syaratJoki: [
+              "Akun aktif",
+              "Bisa login setiap hari",
+              "Tidak ada ban",
+            ],
+            prosesJoki: [
+              "Login dan collect daily rewards",
+              "Complete tasks untuk bucks",
+              "Mini games farming",
+              "Target 50k bucks tercapai",
+            ],
           },
           {
             itemName: "House Building",
@@ -106,6 +152,17 @@ export async function POST(request: NextRequest) {
             price: 750000,
             description:
               "Membangun dan mendekorasi rumah dengan tema yang diinginkan",
+            syaratJoki: [
+              "Punya plot house",
+              "Budget untuk furniture",
+              "Tema sudah ditentukan",
+            ],
+            prosesJoki: [
+              "Diskusi tema dan design",
+              "Build struktur rumah",
+              "Dekorasi interior",
+              "Final touch dan screenshot",
+            ],
           },
         ],
       },
@@ -127,12 +184,6 @@ export async function POST(request: NextRequest) {
           "Market expertise",
           "Value optimization",
         ],
-        requirements: [
-          "Akun dengan beberapa weapon",
-          "Trading history yang baik",
-          "Tidak ada trading ban",
-          "Inventory space tersedia",
-        ],
         item: [
           {
             itemName: "Godly Weapon Collection",
@@ -140,6 +191,18 @@ export async function POST(request: NextRequest) {
               "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop",
             price: 2500000,
             description: "Joki untuk mendapatkan koleksi godly weapons lengkap",
+            syaratJoki: [
+              "Akun dengan beberapa weapon",
+              "Trading history yang baik",
+              "Tidak ada trading ban",
+              "Inventory space tersedia",
+            ],
+            prosesJoki: [
+              "Analisa inventory current",
+              "Trading untuk godly weapons",
+              "Market monitoring untuk best deals",
+              "Koleksi lengkap godly weapons",
+            ],
           },
           {
             itemName: "Chroma Weapons Hunt",
@@ -147,6 +210,17 @@ export async function POST(request: NextRequest) {
               "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop",
             price: 3000000,
             description: "Berburu dan mengkoleksi semua chroma weapons",
+            syaratJoki: [
+              "Akun dengan trading access",
+              "Value yang cukup untuk trade",
+              "No scam history",
+            ],
+            prosesJoki: [
+              "Hunt chroma weapons di market",
+              "Trading dengan fair value",
+              "Verifikasi authenticity",
+              "Complete chroma collection",
+            ],
           },
           {
             itemName: "Ancient Weapons",
@@ -154,6 +228,17 @@ export async function POST(request: NextRequest) {
               "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop",
             price: 1800000,
             description: "Mendapatkan ancient weapons yang sangat rare",
+            syaratJoki: [
+              "High value inventory",
+              "Good trading reputation",
+              "Patient untuk rare items",
+            ],
+            prosesJoki: [
+              "Search ancient weapons",
+              "Negotiate dengan collectors",
+              "Secure trading process",
+              "Delivery ancient weapons",
+            ],
           },
         ],
       },

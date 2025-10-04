@@ -34,13 +34,27 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     const gameName = formData.get("gameName") as string;
-    const caraPesan = JSON.parse(formData.get("caraPesan") as string);
-    const features = JSON.parse(formData.get("features") as string);
-    const requirements = JSON.parse(formData.get("requirements") as string);
-    const items = JSON.parse(formData.get("items") as string);
+
+    // Parse with error handling
+    let caraPesan, features, items;
+    try {
+      const caraPesanStr = formData.get("caraPesan") as string;
+      const featuresStr = formData.get("features") as string;
+      const itemsStr = formData.get("items") as string;
+
+      caraPesan = JSON.parse(caraPesanStr);
+      features = JSON.parse(featuresStr);
+      items = JSON.parse(itemsStr);
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      return NextResponse.json(
+        { error: "Invalid JSON data in request" },
+        { status: 400 }
+      );
+    }
 
     // Validate required fields
-    if (!gameName || !caraPesan || !features || !requirements || !items) {
+    if (!gameName || !caraPesan || !features || !items) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
         { status: 400 }
@@ -51,7 +65,7 @@ export async function POST(request: NextRequest) {
     const gameImageFile = formData.get("gameImage") as File;
     let gameImageUrl: any = "";
 
-    if (gameImageFile) {
+    if (gameImageFile && gameImageFile.size > 0) {
       const uploadResult = await uploadToCloudinary(
         gameImageFile,
         "joki/games"
@@ -73,7 +87,7 @@ export async function POST(request: NextRequest) {
       const itemImageFile = formData.get(`itemImage_${i}`) as File;
 
       let itemImageUrl = item.imgUrl || "";
-      if (itemImageFile) {
+      if (itemImageFile && itemImageFile.size > 0) {
         const uploadResult = await uploadToCloudinary(
           itemImageFile,
           "joki/items"
@@ -91,8 +105,10 @@ export async function POST(request: NextRequest) {
       processedItems.push({
         itemName: item.itemName,
         imgUrl: itemImageUrl,
-        price: parseInt(item.price),
-        description: item.description,
+        price: parseInt(item.price) || 0,
+        description: item.description || "",
+        syaratJoki: Array.isArray(item.syaratJoki) ? item.syaratJoki : [],
+        prosesJoki: Array.isArray(item.prosesJoki) ? item.prosesJoki : [],
       });
     }
 
@@ -102,7 +118,6 @@ export async function POST(request: NextRequest) {
       imgUrl: gameImageUrl,
       caraPesan: caraPesan.filter((item: string) => item.trim()),
       features: features.filter((item: string) => item.trim()),
-      requirements: requirements.filter((item: string) => item.trim()),
       item: processedItems,
     });
 
@@ -115,10 +130,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating joki service:", error);
     return NextResponse.json(
-      { error: "Gagal membuat joki service" },
+      { error: error.message || "Gagal membuat joki service" },
       { status: 500 }
     );
   }

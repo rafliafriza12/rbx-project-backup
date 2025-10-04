@@ -43,6 +43,7 @@ interface Gamepass {
 }
 
 export default function GamepassDetailPage() {
+  const [isShowReview, setIsShowReview] = useState<boolean>(false);
   const [gamepass, setGamepass] = useState<Gamepass | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -263,9 +264,9 @@ export default function GamepassDetailPage() {
             {/* Game Image & Info */}
             <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.02] overflow-hidden">
               {/* Enhanced Background Effects */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-100/10 via-transparent to-primary-200/10 rounded-3xl"></div>
-              <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full blur-3xl animate-pulse group-hover:scale-110 transition-transform duration-700"></div>
-              <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-primary-200/15 to-primary-100/10 rounded-full blur-2xl animate-pulse delay-500 group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute z-[-1] inset-0 bg-gradient-to-br from-primary-100/10 via-transparent to-primary-200/10 rounded-3xl"></div>
+              <div className="absolute z-[-2] -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full blur-3xl animate-pulse group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute z-[-3] -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-primary-200/15 to-primary-100/10 rounded-full blur-2xl animate-pulse delay-500 group-hover:scale-110 transition-transform duration-700"></div>
 
               {/* Sparkle effects */}
               <div className="absolute top-8 right-8 w-2 h-2 bg-primary-100 rounded-full animate-ping opacity-75"></div>
@@ -332,6 +333,12 @@ export default function GamepassDetailPage() {
                   </div>
                 </div>
               </div>
+              <button
+                onClick={() => setIsShowReview(!isShowReview)}
+                className="w-full py-1.5 sm:py-2 md:py-3 px-1.5 sm:px-2 md:px-4 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-md sm:rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.01] shadow hover:shadow-lg md:hover:shadow-primary-100/30 flex items-center justify-center gap-1 text-xs sm:text-xs md:text-base mt-4"
+              >
+                {isShowReview ? "Sembunyikan" : "Lihat"} Review
+              </button>
             </div>
           </div>
 
@@ -451,7 +458,7 @@ export default function GamepassDetailPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
                   {gamepass.item.map((item, index) => {
                     const isSelected = isItemSelected(item.itemName);
                     const quantity = getSelectedQuantity(item.itemName);
@@ -459,7 +466,7 @@ export default function GamepassDetailPage() {
                     return (
                       <div
                         key={index}
-                        className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-2xl p-6 transition-all duration-500 cursor-pointer overflow-hidden ${
+                        className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center justify-start ${
                           isSelected
                             ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-2xl shadow-primary-100/30 scale-105"
                             : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-102"
@@ -468,7 +475,7 @@ export default function GamepassDetailPage() {
                       >
                         {/* Card glow effect */}
                         <div
-                          className={`absolute inset-0 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-2xl transition-opacity duration-300 ${
+                          className={`absolute inset-0 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-xl sm:rounded-2xl transition-opacity duration-300 ${
                             isSelected
                               ? "opacity-100"
                               : "opacity-0 group-hover/item:opacity-100"
@@ -478,29 +485,29 @@ export default function GamepassDetailPage() {
                         {/* Floating particles for selected items */}
                         {isSelected && (
                           <>
-                            <div className="absolute top-4 left-4 w-1 h-1 bg-primary-100/70 rounded-full animate-ping"></div>
-                            <div className="absolute top-6 left-8 w-1.5 h-1.5 bg-primary-200/60 rounded-full animate-ping delay-300"></div>
-                            <div className="absolute bottom-4 right-4 w-1 h-1 bg-primary-100/80 rounded-full animate-ping delay-500"></div>
+                            <div className="absolute top-2 sm:top-4 left-2 sm:left-4 w-1 h-1 bg-primary-100/70 rounded-full animate-ping"></div>
+                            <div className="absolute top-3 sm:top-6 left-4 sm:left-8 w-1 sm:w-1.5 h-1 sm:h-1.5 bg-primary-200/60 rounded-full animate-ping delay-300"></div>
+                            <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 w-1 h-1 bg-primary-100/80 rounded-full animate-ping delay-500"></div>
                           </>
                         )}
 
                         {/* Selection Indicator */}
                         <div
-                          className={`absolute z-[3] top-4 right-4 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${
+                          className={`absolute z-[3] top-2 sm:top-3 md:top-4 right-2 sm:right-3 md:right-4 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${
                             isSelected
                               ? "border-primary-100 bg-gradient-to-r from-primary-100 to-primary-200 scale-110"
                               : "border-primary-100/60 bg-primary-800/50 group-hover/item:border-primary-100 group-hover/item:bg-primary-700/70"
                           }`}
                         >
                           {isSelected ? (
-                            <Check className="w-5 h-5 text-primary-900 font-bold" />
+                            <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary-900 font-bold" />
                           ) : (
-                            <Plus className="w-4 h-4 text-primary-100 group-hover/item:scale-110 transition-transform duration-300" />
+                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-primary-100 group-hover/item:scale-110 transition-transform duration-300" />
                           )}
                         </div>
 
                         {/* Item Image */}
-                        <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4 border-2 border-primary-100/20 shadow-lg group-hover/item:shadow-xl transition-all duration-300">
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full overflow-hidden mb-2 sm:mb-3 md:mb-4 border-2 border-primary-100/20 shadow-lg group-hover/item:shadow-xl transition-all duration-300 flex-shrink-0">
                           <Image
                             src={item.imgUrl}
                             alt={item.itemName}
@@ -510,16 +517,16 @@ export default function GamepassDetailPage() {
                           <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
                         </div>
 
-                        {/* Item Info */}
-                        <div className="relative z-10">
-                          <h4 className="font-black text-white mb-2 text-lg">
+                        {/* Item Info - Always centered */}
+                        <div className="relative z-10 w-full flex flex-col items-center text-center">
+                          <h4 className="font-black text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base line-clamp-2">
                             {item.itemName}
                           </h4>
 
-                          <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center justify-center mb-2 sm:mb-3 md:mb-4">
                             <div className="flex items-center gap-1">
-                              <Gem className="w-4 h-4 text-primary-100" />
-                              <span className="text-white font-bold text-lg">
+                              <Gem className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-primary-100" />
+                              <span className="text-white font-bold text-xs sm:text-sm md:text-base">
                                 {item.price.toLocaleString()}
                               </span>
                             </div>
@@ -527,13 +534,13 @@ export default function GamepassDetailPage() {
 
                           {/* Quantity Controls - Only show when selected */}
                           {isSelected && (
-                            <div className="mt-4 p-4 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-xl border border-primary-100/40 backdrop-blur-sm">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-primary-100 flex items-center gap-2">
-                                  <Heart className="w-4 h-4 fill-current" />
-                                  Quantity:
+                            <div className="mt-2 sm:mt-3 md:mt-4 p-2 sm:p-3 md:p-3.5 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-lg sm:rounded-xl border border-primary-100/40 backdrop-blur-sm w-full">
+                              <div className="flex flex-col gap-2 sm:gap-2.5 md:gap-3">
+                                <span className="text-[10px] sm:text-xs md:text-sm font-bold text-primary-100 flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2">
+                                  <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current" />
+                                  Quantity
                                 </span>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -542,12 +549,12 @@ export default function GamepassDetailPage() {
                                         quantity - 1
                                       );
                                     }}
-                                    className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-110"
                                   >
-                                    <Minus className="w-5 h-5" />
+                                    <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                                   </button>
-                                  <div className="w-12 h-10 bg-gradient-to-r from-primary-100 to-primary-200 rounded-lg flex items-center justify-center">
-                                    <span className="font-black text-primary-900 text-lg">
+                                  <div className="w-7 h-6 sm:w-8 sm:h-7 md:w-9 md:h-8 bg-gradient-to-r from-primary-100 to-primary-200 rounded-md flex items-center justify-center">
+                                    <span className="font-black text-primary-900 text-xs sm:text-sm md:text-base">
                                       {quantity}
                                     </span>
                                   </div>
@@ -559,20 +566,20 @@ export default function GamepassDetailPage() {
                                         quantity + 1
                                       );
                                     }}
-                                    className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-110"
                                   >
-                                    <Plus className="w-5 h-5" />
+                                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                                   </button>
                                 </div>
                               </div>
 
                               {/* Subtotal */}
-                              <div className="mt-3 pt-3 border-t border-primary-100/30">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-primary-200 text-sm">
+                              <div className="mt-2 sm:mt-2.5 md:mt-3 pt-2 sm:pt-2.5 md:pt-3 border-t border-primary-100/30">
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-0.5 sm:gap-1">
+                                  <span className="text-primary-200 text-[10px] sm:text-xs md:text-sm">
                                     Subtotal:
                                   </span>
-                                  <span className="text-primary-100 font-bold text-lg">
+                                  <span className="text-primary-100 font-bold text-xs sm:text-sm md:text-base">
                                     Rp{" "}
                                     {(item.price * quantity).toLocaleString()}
                                   </span>
@@ -756,17 +763,19 @@ export default function GamepassDetailPage() {
                 </div>
               </button>
             </div>
+            {isShowReview && (
+              <div className="w-full">
+                <ReviewSection
+                  serviceType="gamepass"
+                  title={`Reviews ${gamepass.gameName}`}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Reviews Section */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <ReviewSection
-          serviceType="gamepass"
-          title={`Reviews ${gamepass.gameName}`}
-        />
-      </div>
     </main>
   );
 }
