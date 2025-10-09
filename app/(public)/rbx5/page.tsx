@@ -605,37 +605,44 @@ export default function Rbx5Page() {
 
     const price = getCurrentPrice();
 
-    // Redirect to new checkout system
-    const checkoutData = {
-      serviceType: "robux",
-      serviceId: selectedPackage?._id || `custom_${robux}`,
-      serviceName: selectedPackage?.name || `${robux} Robux (5 Hari)`,
-      serviceImage: "", // Add image if available
-      quantity: 1,
-      unitPrice: price,
-      robloxUsername: username,
-      serviceCategory: "robux_5_hari",
-      robuxAmount: robux,
-      // Add place information
-      selectedPlace: selectedPlace
-        ? {
-            placeId: selectedPlace.placeId,
-            name: selectedPlace.name,
-            universeId: selectedPlace.universeId,
-          }
-        : null,
-      // Add gamepass information
-      gamepassAmount: getGamepassAmount(),
-      gamepassCreated: gamepassInstructionShown,
-      // Add gamepass details from check result
-      gamepass: gamepassCheckResult?.gamepass || null,
-    };
+    // Create checkout items array (consistent format)
+    const checkoutItems = [
+      {
+        serviceType: "robux",
+        serviceId: selectedPackage?._id || `custom_${robux}`,
+        serviceName: selectedPackage?.name || `${robux} Robux (5 Hari)`,
+        serviceImage: "/robux-icon.png", // Default Robux icon
+        serviceCategory: "robux_5_hari", // Move to root level
+        quantity: 1,
+        unitPrice: price,
+        robloxUsername: username,
+        robloxPassword: null, // RBX5 doesn't need password
+        rbx5Details: {
+          robuxAmount: robux,
+          packageName: selectedPackage?.name || `Custom ${robux} Robux`,
+          // Add place information
+          selectedPlace: selectedPlace
+            ? {
+                placeId: selectedPlace.placeId,
+                name: selectedPlace.name,
+                universeId: selectedPlace.universeId,
+              }
+            : null,
+          // Add gamepass information
+          gamepassAmount: getGamepassAmount(),
+          gamepassCreated: gamepassInstructionShown,
+          // Add gamepass details from check result
+          gamepass: gamepassCheckResult?.gamepass || null,
+          pricePerRobux: currentRobuxPricing,
+        },
+      },
+    ];
 
     // Store in sessionStorage for checkout page
-    console.log("Storing RBX5 checkout data:", checkoutData); // Debug log
+    console.log("Storing RBX5 checkout data:", checkoutItems); // Debug log
 
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("checkoutData", JSON.stringify(checkoutData));
+      sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
 
       // Verify data was stored
       const stored = sessionStorage.getItem("checkoutData");
@@ -1502,13 +1509,13 @@ export default function Rbx5Page() {
                       serviceName={
                         selectedPackage?.name || `${robux} Robux (5 Hari)`
                       }
-                      serviceImage="" // Add image if available
+                      serviceImage="/robux-icon.png" // Default Robux icon
                       serviceCategory="robux_5_hari"
                       type="rbx5"
                       gameId={selectedPlace?.placeId.toString() || ""}
                       gameName={selectedPlace?.name || "Roblox"}
                       itemName={`${robux} Robux (5 Hari)`}
-                      imgUrl=""
+                      imgUrl="/robux-icon.png" // Default Robux icon
                       unitPrice={getCurrentPrice()}
                       price={getCurrentPrice()}
                       description={`${robux} Robux untuk akun ${username} melalui gamepass di ${selectedPlace?.name}`}
@@ -1522,6 +1529,23 @@ export default function Rbx5Page() {
                           : ""
                       }
                       gamepass={gamepassCheckResult?.gamepass || undefined}
+                      robloxUsername={username}
+                      rbx5Details={{
+                        robuxAmount: robux,
+                        packageName:
+                          selectedPackage?.name || `Custom ${robux} Robux`,
+                        selectedPlace: selectedPlace
+                          ? {
+                              placeId: selectedPlace.placeId,
+                              name: selectedPlace.name,
+                              universeId: selectedPlace.universeId,
+                            }
+                          : undefined,
+                        gamepassAmount: getGamepassAmount(),
+                        gamepassCreated: gamepassInstructionShown,
+                        gamepass: gamepassCheckResult?.gamepass || undefined,
+                        pricePerRobux: currentRobuxPricing,
+                      }}
                       className={`w-full font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 ${
                         isFormValid
                           ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-600 text-white hover:scale-105 hover:shadow-xl"

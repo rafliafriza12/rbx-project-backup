@@ -20,6 +20,8 @@ import {
   Gift,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
+import { toast } from "react-toastify";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface GamepassItem {
   itemName: string;
@@ -43,12 +45,14 @@ interface Gamepass {
 }
 
 export default function GamepassDetailPage() {
+  const { user } = useAuth();
   const [isShowReview, setIsShowReview] = useState<boolean>(false);
   const [gamepass, setGamepass] = useState<Gamepass | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [username, setUsername] = useState("");
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const params = useParams();
   const router = useRouter();
@@ -133,33 +137,114 @@ export default function GamepassDetailPage() {
     }
   };
 
+  const handleAddToCart = async () => {
+    if (!isFormValid || selectedItems.length === 0 || !gamepass) {
+      toast.error("Mohon lengkapi semua data!");
+      return;
+    }
+
+    // Check if user is logged in
+    if (!user) {
+      toast.error(
+        "Silakan login terlebih dahulu untuk menambahkan ke keranjang"
+      );
+      router.push("/login");
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      // Add each selected item to cart
+      for (const item of selectedItems) {
+        const cartItem = {
+          userId: user.id, // Add userId from auth context
+          serviceType: "gamepass",
+          serviceId: gamepass._id,
+          serviceName: `${gamepass.gameName} - ${item.itemName}`,
+          serviceImage: item.imgUrl, // Use item image, not game image
+          imgUrl: item.imgUrl, // Use item image, not game image
+          serviceCategory: "gamepass",
+          quantity: item.quantity,
+          unitPrice: item.price,
+          robloxUsername: username,
+          robloxPassword: null,
+          gamepassDetails: {
+            gameName: gamepass.gameName,
+            itemName: item.itemName,
+            imgUrl: item.imgUrl,
+            developer: gamepass.developer,
+            features: gamepass.features,
+            caraPesan: gamepass.caraPesan,
+          },
+        };
+
+        console.log("=== GAMEPASS ADD TO CART DEBUG ===");
+        console.log("Sending cartItem:", JSON.stringify(cartItem, null, 2));
+
+        const response = await fetch("/api/cart", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cartItem),
+        });
+
+        const data = await response.json();
+        console.log("Response status:", response.status);
+        console.log("Response data:", data);
+
+        if (!response.ok) {
+          console.error("Error response:", data);
+          throw new Error(data.error || "Gagal menambahkan ke keranjang");
+        }
+      }
+
+      toast.success(
+        `${selectedItems.length} item berhasil ditambahkan ke keranjang!`
+      );
+
+      // Reset form
+      setSelectedItems([]);
+      setUsername("");
+    } catch (error: any) {
+      console.error("Error adding to cart:", error);
+      toast.error(error.message || "Gagal menambahkan ke keranjang");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   const handlePurchase = () => {
     if (!isFormValid || selectedItems.length === 0 || !gamepass) return;
 
-    // For now, handle single item checkout (first selected item)
-    // TODO: Implement multi-item checkout
-    const firstItem = selectedItems[0];
-
-    // Redirect to new checkout system
-    const checkoutData = {
+    // Create array of checkout items for multi-item support
+    const checkoutItems = selectedItems.map((item) => ({
       serviceType: "gamepass",
       serviceId: gamepass._id,
-      serviceName: `${gamepass.gameName} - ${firstItem.itemName}`,
+      serviceName: `${gamepass.gameName} - ${item.itemName}`,
       serviceImage: gamepass.imgUrl,
-      quantity: firstItem.quantity,
-      unitPrice: firstItem.price,
-      totalAmount: firstItem.price * firstItem.quantity,
+      serviceCategory: "gamepass", // Add serviceCategory
+      quantity: item.quantity,
+      unitPrice: item.price,
       robloxUsername: username,
       robloxPassword: null, // Gamepass tidak memerlukan password
-      gamepassData: {
+      gamepassDetails: {
         gameName: gamepass.gameName,
-        itemName: firstItem.itemName,
-        imgUrl: firstItem.imgUrl,
+        itemName: item.itemName,
+        imgUrl: item.imgUrl,
+        developer: gamepass.developer,
+        features: gamepass.features,
+        caraPesan: gamepass.caraPesan,
       },
-    };
+    }));
 
     // Store in sessionStorage for checkout page
-    sessionStorage.setItem("checkoutData", JSON.stringify(checkoutData));
+    sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
+
+    // Debug log
+    console.log("Gamepass checkout data:", checkoutItems);
+
     router.push("/checkout");
   };
 
@@ -284,15 +369,10 @@ export default function GamepassDetailPage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/20"></div>
 
-                  {/* Crown icon overlay */}
-                  {/* <div className="absolute top-4 left-4 p-2 bg-primary-100/20 backdrop-blur-sm rounded-lg border border-primary-100/40">
-                    <Crown className="w-5 h-5 text-primary-100" />
-                  </div> */}
-
                   {/* Premium badge */}
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full text-white text-xs font-bold shadow-lg">
+                  {/* <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full text-white text-xs font-bold shadow-lg">
                     New
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Game Info */}
@@ -681,14 +761,15 @@ export default function GamepassDetailPage() {
             <div className="flex flex-col sm:flex-row gap-6">
               {/* Add to Cart Button */}
               <button
-                disabled={!isFormValid}
+                onClick={handleAddToCart}
+                disabled={!isFormValid || isAddingToCart}
                 className={`group relative flex-1 py-6 px-8 rounded-2xl font-black text-lg transition-all duration-500 overflow-hidden ${
-                  isFormValid
+                  isFormValid && !isAddingToCart
                     ? "bg-gradient-to-r from-primary-600 via-primary-700 to-primary-600 hover:from-primary-700 hover:via-primary-600 hover:to-primary-700 text-white shadow-2xl shadow-primary-600/40 hover:shadow-primary-600/60 transform hover:scale-105 hover:-translate-y-1"
                     : "bg-gradient-to-r from-gray-600/50 to-gray-700/50 text-gray-400 cursor-not-allowed"
                 }`}
               >
-                {isFormValid && (
+                {isFormValid && !isAddingToCart && (
                   <>
                     {/* Button glow effect */}
                     <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 via-primary-200/10 to-primary-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -703,7 +784,7 @@ export default function GamepassDetailPage() {
                 <div className="relative flex items-center justify-center gap-3">
                   <div
                     className={`p-2 rounded-lg transition-all duration-300 ${
-                      isFormValid
+                      isFormValid && !isAddingToCart
                         ? "bg-white/20 group-hover:bg-white/30 group-hover:scale-110"
                         : "bg-gray-500/20"
                     }`}
@@ -711,7 +792,7 @@ export default function GamepassDetailPage() {
                     <ShoppingCart className="w-6 h-6" />
                   </div>
                   <span className="group-hover:scale-105 transition-transform duration-300">
-                    Tambah ke Keranjang
+                    {isAddingToCart ? "Menambahkan..." : "Tambah ke Keranjang"}
                   </span>
                 </div>
               </button>

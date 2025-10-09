@@ -21,6 +21,7 @@ interface Joki {
   caraPesan: string[];
   features: string[];
   item: JokiItem[];
+  createdAt?: string;
 }
 
 export default function JokiPage() {
@@ -101,6 +102,13 @@ export default function JokiPage() {
                 joki.item.length > 0
                   ? Math.min(...joki.item.map((item) => item.price))
                   : 0;
+
+              // Check if joki is less than 7 days old
+              const isNew = joki.createdAt
+                ? new Date().getTime() - new Date(joki.createdAt).getTime() <
+                  7 * 24 * 60 * 60 * 1000
+                : false;
+
               return (
                 <Link
                   key={joki._id}
@@ -109,14 +117,22 @@ export default function JokiPage() {
                 >
                   {/* Mobile-Optimized Purple Neon Themed Joki Card */}
                   <div className="w-full relative h-full bg-gradient-to-br from-primary-600/80 via-primary-500/60 to-primary-700/80 backdrop-blur-xl border border-primary-200/20 rounded-lg sm:rounded-2xl overflow-hidden transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-primary-100/30 hover:border-primary-100 flex flex-col min-h-[220px] sm:min-h-[240px]">
-                    {/* Price Badge - Top Right Corner */}
-                    {joki.item && joki.item.length > 0 && (
-                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
+                    {/* Badges Container - Top Corners */}
+                    <div className="absolute top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 z-10 flex justify-between items-start">
+                      {/* NEW Badge - Top Left */}
+                      {isNew && (
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-2 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-black shadow-[0_0_15px_rgba(16,185,129,0.6)] border border-green-400/40 animate-pulse">
+                          NEW
+                        </div>
+                      )}
+
+                      {/* Hot Badge - Top Right */}
+                      {joki.item && joki.item.length > 0 && (
                         <div className="bg-gradient-to-r from-primary-100/50 to-primary-200/50 backdrop-blur-[3px] text-white/80 px-2 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-black shadow-[0_0_15px_rgba(246,58,230,0.5)] border border-primary-100/40">
                           Hot
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* Game Image - Adjusted aspect ratio for mobile */}
                     <div className="relative aspect-[4/3] sm:aspect-[4/3] overflow-hidden flex-shrink-0">

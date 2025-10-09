@@ -54,6 +54,29 @@ interface AddToCartButtonProps {
   robuxInstantDetails?: {
     notes?: string;
   };
+  rbx5Details?: {
+    robuxAmount?: number;
+    packageName?: string;
+    selectedPlace?: {
+      placeId: number;
+      name: string;
+      universeId?: number;
+    };
+    gamepassAmount?: number;
+    gamepassCreated?: boolean;
+    gamepass?: {
+      id: number;
+      name: string;
+      price: number;
+      productId: number;
+      sellerId: number;
+    };
+    pricePerRobux?: any;
+  };
+
+  // User credentials
+  robloxUsername?: string;
+  robloxPassword?: string;
 }
 
 export default function AddToCartButton({
@@ -81,6 +104,9 @@ export default function AddToCartButton({
   gamepass,
   jokiDetails,
   robuxInstantDetails,
+  rbx5Details,
+  robloxUsername,
+  robloxPassword,
 }: AddToCartButtonProps) {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -136,6 +162,9 @@ export default function AddToCartButton({
         gamepass,
         jokiDetails,
         robuxInstantDetails,
+        rbx5Details,
+        robloxUsername,
+        robloxPassword,
       });
 
       if (success) {

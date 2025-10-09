@@ -15,36 +15,38 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
     const timer1 = setTimeout(() => setAnimationPhase(1), 150);
     const timer2 = setTimeout(() => setAnimationPhase(2), 500);
 
-    // Loading progress animation - much faster
+    // Loading progress animation - synchronized with total duration
     const progressInterval = setInterval(() => {
       setLoadingProgress((prev) => {
         if (prev >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 8; // Increased from 5 to 8 for much faster progress
+        return prev + 2; // Slower increment for smoother progress
       });
-    }, 20); // Reduced from 30ms to 20ms
+    }, 30); // Total time: 100 / 2 * 30ms = 1500ms
 
-    // Loading text changes - much faster
+    // Loading text changes
     const textTimer1 = setTimeout(
       () => setLoadingText("Menyiapkan Platform..."),
-      400
+      500
     );
     const textTimer2 = setTimeout(
       () => setLoadingText("Memuat Data Robux..."),
-      650
+      1000
     );
-    const textTimer3 = setTimeout(() => setLoadingText("Hampir Siap..."), 900);
+    const textTimer3 = setTimeout(() => setLoadingText("Hampir Siap..."), 1400);
 
-    const timer3 = setTimeout(() => setAnimationPhase(3), 1100);
+    const timer3 = setTimeout(() => setAnimationPhase(3), 1400);
+
+    // Close splashscreen only after progress reaches 100%
     const timer4 = setTimeout(() => {
       setAnimationPhase(4);
       setTimeout(() => {
         setIsVisible(false);
         onComplete();
-      }, 200);
-    }, 2000); // Reduced from 2200ms to 1400ms (total ~1.6s)
+      }, 300);
+    }, 1700); // Wait for progress to complete (1500ms) + small buffer
 
     return () => {
       clearTimeout(timer1);
@@ -168,18 +170,27 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
           {/* Enhanced Progress Bar */}
           <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-4 sm:mb-6 px-4">
-            <div className="relative w-full h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/20">
+            <div className="relative w-full h-2 sm:h-3 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm border border-white/30">
               <div
-                className="h-full bg-gradient-to-r from-neon-pink via-purple-500 to-neon-purple rounded-full transition-all duration-200 ease-out relative overflow-hidden"
+                className="h-full rounded-full relative overflow-hidden bg-primary-100 transition-all duration-300 ease-out"
                 style={{
                   width: `${loadingProgress}%`,
                 }}
               >
-                {/* Shimmer effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                {/* Glow effect */}
-                <div className="absolute -top-0.5 sm:-top-1 -bottom-0.5 sm:-bottom-1 -left-0.5 sm:-left-1 -right-0.5 sm:-right-1 bg-gradient-to-r from-neon-pink/50 to-neon-purple/50 rounded-full blur-sm"></div>
+                {/* Shimmer animation */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  style={{
+                    animation: "shimmer 1.5s infinite",
+                  }}
+                ></div>
               </div>
+            </div>
+            {/* Percentage Text */}
+            <div className="text-center mt-2">
+              <span className="text-white/70 text-xs sm:text-sm font-medium">
+                {Math.round(loadingProgress)}%
+              </span>
             </div>
           </div>
 
@@ -251,7 +262,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-neon-pink/30"></div>
 
       {/* Enhanced CSS Animation Styles */}
-      {/* <style jsx>{`
+      <style jsx>{`
         @keyframes bounce {
           0%,
           80%,
@@ -285,10 +296,37 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           }
         }
 
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        @keyframes moveGradient {
+          0% {
+            background-position: 0% 0%;
+          }
+          100% {
+            background-position: 200% 0%;
+          }
+        }
+
+        @keyframes moveShimmer {
+          0% {
+            background-position: -200% 0%;
+          }
+          100% {
+            background-position: 200% 0%;
+          }
+        }
+
         .floating {
           animation: float 3s ease-in-out infinite;
         }
-      `}</style> */}
+      `}</style>
     </div>
   );
 };

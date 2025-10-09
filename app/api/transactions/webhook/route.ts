@@ -196,12 +196,13 @@ export async function POST(request: NextRequest) {
     //   return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     // }
 
-    // Cari transaksi berdasarkan Midtrans order ID
-    const transaction = await Transaction.findOne({
+    // CRITICAL FIX: Cari SEMUA transaksi dengan masterOrderId yang sama
+    // Untuk multi-item checkout, bisa ada multiple transactions dengan same order_id
+    const transactions = await Transaction.find({
       midtransOrderId: order_id,
     });
 
-    if (!transaction) {
+    if (!transactions || transactions.length === 0) {
       console.error("Transaction not found for order_id:", order_id);
       return NextResponse.json(
         { error: "Transaction not found" },
@@ -209,96 +210,152 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update transaction ID dari Midtrans
-    if (transaction_id && !transaction.midtransTransactionId) {
-      transaction.midtransTransactionId = transaction_id;
-    }
+    console.log(
+      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`
+    );
+
+    console.log(
+      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`
+    );
+
+    // Update transaction ID dari Midtrans untuk semua transactions
+    const updateTransactionIdPromises = transactions
+      .filter((t) => transaction_id && !t.midtransTransactionId)
+      .map((t) => {
+        t.midtransTransactionId = transaction_id;
+        return t.save();
+      });
+
+    await Promise.all(updateTransactionIdPromises);
 
     // Map status Midtrans ke status aplikasi
     const statusMapping = midtransService.mapMidtransStatus(
       transaction_status,
       payment_type
     );
-    const previousPaymentStatus = transaction.paymentStatus;
-    const previousOrderStatus = transaction.orderStatus;
 
-    // Update payment status jika berubah
-    if (transaction.paymentStatus !== statusMapping.paymentStatus) {
-      await transaction.updateStatus(
-        "payment",
-        statusMapping.paymentStatus,
-        `Payment ${transaction_status} via ${payment_type}. Midtrans Transaction ID: ${transaction_id}`,
-        null
-      );
+    // Process each transaction
+    const updatedTransactions = [];
+    const rbx5TransactionsToProcess = [];
 
-      // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
-      if (
-        statusMapping.paymentStatus === "settlement" &&
-        previousPaymentStatus !== "settlement" &&
-        transaction.customerInfo?.userId
-      ) {
-        try {
-          // Update spendedMoney user
-          const user = await User.findById(transaction.customerInfo.userId);
-          if (user) {
-            // Gunakan finalAmount, fallback ke totalAmount untuk safety
-            const amountToAdd =
-              transaction.finalAmount || transaction.totalAmount;
-            user.spendedMoney += amountToAdd;
-            await user.save();
+    for (const transaction of transactions) {
+      const previousPaymentStatus = transaction.paymentStatus;
+      const previousOrderStatus = transaction.orderStatus;
 
-            console.log(
-              `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`
-            );
+      // Update payment status jika berubah
+      if (transaction.paymentStatus !== statusMapping.paymentStatus) {
+        await transaction.updateStatus(
+          "payment",
+          statusMapping.paymentStatus,
+          `Payment ${transaction_status} via ${payment_type}. Midtrans Transaction ID: ${transaction_id}`,
+          null
+        );
+
+        // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.customerInfo?.userId
+        ) {
+          try {
+            // Update spendedMoney user (hanya sekali per user per order)
+            // Check if this is the first transaction in the group to update user
+            const isFirstTransaction =
+              transactions.findIndex((t) => t._id.equals(transaction._id)) ===
+              0;
+
+            if (isFirstTransaction) {
+              const user = await User.findById(transaction.customerInfo.userId);
+              if (user) {
+                // Sum total dari SEMUA transactions dalam order ini
+                const totalOrderAmount = transactions.reduce(
+                  (sum, t) => sum + (t.finalAmount || t.totalAmount),
+                  0
+                );
+
+                user.spendedMoney += totalOrderAmount;
+                await user.save();
+
+                console.log(
+                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`
+                );
+              }
+            }
+          } catch (userUpdateError) {
+            console.error("Error updating user spendedMoney:", userUpdateError);
+            // Don't fail the webhook if user update fails
           }
-        } catch (userUpdateError) {
-          console.error("Error updating user spendedMoney:", userUpdateError);
-          // Don't fail the webhook if user update fails
+        }
+
+        // Collect Rbx5 transactions for processing (setelah semua updated)
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.serviceType === "robux" &&
+          transaction.serviceCategory === "robux_5_hari" &&
+          transaction.gamepass
+        ) {
+          rbx5TransactionsToProcess.push(transaction);
         }
       }
 
-      // Khusus untuk robux_5_hari: proses gamepass purchase
-      if (
-        statusMapping.paymentStatus === "settlement" &&
-        previousPaymentStatus !== "settlement" &&
-        transaction.serviceType === "robux" &&
-        transaction.serviceCategory === "robux_5_hari" &&
-        transaction.gamepass
-      ) {
-        await processGamepassPurchase(transaction);
+      // Update order status jika berubah dan sesuai kondisi
+      if (transaction.orderStatus !== statusMapping.orderStatus) {
+        // Hanya update order status jika payment status memungkinkan
+        const allowedOrderStatusUpdates: { [key: string]: string[] } = {
+          waiting_payment: ["processing", "cancelled"],
+          processing: ["in_progress", "completed", "cancelled"],
+          in_progress: ["completed", "cancelled"],
+        };
+
+        const currentOrderStatus = transaction.orderStatus;
+        const allowedStatuses =
+          allowedOrderStatusUpdates[currentOrderStatus] || [];
+
+        if (allowedStatuses.includes(statusMapping.orderStatus)) {
+          await transaction.updateStatus(
+            "order",
+            statusMapping.orderStatus,
+            `Order status updated based on payment ${transaction_status}`,
+            null
+          );
+        }
       }
+
+      updatedTransactions.push({
+        invoiceId: transaction.invoiceId,
+        previousPaymentStatus,
+        newPaymentStatus: transaction.paymentStatus,
+        previousOrderStatus,
+        newOrderStatus: transaction.orderStatus,
+      });
     }
 
-    // Update order status jika berubah dan sesuai kondisi
-    if (transaction.orderStatus !== statusMapping.orderStatus) {
-      // Hanya update order status jika payment status memungkinkan
-      const allowedOrderStatusUpdates: { [key: string]: string[] } = {
-        waiting_payment: ["processing", "cancelled"],
-        processing: ["in_progress", "completed", "cancelled"],
-        in_progress: ["completed", "cancelled"],
-      };
+    // Process Rbx5 gamepasses (jika ada)
+    // NOTE: Untuk Rbx5, seharusnya hanya 1 item per checkout (enforced di API)
+    // Tapi tetap handle sebagai array untuk robustness
+    if (rbx5TransactionsToProcess.length > 0) {
+      console.log(
+        `Processing ${rbx5TransactionsToProcess.length} Rbx5 gamepass transaction(s)`
+      );
 
-      const currentOrderStatus = transaction.orderStatus;
-      const allowedStatuses =
-        allowedOrderStatusUpdates[currentOrderStatus] || [];
-
-      if (allowedStatuses.includes(statusMapping.orderStatus)) {
-        await transaction.updateStatus(
-          "order",
-          statusMapping.orderStatus,
-          `Order status updated based on payment ${transaction_status}`,
-          null
-        );
+      for (const rbx5Transaction of rbx5TransactionsToProcess) {
+        try {
+          await processGamepassPurchase(rbx5Transaction);
+        } catch (gamepassError) {
+          console.error(
+            `Error processing gamepass for ${rbx5Transaction.invoiceId}:`,
+            gamepassError
+          );
+          // Continue with other transactions even if one fails
+        }
       }
     }
 
     // Log webhook untuk debugging
-    console.log("Transaction updated:", {
-      invoiceId: transaction.invoiceId,
-      previousPaymentStatus,
-      newPaymentStatus: transaction.paymentStatus,
-      previousOrderStatus,
-      newOrderStatus: transaction.orderStatus,
+    console.log("Transactions updated:", {
+      totalTransactions: transactions.length,
+      details: updatedTransactions,
     });
 
     // Kirim response sukses ke Midtrans
@@ -306,9 +363,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Webhook processed successfully",
       data: {
-        invoiceId: transaction.invoiceId,
-        paymentStatus: transaction.paymentStatus,
-        orderStatus: transaction.orderStatus,
+        totalTransactions: transactions.length,
+        transactions: updatedTransactions,
       },
     });
   } catch (error) {

@@ -26,26 +26,24 @@ const PublicLayout: React.FC<ILayoutProps> = ({ children }) => {
     setShowSplash(false);
   };
 
-  return (
-    <>
-      {showSplash && isHomepage ? (
-        <SplashScreen onComplete={handleSplashComplete} />
-      ) : (
-        <div className="w-full bg-[#22102A] min-h-screen font-sans text-white relative ">
-          <div className="relative z-10">
-            <PublicAppHeader />
-            {isHomepage && <HyperspeedBackground />}
-            <div className="w-full flex gap-10 py-10 flex-col mx-auto px-4 md:px-20 min-h-screen overflow-hidden">
-              {children}
-            </div>
-            <PublicAppFooter />
-          </div>
+  if (showSplash && isHomepage) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
 
-          {/* Floating Cart Button */}
-          <FloatingCartButton />
+  return (
+    <div className="w-full bg-[#22102A] min-h-screen font-sans text-white relative ">
+      <div className="relative z-10">
+        <PublicAppHeader />
+        {isHomepage && <HyperspeedBackground />}
+        <div className="w-full flex gap-10 py-10 flex-col mx-auto px-4 md:px-20 min-h-screen overflow-hidden">
+          {children}
         </div>
-      )}
-    </>
+        <PublicAppFooter />
+      </div>
+
+      {/* Floating Cart Button */}
+      <FloatingCartButton />
+    </div>
   );
 };
 

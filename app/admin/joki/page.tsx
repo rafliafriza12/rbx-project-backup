@@ -504,12 +504,12 @@ export default function JokiPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Kelola Joki Services</h1>
         <div className="flex gap-2">
-          <button
+          {/* <button
             onClick={createSampleData}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
           >
             Buat Sample Data
-          </button>
+          </button> */}
           <button
             onClick={openCreateModal}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors border border-blue-500"

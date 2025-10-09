@@ -41,16 +41,56 @@ interface CartItem {
     productId: number;
     sellerId: number;
   };
+  gamepassDetails?: {
+    gameName: string;
+    itemName: string;
+    imgUrl: string;
+    developer?: string;
+    features?: string[];
+    caraPesan?: string[];
+  };
   jokiDetails?: {
+    gameName?: string;
+    itemName?: string;
+    imgUrl?: string;
     description?: string;
     gameType?: string;
     targetLevel?: string;
     estimatedTime?: string;
     notes?: string;
+    additionalInfo?: string;
+    syaratJoki?: string[];
+    prosesJoki?: string[];
+    features?: string[];
   };
   robuxInstantDetails?: {
     notes?: string;
+    additionalInfo?: string;
   };
+  rbx5Details?: {
+    robuxAmount?: number;
+    packageName?: string;
+    selectedPlace?: {
+      placeId: number;
+      name: string;
+      universeId?: number;
+    };
+    gamepassAmount?: number;
+    gamepassCreated?: boolean;
+    gamepass?: {
+      id: number;
+      name: string;
+      price: number;
+      productId: number;
+      sellerId: number;
+    };
+    pricePerRobux?: any;
+    backupCode?: string;
+  };
+
+  // User credentials for service processing
+  robloxUsername?: string;
+  robloxPassword?: string;
 }
 
 interface CartContextType {
@@ -209,13 +249,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
 
-      const response = await fetch("/api/cart/remove", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId, itemId }),
-      });
+      const response = await fetch(
+        `/api/cart?userId=${encodeURIComponent(
+          userId
+        )}&itemId=${encodeURIComponent(itemId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (response.ok) {
         await refreshCart();

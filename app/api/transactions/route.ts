@@ -236,273 +236,579 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Buat transaksi baru
+// POST - Buat transaksi baru (single item atau multiple items dari beli langsung)
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
     const body = await request.json();
     console.log("=== API TRANSACTION DEBUG ===");
-    console.log("Received body:", body);
+    console.log("Received body:", JSON.stringify(body, null, 2));
 
-    const {
-      serviceType,
-      serviceId,
-      serviceName,
-      serviceImage,
-      serviceCategory, // Tambahkan serviceCategory
-      quantity,
-      unitPrice,
-      totalAmount,
-      discountPercentage,
-      discountAmount,
-      finalAmount,
-      robloxUsername,
-      robloxPassword,
-      jokiDetails,
-      robuxInstantDetails,
-      customerInfo,
-      userId,
-      gamepass, // Tambahkan gamepass untuk robux_5_hari
-    } = body;
-
-    console.log("Extracted fields:", {
-      serviceType,
-      serviceId,
-      serviceName,
-      serviceImage,
-      serviceCategory,
-      quantity,
-      unitPrice,
-      robloxUsername: robloxUsername ? "[PRESENT]" : "[MISSING]",
-      robloxPassword: robloxPassword ? "[PRESENT]" : "[MISSING]",
-      jokiDetails,
-      robuxInstantDetails,
-      customerInfo,
-      userId,
-      "customerInfo.userId": customerInfo?.userId,
-      "userId from body": userId,
-      gamepass: gamepass ? "[PRESENT]" : "[NOT_PROVIDED]",
-      "gamepass content": gamepass,
-    });
-
-    // Validasi input - userId opsional untuk guest checkout
-    // Password hanya diperlukan untuk robux instant dan joki, tidak untuk gamepass dan robux 5 hari
-    let passwordRequired = false;
-
-    if (serviceType === "robux") {
-      // Untuk robux, cek kategori
-      passwordRequired = serviceCategory === "robux_instant" && !robloxPassword;
-    } else if (serviceType === "joki") {
-      // Untuk joki, password selalu diperlukan
-      passwordRequired = !robloxPassword;
-    }
-    // Untuk gamepass, password tidak diperlukan (passwordRequired tetap false)
-
-    if (
-      !serviceType ||
-      !serviceId ||
-      !serviceName ||
-      !quantity ||
-      !unitPrice ||
-      !robloxUsername ||
-      passwordRequired
-    ) {
-      console.error("Validation failed - missing fields:", {
-        serviceType: !!serviceType,
-        serviceId: !!serviceId,
-        serviceName: !!serviceName,
-        quantity: !!quantity,
-        unitPrice: !!unitPrice,
-        robloxUsername: !!robloxUsername,
-        robloxPassword: !!robloxPassword,
-        passwordRequired,
-        serviceTypeNeedsPassword:
-          serviceType === "joki" ||
-          (serviceType === "robux" && serviceCategory === "robux_instant"),
-        serviceCategory,
-        userId: !!userId,
-        hasCustomerInfo: !!customerInfo,
-      });
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Validasi customerInfo untuk guest checkout
-    if (
-      !userId &&
-      (!customerInfo || !customerInfo.name || !customerInfo.email)
-    ) {
-      console.error("Guest checkout requires customer info:", customerInfo);
-      return NextResponse.json(
-        { error: "Customer information required for guest checkout" },
-        { status: 400 }
-      );
-    }
-
-    // Use provided amount or calculate if not provided
-    const calculatedTotalAmount = totalAmount || quantity * unitPrice;
-    const calculatedFinalAmount = finalAmount || calculatedTotalAmount;
-
-    // Buat transaksi baru
-    const transactionData: any = {
-      serviceType,
-      serviceId,
-      serviceName,
-      serviceImage,
-      quantity,
-      unitPrice,
-      totalAmount: calculatedTotalAmount,
-      discountPercentage: discountPercentage || 0,
-      discountAmount: discountAmount || 0,
-      finalAmount: calculatedFinalAmount,
-      robloxUsername,
-      robloxPassword: robloxPassword || "", // Empty string for gamepass and robux_5_hari
-      jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
-      robuxInstantDetails: robuxInstantDetails || undefined,
-      customerInfo: {
-        ...customerInfo,
-        userId: userId || null, // Store userId in customerInfo
-      },
-    };
-
-    // Tambahkan data gamepass untuk service robux_5_hari
-    if (
-      serviceType === "robux" &&
-      serviceCategory === "robux_5_hari" &&
-      gamepass
-    ) {
-      transactionData.gamepass = gamepass;
-    }
-
-    console.log("=== Transaction Data Debug ===");
-    console.log("Final userId for customerInfo:", userId || null);
-    console.log("Final customerInfo:", {
-      ...customerInfo,
-      userId: userId || null,
-    });
-    console.log(
-      "Final transactionData.customerInfo:",
-      transactionData.customerInfo
-    );
-
-    // Only add serviceCategory for robux services
-    if (serviceType === "robux" && serviceCategory) {
-      transactionData.serviceCategory = serviceCategory;
-    }
-
-    const transaction = new Transaction(transactionData);
+    // Check if this is a multi-item request (array of items untuk gamepass/joki)
+    // Items array means: user beli langsung gamepass/joki dengan multiple items
+    const hasItemsArray =
+      body.items && Array.isArray(body.items) && body.items.length > 0;
 
     console.log(
-      "Transaction created with password:",
-      robloxPassword ? "[PRESENT]" : "[EMPTY]"
+      "Transaction type:",
+      hasItemsArray ? "MULTI-ITEM (Direct Purchase)" : "SINGLE-ITEM"
     );
 
-    // Generate Midtrans order ID
-    const midtransOrderId = transaction.generateMidtransOrderId();
-
-    // Prepare items for Midtrans - adjust price if there's a discount
-    const finalUnitPrice = Math.round(calculatedFinalAmount / quantity);
-    const items = [
-      {
-        id: serviceId,
-        price: finalUnitPrice, // Use final unit price after discount
-        quantity: quantity,
-        name:
-          discountPercentage > 0
-            ? `${serviceName} (Diskon ${discountPercentage}%)`
-            : serviceName,
-        brand: "RBX Store",
-        category: serviceType,
-      },
-    ];
-
-    // Prepare customer details
-    const customer = {
-      first_name: customerInfo.name || robloxUsername,
-      email: customerInfo.email || "",
-      phone: customerInfo.phone || "",
-    };
-
-    // Create Midtrans Snap transaction
-    try {
-      const midtransService = new MidtransService();
-
-      // Debug environment variables
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-      console.log("=== CALLBACK URLs DEBUG ===");
-      console.log("NEXT_PUBLIC_BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
-      console.log("Base URL used:", baseUrl);
-      console.log(
-        "Finish URL:",
-        `${baseUrl}/transaction/success?order_id=${midtransOrderId}`
-      );
-
-      const snapResult = await midtransService.createSnapTransaction({
-        orderId: midtransOrderId,
-        amount: calculatedFinalAmount, // Use final amount after discount
-        items,
-        customer,
-        expiryHours: 24,
-        callbackUrls: {
-          finish: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
-          error: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
-          pending: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
-        },
-      });
-
-      // Update transaction dengan data Midtrans
-      transaction.snapToken = snapResult.token;
-      transaction.redirectUrl = snapResult.redirect_url;
-      transaction.midtransOrderId = midtransOrderId;
-
-      // Save transaction
-      await transaction.save();
-
-      console.log("Transaction saved successfully:", transaction.invoiceId);
-
-      // Send invoice email to customer
-      try {
-        if (customerInfo.email) {
-          console.log("Sending invoice email to:", customerInfo.email);
-          const emailSent = await EmailService.sendInvoiceEmail(transaction);
-          if (emailSent) {
-            console.log("Invoice email sent successfully");
-          } else {
-            console.warn(
-              "Failed to send invoice email, but transaction was created"
-            );
-          }
-        } else {
-          console.warn("No customer email provided, skipping invoice email");
-        }
-      } catch (emailError) {
-        console.error("Error sending invoice email:", emailError);
-        // Don't fail the transaction if email fails
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          transaction: transaction,
-          snapToken: snapResult.token,
-          redirectUrl: snapResult.redirect_url,
-        },
-      });
-    } catch (midtransError) {
-      console.error("Midtrans Error:", midtransError);
-      return NextResponse.json(
-        { error: "Failed to create payment gateway. Please try again later." },
-        { status: 500 }
-      );
+    // If has items array, handle as multi-item transaction
+    if (hasItemsArray) {
+      return handleMultiItemDirectPurchase(body);
     }
+
+    // Otherwise, handle as single item (robux instant/5hari dengan quantity)
+    return handleSingleItemTransaction(body);
   } catch (error) {
     console.error("Error creating transaction:", error);
     return NextResponse.json(
       { error: "Failed to create transaction" },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler untuk multi-item direct purchase (gamepass/joki dengan multiple items)
+async function handleMultiItemDirectPurchase(body: any) {
+  const {
+    items,
+    customerInfo,
+    userId,
+    totalAmount,
+    discountPercentage,
+    discountAmount,
+    finalAmount,
+    additionalNotes,
+  } = body;
+
+  console.log("=== MULTI-ITEM DIRECT PURCHASE DEBUG ===");
+  console.log("Number of items:", items.length);
+  console.log("Customer info:", customerInfo);
+  console.log("User ID:", userId);
+  console.log("Additional notes:", additionalNotes);
+
+  // CRITICAL: Validasi Rbx 5 Hari hanya boleh 1 item per checkout
+  // Karena ada automasi gamepass creation yang harus dijalankan per-transaction
+  const rbx5Items = items.filter(
+    (item: any) =>
+      item.serviceCategory === "robux_5_hari" ||
+      (item.serviceType === "robux" && item.rbx5Details)
+  );
+
+  if (rbx5Items.length > 1) {
+    return NextResponse.json(
+      {
+        error:
+          "Rbx 5 Hari: Hanya dapat checkout 1 item per transaksi karena ada automasi gamepass creation. Silakan checkout item Rbx 5 Hari secara terpisah.",
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validasi customerInfo
+  if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+    return NextResponse.json(
+      { error: "Customer information is required" },
+      { status: 400 }
+    );
+  }
+
+  const createdTransactions = [];
+  const midtransItems = [];
+
+  // Create transaction for each item
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+
+    console.log(`Processing item ${i + 1}:`, item);
+
+    // Validasi item
+    if (
+      !item.serviceType ||
+      !item.serviceId ||
+      !item.serviceName ||
+      !item.quantity ||
+      !item.unitPrice
+    ) {
+      console.error(`Invalid item at index ${i}:`, item);
+      return NextResponse.json(
+        { error: `Invalid item data at position ${i + 1}` },
+        { status: 400 }
+      );
+    }
+
+    // Validasi username
+    if (!item.robloxUsername) {
+      console.error(`Missing robloxUsername for item ${i}:`, item);
+      return NextResponse.json(
+        { error: `Roblox username is required for: ${item.serviceName}` },
+        { status: 400 }
+      );
+    }
+
+    // Check if password is required
+    let passwordRequired = false;
+    if (item.serviceType === "joki") {
+      passwordRequired = !item.robloxPassword;
+    } else if (
+      item.serviceType === "robux" &&
+      item.serviceCategory === "robux_instant"
+    ) {
+      passwordRequired = !item.robloxPassword;
+    }
+
+    if (passwordRequired) {
+      return NextResponse.json(
+        { error: `Password is required for: ${item.serviceName}` },
+        { status: 400 }
+      );
+    }
+
+    // Calculate amounts for this item
+    const itemTotalAmount = item.quantity * item.unitPrice;
+
+    // Prepare transaction data
+    const transactionData: any = {
+      serviceType: item.serviceType,
+      serviceId: item.serviceId,
+      serviceName: item.serviceName,
+      serviceImage: item.serviceImage || "",
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalAmount: itemTotalAmount,
+      discountPercentage: 0, // Individual items don't get discount
+      discountAmount: 0,
+      finalAmount: itemTotalAmount,
+      robloxUsername: item.robloxUsername,
+      robloxPassword: item.robloxPassword || "",
+      customerNotes: additionalNotes || "", // Customer notes dari form checkout
+      customerInfo: {
+        ...customerInfo,
+        userId: userId || null,
+      },
+    };
+
+    // Add service-specific details
+    if (item.serviceCategory) {
+      transactionData.serviceCategory = item.serviceCategory;
+    }
+
+    if (item.gamepassDetails) {
+      transactionData.gamepassDetails = item.gamepassDetails;
+    }
+
+    if (item.jokiDetails) {
+      transactionData.jokiDetails = item.jokiDetails;
+    }
+
+    if (item.robuxInstantDetails) {
+      transactionData.robuxInstantDetails = item.robuxInstantDetails;
+    }
+
+    if (item.rbx5Details) {
+      transactionData.rbx5Details = item.rbx5Details;
+      if (item.rbx5Details.gamepass) {
+        transactionData.gamepass = item.rbx5Details.gamepass;
+      }
+    }
+
+    // Create transaction
+    const transaction = new Transaction(transactionData);
+    await transaction.save();
+
+    createdTransactions.push(transaction);
+
+    // Prepare Midtrans item
+    midtransItems.push({
+      id: `${item.serviceId}-${i}`,
+      price: item.unitPrice,
+      quantity: item.quantity,
+      name: item.serviceName,
+      brand: "RBX Store",
+      category: item.serviceType,
+    });
+
+    console.log(`Transaction created: ${transaction.invoiceId}`);
+  }
+
+  if (createdTransactions.length === 0) {
+    return NextResponse.json(
+      { error: "No transactions were created" },
+      { status: 400 }
+    );
+  }
+
+  // Calculate final amount with discount (applied to total, not per item)
+  const subtotal =
+    totalAmount ||
+    createdTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+  const discount = discountAmount || 0;
+  const finalAmountAfterDiscount = finalAmount || subtotal - discount;
+
+  // Create a master order ID for grouping
+  const masterOrderId = `ORDER-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 8)
+    .toUpperCase()}`;
+
+  // Add discount item if applicable
+  if (discount > 0) {
+    midtransItems.push({
+      id: "DISCOUNT",
+      price: -Math.round(discount),
+      quantity: 1,
+      name: `Diskon Member (${discountPercentage}%)`,
+      brand: "RBX Store",
+      category: "discount",
+    });
+  }
+
+  // Create Midtrans Snap transaction for all items
+  try {
+    const midtransService = new MidtransService();
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+    console.log("=== MIDTRANS MULTI-ITEM DEBUG ===");
+    console.log("Items:", JSON.stringify(midtransItems, null, 2));
+    console.log("Final Amount:", finalAmountAfterDiscount);
+
+    const snapResult = await midtransService.createSnapTransaction({
+      orderId: masterOrderId,
+      amount: Math.round(finalAmountAfterDiscount),
+      items: midtransItems,
+      customer: {
+        first_name: customerInfo.name,
+        email: customerInfo.email,
+        phone: customerInfo.phone || "",
+      },
+      expiryHours: 24,
+      callbackUrls: {
+        finish: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+        error: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+        pending: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+      },
+    });
+
+    // Update all transactions with Midtrans data
+    const updatePromises = createdTransactions.map(async (transaction) => {
+      transaction.snapToken = snapResult.token;
+      transaction.redirectUrl = snapResult.redirect_url;
+      transaction.midtransOrderId = masterOrderId;
+      await transaction.save();
+    });
+
+    await Promise.all(updatePromises);
+
+    console.log(
+      `All ${createdTransactions.length} transactions updated with Midtrans data`
+    );
+
+    // Send invoice email
+    try {
+      if (customerInfo.email) {
+        console.log("Sending invoice email to:", customerInfo.email);
+        const emailSent = await EmailService.sendInvoiceEmail(
+          createdTransactions[0]
+        );
+        if (emailSent) {
+          console.log("Invoice email sent successfully");
+        }
+      }
+    } catch (emailError) {
+      console.error("Error sending invoice email:", emailError);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        transactions: createdTransactions,
+        masterOrderId: masterOrderId,
+        snapToken: snapResult.token,
+        redirectUrl: snapResult.redirect_url,
+        totalTransactions: createdTransactions.length,
+        totalAmount: subtotal,
+        discountAmount: discount,
+        finalAmount: finalAmountAfterDiscount,
+      },
+    });
+  } catch (midtransError) {
+    console.error("Midtrans Error:", midtransError);
+
+    // Delete created transactions if Midtrans fails
+    const deletePromises = createdTransactions.map((t) =>
+      Transaction.findByIdAndDelete(t._id)
+    );
+    await Promise.all(deletePromises);
+
+    return NextResponse.json(
+      { error: "Failed to create payment gateway. Please try again later." },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler untuk single item transaction (robux dengan quantity)
+async function handleSingleItemTransaction(body: any) {
+  const {
+    serviceType,
+    serviceId,
+    serviceName,
+    serviceImage,
+    serviceCategory,
+    quantity,
+    unitPrice,
+    totalAmount,
+    discountPercentage,
+    discountAmount,
+    finalAmount,
+    robloxUsername,
+    robloxPassword,
+    jokiDetails,
+    robuxInstantDetails,
+    rbx5Details,
+    gamepassDetails,
+    customerInfo,
+    userId,
+    gamepass,
+    additionalNotes,
+  } = body;
+
+  console.log("Extracted fields:", {
+    serviceType,
+    serviceId,
+    serviceName,
+    serviceCategory,
+    quantity,
+    unitPrice,
+    robloxUsername: robloxUsername ? "[PRESENT]" : "[MISSING]",
+    robloxPassword: robloxPassword ? "[PRESENT]" : "[MISSING]",
+    jokiDetails: jokiDetails ? "[PRESENT]" : "[MISSING]",
+    robuxInstantDetails: robuxInstantDetails ? "[PRESENT]" : "[MISSING]",
+    rbx5Details: rbx5Details ? "[PRESENT]" : "[MISSING]",
+    gamepassDetails: gamepassDetails ? "[PRESENT]" : "[MISSING]",
+    customerInfo: customerInfo ? "[PRESENT]" : "[MISSING]",
+    userId: userId || "null",
+    gamepass: gamepass ? "[PRESENT]" : "[NOT_PROVIDED]",
+    additionalNotes: additionalNotes || "[EMPTY]",
+  });
+
+  // Validasi input - userId opsional untuk guest checkout
+  // Password hanya diperlukan untuk robux instant dan joki, tidak untuk gamepass dan robux 5 hari
+  let passwordRequired = false;
+
+  if (serviceType === "robux") {
+    // Untuk robux, cek kategori
+    passwordRequired = serviceCategory === "robux_instant" && !robloxPassword;
+  } else if (serviceType === "joki") {
+    // Untuk joki, password selalu diperlukan
+    passwordRequired = !robloxPassword;
+  }
+  // Untuk gamepass, password tidak diperlukan (passwordRequired tetap false)
+
+  if (
+    !serviceType ||
+    !serviceId ||
+    !serviceName ||
+    !quantity ||
+    !unitPrice ||
+    !robloxUsername ||
+    passwordRequired
+  ) {
+    console.error("Validation failed - missing fields:", {
+      serviceType: !!serviceType,
+      serviceId: !!serviceId,
+      serviceName: !!serviceName,
+      quantity: !!quantity,
+      unitPrice: !!unitPrice,
+      robloxUsername: !!robloxUsername,
+      robloxPassword: !!robloxPassword,
+      passwordRequired,
+      serviceTypeNeedsPassword:
+        serviceType === "joki" ||
+        (serviceType === "robux" && serviceCategory === "robux_instant"),
+      serviceCategory,
+      userId: !!userId,
+      hasCustomerInfo: !!customerInfo,
+    });
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  // Validasi customerInfo untuk guest checkout
+  if (!userId && (!customerInfo || !customerInfo.name || !customerInfo.email)) {
+    console.error("Guest checkout requires customer info:", customerInfo);
+    return NextResponse.json(
+      { error: "Customer information required for guest checkout" },
+      { status: 400 }
+    );
+  }
+
+  // Use provided amount or calculate if not provided
+  const calculatedTotalAmount = totalAmount || quantity * unitPrice;
+  const calculatedFinalAmount = finalAmount || calculatedTotalAmount;
+
+  // Buat transaksi baru
+  const transactionData: any = {
+    serviceType,
+    serviceId,
+    serviceName,
+    serviceImage,
+    quantity,
+    unitPrice,
+    totalAmount: calculatedTotalAmount,
+    discountPercentage: discountPercentage || 0,
+    discountAmount: discountAmount || 0,
+    finalAmount: calculatedFinalAmount,
+    robloxUsername,
+    robloxPassword: robloxPassword || "", // Empty string for gamepass and robux_5_hari
+    customerNotes: additionalNotes || "", // Customer notes dari form checkout
+    jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
+    robuxInstantDetails: robuxInstantDetails || undefined,
+    rbx5Details: rbx5Details || undefined,
+    gamepassDetails: gamepassDetails || undefined,
+    customerInfo: {
+      ...customerInfo,
+      userId: userId || null, // Store userId in customerInfo
+    },
+  };
+
+  // Tambahkan data gamepass untuk service robux_5_hari
+  if (
+    serviceType === "robux" &&
+    serviceCategory === "robux_5_hari" &&
+    gamepass
+  ) {
+    transactionData.gamepass = gamepass;
+  }
+
+  // Add rbx5Details gamepass if available
+  if (rbx5Details && rbx5Details.gamepass) {
+    transactionData.gamepass = rbx5Details.gamepass;
+  }
+
+  console.log("=== Transaction Data Debug ===");
+  console.log("Final userId for customerInfo:", userId || null);
+  console.log("Final customerInfo:", {
+    ...customerInfo,
+    userId: userId || null,
+  });
+  console.log(
+    "Final transactionData.customerInfo:",
+    transactionData.customerInfo
+  );
+
+  // Only add serviceCategory for robux services
+  if (serviceType === "robux" && serviceCategory) {
+    transactionData.serviceCategory = serviceCategory;
+  }
+
+  const transaction = new Transaction(transactionData);
+
+  console.log(
+    "Transaction created with password:",
+    robloxPassword ? "[PRESENT]" : "[EMPTY]"
+  );
+
+  // Generate Midtrans order ID
+  const midtransOrderId = transaction.generateMidtransOrderId();
+
+  // Prepare items for Midtrans - adjust price if there's a discount
+  const finalUnitPrice = Math.round(calculatedFinalAmount / quantity);
+  const items = [
+    {
+      id: serviceId,
+      price: finalUnitPrice, // Use final unit price after discount
+      quantity: quantity,
+      name:
+        discountPercentage > 0
+          ? `${serviceName} (Diskon ${discountPercentage}%)`
+          : serviceName,
+      brand: "RBX Store",
+      category: serviceType,
+    },
+  ];
+
+  // Prepare customer details
+  const customer = {
+    first_name: customerInfo.name || robloxUsername,
+    email: customerInfo.email || "",
+    phone: customerInfo.phone || "",
+  };
+
+  // Create Midtrans Snap transaction
+  try {
+    const midtransService = new MidtransService();
+
+    // Debug environment variables
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    console.log("=== CALLBACK URLs DEBUG ===");
+    console.log("NEXT_PUBLIC_BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
+    console.log("Base URL used:", baseUrl);
+    console.log(
+      "Finish URL:",
+      `${baseUrl}/transaction/success?order_id=${midtransOrderId}`
+    );
+
+    const snapResult = await midtransService.createSnapTransaction({
+      orderId: midtransOrderId,
+      amount: calculatedFinalAmount, // Use final amount after discount
+      items,
+      customer,
+      expiryHours: 24,
+      callbackUrls: {
+        finish: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
+        error: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
+        pending: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
+      },
+    });
+
+    // Update transaction dengan data Midtrans
+    transaction.snapToken = snapResult.token;
+    transaction.redirectUrl = snapResult.redirect_url;
+    transaction.midtransOrderId = midtransOrderId;
+
+    // Save transaction
+    await transaction.save();
+
+    console.log("Transaction saved successfully:", transaction.invoiceId);
+
+    // Send invoice email to customer
+    try {
+      if (customerInfo.email) {
+        console.log("Sending invoice email to:", customerInfo.email);
+        const emailSent = await EmailService.sendInvoiceEmail(transaction);
+        if (emailSent) {
+          console.log("Invoice email sent successfully");
+        } else {
+          console.warn(
+            "Failed to send invoice email, but transaction was created"
+          );
+        }
+      } else {
+        console.warn("No customer email provided, skipping invoice email");
+      }
+    } catch (emailError) {
+      console.error("Error sending invoice email:", emailError);
+      // Don't fail the transaction if email fails
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        transaction: transaction,
+        snapToken: snapResult.token,
+        redirectUrl: snapResult.redirect_url,
+      },
+    });
+  } catch (midtransError) {
+    console.error("Midtrans Error:", midtransError);
+    return NextResponse.json(
+      { error: "Failed to create payment gateway. Please try again later." },
       { status: 500 }
     );
   }

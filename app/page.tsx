@@ -65,6 +65,11 @@ export default function HomePage() {
   const [gamepasses, setGamepasses] = useState<Gamepass[]>([]);
   const [loadingGamepasses, setLoadingGamepasses] = useState(true);
 
+  // Banner state
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
   // Robux input state
   const [robuxAmount, setRobuxAmount] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
@@ -94,6 +99,9 @@ export default function HomePage() {
 
     // Fetch homepage gamepasses
     fetchHomepageGamepasses();
+
+    // Fetch active banners
+    fetchActiveBanners();
   }, []);
 
   // Function to fetch RBX5 statistics
@@ -135,6 +143,66 @@ export default function HomePage() {
       console.error("Error fetching gamepasses:", error);
     } finally {
       setLoadingGamepasses(false);
+    }
+  };
+
+  // Function to fetch active banners
+  const fetchActiveBanners = async () => {
+    try {
+      const response = await fetch("/api/banners?active=true");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setBanners(data.data);
+        } else {
+          // Use default banners if no active banners from database
+          setBanners([
+            {
+              id: 1,
+              imageUrl: "/banner.webp",
+              link: "/gamepass",
+              alt: "Banner Gamepass Terbaru",
+            },
+            {
+              id: 2,
+              imageUrl: "/banner2.png",
+              link: "/rbx5",
+              alt: "Banner Robux Promo",
+            },
+            {
+              id: 3,
+              imageUrl: "/banner.png",
+              link: "/joki",
+              alt: "Banner Joki Service",
+            },
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      // Use default banners on error
+      setBanners([
+        {
+          id: 1,
+          imageUrl: "/banner.webp",
+          link: "/gamepass",
+          alt: "Banner Gamepass Terbaru",
+        },
+        {
+          id: 2,
+          imageUrl: "/banner2.png",
+          link: "/rbx5",
+          alt: "Banner Robux Promo",
+        },
+        {
+          id: 3,
+          imageUrl: "/banner.png",
+          link: "/joki",
+          alt: "Banner Joki Service",
+        },
+      ]);
+    } finally {
+      setLoadingBanners(false);
     }
   };
 
@@ -219,232 +287,225 @@ export default function HomePage() {
     });
   };
 
-  // Banner data - you can modify these URLs and links
-  const banners = [
-    {
-      id: 1,
-      imageUrl: "/banner.webp",
-      link: "/gamepass",
-      alt: "Banner Gamepass Terbaru",
-    },
-    {
-      id: 2,
-      imageUrl: "/banner2.png",
-      link: "/rbx5",
-      alt: "Banner Robux Promo",
-    },
-    {
-      id: 3,
-      imageUrl: "/banner.png",
-      link: "/joki",
-      alt: "Banner Joki Service",
-    },
-  ];
-
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-
   // Auto-loop banner effect
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBannerIndex((prevIndex) =>
-        prevIndex === banners.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 4000); // Change banner every 4 seconds
+    if (banners.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex((prevIndex) =>
+          prevIndex === banners.length - 1 ? 0 : prevIndex + 1
+        );
+      }, 4000); // Change banner every 4 seconds
 
-    return () => clearInterval(interval);
-  }, []);
+      return () => clearInterval(interval);
+    }
+  }, [banners]);
 
   return (
     <PublicLayout>
       {/* 3-Card Carousel Banner Section */}
-      <section className="relative w-full h-40 sm:h-48 lg:h-56 overflow-hidden ">
-        <div className="relative w-full h-full">
-          <div className="absolute inset-0 flex items-center justify-center">
-            {banners.map((banner, index) => {
-              // Calculate position relative to current banner
-              let position = index - currentBannerIndex;
-              if (position < -1) position = banners.length + position;
-              if (position > 1) position = position - banners.length;
+      <section className="relative w-full h-40 sm:h-48 lg:h-60 overflow-hidden ">
+        {loadingBanners ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+          </div>
+        ) : banners.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+            <p className="text-white/60">Tidak ada banner tersedia</p>
+          </div>
+        ) : (
+          <div className="relative w-full h-full">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {banners.map((banner, index) => {
+                // Calculate position relative to current banner
+                let position = index - currentBannerIndex;
+                if (position < -1) position = banners.length + position;
+                if (position > 1) position = position - banners.length;
 
-              // Define styles for each position - optimized for mobile visibility
-              const getCardStyle = (pos: number) => {
-                switch (pos) {
-                  case 0: // Center (Active)
-                    return {
-                      transform: "translateX(0%) translateY(0%) scale(1)",
-                      zIndex: 30,
-                      opacity: 1,
-                      filter: "brightness(1)",
-                      left: "50%",
-                      marginLeft: "-40%", // Center the card properly
-                      width: "80%",
-                    };
-                  case -1: // Left
-                    return {
-                      transform: "translateX(-20%) translateY(0%) scale(0.8)",
-                      zIndex: 10,
-                      opacity: 0.7,
-                      filter: "brightness(0.6)",
-                      left: "10%",
-                      width: "70%",
-                    };
-                  case 1: // Right
-                    return {
-                      transform: "translateX(5.5%) translateY(0%) scale(0.8)",
-                      zIndex: 10,
-                      opacity: 0.7,
-                      filter: "brightness(0.6)",
-                      left: "30%",
-                      width: "70%",
-                    };
-                  default: // Hidden
-                    return {
-                      transform: "translateX(0%) translateY(0%) scale(0.5)",
-                      zIndex: 0,
-                      opacity: 0,
-                      filter: "brightness(0.3)",
-                      left: "50%",
-                      marginLeft: "-35%",
-                      width: "70%",
-                    };
-                }
-              };
+                // Define styles for each position - optimized for mobile visibility
+                const getCardStyle = (pos: number) => {
+                  switch (pos) {
+                    case 0: // Center (Active)
+                      return {
+                        transform: "translateX(0%) translateY(0%) scale(1)",
+                        zIndex: 30,
+                        opacity: 1,
+                        filter: "brightness(1)",
+                        left: "50%",
+                        marginLeft: "-40%", // Center the card properly
+                        width: "80%",
+                      };
+                    case -1: // Left
+                      return {
+                        transform: "translateX(-20%) translateY(0%) scale(0.8)",
+                        zIndex: 10,
+                        opacity: 0.7,
+                        filter: "brightness(0.6)",
+                        left: "10%",
+                        width: "70%",
+                      };
+                    case 1: // Right
+                      return {
+                        transform: "translateX(5.5%) translateY(0%) scale(0.8)",
+                        zIndex: 10,
+                        opacity: 0.7,
+                        filter: "brightness(0.6)",
+                        left: "30%",
+                        width: "70%",
+                      };
+                    default: // Hidden
+                      return {
+                        transform: "translateX(0%) translateY(0%) scale(0.5)",
+                        zIndex: 0,
+                        opacity: 0,
+                        filter: "brightness(0.3)",
+                        left: "50%",
+                        marginLeft: "-35%",
+                        width: "70%",
+                      };
+                  }
+                };
 
-              const cardStyle = getCardStyle(position);
+                const cardStyle = getCardStyle(position);
 
-              return (
-                <div
-                  key={banner.id}
-                  className="absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer"
-                  style={{
-                    transform: cardStyle.transform,
-                    zIndex: cardStyle.zIndex,
-                    opacity: cardStyle.opacity,
-                    filter: cardStyle.filter,
-                    left: cardStyle.left,
-                    marginLeft: cardStyle.marginLeft,
-                    width: cardStyle.width,
-                  }}
-                  onClick={() => {
-                    if (position === 0) {
-                      // If center card, navigate to link
-                      window.location.href = banner.link;
-                    } else {
-                      // If side card, make it active
-                      setCurrentBannerIndex(index);
-                    }
-                  }}
-                >
-                  <div className="relative w-full h-full p-2 sm:p-3 lg:p-4 group">
-                    <div className="relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-3xl ">
-                      <Image
-                        src={banner.imageUrl}
-                        alt={banner.alt}
-                        fill
-                        className={`object-cover transition-transform duration-700 ${
-                          position === 0
-                            ? "group-hover:scale-110"
-                            : "group-hover:scale-105"
-                        }`}
-                        priority={index === 0}
-                      />
-                      Purple neon overlay - stronger for side cards
-                      <div
-                        className={`absolute inset-0 transition-all duration-500 ${
-                          position === 0
-                            ? "bg-gradient-to-r from-primary-900/10 via-transparent to-primary-800/10 group-hover:from-primary-900/5 group-hover:to-primary-800/5"
-                            : "bg-gradient-to-r from-primary-900/40 via-primary-800/30 to-primary-900/40"
-                        }`}
-                      ></div>
-                      Active card glow effect
-                      {position === 0 && (
-                        <>
-                          <div className="absolute inset-0 bg-primary-100/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <div className="absolute -inset-1 bg-gradient-to-r from-primary-100/20 via-primary-200/30 to-primary-100/20 rounded-2xl sm:rounded-3xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-                        </>
-                      )}
-                      {position !== 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="bg-white/20 backdrop-blur-md rounded-full p-2 sm:p-3 border border-white/30">
-                            <div
-                              className={`w-4 h-4 sm:w-6 sm:h-6 text-white flex items-center justify-center ${
-                                position === -1 ? "rotate-180" : ""
-                              }`}
-                            >
-                              <svg
-                                className="w-3 h-3 sm:w-4 sm:h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                return (
+                  <div
+                    key={banner.id}
+                    className="absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer"
+                    style={{
+                      transform: cardStyle.transform,
+                      zIndex: cardStyle.zIndex,
+                      opacity: cardStyle.opacity,
+                      filter: cardStyle.filter,
+                      left: cardStyle.left,
+                      marginLeft: cardStyle.marginLeft,
+                      width: cardStyle.width,
+                    }}
+                    onClick={() => {
+                      if (position === 0) {
+                        // If center card, navigate to link
+                        window.location.href = banner.link;
+                      } else {
+                        // If side card, make it active
+                        setCurrentBannerIndex(index);
+                      }
+                    }}
+                  >
+                    <div className="relative w-full h-full p-2 sm:p-3 lg:p-4 group">
+                      <div className="relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-3xl ">
+                        <Image
+                          src={banner.imageUrl}
+                          alt={banner.alt}
+                          fill
+                          className={`object-fill transition-transform duration-700 ${
+                            position === 0
+                              ? "group-hover:scale-110"
+                              : "group-hover:scale-105"
+                          }`}
+                          priority={index === 0}
+                        />
+                        {/* Purple neon overlay - stronger for side cards */}
+                        <div
+                          className={`absolute inset-0 transition-all duration-500 ${
+                            position === 0
+                              ? "bg-gradient-to-r from-primary-900/10 via-transparent to-primary-800/10 group-hover:from-primary-900/5 group-hover:to-primary-800/5"
+                              : "bg-gradient-to-r from-primary-900/40 via-primary-800/30 to-primary-900/40"
+                          }`}
+                        ></div>
+                        {/* Active card glow effect */}
+                        {position === 0 && (
+                          <>
+                            <div className="absolute inset-0 bg-primary-100/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div className="absolute -inset-1 bg-gradient-to-r from-primary-100/20 via-primary-200/30 to-primary-100/20 rounded-2xl sm:rounded-3xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+                          </>
+                        )}
+                        {position !== 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="bg-white/20 backdrop-blur-md rounded-full p-2 sm:p-3 border border-white/30">
+                              <div
+                                className={`w-4 h-4 sm:w-6 sm:h-6 text-white flex items-center justify-center ${
+                                  position === -1 ? "rotate-180" : ""
+                                }`}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 5l7 7-7 7"
-                                />
-                              </svg>
+                                <svg
+                                  className="w-3 h-3 sm:w-4 sm:h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                  />
+                                </svg>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Navigation Buttons */}
+            {banners.length > 1 && (
+              <>
+                <button
+                  onClick={() =>
+                    setCurrentBannerIndex(
+                      currentBannerIndex === 0
+                        ? banners.length - 1
+                        : currentBannerIndex - 1
+                    )
+                  }
+                  className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-40 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-1.5 sm:p-2 lg:p-3 rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-110"
+                >
+                  <svg
+                    className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={() =>
+                    setCurrentBannerIndex(
+                      currentBannerIndex === banners.length - 1
+                        ? 0
+                        : currentBannerIndex + 1
+                    )
+                  }
+                  className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 z-40 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-1.5 sm:p-2 lg:p-3 rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-110"
+                >
+                  <svg
+                    className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
-        </div>
-
-        <button
-          onClick={() =>
-            setCurrentBannerIndex(
-              currentBannerIndex === 0
-                ? banners.length - 1
-                : currentBannerIndex - 1
-            )
-          }
-          className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-40 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-1.5 sm:p-2 lg:p-3 rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-110"
-        >
-          <svg
-            className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-
-        <button
-          onClick={() =>
-            setCurrentBannerIndex(
-              currentBannerIndex === banners.length - 1
-                ? 0
-                : currentBannerIndex + 1
-            )
-          }
-          className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 z-40 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-1.5 sm:p-2 lg:p-3 rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-110"
-        >
-          <svg
-            className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+        )}
       </section>
 
       {/* Hero Section - Enhanced Modern Design */}

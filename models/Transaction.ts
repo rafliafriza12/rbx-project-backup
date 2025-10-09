@@ -96,15 +96,49 @@ const transactionSchema = new mongoose.Schema(
     // Data Tambahan untuk Robux Instant
     robuxInstantDetails: {
       notes: String,
+      additionalInfo: String,
+      robuxAmount: Number,
+      productName: String,
+      description: String,
     },
 
-    // Data Gamepass untuk Robux 5 Hari
+    // Data Tambahan untuk Robux 5 Hari
+    rbx5Details: {
+      robuxAmount: Number,
+      packageName: String,
+      selectedPlace: {
+        placeId: Number,
+        name: String,
+        universeId: Number,
+      },
+      gamepassAmount: Number,
+      gamepassCreated: Boolean,
+      gamepass: {
+        id: Number,
+        name: String,
+        price: Number,
+        productId: Number,
+        sellerId: Number,
+      },
+      pricePerRobux: mongoose.Schema.Types.Mixed,
+      backupCode: String,
+    },
+
+    // Data Gamepass untuk Robux 5 Hari (backward compatibility)
     gamepass: {
       id: Number,
       name: String,
       price: Number,
       productId: Number,
       sellerId: Number,
+    },
+
+    // Data Gamepass Details
+    gamepassDetails: {
+      gameName: String,
+      itemName: String,
+      gamepassId: String,
+      additionalInfo: String,
     },
 
     // Data Pembayaran Midtrans
@@ -184,6 +218,10 @@ const transactionSchema = new mongoose.Schema(
     },
 
     // Metadata
+    customerNotes: {
+      type: String,
+      default: "",
+    },
     adminNotes: {
       type: String,
       default: "",

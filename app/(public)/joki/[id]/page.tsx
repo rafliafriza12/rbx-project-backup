@@ -20,8 +20,12 @@ import {
   Gift,
   Lock,
   Shield,
+  Info,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
+import { toast } from "react-toastify";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 interface JokiItem {
   itemName: string;
@@ -42,6 +46,8 @@ interface Joki {
 }
 
 export default function JokiDetailPage() {
+  const { user } = useAuth();
+  const { refreshCart } = useCart();
   const [isShowReview, setIsShowReview] = useState<boolean>(false);
   const [joki, setJoki] = useState<Joki | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,7 @@ export default function JokiDetailPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -144,6 +151,96 @@ export default function JokiDetailPage() {
     }
   };
 
+  const handleAddToCart = async () => {
+    if (!isFormValid || !hasSelectedItems || !joki) {
+      toast.error("Mohon lengkapi semua data!");
+      return;
+    }
+
+    // Check if user is logged in
+    if (!user) {
+      toast.error(
+        "Silakan login terlebih dahulu untuk menambahkan ke keranjang"
+      );
+      router.push("/login");
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      // Add each selected item to cart
+      for (const itemName of selectedItemsArray) {
+        const item = joki.item.find((i) => i.itemName === itemName);
+        if (!item) continue;
+
+        const cartItem = {
+          userId: user.id, // Add userId from auth context
+          serviceType: "joki",
+          serviceId: joki._id,
+          serviceName: `${joki.gameName} - ${item.itemName}`,
+          serviceImage: item.imgUrl, // Use item image, not game image
+          imgUrl: item.imgUrl, // Use item image, not game image
+          serviceCategory: "joki",
+          quantity: selectedItems[itemName],
+          unitPrice: item.price,
+          description: item.description,
+          robloxUsername: username,
+          robloxPassword: password,
+          jokiDetails: {
+            gameName: joki.gameName,
+            itemName: item.itemName,
+            imgUrl: item.imgUrl, // Add item image to jokiDetails
+            description: item.description,
+            notes: additionalInfo,
+            additionalInfo: additionalInfo,
+            syaratJoki: item.syaratJoki,
+            prosesJoki: item.prosesJoki,
+            features: joki.features,
+          },
+        };
+
+        console.log("=== JOKI ADD TO CART DEBUG ===");
+        console.log("Sending cartItem:", JSON.stringify(cartItem, null, 2));
+
+        const response = await fetch("/api/cart", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cartItem),
+        });
+
+        const data = await response.json();
+        console.log("Response status:", response.status);
+        console.log("Response data:", data);
+
+        if (!response.ok) {
+          console.error("Error response:", data);
+          throw new Error(data.error || "Gagal menambahkan ke keranjang");
+        }
+      }
+
+      toast.success(
+        `${selectedItemsArray.length} item berhasil ditambahkan ke keranjang!`
+      );
+
+      // Refresh cart to update UI
+      await refreshCart();
+
+      // Reset form
+      setSelectedItems({});
+      setUsername("");
+      setPassword("");
+      setAdditionalInfo("");
+    } catch (error: any) {
+      console.error("Error adding to cart:", error);
+      toast.error(error.message || "Gagal menambahkan ke keranjang");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   const handlePurchase = () => {
     console.log("=== JOKI PURCHASE DEBUG START ===");
     console.log("1. handlePurchase called");
@@ -171,6 +268,7 @@ export default function JokiDetailPage() {
           serviceId: joki._id,
           serviceName: `${joki.gameName} - ${item.itemName}`,
           serviceImage: joki.imgUrl,
+          serviceCategory: "joki", // Add serviceCategory
           quantity: selectedItems[itemName],
           unitPrice: item.price,
           description: item.description,
@@ -570,12 +668,15 @@ export default function JokiDetailPage() {
                     {/* Backup Code */}
                     <div>
                       <label className="block text-white font-semibold mb-2 sm:mb-3 text-sm sm:text-base">
-                        Backup Code (Opsional)
+                        Backup Code
+                        <span className="text-xs text-primary-200/70 font-normal ml-2">
+                          (Opsional)
+                        </span>
                       </label>
                       <div className="relative">
                         <Shield className="absolute left-3 sm:left-4 top-3 sm:top-4 w-4 h-4 sm:w-5 sm:h-5 text-primary-200" />
                         <textarea
-                          placeholder="Berikan informasi kode keamanan jika akun anda memiliki 2 step verification"
+                          placeholder="Masukkan backup code jika akun memiliki 2-step verification"
                           value={additionalInfo}
                           onChange={(e) => setAdditionalInfo(e.target.value)}
                           rows={3}
@@ -583,15 +684,14 @@ export default function JokiDetailPage() {
                         />
                       </div>
                       <p className="text-xs sm:text-sm text-primary-200/70 mt-2">
-                        Klik{" "}
+                        Cara lihat backup code:{" "}
                         <Link
                           className="text-primary-100 hover:text-primary-200 underline transition-colors"
                           href="https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"
                           target="_blank"
                         >
-                          link ini
-                        </Link>{" "}
-                        untuk melihat backup code.
+                          Klik di sini →
+                        </Link>
                       </p>
                     </div>
                   </div>
@@ -910,14 +1010,44 @@ export default function JokiDetailPage() {
                 </div>
               )}
 
-              {/* Purchase Button */}
-              <div className="text-center">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-6">
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!isFormValid || isAddingToCart}
+                  className={`group/btn relative flex-1 font-bold py-6 px-8 rounded-2xl transition-all duration-500 overflow-hidden ${
+                    isFormValid && !isAddingToCart
+                      ? "bg-gradient-to-r from-primary-600 via-primary-700 to-primary-600 hover:from-primary-700 hover:via-primary-600 hover:to-primary-700 text-white shadow-2xl shadow-primary-600/40 hover:shadow-primary-600/60 transform hover:scale-105 hover:-translate-y-1"
+                      : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  {isFormValid && !isAddingToCart && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute top-2 left-4 w-1 h-1 bg-primary-100/60 rounded-full animate-ping"></div>
+                      <div className="absolute top-4 right-6 w-1.5 h-1.5 bg-primary-200/70 rounded-full animate-ping delay-300"></div>
+                      <div className="absolute bottom-2 left-8 w-1 h-1 bg-primary-100/50 rounded-full animate-ping delay-500"></div>
+                    </>
+                  )}
+
+                  <div className="relative z-10 flex items-center justify-center gap-3">
+                    <ShoppingCart className="w-6 h-6" />
+                    <span className="text-lg">
+                      {isAddingToCart
+                        ? "Menambahkan..."
+                        : "Tambah ke Keranjang"}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Buy Now Button */}
                 <button
                   onClick={handlePurchase}
                   disabled={!isFormValid}
-                  className={`group/btn relative w-full font-bold py-6 px-8 rounded-2xl transition-all duration-500 overflow-hidden ${
+                  className={`group/btn relative flex-1 font-bold py-6 px-8 rounded-2xl transition-all duration-500 overflow-hidden ${
                     isFormValid
-                      ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-2xl shadow-primary-100/30 hover:scale-105 hover:shadow-primary-100/50"
+                      ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-primary-900 shadow-2xl shadow-primary-100/40 hover:shadow-primary-100/60 transform hover:scale-105 hover:-translate-y-1"
                       : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
                   }`}
                 >
@@ -925,25 +1055,31 @@ export default function JokiDetailPage() {
                   {isFormValid && (
                     <>
                       <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
-                      <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-primary-100/20 to-primary-200/20"></div>
+                      <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-primary-100/10 to-primary-200/10"></div>
                     </>
                   )}
 
                   <div className="relative z-10 flex items-center justify-center gap-3">
-                    <ShoppingCart className="w-6 h-6" />
-                    <span className="text-xl">
+                    <Zap className="w-6 h-6" />
+                    <span className="text-lg">
                       {hasSelectedItems
-                        ? `Pesan Sekarang - Rp ${totalPrice.toLocaleString()}`
+                        ? `Beli Sekarang`
                         : "Pilih layanan terlebih dahulu"}
                     </span>
-                    <Crown className="w-6 h-6" />
+                    {isFormValid && hasSelectedItems && (
+                      <div className="px-3 py-1 bg-primary-900/30 backdrop-blur-sm rounded-lg border border-primary-900/40">
+                        <span className="text-sm font-black">
+                          Rp {totalPrice.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sparkle effects */}
                   {isFormValid && (
                     <>
-                      <div className="absolute top-2 right-2 w-1 h-1 bg-white rounded-full animate-ping"></div>
-                      <div className="absolute bottom-2 left-2 w-1 h-1 bg-white rounded-full animate-ping delay-500"></div>
+                      <div className="absolute top-2 right-2 w-1 h-1 bg-primary-900 rounded-full animate-ping"></div>
+                      <div className="absolute bottom-2 left-2 w-1 h-1 bg-primary-900 rounded-full animate-ping delay-500"></div>
                     </>
                   )}
                 </button>

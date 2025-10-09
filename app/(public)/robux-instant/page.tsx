@@ -99,30 +99,42 @@ const RobuxInstan: React.FC = () => {
   const isFormValid =
     selectedProduct !== null &&
     username.trim() !== "" &&
-    password.trim() !== "";
+    password.trim() !== ""; // Backup code is optional
+  username.trim() !== "" && password.trim() !== "";
 
   const handlePurchase = () => {
     if (!isFormValid || !selectedProduct) return;
 
     const price = getFinalPrice(selectedProduct);
 
-    // Redirect to new checkout system
-    const checkoutData = {
-      serviceType: "robux",
-      serviceId: selectedProduct._id,
-      serviceName: selectedProduct.name,
-      serviceImage: "", // Add image if available
-      quantity: 1,
-      unitPrice: price,
-      robloxUsername: username,
-      robloxPassword: password,
-      serviceCategory: "robux_instant",
-      robuxAmount: selectedProduct.robuxAmount,
-      additionalInfo: additionalInfo, // Kirim additional info ke checkout
-    };
+    // Create checkout items array (consistent format)
+    const checkoutItems = [
+      {
+        serviceType: "robux",
+        serviceId: selectedProduct._id,
+        serviceName: selectedProduct.name,
+        serviceImage: "/robux-icon.png", // Default Robux icon
+        serviceCategory: "robux_instant", // Move to root level
+        quantity: 1,
+        unitPrice: price,
+        robloxUsername: username,
+        robloxPassword: password,
+        robuxInstantDetails: {
+          robuxAmount: selectedProduct.robuxAmount,
+          productName: selectedProduct.name,
+          description: selectedProduct.description,
+          additionalInfo: additionalInfo,
+          notes: additionalInfo,
+        },
+      },
+    ];
 
     // Store in sessionStorage for checkout page
-    sessionStorage.setItem("checkoutData", JSON.stringify(checkoutData));
+    sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
+
+    // Debug log
+    console.log("Robux Instant checkout data:", checkoutItems);
+
     router.push("/checkout");
   };
 
@@ -549,7 +561,7 @@ const RobuxInstan: React.FC = () => {
                 </label>
                 <div className="relative">
                   <textarea
-                    placeholder="Berikan informasi kode keamanan jika akun anda memiliki 2 step verification"
+                    placeholder="Masukkan backup code Roblox jika akun memiliki 2-step verification"
                     value={additionalInfo}
                     onChange={(e) => setAdditionalInfo(e.target.value)}
                     rows={3}
@@ -564,13 +576,13 @@ const RobuxInstan: React.FC = () => {
                     <Info className="w-2 h-2 text-blue-400" />
                   </div>
                   <p className="text-xs text-white/70">
-                    Klik link berikut untuk melihat kode keamanan anda.{" "}
+                    Cara lihat backup code:{" "}
                     <Link
                       className="underline text-primary-100 hover:text-primary-200 transition-colors hover:glow font-medium"
                       href={"https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"}
                       target="_blank"
                     >
-                      Backup Code Guide
+                      Klik di sini →
                     </Link>
                   </p>
                 </div>
@@ -650,13 +662,13 @@ const RobuxInstan: React.FC = () => {
                 serviceType="robux"
                 serviceId={selectedProduct?._id || ""}
                 serviceName={selectedProduct?.name || "Robux Instant"}
-                serviceImage="" // Add image if available
+                serviceImage="/robux-icon.png" // Default Robux icon
                 serviceCategory="robux_instant"
                 type="rbx-instant"
                 gameId="robux-instant"
                 gameName="Roblox"
                 itemName={selectedProduct?.name || "Robux Instant"}
-                imgUrl=""
+                imgUrl="/robux-icon.png" // Default Robux icon
                 unitPrice={selectedProduct ? getFinalPrice(selectedProduct) : 0}
                 price={selectedProduct ? getFinalPrice(selectedProduct) : 0}
                 description={`${
@@ -669,6 +681,8 @@ const RobuxInstan: React.FC = () => {
                 robuxInstantDetails={
                   additionalInfo ? { notes: additionalInfo } : undefined
                 }
+                robloxUsername={username}
+                robloxPassword={password}
                 className={`group/btn font-bold py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-lg relative overflow-hidden ${
                   isFormValid
                     ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-600 text-white hover:scale-105 active:scale-95 hover:shadow-purple-600/50 cursor-pointer"

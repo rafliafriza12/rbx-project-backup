@@ -626,8 +626,9 @@ const menuItems: MenuItem[] = [
   { title: "Harga Robux", icon: "💰", href: "/admin/robux-pricing" },
   { title: "Gamepass", icon: "🎯", href: "/admin/gamepass" },
   { title: "Jasa Joki", icon: "🚀", href: "/admin/joki" },
+  { title: "Banner", icon: "🎨", href: "/admin/banners" },
+  { title: "Metode Pembayaran", icon: "💳", href: "/admin/payment-methods" },
   { title: "Email Management", icon: "📧", href: "/admin/email-management" },
-  // { title: "Metode Pembayaran", icon: "💳", href: "/admin/payment-methods" },
   { title: "Pengaturan", icon: "⚙️", href: "/admin/settings" },
 ];
 

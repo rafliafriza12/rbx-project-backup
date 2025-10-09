@@ -1,41 +1,71 @@
 // src/middleware.ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-    return NextResponse.next(); // bypass semua
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Admin routes and admin login bypass maintenance check
+  if (pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
+
+  // Maintenance page itself should always be accessible
+  if (pathname === "/maintenance") {
+    return NextResponse.next();
+  }
+
+  // API routes should pass through
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // Static files should pass through
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/static") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  // Check maintenance mode for all other routes (public, auth, etc)
+  try {
+    const baseUrl = request.nextUrl.origin;
+    const maintenanceResponse = await fetch(`${baseUrl}/api/maintenance`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      // Use cache: no-store to always get fresh data
+      cache: "no-store",
+    });
+
+    if (maintenanceResponse.ok) {
+      const data = await maintenanceResponse.json();
+
+      if (data.maintenanceMode === true) {
+        // Redirect to maintenance page
+        return NextResponse.redirect(new URL("/maintenance", request.url));
+      }
+    }
+  } catch (error) {
+    console.error("Error checking maintenance mode:", error);
+    // If there's an error checking maintenance mode, allow access
+  }
+
+  return NextResponse.next();
 }
 
-//return NextResponse.redirect(new URL('/login', request.url));
-
-// export function middleware(request: NextRequest) {
-//     const token = request.cookies.get('auth_token');
-//     const userRole = request.cookies.get('user_role');
-//     const pathname = request.nextUrl.pathname;
-
-//     // Protected admin routes
-//     if (pathname.startsWith('/admin')) {
-//         if (!token) {
-//             return NextResponse.redirect(new URL('/login', request.url));
-//         }
-
-//         // Check if user is admin or superadmin
-//         if (userRole?.value !== 'admin' && userRole?.value !== 'superadmin') {
-//             return NextResponse.redirect(new URL('/', request.url));
-//         }
-//     }
-
-//     // If logged in admin tries to access login page, redirect to dashboard
-//     if (pathname === '/login' && token) {
-//         if (userRole?.value === 'admin' || userRole?.value === 'superadmin') {
-//             return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-//         }
-//     }
-
-//     //return NextResponse.next();
-//     return NextResponse.redirect(new URL('/login', request.url));
-// }
-
-// export const config = {
-//     matcher: ['/admin/:path*', '/login']
-// };
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - /api/maintenance (the endpoint itself)
+     * - /_next/static (static files)
+     * - /_next/image (image optimization files)
+     * - /favicon.ico, /sitemap.xml, /robots.txt (metadata files)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+  ],
+};

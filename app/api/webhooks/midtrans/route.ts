@@ -41,18 +41,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Find transaction by Midtrans order ID
-    const transaction = await Transaction.findOne({
+    // CRITICAL FIX: Find ALL transactions with this masterOrderId
+    // For multi-item checkout, there can be multiple transactions with same order_id
+    const transactions = await Transaction.find({
       midtransOrderId: order_id,
     });
 
-    if (!transaction) {
+    if (!transactions || transactions.length === 0) {
       console.error("Transaction not found:", order_id);
       return NextResponse.json(
         { error: "Transaction not found" },
         { status: 404 }
       );
     }
+
+    console.log(
+      `Found ${transactions.length} transaction(s) for order_id: ${order_id}`
+    );
 
     // Map Midtrans status to internal status
     const statusMapping = midtransService.mapMidtransStatus(
@@ -66,84 +71,111 @@ export async function POST(request: NextRequest) {
       mapped: statusMapping,
     });
 
-    // Update transaction status
-    const oldPaymentStatus = transaction.paymentStatus;
-    const oldOrderStatus = transaction.orderStatus;
+    // Update ALL transactions with same masterOrderId
+    const updatedTransactions = [];
 
-    transaction.paymentStatus = statusMapping.paymentStatus;
-    transaction.orderStatus = statusMapping.orderStatus;
+    for (const transaction of transactions) {
+      const oldPaymentStatus = transaction.paymentStatus;
+      const oldOrderStatus = transaction.orderStatus;
 
-    // Add to status history with more detailed information
-    transaction.statusHistory.push({
-      status: `payment:${statusMapping.paymentStatus}`,
-      timestamp: new Date(),
-      notes: `Midtrans webhook - Status: ${transaction_status}${
-        fraud_status ? `, Fraud: ${fraud_status}` : ""
-      }${payment_type ? `, Payment: ${payment_type}` : ""}`,
-      updatedBy: "system",
-    });
+      transaction.paymentStatus = statusMapping.paymentStatus;
+      transaction.orderStatus = statusMapping.orderStatus;
 
-    // Also add order status history if it changed
-    if (oldOrderStatus !== statusMapping.orderStatus) {
+      // Add to status history with more detailed information
       transaction.statusHistory.push({
-        status: `order:${statusMapping.orderStatus}`,
+        status: `payment:${statusMapping.paymentStatus}`,
         timestamp: new Date(),
-        notes: `Auto-updated from payment status change`,
+        notes: `Midtrans webhook - Status: ${transaction_status}${
+          fraud_status ? `, Fraud: ${fraud_status}` : ""
+        }${payment_type ? `, Payment: ${payment_type}` : ""}`,
         updatedBy: "system",
+      });
+
+      // Also add order status history if it changed
+      if (oldOrderStatus !== statusMapping.orderStatus) {
+        transaction.statusHistory.push({
+          status: `order:${statusMapping.orderStatus}`,
+          timestamp: new Date(),
+          notes: `Auto-updated from payment status change`,
+          updatedBy: "system",
+        });
+      }
+
+      // Update payment details
+      transaction.midtransTransactionId =
+        body.transaction_id || transaction.midtransTransactionId;
+      transaction.paidAt =
+        statusMapping.paymentStatus === "settlement"
+          ? new Date()
+          : transaction.paidAt;
+
+      // If payment is successful, also complete the transaction date
+      if (statusMapping.paymentStatus === "settlement") {
+        // Set paidAt if not already set
+        if (!transaction.paidAt) {
+          transaction.paidAt = new Date();
+        }
+      }
+
+      await transaction.save();
+
+      updatedTransactions.push({
+        invoiceId: transaction.invoiceId,
+        oldStatus: { payment: oldPaymentStatus, order: oldOrderStatus },
+        newStatus: {
+          payment: statusMapping.paymentStatus,
+          order: statusMapping.orderStatus,
+        },
+      });
+
+      console.log("Transaction updated:", {
+        invoiceId: transaction.invoiceId,
+        oldStatus: { payment: oldPaymentStatus, order: oldOrderStatus },
+        newStatus: {
+          payment: statusMapping.paymentStatus,
+          order: statusMapping.orderStatus,
+        },
       });
     }
 
-    // Update payment details
-    transaction.midtransTransactionId =
-      body.transaction_id || transaction.midtransTransactionId;
-    transaction.paidAt =
-      statusMapping.paymentStatus === "settlement"
-        ? new Date()
-        : transaction.paidAt;
-
-    // If payment is successful, also complete the transaction date
-    if (statusMapping.paymentStatus === "settlement") {
-      // Set paidAt if not already set
-      if (!transaction.paidAt) {
-        transaction.paidAt = new Date();
-      }
-    }
-
-    await transaction.save();
-
-    console.log("Transaction updated:", {
-      orderId: order_id,
-      oldStatus: { payment: oldPaymentStatus, order: oldOrderStatus },
-      newStatus: {
-        payment: statusMapping.paymentStatus,
-        order: statusMapping.orderStatus,
-      },
-    });
-
     // Send email notification if payment is successful
+    // Only send once for the first transaction in the group
     if (
       statusMapping.paymentStatus === "settlement" &&
-      oldPaymentStatus !== "settlement"
+      transactions.length > 0
     ) {
-      try {
-        if (transaction.customerInfo?.email) {
-          await EmailService.sendInvoiceEmail(transaction);
-          console.log(
-            "Payment confirmation email sent to:",
-            transaction.customerInfo.email
+      const firstTransaction = transactions[0];
+      const wasAlreadySettled =
+        updatedTransactions[0].oldStatus.payment === "settlement";
+
+      if (!wasAlreadySettled) {
+        try {
+          if (firstTransaction.customerInfo?.email) {
+            await EmailService.sendInvoiceEmail(firstTransaction);
+            console.log(
+              "Payment confirmation email sent to:",
+              firstTransaction.customerInfo.email
+            );
+          } else {
+            console.log("No customer email found for transaction:", order_id);
+          }
+        } catch (emailError) {
+          console.error(
+            "Failed to send payment confirmation email:",
+            emailError
           );
-        } else {
-          console.log("No customer email found for transaction:", order_id);
+          // Don't fail the webhook for email errors
         }
-      } catch (emailError) {
-        console.error("Failed to send payment confirmation email:", emailError);
-        // Don't fail the webhook for email errors
       }
     }
 
     return NextResponse.json({
       success: true,
       message: "Webhook processed successfully",
+      data: {
+        totalTransactions: transactions.length,
+        transactions: updatedTransactions,
+      },
     });
   } catch (error) {
     console.error("Webhook processing error:", error);

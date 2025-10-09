@@ -47,12 +47,37 @@ export interface ICartItem {
     targetLevel?: string;
     estimatedTime?: string;
     notes?: string;
+    gameName?: string;
+    itemName?: string;
+    imgUrl?: string;
+    additionalInfo?: string;
+    syaratJoki?: string[];
+    prosesJoki?: string[];
+    features?: string[];
+  };
+
+  // Gamepass details untuk Transaction compatibility
+  gamepassDetails?: {
+    gameName?: string;
+    itemName?: string;
+    imgUrl?: string;
+    developer?: string;
+    features?: string[];
+    caraPesan?: string[];
   };
 
   // Robux instant details
   robuxInstantDetails?: {
     notes?: string;
+    additionalInfo?: string;
+    robuxAmount?: number;
+    productName?: string;
+    description?: string;
   };
+
+  // User credentials untuk service processing
+  robloxUsername?: string;
+  robloxPassword?: string | null;
 }
 
 export interface ICart extends Document {
@@ -175,11 +200,64 @@ const CartItemSchema = new Schema<ICartItem>({
     targetLevel: String,
     estimatedTime: String,
     notes: String,
+    gameName: String,
+    itemName: String,
+    imgUrl: String,
+    additionalInfo: String,
+    syaratJoki: [String],
+    prosesJoki: [String],
+    features: [String],
+  },
+
+  // Gamepass details (sesuai Transaction model)
+  gamepassDetails: {
+    gameName: String,
+    itemName: String,
+    imgUrl: String,
+    developer: String,
+    features: [String],
+    caraPesan: [String],
   },
 
   // Robux instant details (sesuai Transaction model)
   robuxInstantDetails: {
     notes: String,
+    additionalInfo: String,
+    robuxAmount: Number,
+    productName: String,
+    description: String,
+  },
+
+  // Robux 5 Hari details (sesuai Transaction model)
+  rbx5Details: {
+    robuxAmount: Number,
+    packageName: String,
+    selectedPlace: {
+      placeId: Number,
+      name: String,
+      universeId: Number,
+    },
+    gamepassAmount: Number,
+    gamepassCreated: Boolean,
+    gamepass: {
+      id: Number,
+      name: String,
+      price: Number,
+      productId: Number,
+      sellerId: Number,
+    },
+    pricePerRobux: mongoose.Schema.Types.Mixed,
+    backupCode: String,
+  },
+
+  // User credentials untuk service processing
+  robloxUsername: {
+    type: String,
+    required: false,
+  },
+  robloxPassword: {
+    type: String,
+    required: false,
   },
 });
 

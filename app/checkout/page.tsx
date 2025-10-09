@@ -25,9 +25,11 @@ import {
   CheckCircle,
   Gem,
   Sparkles,
+  Shield,
+  DollarSign,
 } from "lucide-react";
 
-interface CheckoutData {
+interface CheckoutItem {
   serviceType: string;
   serviceId: string;
   serviceName: string;
@@ -37,17 +39,21 @@ interface CheckoutData {
   gameType?: string;
   quantity: number;
   unitPrice: number;
+  robloxUsername?: string;
+  robloxPassword?: string | null;
+  // Service-specific details
+  gamepassDetails?: any;
+  jokiDetails?: any;
+  robuxInstantDetails?: any;
+  rbx5Details?: any;
+}
+
+interface CheckoutData {
+  items: CheckoutItem[];
   totalAmount: number;
   discountPercentage?: number;
   discountAmount?: number;
   finalAmount?: number;
-}
-
-interface JokiDetails {
-  description: string;
-  gameType: string;
-  estimatedTime: string;
-  notes: string;
 }
 
 interface PaymentMethod {
@@ -76,15 +82,12 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Track if this is a multi-checkout from cart with different credentials per item
+  const [isMultiCheckoutFromCart, setIsMultiCheckoutFromCart] = useState(false);
+
   // Form data
   const [robloxUsername, setRobloxUsername] = useState("");
   const [robloxPassword, setRobloxPassword] = useState("");
-  const [jokiDetails, setJokiDetails] = useState<JokiDetails>({
-    description: "",
-    gameType: "",
-    estimatedTime: "",
-    notes: "",
-  });
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
@@ -101,113 +104,10 @@ function CheckoutContent() {
   // Check if this is guest checkout - user bisa checkout tanpa login
   const isGuestCheckout = !user;
 
-  // Payment methods data dengan kategori
-  const paymentCategories: PaymentCategory[] = [
-    {
-      id: "ewallet",
-      name: "E-Wallet",
-      icon: Wallet,
-      description: "Transfer langsung ke e-wallet",
-      methods: [
-        {
-          id: "dana",
-          name: "DANA",
-          icon: "💳",
-          fee: 2500,
-          feeType: "fixed",
-          description: "Transfer langsung ke DANA",
-        },
-        {
-          id: "gopay",
-          name: "GoPay",
-          icon: "💚",
-          fee: 2500,
-          feeType: "fixed",
-          description: "Transfer langsung ke GoPay",
-        },
-        {
-          id: "shopeepay",
-          name: "ShopeePay",
-          icon: "🛒",
-          fee: 2500,
-          feeType: "fixed",
-          description: "Transfer langsung ke ShopeePay",
-        },
-      ],
-    },
-    {
-      id: "qris",
-      name: "QRIS",
-      icon: QrCode,
-      description: "Scan QR Code untuk pembayaran instant",
-      methods: [
-        {
-          id: "qris_all",
-          name: "QRIS",
-          icon: "📱",
-          fee: 0.7,
-          feeType: "percentage",
-          description: "Scan QR Code untuk pembayaran instant",
-        },
-      ],
-    },
-    {
-      id: "virtual_account",
-      name: "Virtual Account",
-      icon: Building2,
-      description: "Transfer melalui ATM/Mobile Banking",
-      methods: [
-        {
-          id: "bca_va",
-          name: "BCA Virtual Account",
-          icon: "🏦",
-          fee: 4000,
-          feeType: "fixed",
-          description: "Transfer melalui ATM/Mobile Banking BCA",
-        },
-        {
-          id: "bni_va",
-          name: "BNI Virtual Account",
-          icon: "🏦",
-          fee: 4000,
-          feeType: "fixed",
-          description: "Transfer melalui ATM/Mobile Banking BNI",
-        },
-        {
-          id: "bri_va",
-          name: "BRI Virtual Account",
-          icon: "🏦",
-          fee: 4000,
-          feeType: "fixed",
-          description: "Transfer melalui ATM/Mobile Banking BRI",
-        },
-      ],
-    },
-    {
-      id: "retail",
-      name: "Minimarket",
-      icon: Store,
-      description: "Bayar di kasir minimarket terdekat",
-      methods: [
-        {
-          id: "indomaret",
-          name: "Indomaret",
-          icon: "🏪",
-          fee: 2500,
-          feeType: "fixed",
-          description: "Bayar di kasir Indomaret terdekat",
-        },
-        {
-          id: "alfamart",
-          name: "Alfamart",
-          icon: "🏪",
-          fee: 2500,
-          feeType: "fixed",
-          description: "Bayar di kasir Alfamart terdekat",
-        },
-      ],
-    },
-  ];
+  // Payment methods state - fetch from database
+  const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>(
+    []
+  );
 
   // Fungsi untuk menghitung biaya payment method
   const calculatePaymentFee = (baseAmount: number, method: PaymentMethod) => {
@@ -283,6 +183,37 @@ function CheckoutContent() {
     }
   }, [user, isGuestCheckout]);
 
+  // Load Midtrans Snap script
+  useEffect(() => {
+    const midtransScriptUrl = "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
+
+    let scriptTag = document.querySelector(
+      `script[src="${midtransScriptUrl}"]`
+    ) as HTMLScriptElement;
+
+    if (!scriptTag) {
+      scriptTag = document.createElement("script");
+      scriptTag.src = midtransScriptUrl;
+      scriptTag.setAttribute("data-client-key", clientKey);
+      scriptTag.async = true;
+
+      scriptTag.onload = () => {
+        console.log("Midtrans Snap script loaded successfully");
+      };
+
+      scriptTag.onerror = () => {
+        console.error("Failed to load Midtrans Snap script");
+      };
+
+      document.body.appendChild(scriptTag);
+    }
+
+    return () => {
+      // Cleanup if needed
+    };
+  }, []);
+
   useEffect(() => {
     console.log("=== CHECKOUT PAGE DEBUG START ===");
     console.log("User ID:", user?.id);
@@ -312,94 +243,104 @@ function CheckoutContent() {
         const parsedData = JSON.parse(sessionData);
         console.log("5. Parsed data:", parsedData);
 
-        // Calculate discount if user is logged in
-        const baseAmount = parsedData.quantity * parsedData.unitPrice;
-        console.log("6. Base amount calculated:", baseAmount);
+        // Handle both old single object and new array format
+        const itemsArray = Array.isArray(parsedData)
+          ? parsedData
+          : [parsedData];
+        console.log("6. Items array:", itemsArray);
+
+        // Check if this is multi-checkout from cart with different credentials
+        // Multi-checkout from cart: items already have robloxUsername/Password
+        const hasItemCredentials = itemsArray.some(
+          (item: any) => item.robloxUsername || item.robloxPassword
+        );
+        const isMultiCheckout = itemsArray.length > 1 && hasItemCredentials;
+
+        console.log("6.1. Checkout type check:", {
+          itemCount: itemsArray.length,
+          hasItemCredentials,
+          isMultiCheckout,
+        });
+
+        setIsMultiCheckoutFromCart(isMultiCheckout);
+
+        // Calculate total amount from all items
+        const baseAmount = itemsArray.reduce((sum: number, item: any) => {
+          return sum + item.quantity * item.unitPrice;
+        }, 0);
+        console.log("7. Base amount calculated:", baseAmount);
 
         const discount = calculateDiscount(baseAmount);
-        console.log("7. Discount calculated:", discount);
+        console.log("8. Discount calculated:", discount);
 
         setCheckoutData({
-          ...parsedData,
+          items: itemsArray,
           totalAmount: baseAmount,
           discountPercentage: discount.discountPercentage,
           discountAmount: discount.discountAmount,
           finalAmount: discount.finalAmount,
         });
 
-        console.log("8. Checkout data set successfully");
+        console.log("9. Checkout data set successfully");
 
-        // Pre-fill form data from session
-        if (parsedData.robloxUsername) {
-          console.log(
-            "9. Pre-filling roblox username:",
-            parsedData.robloxUsername
-          );
-          setRobloxUsername(parsedData.robloxUsername);
-        }
+        // DEBUG: Check backup code in loaded data
+        itemsArray.forEach((item: any, index: number) => {
+          console.log(`[DEBUG] Item ${index + 1} data check:`, {
+            serviceType: item.serviceType,
+            robloxUsername: item.robloxUsername,
+            hasPassword: !!item.robloxPassword,
+            jokiDetails: item.jokiDetails,
+            robuxInstantDetails: item.robuxInstantDetails,
+            jokiNotes: item.jokiDetails?.notes,
+            jokiAdditionalInfo: item.jokiDetails?.additionalInfo,
+            robuxNotes: item.robuxInstantDetails?.notes,
+            robuxAdditionalInfo: item.robuxInstantDetails?.additionalInfo,
+          });
+        });
 
-        // Only set password for services that require it
-        if (
-          parsedData.serviceType !== "gamepass" &&
-          !(
-            parsedData.serviceType === "robux" &&
-            parsedData.serviceCategory === "robux_5_hari"
-          )
-        ) {
-          if (parsedData.robloxPassword) {
-            console.log("10. Pre-filling roblox password: [HIDDEN]");
-            setRobloxPassword(parsedData.robloxPassword);
+        // Pre-fill form data ONLY if NOT multi-checkout from cart
+        // Multi-checkout dari cart: setiap item sudah punya data sendiri
+        // Single checkout langsung: pakai form global
+        if (!isMultiCheckout) {
+          const firstItem = itemsArray[0];
+          if (firstItem.robloxUsername) {
+            console.log(
+              "10. Pre-filling roblox username:",
+              firstItem.robloxUsername
+            );
+            setRobloxUsername(firstItem.robloxUsername);
+          }
+
+          // Only set password for services that require it
+          if (
+            firstItem.serviceType !== "gamepass" &&
+            !(firstItem.serviceType === "robux" && firstItem.rbx5Details)
+          ) {
+            if (firstItem.robloxPassword) {
+              console.log("11. Pre-filling roblox password: [HIDDEN]");
+              setRobloxPassword(firstItem.robloxPassword);
+            }
+          } else {
+            console.log(
+              "11. Gamepass or Robux 5 Hari detected - clearing password field"
+            );
+            setRobloxPassword("");
           }
         } else {
           console.log(
-            "10. Gamepass or Robux 5 Hari detected - clearing password field"
+            "10-11. Multi-checkout from cart detected - using individual item credentials"
           );
-          setRobloxPassword("");
         }
 
-        if (parsedData.jokiDetails) {
-          console.log("11. Pre-filling joki details:", parsedData.jokiDetails);
-          setJokiDetails(parsedData.jokiDetails);
-        } else if (parsedData.serviceType === "joki") {
-          console.log("11. Auto-filling joki details from service data");
-          setJokiDetails((prev) => ({
-            ...prev,
-            description:
-              parsedData.description ||
-              parsedData.jokiDetails?.description ||
-              prev.description,
-            gameType:
-              parsedData.gameType ||
-              parsedData.jokiDetails?.gameName ||
-              prev.gameType,
-          }));
-        }
-
-        if (parsedData.additionalInfo) {
-          console.log(
-            "12. Pre-filling additional notes:",
-            parsedData.additionalInfo
-          );
-          setAdditionalNotes(parsedData.additionalInfo);
-        } else if (parsedData.jokiDetails?.notes) {
-          console.log(
-            "12. Pre-filling notes from joki details:",
-            parsedData.jokiDetails.notes
-          );
-          setAdditionalNotes(parsedData.jokiDetails.notes);
-        } else if (parsedData.jokiDetails?.additionalInfo) {
-          console.log(
-            "12. Pre-filling additional info from joki details:",
-            parsedData.jokiDetails.additionalInfo
-          );
-          setAdditionalNotes(parsedData.jokiDetails.additionalInfo);
-        }
+        // Data loaded successfully
+        // Backup code for Joki and Robux Instant will stay in item.jokiDetails and item.robuxInstantDetails
+        // Additional notes field is separate and universal for all services
 
         console.log(
-          "13. Data loaded successfully, sessionStorage will be cleared on successful payment"
+          "14. Data loaded successfully, sessionStorage will be cleared on successful payment"
         );
       } catch (error) {
-        console.error("8. Error parsing sessionStorage data:", error);
+        console.error("Error parsing sessionStorage data:", error);
         toast.error("Data checkout tidak valid");
         router.push("/");
       }
@@ -429,13 +370,18 @@ function CheckoutContent() {
         const baseAmount = quantity * unitPrice;
         const discount = calculateDiscount(baseAmount);
 
+        // Convert URL params to items array format
         setCheckoutData({
-          serviceType,
-          serviceId,
-          serviceName,
-          serviceImage: serviceImage || "",
-          quantity,
-          unitPrice,
+          items: [
+            {
+              serviceType,
+              serviceId,
+              serviceName,
+              serviceImage: serviceImage || "",
+              quantity,
+              unitPrice,
+            },
+          ],
           totalAmount: baseAmount,
           discountPercentage: discount.discountPercentage,
           discountAmount: discount.discountAmount,
@@ -455,6 +401,102 @@ function CheckoutContent() {
     console.log("=== CHECKOUT PAGE DEBUG END ===");
   }, [user, router, searchParams]);
 
+  // Fetch payment methods from database
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      try {
+        const response = await fetch("/api/payment-methods?active=true");
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          // Group payment methods by category
+          const groupedMethods: { [key: string]: any } = {};
+
+          result.data.forEach((method: any) => {
+            if (!groupedMethods[method.category]) {
+              groupedMethods[method.category] = {
+                id: method.category,
+                name: getCategoryName(method.category),
+                icon: getCategoryIcon(method.category),
+                description: getCategoryDescription(method.category),
+                methods: [],
+              };
+            }
+
+            groupedMethods[method.category].methods.push({
+              id: method.code.toLowerCase(),
+              name: method.name,
+              icon: method.icon,
+              fee: method.fee,
+              feeType: method.feeType,
+              description: method.description,
+            });
+          });
+
+          // Sort methods by display order within each category
+          Object.values(groupedMethods).forEach((category: any) => {
+            category.methods.sort((a: any, b: any) => {
+              const methodA = result.data.find(
+                (m: any) => m.code.toLowerCase() === a.id
+              );
+              const methodB = result.data.find(
+                (m: any) => m.code.toLowerCase() === b.id
+              );
+              return (
+                (methodA?.displayOrder || 0) - (methodB?.displayOrder || 0)
+              );
+            });
+          });
+
+          setPaymentCategories(Object.values(groupedMethods));
+        }
+      } catch (error) {
+        console.error("Error fetching payment methods:", error);
+        // Set default payment methods if fetch fails
+        setPaymentCategories([]);
+      }
+    };
+
+    fetchPaymentMethods();
+  }, []);
+
+  // Helper functions for category mapping
+  const getCategoryName = (category: string) => {
+    const names: { [key: string]: string } = {
+      ewallet: "E-Wallet",
+      bank_transfer: "Virtual Account",
+      qris: "QRIS",
+      retail: "Minimarket",
+      credit_card: "Credit Card",
+      other: "Lainnya",
+    };
+    return names[category] || category;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: { [key: string]: any } = {
+      ewallet: Wallet,
+      bank_transfer: Building2,
+      qris: QrCode,
+      retail: Store,
+      credit_card: CreditCard,
+      other: Wallet,
+    };
+    return icons[category] || Wallet;
+  };
+
+  const getCategoryDescription = (category: string) => {
+    const descriptions: { [key: string]: string } = {
+      ewallet: "Transfer langsung ke e-wallet",
+      bank_transfer: "Transfer melalui ATM/Mobile Banking",
+      qris: "Scan QR Code untuk pembayaran instant",
+      retail: "Bayar di kasir minimarket terdekat",
+      credit_card: "Pembayaran dengan kartu kredit",
+      other: "Metode pembayaran lainnya",
+    };
+    return descriptions[category] || "";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -463,21 +505,38 @@ function CheckoutContent() {
       return;
     }
 
-    // Validation
-    if (!robloxUsername.trim()) {
-      toast.error("Username Roblox harus diisi");
-      return;
-    }
+    // Validation - hanya cek form jika bukan multi-checkout dari cart
+    // Multi-checkout dari cart: data sudah ada di setiap item
+    if (!isMultiCheckoutFromCart) {
+      if (!robloxUsername.trim()) {
+        toast.error("Username Roblox harus diisi");
+        return;
+      }
 
-    // Only require password for robux instant and joki services
-    if (
-      ((checkoutData.serviceType === "robux" &&
-        checkoutData.serviceCategory === "robux_instant") ||
-        checkoutData.serviceType === "joki") &&
-      !robloxPassword.trim()
-    ) {
-      toast.error("Password Roblox harus diisi untuk layanan ini");
-      return;
+      // Check if any item requires password
+      const requiresPassword = checkoutData.items.some((item) => {
+        return (
+          item.serviceType === "joki" ||
+          (item.serviceType === "robux" && item.robuxInstantDetails)
+        );
+      });
+
+      if (requiresPassword && !robloxPassword.trim()) {
+        toast.error("Password Roblox harus diisi untuk layanan ini");
+        return;
+      }
+    } else {
+      // Multi-checkout: validasi setiap item punya credentials
+      const missingCredentials = checkoutData.items.some(
+        (item) => !item.robloxUsername
+      );
+
+      if (missingCredentials) {
+        toast.error(
+          "Ada item yang belum memiliki data Roblox. Silakan lengkapi di halaman cart."
+        );
+        return;
+      }
     }
 
     // Guest checkout validation
@@ -514,13 +573,6 @@ function CheckoutContent() {
       return;
     }
 
-    if (checkoutData.serviceType === "joki") {
-      if (!jokiDetails.description || !jokiDetails.gameType) {
-        toast.error("Deskripsi dan jenis game harus diisi untuk layanan joki");
-        return;
-      }
-    }
-
     setSubmitting(true);
 
     const allMethods = getAllMethods();
@@ -534,14 +586,80 @@ function CheckoutContent() {
         )
       : 0;
 
+    console.log("\n=== PREPARE ITEMS WITH CREDENTIALS ===");
+    console.log("Original checkoutData.items:", checkoutData.items);
+    console.log("isMultiCheckoutFromCart:", isMultiCheckoutFromCart);
+
+    checkoutData.items.forEach((item: any, index: number) => {
+      console.log(`[BEFORE MAP] Item ${index + 1}:`, {
+        serviceType: item.serviceType,
+        robloxUsername: item.robloxUsername,
+        hasPassword: !!item.robloxPassword,
+        jokiDetails: item.jokiDetails,
+        robuxInstantDetails: item.robuxInstantDetails,
+      });
+    });
+
+    // Prepare items for transaction
+    // Multi-checkout dari cart: gunakan data dari setiap item
+    // Single checkout langsung: gunakan data dari form global
+    const itemsWithCredentials = checkoutData.items.map((item) => {
+      // Jika multi-checkout dari cart, gunakan credentials dari item
+      // Jika single checkout, gunakan credentials dari form
+      const itemUsername = isMultiCheckoutFromCart
+        ? item.robloxUsername
+        : robloxUsername;
+      const itemPassword = isMultiCheckoutFromCart
+        ? item.robloxPassword
+        : item.serviceType === "gamepass" || item.rbx5Details
+        ? ""
+        : robloxPassword;
+
+      return {
+        ...item,
+        robloxUsername: itemUsername,
+        robloxPassword: itemPassword,
+        // Preserve joki details dengan backup code
+        jokiDetails:
+          item.serviceType === "joki" && item.jokiDetails
+            ? {
+                ...item.jokiDetails,
+                notes:
+                  item.jokiDetails.notes ||
+                  item.jokiDetails.additionalInfo ||
+                  "",
+                additionalInfo:
+                  item.jokiDetails.additionalInfo ||
+                  item.jokiDetails.notes ||
+                  "",
+              }
+            : item.jokiDetails,
+        // Preserve robux instant details dengan backup code
+        robuxInstantDetails: item.robuxInstantDetails
+          ? {
+              ...item.robuxInstantDetails,
+              additionalInfo:
+                item.robuxInstantDetails.additionalInfo ||
+                item.robuxInstantDetails.notes ||
+                "",
+              notes:
+                item.robuxInstantDetails.notes ||
+                item.robuxInstantDetails.additionalInfo ||
+                "",
+            }
+          : undefined,
+        // Preserve rbx5 details dengan backup code
+        rbx5Details: item.rbx5Details
+          ? {
+              ...item.rbx5Details,
+              backupCode: item.rbx5Details.backupCode || "",
+            }
+          : undefined,
+      };
+    });
+
     const requestData = {
-      serviceType: checkoutData.serviceType,
-      serviceId: checkoutData.serviceId,
-      serviceName: checkoutData.serviceName,
-      serviceImage: checkoutData.serviceImage,
-      serviceCategory: checkoutData.serviceCategory,
-      quantity: checkoutData.quantity,
-      unitPrice: checkoutData.unitPrice,
+      items: itemsWithCredentials,
       totalAmount: checkoutData.totalAmount,
       discountPercentage: checkoutData.discountPercentage || 0,
       discountAmount: checkoutData.discountAmount || 0,
@@ -549,27 +667,7 @@ function CheckoutContent() {
         (checkoutData.finalAmount || checkoutData.totalAmount) + paymentFee,
       paymentMethod: selectedPaymentMethod,
       paymentFee: paymentFee,
-      robloxUsername,
-      robloxPassword:
-        checkoutData.serviceType === "gamepass" ||
-        (checkoutData.serviceType === "robux" &&
-          checkoutData.serviceCategory === "robux_5_hari")
-          ? ""
-          : robloxPassword,
-      jokiDetails:
-        checkoutData.serviceType === "joki" ? jokiDetails : undefined,
-      robuxInstantDetails:
-        checkoutData.serviceType === "robux" &&
-        checkoutData.serviceCategory === "robux_instant" &&
-        additionalNotes.trim()
-          ? { notes: additionalNotes.trim() }
-          : undefined,
-      gamepass:
-        checkoutData.serviceType === "robux" &&
-        checkoutData.serviceCategory === "robux_5_hari" &&
-        (checkoutData as any).gamepass
-          ? (checkoutData as any).gamepass
-          : undefined,
+      additionalNotes: additionalNotes.trim() || undefined, // Universal additional notes from checkout
       customerInfo: isGuestCheckout
         ? {
             name: customerInfo.name,
@@ -586,14 +684,112 @@ function CheckoutContent() {
     };
 
     try {
-      console.log("Submitting transaction:", requestData);
+      console.log("=== SUBMITTING TRANSACTION DEBUG ===");
+      console.log("Full request data:", requestData);
+      console.log("\n=== BACKUP CODE CHECK BEFORE API ===");
+      itemsWithCredentials.forEach((item: any, index: number) => {
+        console.log(`Item ${index + 1}:`, {
+          serviceType: item.serviceType,
+          serviceName: item.serviceName,
+          jokiBackupCode:
+            item.jokiDetails?.notes || item.jokiDetails?.additionalInfo,
+          robuxBackupCode:
+            item.robuxInstantDetails?.notes ||
+            item.robuxInstantDetails?.additionalInfo,
+          jokiDetails: item.jokiDetails,
+          robuxInstantDetails: item.robuxInstantDetails,
+        });
+      });
+      console.log("Universal additional notes:", requestData.additionalNotes);
+      console.log("========================\n");
+      itemsWithCredentials.forEach((item, index) => {
+        if (item.jokiDetails) {
+          console.log(
+            `Item ${index} - Joki backup code (notes):`,
+            item.jokiDetails.notes
+          );
+          console.log(
+            `Item ${index} - Joki backup code (additionalInfo):`,
+            item.jokiDetails.additionalInfo
+          );
+        }
+        if (item.robuxInstantDetails) {
+          console.log(
+            `Item ${index} - Robux Instant backup code (notes):`,
+            item.robuxInstantDetails.notes
+          );
+          console.log(
+            `Item ${index} - Robux Instant backup code (additionalInfo):`,
+            item.robuxInstantDetails.additionalInfo
+          );
+        }
+      });
+      console.log("Universal additional notes:", requestData.additionalNotes);
+      console.log("========================");
 
-      const response = await fetch("/api/transactions", {
+      // Determine which API endpoint to use
+      const isMultiTransaction = itemsWithCredentials.length > 1;
+      const apiEndpoint = isMultiTransaction
+        ? "/api/transactions/multi"
+        : "/api/transactions";
+
+      // Prepare request data based on transaction type
+      const finalRequestData: any = isMultiTransaction
+        ? {
+            // Multi-checkout format
+            items: itemsWithCredentials,
+            totalAmount: checkoutData.totalAmount,
+            discountPercentage: checkoutData.discountPercentage || 0,
+            discountAmount: checkoutData.discountAmount || 0,
+            finalAmount:
+              (checkoutData.finalAmount || checkoutData.totalAmount) +
+              paymentFee,
+            paymentMethodId: selectedPaymentMethod,
+            paymentFee: paymentFee,
+            additionalNotes: additionalNotes.trim() || undefined,
+            customerInfo: requestData.customerInfo,
+            userId: requestData.userId,
+          }
+        : {
+            // Single checkout format
+            serviceType: itemsWithCredentials[0].serviceType,
+            serviceId: itemsWithCredentials[0].serviceId,
+            serviceName: itemsWithCredentials[0].serviceName,
+            serviceImage: itemsWithCredentials[0].serviceImage || "",
+            serviceCategory: itemsWithCredentials[0].serviceCategory,
+            description: itemsWithCredentials[0].description,
+            quantity: itemsWithCredentials[0].quantity,
+            unitPrice: itemsWithCredentials[0].unitPrice,
+            totalAmount: checkoutData.totalAmount,
+            discountPercentage: checkoutData.discountPercentage || 0,
+            discountAmount: checkoutData.discountAmount || 0,
+            finalAmount:
+              (checkoutData.finalAmount || checkoutData.totalAmount) +
+              paymentFee,
+            robloxUsername: itemsWithCredentials[0].robloxUsername,
+            robloxPassword: itemsWithCredentials[0].robloxPassword || null,
+            jokiDetails: itemsWithCredentials[0].jokiDetails,
+            robuxInstantDetails: itemsWithCredentials[0].robuxInstantDetails,
+            rbx5Details: itemsWithCredentials[0].rbx5Details,
+            gamepassDetails: itemsWithCredentials[0].gamepassDetails,
+            gamepass: itemsWithCredentials[0].rbx5Details?.gamepass || null,
+            paymentMethodId: selectedPaymentMethod,
+            paymentFee: paymentFee,
+            additionalNotes: additionalNotes.trim() || undefined,
+            customerInfo: requestData.customerInfo,
+            userId: requestData.userId,
+          };
+
+      console.log("=== FINAL REQUEST DATA ===");
+      console.log("API Endpoint:", apiEndpoint);
+      console.log("Request:", JSON.stringify(finalRequestData, null, 2));
+
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(finalRequestData),
       });
 
       const result = await response.json();
@@ -605,15 +801,25 @@ function CheckoutContent() {
 
         toast.success("Transaksi berhasil dibuat!");
 
-        // Redirect to transaction detail or success page
-        if (result.data?._id) {
-          router.push(`/transaction/${result.data._id}`);
+        // Open Midtrans payment page
+        if (result.data?.snapToken) {
+          // Use Midtrans Snap
+          const snapUrl = `https://app.sandbox.midtrans.com/snap/v2/vtweb/${result.data.snapToken}`;
+          window.location.href = result.data.redirectUrl || snapUrl;
+        } else if (result.data?.transaction?._id) {
+          // Fallback to transaction detail
+          router.push(`/transaction/${result.data.transaction._id}`);
+        } else if (result.data?.transactions?.[0]?._id) {
+          // Multi-transaction: redirect to first transaction
+          router.push(`/transaction/${result.data.transactions[0]._id}`);
         } else {
           router.push("/riwayat");
         }
       } else {
         toast.error(
-          result.message || "Terjadi kesalahan saat membuat transaksi"
+          result.error ||
+            result.message ||
+            "Terjadi kesalahan saat membuat transaksi"
         );
       }
     } catch (error) {
@@ -699,44 +905,72 @@ function CheckoutContent() {
               </h2>
 
               <div className="neon-card-secondary rounded-xl p-6 mb-6 text-white">
-                <div className="flex items-start gap-4 mb-4">
-                  {checkoutData.serviceImage && (
-                    <img
-                      src={checkoutData.serviceImage}
-                      alt={checkoutData.serviceName}
-                      className="w-16 h-16 object-cover rounded-lg border-2 border-neon-purple/30"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-1">
-                      {checkoutData.serviceName}
-                    </h3>
-                    <p className="text-sm text-white capitalize mb-2">
-                      {checkoutData.serviceType}
-                      {checkoutData.serviceCategory &&
-                        checkoutData.serviceType === "robux" && (
-                          <span
-                            className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                              checkoutData.serviceCategory === "robux_5_hari"
-                                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                            }`}
-                          >
-                            {checkoutData.serviceCategory === "robux_5_hari"
-                              ? "5 Hari"
-                              : "Instant"}
-                          </span>
+                {/* Display all items */}
+                <div className="space-y-4 mb-4">
+                  {checkoutData.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-4 pb-4 border-b border-neon-purple/20 last:border-0 last:pb-0"
+                    >
+                      {/* Show dollar icon for rbx5 and robux instant, otherwise show image */}
+                      {item.rbx5Details || item.robuxInstantDetails ? (
+                        <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg border-2 border-green-500/30">
+                          <DollarSign className="w-8 h-8 text-green-400" />
+                        </div>
+                      ) : (
+                        item.serviceImage && (
+                          <img
+                            src={item.serviceImage}
+                            alt={item.serviceName}
+                            className="w-16 h-16 object-cover rounded-lg border-2 border-neon-purple/30"
+                          />
+                        )
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white mb-1">
+                          {item.serviceName}
+                        </h3>
+
+                        {/* Show gamepassDetails if available */}
+                        {item.gamepassDetails && (
+                          <div className="text-xs text-white/70 mt-1">
+                            <div>Game: {item.gamepassDetails.gameName}</div>
+                            <div>Item: {item.gamepassDetails.itemName}</div>
+                          </div>
                         )}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-white">
-                        Qty: {checkoutData.quantity}
-                      </span>
-                      <span className="font-medium text-white">
-                        Rp {checkoutData.unitPrice.toLocaleString("id-ID")}
-                      </span>
+
+                        {/* Show jokiDetails if available */}
+                        {item.jokiDetails && (
+                          <div className="text-xs text-white/70 mt-1">
+                            <div>Game: {item.jokiDetails.gameName}</div>
+                            <div>Item: {item.jokiDetails.itemName}</div>
+                          </div>
+                        )}
+
+                        <p className="text-sm text-white capitalize mb-2">
+                          {item.serviceType}
+                          {item.rbx5Details && (
+                            <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              5 Hari
+                            </span>
+                          )}
+                          {item.robuxInstantDetails && (
+                            <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              Instant
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-white">
+                            Qty: {item.quantity}
+                          </span>
+                          <span className="font-medium text-white">
+                            Rp {item.unitPrice.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
 
                 <div className="border-t border-neon-purple/20 pt-4 space-y-3">
@@ -878,9 +1112,18 @@ function CheckoutContent() {
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center">
-                                    <span className="text-lg mr-2">
-                                      {method.icon}
-                                    </span>
+                                    {method.icon &&
+                                    method.icon.startsWith("http") ? (
+                                      <img
+                                        src={method.icon}
+                                        alt={method.name}
+                                        className="w-6 h-6 object-cover rounded mr-2"
+                                      />
+                                    ) : (
+                                      <span className="text-lg mr-2">
+                                        {method.icon}
+                                      </span>
+                                    )}
                                     <span className="font-semibold text-white text-sm">
                                       {method.name}
                                     </span>
@@ -1030,155 +1273,291 @@ function CheckoutContent() {
                     <Gamepad2 className="w-4 h-4 text-neon-purple" />
                   </div>
                   Data Akun Roblox
-                </h3>
-                <div className="grid gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary-200 mb-2">
-                      Username Roblox <span className="text-neon-pink">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={robloxUsername}
-                      onChange={(e) => setRobloxUsername(e.target.value)}
-                      className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                      placeholder="Masukkan username Roblox"
-                      required
-                    />
-                  </div>
-                  {/* Password hanya diperlukan untuk robux instant dan joki */}
-                  {((checkoutData.serviceType === "robux" &&
-                    checkoutData.serviceCategory === "robux_instant") ||
-                    checkoutData.serviceType === "joki") && (
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Password Roblox{" "}
-                        <span className="text-neon-pink">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={robloxPassword}
-                          onChange={(e) => setRobloxPassword(e.target.value)}
-                          className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                          placeholder="Masukkan password Roblox"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                  {isMultiCheckoutFromCart && (
+                    <span className="ml-auto text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Data dari Cart
+                    </span>
                   )}
-                </div>
-              </div>
+                </h3>
 
-              {/* Joki Details (conditionally rendered) */}
-              {checkoutData.serviceType === "joki" && (
-                <div className="neon-card rounded-2xl p-5">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                    <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
-                      <Sparkles className="w-4 h-4 text-neon-pink" />
+                {/* Info jika multi-checkout dari cart */}
+                {isMultiCheckoutFromCart ? (
+                  <div className="space-y-4">
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                      <p className="text-sm text-blue-200 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <span>
+                          Anda checkout multiple items dari keranjang. Data
+                          Roblox (username, password, backup code) untuk setiap
+                          item sudah disimpan saat menambahkan ke keranjang.
+                        </span>
+                      </p>
                     </div>
-                    Detail Layanan Joki
-                  </h3>
+
+                    {/* Show items dengan credentials */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-primary-200">
+                        Items dengan Data Roblox:
+                      </p>
+                      {checkoutData.items.map((item, index) => {
+                        // Extract backup code from different sources
+                        const backupCode =
+                          item.jokiDetails?.notes ||
+                          item.jokiDetails?.additionalInfo ||
+                          item.robuxInstantDetails?.notes ||
+                          item.robuxInstantDetails?.additionalInfo ||
+                          item.rbx5Details?.backupCode;
+
+                        return (
+                          <div
+                            key={index}
+                            className="bg-white/5 border border-white/10 rounded-lg p-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-neon-pink/20 to-neon-purple/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-bold text-white">
+                                  #{index + 1}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">
+                                  {item.serviceName}
+                                </p>
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs text-primary-300">
+                                    Username:{" "}
+                                    <span className="text-green-400 font-medium">
+                                      {item.robloxUsername || "Belum diisi"}
+                                    </span>
+                                  </p>
+                                  {item.robloxPassword && (
+                                    <p className="text-xs text-primary-300">
+                                      Password:{" "}
+                                      <span className="text-yellow-400 font-mono">
+                                        ••••••••
+                                      </span>
+                                    </p>
+                                  )}
+                                  {backupCode && backupCode.trim() !== "" && (
+                                    <p className="text-xs text-primary-300">
+                                      Backup Code:{" "}
+                                      <span className="text-blue-400 font-medium">
+                                        {backupCode}
+                                      </span>
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  // Form untuk single checkout
                   <div className="grid gap-4">
                     <div>
                       <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Deskripsi Layanan{" "}
+                        Username Roblox{" "}
                         <span className="text-neon-pink">*</span>
-                      </label>
-                      <textarea
-                        value={
-                          checkoutData.description || jokiDetails.description
-                        }
-                        onChange={(e) =>
-                          setJokiDetails((prev) => ({
-                            ...prev,
-                            description: e.target.value,
-                          }))
-                        }
-                        rows={3}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                        placeholder="Deskripsi layanan akan terisi otomatis..."
-                        disabled={true}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Jenis Game <span className="text-neon-pink">*</span>
                       </label>
                       <input
                         type="text"
-                        value={checkoutData.gameType || jokiDetails.gameType}
-                        onChange={(e) =>
-                          setJokiDetails((prev) => ({
-                            ...prev,
-                            gameType: e.target.value,
-                          }))
-                        }
+                        value={robloxUsername}
+                        onChange={(e) => setRobloxUsername(e.target.value)}
                         className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                        placeholder="Jenis game akan terisi otomatis..."
-                        disabled={true}
+                        placeholder="Masukkan username Roblox"
                         required
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Catatan Tambahan
-                      </label>
-                      <textarea
-                        value={additionalNotes}
-                        onChange={(e) => setAdditionalNotes(e.target.value)}
-                        rows={3}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                        placeholder="Tambahkan catatan khusus jika diperlukan..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Additional Notes for Robux Instant */}
-              {checkoutData.serviceType === "robux" &&
-                checkoutData.serviceCategory === "robux_instant" && (
-                  <div className="neon-card rounded-2xl p-5">
-                    <h3 className="text-lg font-bold text-white mb-4">
-                      Kode Keamanan Roblox
-                    </h3>
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        <span className="text-white text-xs">
-                          Klik link berikut untuk melihat kode keamanan anda.{" "}
-                          <Link
-                            className="underline text-neon-pink hover:text-neon-purple transition-colors"
-                            href={
-                              "https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"
-                            }
-                            target="_blank"
+                    {/* Password hanya diperlukan untuk robux instant dan joki */}
+                    {checkoutData.items.some(
+                      (item) =>
+                        item.serviceType === "joki" ||
+                        (item.serviceType === "robux" &&
+                          item.robuxInstantDetails)
+                    ) && (
+                      <div>
+                        <label className="block text-sm font-medium text-primary-200 mb-2">
+                          Password Roblox{" "}
+                          <span className="text-neon-pink">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={robloxPassword}
+                            onChange={(e) => setRobloxPassword(e.target.value)}
+                            className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                            placeholder="Masukkan password Roblox"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
                           >
-                            Kode keamanan
-                          </Link>
-                        </span>
-                      </label>
-                      <textarea
-                        value={additionalNotes}
-                        onChange={(e) => setAdditionalNotes(e.target.value)}
-                        rows={3}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                        placeholder="Masukkan kode keamanan Roblox Anda di sini..."
-                      />
-                    </div>
+                            {showPassword ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Display Backup Code if exists (read-only) */}
+                    {checkoutData.items.some((item) => {
+                      const backupCode =
+                        item.jokiDetails?.notes ||
+                        item.jokiDetails?.additionalInfo ||
+                        item.robuxInstantDetails?.notes ||
+                        item.robuxInstantDetails?.additionalInfo;
+                      return backupCode && backupCode.trim() !== "";
+                    }) && (
+                      <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border-2 border-green-500/30 rounded-xl p-4">
+                        <label className="text-sm font-medium text-green-300 mb-2 flex items-center gap-2">
+                          <Shield className="w-4 h-4" />
+                          Backup Code (2FA)
+                          <span className="text-xs text-green-400/70 font-normal">
+                            - Dari halaman pemesanan
+                          </span>
+                        </label>
+                        {(() => {
+                          // Get backup code from first item that has it
+                          const itemWithBackup = checkoutData.items.find(
+                            (item) => {
+                              const backupCode =
+                                item.jokiDetails?.notes ||
+                                item.jokiDetails?.additionalInfo ||
+                                item.robuxInstantDetails?.notes ||
+                                item.robuxInstantDetails?.additionalInfo;
+                              return backupCode && backupCode.trim() !== "";
+                            }
+                          );
+
+                          if (!itemWithBackup) return null;
+
+                          const backupCode =
+                            itemWithBackup.jokiDetails?.notes ||
+                            itemWithBackup.jokiDetails?.additionalInfo ||
+                            itemWithBackup.robuxInstantDetails?.notes ||
+                            itemWithBackup.robuxInstantDetails?.additionalInfo;
+
+                          return (
+                            <div className="w-full p-3 border-2 border-green-500/40 rounded-lg bg-green-500/5 backdrop-blur-md text-green-200 font-mono">
+                              {backupCode}
+                            </div>
+                          );
+                        })()}
+                        <p className="text-xs text-green-400/70 mt-2">
+                          ℹ️ Backup code akan dikirim ke admin bersama pesanan
+                          Anda
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+
+              {/* Universal Additional Notes for All Services */}
+              <div className="neon-card rounded-2xl p-5">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                  <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
+                    <Sparkles className="w-4 h-4 text-neon-pink" />
+                  </div>
+                  Catatan Tambahan
+                  <span className="text-xs text-white/60 font-normal ml-2">
+                    (Opsional)
+                  </span>
+                </h3>
+                <div>
+                  {/* Info box berdasarkan service type */}
+                  <div className="bg-gradient-to-r from-primary-600/20 to-primary-700/20 border border-primary-200/30 rounded-xl p-4 mb-4">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-5 h-5 text-primary-200 mr-3 mt-0.5" />
+                      <div className="text-sm text-white/80">
+                        <p className="font-medium mb-2 text-white">
+                          � Tips Catatan Tambahan:
+                        </p>
+                        <ul className="text-white/70 space-y-1 text-xs">
+                          {checkoutData.items.some(
+                            (item) => item.serviceType === "joki"
+                          ) && (
+                            <>
+                              <li>• Target rank atau level yang diinginkan</li>
+                              <li>• Waktu pengerjaan yang diharapkan</li>
+                              <li>• Instruksi khusus untuk joki</li>
+                            </>
+                          )}
+                          {checkoutData.items.some(
+                            (item) => item.serviceType === "gamepass"
+                          ) && (
+                            <>
+                              <li>• Request untuk proses lebih cepat</li>
+                              <li>• Informasi tambahan tentang gamepass</li>
+                            </>
+                          )}
+                          {checkoutData.items.some(
+                            (item) =>
+                              item.serviceType === "robux" && item.rbx5Details
+                          ) && (
+                            <>
+                              <li>• Informasi tentang gamepass yang dibuat</li>
+                              <li>• Instruksi khusus untuk proses</li>
+                            </>
+                          )}
+                          {checkoutData.items.some(
+                            (item) =>
+                              item.serviceType === "robux" &&
+                              item.robuxInstantDetails
+                          ) && (
+                            <>
+                              <li>• Informasi akun tambahan</li>
+                              <li>• Request khusus untuk proses</li>
+                            </>
+                          )}
+                          <li>
+                            • Atau catatan lainnya yang perlu diketahui admin
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="block text-sm font-medium text-primary-200 mb-2">
+                    Catatan Tambahan
+                  </label>
+                  <textarea
+                    value={additionalNotes}
+                    onChange={(e) => setAdditionalNotes(e.target.value)}
+                    rows={4}
+                    className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                    placeholder={
+                      checkoutData.items.some(
+                        (item) => item.serviceType === "joki"
+                      )
+                        ? "Contoh: Tolong dikerjakan malam hari, target Mythic dalam 3 hari, jangan gunakan voice chat..."
+                        : checkoutData.items.some(
+                            (item) => item.serviceType === "gamepass"
+                          )
+                        ? "Contoh: Mohon diproses secepatnya, saya akan online jam 8 malam..."
+                        : checkoutData.items.some(
+                            (item) =>
+                              item.serviceType === "robux" && item.rbx5Details
+                          )
+                        ? "Contoh: Gamepass sudah dibuat dengan harga yang sesuai, mohon segera diproses..."
+                        : "Tambahkan catatan atau instruksi khusus untuk pesanan Anda..."
+                    }
+                  />
+                  <p className="text-xs text-white/60 mt-2">
+                    💡 Catatan ini akan membantu kami memberikan layanan yang
+                    lebih baik sesuai kebutuhan Anda
+                  </p>
+                </div>
+              </div>
 
               {/* Terms */}
               <div className="neon-card rounded-2xl p-5">
