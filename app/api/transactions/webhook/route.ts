@@ -4,6 +4,7 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import StockAccount from "@/models/StockAccount";
 import MidtransService from "@/lib/midtrans";
+import EmailService from "@/lib/email";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -348,6 +349,27 @@ export async function POST(request: NextRequest) {
             gamepassError
           );
           // Continue with other transactions even if one fails
+        }
+      }
+    }
+
+    // Send invoice email if payment is settled
+    // For multi-transaction checkout, send one email with first transaction as reference
+    if (
+      statusMapping.paymentStatus === "settlement" &&
+      transactions.length > 0
+    ) {
+      const firstTransaction = transactions[0];
+      if (firstTransaction.customerInfo?.email) {
+        try {
+          console.log(
+            `Sending invoice email to ${firstTransaction.customerInfo.email} for ${transactions.length} transaction(s)`
+          );
+          await EmailService.sendInvoiceEmail(firstTransaction);
+          console.log("Invoice email sent successfully");
+        } catch (emailError) {
+          console.error("Error sending invoice email:", emailError);
+          // Don't fail the webhook if email fails
         }
       }
     }

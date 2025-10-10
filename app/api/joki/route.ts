@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Joki from "@/models/Joki";
+import Transaction from "@/models/Transaction";
 import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
 
-// GET - Fetch all joki services
+// GET - Fetch all joki services with order count
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -11,11 +12,108 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const isAdmin = url.searchParams.get("admin") === "true";
 
-    const jokiServices = await Joki.find({}).sort({ createdAt: -1 });
+    // Fetch all joki services
+    const jokiServices = await Joki.find({}).sort({ createdAt: -1 }).lean();
+
+    console.log("=== JOKI HOT BADGE DEBUG ===");
+    console.log("Total Joki Services:", jokiServices.length);
+
+    // First, let's check what transactions exist
+    const allJokiTransactions = await Transaction.find({
+      serviceType: "joki",
+    })
+      .select("serviceId serviceName status")
+      .lean();
+
+    console.log("\n=== ALL JOKI TRANSACTIONS ===");
+    console.log("Total joki transactions:", allJokiTransactions.length);
+    allJokiTransactions.forEach((t) => {
+      console.log(`- serviceId: ${t.serviceId} (${typeof t.serviceId})`);
+      console.log(`  serviceName: ${t.serviceName}`);
+      console.log(`  status: ${t.status}`);
+    });
+
+    // Get order counts for each joki
+    const jokiWithOrderCount = await Promise.all(
+      jokiServices.map(async (joki) => {
+        const jokiIdString = joki._id.toString();
+
+        // Method 1: Direct match with joki._id (as ObjectId)
+        const orderCountObjectId = await Transaction.countDocuments({
+          serviceType: "joki",
+          serviceId: joki._id,
+          status: { $in: ["pending", "settlement", "capture"] },
+        });
+
+        // Method 2: Direct match with joki._id (as String)
+        const orderCountString = await Transaction.countDocuments({
+          serviceType: "joki",
+          serviceId: jokiIdString,
+          status: { $in: ["pending", "settlement", "capture"] },
+        });
+
+        // Method 3: Match by checking if serviceName contains joki.gameName
+        // This handles case where serviceId might be item child ID
+        const orderCountByName = await Transaction.countDocuments({
+          serviceType: "joki",
+          serviceName: { $regex: joki.gameName, $options: "i" },
+          status: { $in: ["pending", "settlement", "capture"] },
+        });
+
+        // Get the maximum count from all methods
+        const orderCount = Math.max(
+          orderCountObjectId,
+          orderCountString,
+          orderCountByName
+        );
+
+        console.log(`\n=== ${joki.gameName} ===`);
+        console.log(`  Joki ID: ${jokiIdString}`);
+        console.log(`  Order Count (ObjectId): ${orderCountObjectId}`);
+        console.log(`  Order Count (String): ${orderCountString}`);
+        console.log(`  Order Count (By Name): ${orderCountByName}`);
+        console.log(`  Final Order Count: ${orderCount}`);
+
+        return {
+          ...joki,
+          orderCount,
+        };
+      })
+    );
+
+    // Sort by orderCount to determine top 3
+    const sortedJoki = jokiWithOrderCount.sort(
+      (a, b) => b.orderCount - a.orderCount
+    );
+
+    console.log("\n=== SORTED JOKI BY ORDER COUNT ===");
+    sortedJoki.forEach((joki, index) => {
+      console.log(`${index + 1}. ${joki.gameName}: ${joki.orderCount} orders`);
+    });
+
+    // Mark top 3 as hot
+    const jokiWithHotBadge = sortedJoki.map((joki, index) => {
+      const isHot = index < 3 && joki.orderCount > 0;
+      console.log(
+        `${joki.gameName}: isHot = ${isHot} (index: ${index}, orderCount: ${joki.orderCount})`
+      );
+
+      return {
+        ...joki,
+        isHot,
+      };
+    });
+
+    console.log("\n=== HOT JOKI ===");
+    jokiWithHotBadge
+      .filter((j) => j.isHot)
+      .forEach((j) => {
+        console.log(`🔥 ${j.gameName} (${j.orderCount} orders)`);
+      });
 
     return NextResponse.json({
       message: "Joki services berhasil diambil",
-      jokiServices,
+      jokiServices: jokiWithHotBadge,
     });
   } catch (error) {
     console.error("Error fetching joki services:", error);

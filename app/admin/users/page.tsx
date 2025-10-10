@@ -412,8 +412,8 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white">User Management</h2>
-          <p className="mt-1 text-sm text-gray-400">
+          <h2 className="text-2xl font-bold text-[#f1f5f9]">User Management</h2>
+          <p className="mt-1 text-sm text-[#94a3b8]">
             Manage buyers, admins, and stock accounts
           </p>
         </div>
@@ -434,7 +434,7 @@ export default function UsersPage() {
             });
             setShowModal(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+          className="bg-[#3b82f6] text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-[#1d4ed8] flex items-center"
         >
           <svg
             className="w-5 h-5 mr-2"
@@ -459,8 +459,8 @@ export default function UsersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow">
-        <div className="border-b border-gray-700">
+      <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow">
+        <div className="border-b border-[#334155]">
           <nav className="flex -mb-px">
             <button
               onClick={() => {
@@ -469,8 +469,8 @@ export default function UsersPage() {
               }}
               className={`py-2 px-6 text-sm font-medium ${
                 activeTab === "users"
-                  ? "border-b-2 border-blue-400 text-blue-400"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "border-b-2 border-blue-400 text-[#60a5fa]"
+                  : "text-[#94a3b8] hover:text-[#cbd5e1]"
               }`}
             >
               <span className="mr-2">👥</span>
@@ -483,8 +483,8 @@ export default function UsersPage() {
               }}
               className={`py-2 px-6 text-sm font-medium ${
                 activeTab === "admins"
-                  ? "border-b-2 border-blue-400 text-blue-400"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "border-b-2 border-blue-400 text-[#60a5fa]"
+                  : "text-[#94a3b8] hover:text-[#cbd5e1]"
               }`}
             >
               <span className="mr-2">🛡️</span>
@@ -497,8 +497,8 @@ export default function UsersPage() {
               }}
               className={`py-2 px-6 text-sm font-medium ${
                 activeTab === "stock"
-                  ? "border-b-2 border-blue-400 text-blue-400"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "border-b-2 border-blue-400 text-[#60a5fa]"
+                  : "text-[#94a3b8] hover:text-[#cbd5e1]"
               }`}
             >
               <span className="mr-2">💰</span>
@@ -508,22 +508,22 @@ export default function UsersPage() {
         </div>
 
         {/* Stats for current tab */}
-        <div className="p-6 border-b border-gray-700 bg-gray-800">
+        <div className="p-6 border-b border-[#334155] bg-[#1e293b]">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {activeTab === "users" ? (
               <>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Total Users</p>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Total Users</p>
                   <p className="text-2xl font-bold">{users.length}</p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">With Member Role</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">With Member Role</p>
+                  <p className="text-2xl font-bold text-[#3b82f6]">
                     {users.filter((u) => u.memberRole).length}
                   </p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Total Spending</p>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Total Spending</p>
                   <p className="text-2xl font-bold text-purple-600">
                     Rp{" "}
                     {users
@@ -534,12 +534,12 @@ export default function UsersPage() {
               </>
             ) : activeTab === "stock" ? (
               <>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Total Accounts</p>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Total Accounts</p>
                   <p className="text-2xl font-bold">{stockAccounts.length}</p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Active Accounts</p>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Active Accounts</p>
                   <p className="text-2xl font-bold text-green-600">
                     {
                       stockAccounts.filter((acc) => acc.status === "active")
@@ -547,16 +547,16 @@ export default function UsersPage() {
                     }
                   </p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Total Robux</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Total Robux</p>
+                  <p className="text-2xl font-bold text-[#3b82f6]">
                     {stockAccounts
                       .reduce((sum, acc) => sum + (acc.robux || 0), 0)
                       .toLocaleString("id-ID")}
                   </p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Avg. Robux</p>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Avg. Robux</p>
                   <p className="text-2xl font-bold text-purple-600">
                     {stockAccounts.length > 0
                       ? Math.round(
@@ -571,8 +571,8 @@ export default function UsersPage() {
               </>
             ) : (
               <>
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 ">
-                  <p className="text-sm text-white">Total Admins</p>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Total Admins</p>
                   <p className="text-2xl font-bold">{users.length}</p>
                 </div>
               </>
@@ -581,35 +581,35 @@ export default function UsersPage() {
         </div>
 
         {/* Search */}
-        <div className="p-6 border-b border-gray-700">
+        <div className="p-6 border-b border-[#334155]">
           <input
             type="text"
             placeholder={`Search ${activeTab}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-64 px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-white bg-gray-700 placeholder-gray-400"
+            className="w-full md:w-64 px-4 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] text-[#f1f5f9] bg-[#334155] placeholder-[#94a3b8]"
           />
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700 text-white">
-            <thead className="bg-gray-800">
+          <table className="min-w-full divide-y divide-[#334155] text-[#f1f5f9]">
+            <thead className="bg-[#1e293b]">
               <tr>
                 {getColumns().map((column) => (
                   <th
                     key={column.key}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-[#94a3b8] uppercase tracking-wider"
                   >
                     {column.label}
                   </th>
                 ))}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#94a3b8] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-gray-800 text-white divide-y divide-gray-700">
+            <tbody className="bg-[#1e293b] text-[#f1f5f9] divide-y divide-[#334155]">
               {tableLoading ? (
                 <tr>
                   <td
@@ -618,7 +618,7 @@ export default function UsersPage() {
                   >
                     <div className="flex justify-center items-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-                      <span className="ml-2 text-gray-400">Loading...</span>
+                      <span className="ml-2 text-[#94a3b8]">Loading...</span>
                     </div>
                   </td>
                 </tr>
@@ -634,20 +634,20 @@ export default function UsersPage() {
                         .includes(searchTerm.toLowerCase())
                   )
                   .map((account) => (
-                    <tr key={account._id} className="hover:bg-gray-700">
+                    <tr key={account._id} className="hover:bg-[#334155]">
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {account.userId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center text-white font-semibold">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center text-[#f1f5f9] font-semibold">
                             {account.username.charAt(0).toUpperCase()}
                           </div>
                           <div className="ml-3">
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium text-[#f1f5f9]">
                               {account.username}
                             </p>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-[#94a3b8]">
                               ID: {account.userId}
                             </p>
                           </div>
@@ -672,7 +672,7 @@ export default function UsersPage() {
                           {account.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#94a3b8]">
                         {new Date(account.lastChecked).toLocaleDateString(
                           "id-ID"
                         )}
@@ -685,7 +685,7 @@ export default function UsersPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => handleEditStockAccount(account)}
-                          className="text-blue-400 hover:text-blue-300 mr-3"
+                          className="text-[#60a5fa] hover:text-[#93c5fd] mr-3"
                         >
                           Update
                         </button>
@@ -700,7 +700,7 @@ export default function UsersPage() {
                   ))
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-700">
+                  <tr key={user._id} className="hover:bg-[#334155]">
                     {activeTab === "users" ? (
                       <>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -708,12 +708,12 @@ export default function UsersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-[#f1f5f9] font-semibold">
                               {user.firstName.charAt(0)}
                               {user.lastName.charAt(0)}
                             </div>
                             <div className="ml-3">
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-[#f1f5f9]">
                                 {user.firstName} {user.lastName}
                               </p>
                               {user.memberRole &&
@@ -740,12 +740,12 @@ export default function UsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {user.memberRole &&
                           typeof user.memberRole === "object" ? (
-                            <span className="bg-blue-800 text-blue-300 px-2 py-1 rounded text-xs">
+                            <span className="bg-[#1e40af] text-[#93c5fd] px-2 py-1 rounded text-xs">
                               {user.memberRole.member} ({user.memberRole.diskon}
                               %)
                             </span>
                           ) : (
-                            <span className="text-gray-400 text-xs">
+                            <span className="text-[#94a3b8] text-xs">
                               No Role
                             </span>
                           )}
@@ -761,12 +761,12 @@ export default function UsersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 flex items-center justify-center text-white font-semibold">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 flex items-center justify-center text-[#f1f5f9] font-semibold">
                               {user.firstName.charAt(0)}
                               {user.lastName.charAt(0)}
                             </div>
                             <div className="ml-3">
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-[#f1f5f9]">
                                 {user.firstName} {user.lastName}
                               </p>
                             </div>
@@ -797,7 +797,7 @@ export default function UsersPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => handleEdit(user)}
-                        className="text-blue-400 hover:text-blue-300 mr-3"
+                        className="text-[#60a5fa] hover:text-[#93c5fd] mr-3"
                       >
                         Edit
                       </button>
@@ -822,8 +822,8 @@ export default function UsersPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 text-white">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 text-[#f1f5f9]">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
               {selectedUser || selectedStockAccount
                 ? `Edit ${activeTab === "stock" ? "Stock Account" : "User"}`
@@ -840,7 +840,7 @@ export default function UsersPage() {
                 {activeTab === "stock" ? (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                         Roblox Cookie
                       </label>
                       <textarea
@@ -854,9 +854,9 @@ export default function UsersPage() {
                           })
                         }
                         placeholder="Paste your Roblox .ROBLOSECURITY cookie here..."
-                        className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400 resize-none"
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8] resize-none"
                       />
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-[#94a3b8] mt-1">
                         The system will automatically validate the cookie and
                         extract user information.
                       </p>
@@ -865,7 +865,7 @@ export default function UsersPage() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                         First Name
                       </label>
                       <input
@@ -878,11 +878,11 @@ export default function UsersPage() {
                             firstName: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                         Last Name
                       </label>
                       <input
@@ -892,11 +892,11 @@ export default function UsersPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, lastName: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                         Email
                       </label>
                       <input
@@ -906,7 +906,7 @@ export default function UsersPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                       />
                     </div>
                   </>
@@ -914,7 +914,7 @@ export default function UsersPage() {
 
                 {activeTab === "admins" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Access Role
                     </label>
                     <select
@@ -925,7 +925,7 @@ export default function UsersPage() {
                           accessRole: e.target.value as "user" | "admin",
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>
@@ -935,7 +935,7 @@ export default function UsersPage() {
 
                 {activeTab !== "stock" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Password
                     </label>
                     <input
@@ -950,14 +950,14 @@ export default function UsersPage() {
                           ? "Leave empty to keep current password"
                           : "Enter password"
                       }
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                     />
                   </div>
                 )}
 
                 {(activeTab === "users" || activeTab === "admins") && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Phone
                     </label>
                     <input
@@ -966,14 +966,14 @@ export default function UsersPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                     />
                   </div>
                 )}
 
                 {activeTab === "users" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Member Role
                     </label>
                     <select
@@ -981,7 +981,7 @@ export default function UsersPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, memberRole: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
                     >
                       <option value="">No Member Role</option>
                       {roles.map((role) => (
@@ -995,7 +995,7 @@ export default function UsersPage() {
 
                 {activeTab === "admins" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Access Role
                     </label>
                     <select
@@ -1006,7 +1006,7 @@ export default function UsersPage() {
                           accessRole: e.target.value as "user" | "admin",
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white"
+                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>
@@ -1016,7 +1016,7 @@ export default function UsersPage() {
 
                 {!selectedUser && activeTab !== "stock" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Password
                     </label>
                     <input
@@ -1026,7 +1026,7 @@ export default function UsersPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
+                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                     />
                   </div>
                 )}
@@ -1039,17 +1039,17 @@ export default function UsersPage() {
                     setSelectedUser(null);
                     setSelectedStockAccount(null);
                   }}
-                  className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 text-white"
+                  className="px-4 py-2 border border-[#334155] rounded-lg hover:bg-[#334155] text-[#f1f5f9]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitLoading}
-                  className={`px-4 py-2 text-white rounded-lg flex items-center ${
+                  className={`px-4 py-2 text-[#f1f5f9] rounded-lg flex items-center ${
                     submitLoading
-                      ? "bg-gray-600 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
+                      ? "bg-[#475569] cursor-not-allowed"
+                      : "bg-[#3b82f6] hover:bg-[#1d4ed8]"
                   }`}
                 >
                   {submitLoading && (

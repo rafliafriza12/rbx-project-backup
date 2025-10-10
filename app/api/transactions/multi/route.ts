@@ -181,17 +181,31 @@ export async function POST(request: NextRequest) {
     const discount = discountAmount || 0;
     const finalAmountBeforeFee = finalAmount || subtotal - discount;
 
-    // Create a master order ID for grouping
+    // Create a master order ID for grouping BEFORE saving transactions
     const masterOrderId = `MULTI-${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 8)
       .toUpperCase()}`;
+
+    console.log("=== MASTER ORDER ID CREATED ===");
+    console.log("Master Order ID:", masterOrderId);
+
+    // NOW set midtransOrderId for all transactions BEFORE Midtrans call
+    createdTransactions.forEach((transaction) => {
+      transaction.midtransOrderId = masterOrderId;
+    });
 
     // Create Midtrans Snap transaction for all items
     try {
       const midtransService = new MidtransService();
       const baseUrl =
         process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+      // Calculate sum of items before adding discount and fee
+      const itemsSubtotal = midtransItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
 
       // Add discount item if applicable
       if (discount > 0) {
@@ -205,9 +219,39 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Calculate payment fee (difference between final amount and items total)
+      const itemsTotal = midtransItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+      const paymentFee = Math.round(finalAmountBeforeFee) - itemsTotal;
+
+      // Add payment fee if applicable
+      if (paymentFee > 0) {
+        midtransItems.push({
+          id: "PAYMENT_FEE",
+          price: paymentFee,
+          quantity: 1,
+          name: "Biaya Admin",
+          brand: "RBX Store",
+          category: "fee",
+        });
+      }
+
       console.log("=== MIDTRANS ITEMS DEBUG ===");
       console.log("Items:", JSON.stringify(midtransItems, null, 2));
+      console.log("Items subtotal:", itemsSubtotal);
+      console.log("Items with discount:", itemsTotal);
+      console.log("Payment fee:", paymentFee);
       console.log("Final Amount:", finalAmountBeforeFee);
+      console.log("Payment method ID:", paymentMethodId);
+
+      // Map payment method to Midtrans enabled_payments
+      const enabledPayments = paymentMethodId
+        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethodId)
+        : undefined;
+
+      console.log("Enabled payments for Midtrans:", enabledPayments);
 
       const snapResult = await midtransService.createSnapTransaction({
         orderId: masterOrderId,
@@ -218,6 +262,7 @@ export async function POST(request: NextRequest) {
           email: customerInfo.email,
           phone: customerInfo.phone || "",
         },
+        enabledPayments,
         expiryHours: 24,
         callbackUrls: {
           finish: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
@@ -226,11 +271,11 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Update all transactions with Midtrans data
+      // Update all transactions with Midtrans data (snapToken and redirectUrl)
       const updatePromises = createdTransactions.map(async (transaction) => {
         transaction.snapToken = snapResult.token;
         transaction.redirectUrl = snapResult.redirect_url;
-        transaction.midtransOrderId = masterOrderId; // Same order ID for all items in this checkout
+        // midtransOrderId already set before Midtrans call
         await transaction.save();
       });
 
@@ -238,18 +283,22 @@ export async function POST(request: NextRequest) {
 
       console.log(`All transactions updated with Midtrans data`);
 
-      // Send invoice email for the first transaction (or create a combined invoice)
+      // Send invoice email with all transactions for multi-checkout
       try {
         if (customerInfo.email) {
           console.log("Sending invoice email to:", customerInfo.email);
+          console.log(
+            "Number of transactions in invoice:",
+            createdTransactions.length
+          );
 
-          // Send email for the first transaction as a summary
+          // Send email with all transactions (multi-checkout invoice)
           const emailSent = await EmailService.sendInvoiceEmail(
-            createdTransactions[0]
+            createdTransactions // Pass array of all transactions
           );
 
           if (emailSent) {
-            console.log("Invoice email sent successfully");
+            console.log("Multi-checkout invoice email sent successfully");
           } else {
             console.warn(
               "Failed to send invoice email, but transactions were created"

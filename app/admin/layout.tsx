@@ -670,174 +670,136 @@ export default function AdminLayout({
         {adminStyles}
       </style>
 
-      <div
-        className="admin-layout flex h-screen"
-        style={{ background: "#1a1a1a" }}
-      >
-        {/* Sidebar */}
-        <aside
-          className={`sidebar ${
-            sidebarOpen ? "w-64" : "w-20"
-          } transition-all duration-300 ease-in-out border-r`}
-          style={{
-            background: "#0f172a",
-            borderColor: "#1e293b",
-          }}
-        >
-          <div className="flex h-full flex-col">
-            {/* Logo */}
-            <div
-              className="flex h-16 items-center justify-between px-6 border-b"
-              style={{ borderColor: "#1e293b" }}
-            >
-              <h2
-                className={`font-bold text-xl ${!sidebarOpen && "hidden"}`}
-                style={{ color: "#ffffff" }}
-              >
-                RBX Admin
-              </h2>
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d={
-                      sidebarOpen
-                        ? "M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                        : "M13 5l7 7-7 7M5 5l7 7-7 7"
-                    }
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* User Info */}
-            <div
-              className="px-6 py-4 border-b"
-              style={{ borderColor: "#1e293b" }}
-            >
-              <p
-                className={`text-sm ${!sidebarOpen && "hidden"}`}
-                style={{ color: "#9ca3af" }}
-              >
-                Welcome back,
-              </p>
-              <p
-                className={`font-semibold ${!sidebarOpen && "hidden"}`}
-                style={{ color: "#ffffff" }}
-              >
-                {userName || "Admin"}
-              </p>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 px-3 py-4">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`nav-item flex items-center px-3 py-3 mb-1 rounded-lg transition-colors ${
-                    pathname === item.href ? "active" : ""
-                  }`}
-                  style={{
-                    backgroundColor:
-                      pathname === item.href ? "#3b82f6" : "transparent",
-                    color: pathname === item.href ? "#ffffff" : "#94a3b8",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (pathname !== item.href) {
-                      e.currentTarget.style.backgroundColor = "#334155";
-                      e.currentTarget.style.color = "#f1f5f9";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (pathname !== item.href) {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "#94a3b8";
-                    }
-                  }}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <span className={`ml-3 ${!sidebarOpen && "hidden"}`}>
-                    {item.title}
-                  </span>
-                </Link>
-              ))}
-            </nav>
-
-            {/* Logout */}
-            <div
-              className="px-3 py-4 border-t"
-              style={{ borderColor: "#334155" }}
-            >
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-3 py-3 rounded-lg transition-colors"
-                style={{ color: "#94a3b8" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#334155";
-                  e.currentTarget.style.color = "#f1f5f9";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.color = "#94a3b8";
-                }}
-              >
-                <span className="text-xl">🚪</span>
-                <span className={`ml-3 ${!sidebarOpen && "hidden"}`}>
-                  Logout
-                </span>
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <header
-            className="header shadow-sm border-b"
-            style={{
-              background: "#1e293b",
-              borderColor: "#334155",
-            }}
+      <div className="admin-layout min-h-screen bg-[#0f172a]">
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
+          <aside
+            className={`${
+              sidebarOpen ? "w-64" : "w-20"
+            } transition-all duration-300 ease-in-out bg-[#1e293b] border-r border-[#334155] flex-shrink-0`}
           >
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h1
-                  className="text-2xl font-semibold"
-                  style={{ color: "#f1f5f9" }}
+            <div className="flex h-full flex-col">
+              {/* Logo */}
+              <div className="flex h-16 items-center justify-between px-6 border-b border-[#334155]">
+                <h2
+                  className={`font-bold text-xl text-[#f1f5f9] ${
+                    !sidebarOpen && "hidden"
+                  }`}
                 >
-                  {menuItems.find((item) => item.href === pathname)?.title ||
-                    "Dashboard"}
-                </h1>
+                  RBX Admin
+                </h2>
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="text-[#94a3b8] hover:text-[#f1f5f9] transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={
+                        sidebarOpen
+                          ? "M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                          : "M13 5l7 7-7 7M5 5l7 7-7 7"
+                      }
+                    />
+                  </svg>
+                </button>
+              </div>
 
-                {/* Notification & Profile */}
+              {/* User Info */}
+              <div className="px-6 py-4 border-b border-[#334155]">
+                <p
+                  className={`text-sm text-[#94a3b8] ${
+                    !sidebarOpen && "hidden"
+                  }`}
+                >
+                  Welcome back,
+                </p>
+                <p
+                  className={`font-semibold text-[#f1f5f9] ${
+                    !sidebarOpen && "hidden"
+                  }`}
+                >
+                  {userName || "Admin"}
+                </p>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex-1 px-3 py-4 overflow-y-auto">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`nav-item flex items-center px-3 py-3 mb-1 rounded-lg transition-colors ${
+                      pathname === item.href ? "active" : ""
+                    }`}
+                    style={{
+                      backgroundColor:
+                        pathname === item.href ? "#3b82f6" : "transparent",
+                      color: pathname === item.href ? "#ffffff" : "#94a3b8",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (pathname !== item.href) {
+                        e.currentTarget.style.backgroundColor = "#334155";
+                        e.currentTarget.style.color = "#f1f5f9";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (pathname !== item.href) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "#94a3b8";
+                      }
+                    }}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span className={`ml-3 ${!sidebarOpen && "hidden"}`}>
+                      {item.title}
+                    </span>
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Logout */}
+              <div className="px-3 py-4 border-t border-[#334155]">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full px-3 py-3 rounded-lg transition-colors text-[#94a3b8] hover:bg-[#334155] hover:text-[#f1f5f9]"
+                >
+                  <span className="text-xl">🚪</span>
+                  <span className={`ml-3 ${!sidebarOpen && "hidden"}`}>
+                    Logout
+                  </span>
+                </button>
               </div>
             </div>
-          </header>
+          </aside>
 
-          {/* Page Content */}
-          <main
-            className="main-content flex-1 overflow-x-hidden overflow-y-auto"
-            style={{ background: "#0f172a" }}
-          >
-            <div
-              className="container mx-auto px-6 py-8 "
-              style={{ color: "#f1f5f9" }}
-            >
-              {children}
-            </div>
-          </main>
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header */}
+            <header className="bg-[#1e293b] border-b border-[#334155] shadow-lg flex-shrink-0">
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-2xl font-semibold text-[#f1f5f9]">
+                    {menuItems.find((item) => item.href === pathname)?.title ||
+                      "Dashboard"}
+                  </h1>
+                  {/* Notification & Profile can be added here */}
+                </div>
+              </div>
+            </header>
+
+            {/* Page Content */}
+            <main className="flex-1 overflow-y-auto  p-6">
+              <div className=" ">{children}</div>
+            </main>
+          </div>
         </div>
       </div>
     </>

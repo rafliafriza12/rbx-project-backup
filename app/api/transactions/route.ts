@@ -282,13 +282,33 @@ async function handleMultiItemDirectPurchase(body: any) {
     discountAmount,
     finalAmount,
     additionalNotes,
+    paymentMethodId, // Frontend sends paymentMethodId
   } = body;
+
+  // Use paymentMethodId as the payment method
+  const paymentMethod = paymentMethodId;
 
   console.log("=== MULTI-ITEM DIRECT PURCHASE DEBUG ===");
   console.log("Number of items:", items.length);
   console.log("Customer info:", customerInfo);
   console.log("User ID:", userId);
   console.log("Additional notes:", additionalNotes);
+  console.log("Payment method ID:", paymentMethodId);
+  console.log("Payment method:", paymentMethod);
+
+  // Fetch payment method name if paymentMethodId is provided
+  let paymentMethodName = null;
+  if (paymentMethodId) {
+    try {
+      const PaymentMethod = (await import("@/models/PaymentMethod")).default;
+      const paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+      if (paymentMethodDoc) {
+        paymentMethodName = paymentMethodDoc.name;
+      }
+    } catch (error) {
+      console.error("Error fetching payment method:", error);
+    }
+  }
 
   // CRITICAL: Validasi Rbx 5 Hari hanya boleh 1 item per checkout
   // Karena ada automasi gamepass creation yang harus dijalankan per-transaction
@@ -385,6 +405,8 @@ async function handleMultiItemDirectPurchase(body: any) {
       robloxUsername: item.robloxUsername,
       robloxPassword: item.robloxPassword || "",
       customerNotes: additionalNotes || "", // Customer notes dari form checkout
+      paymentMethodId: paymentMethodId || null,
+      paymentMethodName: paymentMethodName,
       customerInfo: {
         ...customerInfo,
         userId: userId || null,
@@ -446,13 +468,47 @@ async function handleMultiItemDirectPurchase(body: any) {
     totalAmount ||
     createdTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
   const discount = discountAmount || 0;
+  const discountPercent = discountPercentage || 0;
   const finalAmountAfterDiscount = finalAmount || subtotal - discount;
 
-  // Create a master order ID for grouping
+  // Update each transaction with proportional discount
+  if (discount > 0 && createdTransactions.length > 0) {
+    for (const transaction of createdTransactions) {
+      // Calculate proportion of this item to subtotal
+      const itemProportion = transaction.totalAmount / subtotal;
+
+      // Calculate proportional discount for this item
+      const itemDiscountAmount = discount * itemProportion;
+      const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
+
+      // Update transaction with discount info
+      transaction.discountPercentage = discountPercent;
+      transaction.discountAmount = itemDiscountAmount;
+      transaction.finalAmount = itemFinalAmount;
+
+      await transaction.save();
+    }
+  }
+
+  // Create a master order ID for grouping BEFORE Midtrans call
   const masterOrderId = `ORDER-${Date.now()}-${Math.random()
     .toString(36)
     .substring(2, 8)
     .toUpperCase()}`;
+
+  console.log("=== MASTER ORDER ID CREATED ===");
+  console.log("Master Order ID:", masterOrderId);
+
+  // Set midtransOrderId for all transactions BEFORE Midtrans call
+  createdTransactions.forEach((transaction) => {
+    transaction.midtransOrderId = masterOrderId;
+  });
+
+  // Calculate sum of items before adding discount and fee
+  const itemsSubtotal = midtransItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   // Add discount item if applicable
   if (discount > 0) {
@@ -466,6 +522,25 @@ async function handleMultiItemDirectPurchase(body: any) {
     });
   }
 
+  // Calculate payment fee (difference between final amount and items total)
+  const itemsTotal = midtransItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const paymentFee = Math.round(finalAmountAfterDiscount) - itemsTotal;
+
+  // Add payment fee if applicable
+  if (paymentFee > 0) {
+    midtransItems.push({
+      id: "PAYMENT_FEE",
+      price: paymentFee,
+      quantity: 1,
+      name: "Biaya Admin",
+      brand: "RBX Store",
+      category: "fee",
+    });
+  }
+
   // Create Midtrans Snap transaction for all items
   try {
     const midtransService = new MidtransService();
@@ -473,7 +548,18 @@ async function handleMultiItemDirectPurchase(body: any) {
 
     console.log("=== MIDTRANS MULTI-ITEM DEBUG ===");
     console.log("Items:", JSON.stringify(midtransItems, null, 2));
+    console.log("Items subtotal:", itemsSubtotal);
+    console.log("Items with discount:", itemsTotal);
+    console.log("Payment fee:", paymentFee);
     console.log("Final Amount:", finalAmountAfterDiscount);
+    console.log("Payment method:", paymentMethod);
+
+    // Map payment method to Midtrans enabled_payments
+    const enabledPayments = paymentMethod
+      ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
+      : undefined;
+
+    console.log("Enabled payments for Midtrans:", enabledPayments);
 
     const snapResult = await midtransService.createSnapTransaction({
       orderId: masterOrderId,
@@ -484,6 +570,7 @@ async function handleMultiItemDirectPurchase(body: any) {
         email: customerInfo.email,
         phone: customerInfo.phone || "",
       },
+      enabledPayments,
       expiryHours: 24,
       callbackUrls: {
         finish: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
@@ -492,11 +579,11 @@ async function handleMultiItemDirectPurchase(body: any) {
       },
     });
 
-    // Update all transactions with Midtrans data
+    // Update all transactions with Midtrans data (snapToken and redirectUrl)
     const updatePromises = createdTransactions.map(async (transaction) => {
       transaction.snapToken = snapResult.token;
       transaction.redirectUrl = snapResult.redirect_url;
-      transaction.midtransOrderId = masterOrderId;
+      // midtransOrderId already set before Midtrans call
       await transaction.save();
     });
 
@@ -574,7 +661,11 @@ async function handleSingleItemTransaction(body: any) {
     userId,
     gamepass,
     additionalNotes,
+    paymentMethodId, // Frontend sends paymentMethodId for single checkout
   } = body;
+
+  // Use paymentMethodId as the payment method
+  const paymentMethod = paymentMethodId;
 
   console.log("Extracted fields:", {
     serviceType,
@@ -652,6 +743,20 @@ async function handleSingleItemTransaction(body: any) {
   const calculatedTotalAmount = totalAmount || quantity * unitPrice;
   const calculatedFinalAmount = finalAmount || calculatedTotalAmount;
 
+  // Fetch payment method name if paymentMethodId is provided
+  let paymentMethodName = null;
+  if (paymentMethodId) {
+    try {
+      const PaymentMethod = (await import("@/models/PaymentMethod")).default;
+      const paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+      if (paymentMethodDoc) {
+        paymentMethodName = paymentMethodDoc.name;
+      }
+    } catch (error) {
+      console.error("Error fetching payment method:", error);
+    }
+  }
+
   // Buat transaksi baru
   const transactionData: any = {
     serviceType,
@@ -671,6 +776,8 @@ async function handleSingleItemTransaction(body: any) {
     robuxInstantDetails: robuxInstantDetails || undefined,
     rbx5Details: rbx5Details || undefined,
     gamepassDetails: gamepassDetails || undefined,
+    paymentMethodId: paymentMethodId || null,
+    paymentMethodName: paymentMethodName,
     customerInfo: {
       ...customerInfo,
       userId: userId || null, // Store userId in customerInfo
@@ -753,12 +860,46 @@ async function handleSingleItemTransaction(body: any) {
       "Finish URL:",
       `${baseUrl}/transaction/success?order_id=${midtransOrderId}`
     );
+    console.log("Payment method:", paymentMethod);
+
+    // Calculate sum of items to check for rounding differences
+    const itemsTotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    const amountDifference = Math.round(calculatedFinalAmount) - itemsTotal;
+
+    // Add payment fee if there's a difference (due to rounding or actual fee)
+    if (amountDifference > 0) {
+      items.push({
+        id: "PAYMENT_FEE",
+        price: amountDifference,
+        quantity: 1,
+        name: "Biaya Admin",
+        brand: "RBX Store",
+        category: "fee",
+      });
+    }
+
+    console.log("=== MIDTRANS SINGLE-ITEM DEBUG ===");
+    console.log("Items:", JSON.stringify(items, null, 2));
+    console.log("Items total:", itemsTotal);
+    console.log("Amount difference:", amountDifference);
+    console.log("Final Amount:", calculatedFinalAmount);
+
+    // Map payment method to Midtrans enabled_payments
+    const enabledPayments = paymentMethod
+      ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
+      : undefined;
+
+    console.log("Enabled payments for Midtrans:", enabledPayments);
 
     const snapResult = await midtransService.createSnapTransaction({
       orderId: midtransOrderId,
       amount: calculatedFinalAmount, // Use final amount after discount
       items,
       customer,
+      enabledPayments,
       expiryHours: 24,
       callbackUrls: {
         finish: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,

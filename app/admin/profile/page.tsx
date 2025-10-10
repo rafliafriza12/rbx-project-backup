@@ -128,17 +128,17 @@ export default function ProfilePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white">My Profile</h2>
-        <p className="mt-1 text-sm text-gray-400">
+        <h2 className="text-2xl font-bold text-[#f1f5f9]">My Profile</h2>
+        <p className="mt-1 text-sm text-[#94a3b8]">
           Manage your personal information and security settings
         </p>
       </div>
 
       {/* Profile Card */}
-      <div className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
-        <div className="flex items-center space-x-6 mb-6 text-white">
+      <div className="bg-[#1e293b] rounded-lg shadow p-6 border border-[#334155]">
+        <div className="flex items-center space-x-6 mb-6 text-[#f1f5f9]">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white text-3xl font-bold">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-[#f1f5f9] text-3xl font-bold">
               {profileData.avatar ? (
                 <img
                   src={profileData.avatar}
@@ -149,9 +149,9 @@ export default function ProfilePage() {
                 profileData.name.charAt(0)
               )}
             </div>
-            <label className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-2 cursor-pointer hover:bg-blue-700 border border-blue-500">
+            <label className="absolute bottom-0 right-0 bg-[#3b82f6] rounded-full p-2 cursor-pointer hover:bg-[#1d4ed8] border border-[#3b82f6]">
               <svg
-                className="w-4 h-4 text-white"
+                className="w-4 h-4 text-[#f1f5f9]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -173,7 +173,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <h3 className="text-xl font-semibold">{profileData.name}</h3>
-            <p className="text-gray-400">@{profileData.username}</p>
+            <p className="text-[#94a3b8]">@{profileData.username}</p>
             <span className="inline-block mt-2 px-3 py-1 bg-red-900 text-red-300 rounded-full text-xs font-semibold border border-red-700">
               {profileData.role.toUpperCase()}
             </span>
@@ -181,14 +181,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-700 mb-6">
+        <div className="border-b border-[#334155] mb-6">
           <nav className="flex -mb-px space-x-8">
             <button
               onClick={() => setActiveTab("personal")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "personal"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-transparent text-gray-400 hover:text-gray-300"
+                  ? "border-blue-400 text-[#60a5fa]"
+                  : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1]"
               }`}
             >
               Personal Information
@@ -197,8 +197,8 @@ export default function ProfilePage() {
               onClick={() => setActiveTab("security")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "security"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-transparent text-gray-400 hover:text-gray-300"
+                  ? "border-blue-400 text-[#60a5fa]"
+                  : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1]"
               }`}
             >
               Security
@@ -207,8 +207,8 @@ export default function ProfilePage() {
               onClick={() => setActiveTab("activity")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "activity"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-transparent text-gray-400 hover:text-gray-300"
+                  ? "border-blue-400 text-[#60a5fa]"
+                  : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1]"
               }`}
             >
               Activity Log
@@ -219,9 +219,9 @@ export default function ProfilePage() {
         {/* Tab Content */}
         {activeTab === "personal" && (
           <form onSubmit={handleProfileUpdate}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-white">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[#f1f5f9]">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Full Name
                 </label>
                 <input
@@ -230,11 +230,11 @@ export default function ProfilePage() {
                   onChange={(e) =>
                     setProfileData({ ...profileData, name: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Username
                 </label>
                 <input
@@ -243,11 +243,11 @@ export default function ProfilePage() {
                   onChange={(e) =>
                     setProfileData({ ...profileData, username: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Email Address
                 </label>
                 <input
@@ -256,11 +256,11 @@ export default function ProfilePage() {
                   onChange={(e) =>
                     setProfileData({ ...profileData, email: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Phone Number
                 </label>
                 <input
@@ -269,7 +269,7 @@ export default function ProfilePage() {
                   onChange={(e) =>
                     setProfileData({ ...profileData, phone: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                 />
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 border border-blue-500"
+                className="px-6 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 border border-[#3b82f6]"
               >
                 {loading ? "Saving..." : "Save Changes"}
               </button>
@@ -286,16 +286,16 @@ export default function ProfilePage() {
         )}
 
         {activeTab === "security" && (
-          <div className="space-y-6 text-white">
+          <div className="space-y-6 text-[#f1f5f9]">
             {/* Change Password */}
             <div>
-              <h4 className="text-lg font-medium mb-4 text-white">
+              <h4 className="text-lg font-medium mb-4 text-[#f1f5f9]">
                 Change Password
               </h4>
               <form onSubmit={handlePasswordChange}>
                 <div className="space-y-4 max-w-md">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                       Current Password
                     </label>
                     <input
@@ -307,12 +307,12 @@ export default function ProfilePage() {
                           current: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                       New Password
                     </label>
                     <input
@@ -324,12 +324,12 @@ export default function ProfilePage() {
                           new: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                       Confirm New Password
                     </label>
                     <input
@@ -341,14 +341,14 @@ export default function ProfilePage() {
                           confirm: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                       required
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 border border-blue-500"
+                    className="px-6 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 border border-[#3b82f6]"
                   >
                     {loading ? "Changing..." : "Change Password"}
                   </button>
@@ -357,19 +357,19 @@ export default function ProfilePage() {
             </div>
 
             {/* Two-Factor Authentication */}
-            <div className="pt-6 border-t border-gray-700">
-              <h4 className="text-lg font-medium mb-4 text-white">
+            <div className="pt-6 border-t border-[#334155]">
+              <h4 className="text-lg font-medium mb-4 text-[#f1f5f9]">
                 Two-Factor Authentication
               </h4>
-              <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+              <div className="bg-[#334155] p-4 rounded-lg border border-[#334155]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white">Enable 2FA</p>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="font-medium text-[#f1f5f9]">Enable 2FA</p>
+                    <p className="text-sm text-[#94a3b8] mt-1">
                       Add an extra layer of security to your account
                     </p>
                   </div>
-                  <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 border border-green-500">
+                  <button className="px-4 py-2 bg-green-600 text-[#f1f5f9] rounded-lg hover:bg-green-700 border border-green-500">
                     Enable
                   </button>
                 </div>
@@ -377,15 +377,15 @@ export default function ProfilePage() {
             </div>
 
             {/* Active Sessions */}
-            <div className="pt-6 border-t border-gray-700">
-              <h4 className="text-lg font-medium mb-4 text-white">
+            <div className="pt-6 border-t border-[#334155]">
+              <h4 className="text-lg font-medium mb-4 text-[#f1f5f9]">
                 Active Sessions
               </h4>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border border-gray-600">
+                <div className="flex items-center justify-between p-3 bg-[#334155] rounded-lg border border-[#334155]">
                   <div className="flex items-center">
                     <svg
-                      className="w-5 h-5 text-gray-400 mr-3"
+                      className="w-5 h-5 text-[#94a3b8] mr-3"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -398,8 +398,8 @@ export default function ProfilePage() {
                       />
                     </svg>
                     <div>
-                      <p className="font-medium text-white">Windows - Chrome</p>
-                      <p className="text-sm text-gray-400">
+                      <p className="font-medium text-[#f1f5f9]">Windows - Chrome</p>
+                      <p className="text-sm text-[#94a3b8]">
                         192.168.1.1 • Current session
                       </p>
                     </div>
@@ -414,38 +414,38 @@ export default function ProfilePage() {
         )}
 
         {activeTab === "activity" && (
-          <div className="text-white">
-            <h4 className="text-lg font-medium mb-4 text-white">
+          <div className="text-[#f1f5f9]">
+            <h4 className="text-lg font-medium mb-4 text-[#f1f5f9]">
               Recent Activity
             </h4>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead className="bg-gray-700">
+              <table className="min-w-full divide-y divide-[#334155]">
+                <thead className="bg-[#334155]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                       Action
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                       IP Address
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                       Timestamp
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                <tbody className="bg-[#1e293b] divide-y divide-[#334155]">
                   {activities.map((activity) => (
                     <tr key={activity.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#f1f5f9]">
                         {activity.action}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#94a3b8]">
                         {activity.ip}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#94a3b8]">
                         {activity.timestamp}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

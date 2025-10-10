@@ -25,6 +25,42 @@ export interface JokiDetails {
   [key: string]: any;
 }
 
+export interface GamepassDetails {
+  gameName?: string;
+  itemName?: string;
+  gamepassId?: string;
+  additionalInfo?: string;
+}
+
+export interface Rbx5Details {
+  robuxAmount?: number;
+  packageName?: string;
+  selectedPlace?: {
+    placeId: number;
+    name: string;
+    universeId: number;
+  };
+  gamepassAmount?: number;
+  gamepassCreated?: boolean;
+  gamepass?: {
+    id: number;
+    name: string;
+    price: number;
+    productId: number;
+    sellerId: number;
+  };
+  pricePerRobux?: any;
+  backupCode?: string;
+}
+
+export interface RobuxInstantDetails {
+  notes?: string;
+  additionalInfo?: string;
+  robuxAmount?: number;
+  productName?: string;
+  description?: string;
+}
+
 export interface Transaction {
   _id: string;
   userId?: string | null;
@@ -32,6 +68,7 @@ export interface Transaction {
   serviceId: string;
   serviceName: string;
   serviceImage?: string;
+  serviceCategory?: string;
   quantity: number;
   unitPrice: number;
   totalAmount: number;
@@ -42,6 +79,10 @@ export interface Transaction {
   robloxUsername: string;
   robloxPassword?: string;
   jokiDetails?: JokiDetails;
+  gamepassDetails?: GamepassDetails;
+  rbx5Details?: Rbx5Details;
+  robuxInstantDetails?: RobuxInstantDetails;
+  gamepass?: any;
   paymentStatus: "pending" | "settlement" | "expired" | "cancelled" | "failed";
   orderStatus:
     | "waiting_payment"
@@ -52,6 +93,7 @@ export interface Transaction {
     | "failed";
   customerInfo: CustomerInfo;
   adminNotes?: string;
+  customerNotes?: string;
   invoiceId: string;
   statusHistory: TransactionStatusHistory[];
   expiresAt?: string;
@@ -63,6 +105,9 @@ export interface Transaction {
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+  // For grouped transactions (multi-checkout)
+  relatedTransactions?: Transaction[];
+  isMultiCheckout?: boolean;
 }
 
 export interface ApiResponse<T> {

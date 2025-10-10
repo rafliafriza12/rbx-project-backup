@@ -80,12 +80,12 @@ export default function EmailManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-[#0f172a] p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+        <div className="bg-[#1e293b] rounded-lg shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[#f1f5f9] flex items-center gap-3">
               <svg
                 className="w-8 h-8"
                 fill="none"
@@ -108,10 +108,10 @@ export default function EmailManagementPage() {
 
           <div className="p-6">
             {/* Info Card */}
-            <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-6">
+            <div className="bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4 mb-6">
               <div className="flex items-start gap-3">
                 <svg
-                  className="w-6 h-6 text-blue-400 mt-0.5"
+                  className="w-6 h-6 text-[#60a5fa] mt-0.5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -124,10 +124,10 @@ export default function EmailManagementPage() {
                   />
                 </svg>
                 <div>
-                  <h3 className="font-semibold text-blue-400 mb-1">
+                  <h3 className="font-semibold text-[#60a5fa] mb-1">
                     Kapan menggunakan fitur ini?
                   </h3>
-                  <ul className="text-blue-300 text-sm space-y-1">
+                  <ul className="text-[#93c5fd] text-sm space-y-1">
                     <li>• Customer kehilangan email invoice</li>
                     <li>• Customer mengganti email address</li>
                     <li>• Email gagal terkirim saat transaksi dibuat</li>
@@ -141,7 +141,7 @@ export default function EmailManagementPage() {
             <form onSubmit={handleResendInvoice} className="space-y-6">
               {/* Search Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-3">
                   Cari Transaksi Berdasarkan:
                 </label>
                 <div className="flex gap-4">
@@ -154,9 +154,9 @@ export default function EmailManagementPage() {
                         setSearchType(e.target.value as "invoiceId");
                         clearForm();
                       }}
-                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500"
+                      className="w-4 h-4 text-[#3b82f6] bg-[#334155] border-[#334155] focus:ring-[#3b82f6]"
                     />
-                    <span className="ml-2 text-gray-300">Invoice ID</span>
+                    <span className="ml-2 text-[#cbd5e1]">Invoice ID</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -167,9 +167,9 @@ export default function EmailManagementPage() {
                         setSearchType(e.target.value as "transactionId");
                         clearForm();
                       }}
-                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500"
+                      className="w-4 h-4 text-[#3b82f6] bg-[#334155] border-[#334155] focus:ring-[#3b82f6]"
                     />
-                    <span className="ml-2 text-gray-300">Transaction ID</span>
+                    <span className="ml-2 text-[#cbd5e1]">Transaction ID</span>
                   </label>
                 </div>
               </div>
@@ -178,7 +178,7 @@ export default function EmailManagementPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {searchType === "invoiceId" ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                       Invoice ID *
                     </label>
                     <input
@@ -188,17 +188,17 @@ export default function EmailManagementPage() {
                         handleInputChange("invoiceId", e.target.value)
                       }
                       placeholder="INV-1234567890-ABC123"
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
                       required
                     />
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-[#94a3b8] mt-1">
                       Format: INV-timestamp-random (contoh:
                       INV-1694621234567-ABC123)
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                       Transaction ID *
                     </label>
                     <input
@@ -208,10 +208,10 @@ export default function EmailManagementPage() {
                         handleInputChange("transactionId", e.target.value)
                       }
                       placeholder="60f7b3b3b3b3b3b3b3b3b3b3"
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
                       required
                     />
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-[#94a3b8] mt-1">
                       MongoDB ObjectID (24 karakter hexadecimal)
                     </p>
                   </div>
@@ -219,7 +219,7 @@ export default function EmailManagementPage() {
 
                 {/* Email Override */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Email Tujuan (Opsional)
                   </label>
                   <input
@@ -227,9 +227,9 @@ export default function EmailManagementPage() {
                     value={form.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     placeholder="customer@example.com"
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
+                    className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-[#94a3b8] mt-1">
                     Kosongkan untuk menggunakan email dari transaksi
                   </p>
                 </div>
@@ -240,7 +240,7 @@ export default function EmailManagementPage() {
                 <button
                   type="submit"
                   disabled={isResending}
-                  className="flex-1 md:flex-none px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                  className="flex-1 md:flex-none px-8 py-3 bg-[#3b82f6] text-[#f1f5f9] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                 >
                   {isResending ? (
                     <>
@@ -270,7 +270,7 @@ export default function EmailManagementPage() {
                 <button
                   type="button"
                   onClick={clearForm}
-                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  className="px-6 py-3 bg-[#475569] text-[#f1f5f9] rounded-lg hover:bg-[#334155] transition-colors"
                 >
                   Clear Form
                 </button>
@@ -278,16 +278,16 @@ export default function EmailManagementPage() {
             </form>
 
             {/* Instructions */}
-            <div className="mt-8 border-t border-gray-700 pt-6">
-              <h3 className="text-lg font-semibold text-gray-300 mb-4">
+            <div className="mt-8 border-t border-[#334155] pt-6">
+              <h3 className="text-lg font-semibold text-[#cbd5e1] mb-4">
                 📋 Cara Menggunakan:
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-400">
+                  <h4 className="font-medium text-[#94a3b8]">
                     1. Cari Invoice ID:
                   </h4>
-                  <ul className="text-sm text-gray-500 space-y-1 list-disc list-inside">
+                  <ul className="text-sm text-[#64748b] space-y-1 list-disc list-inside">
                     <li>Buka halaman Transactions di admin</li>
                     <li>Copy Invoice ID (contoh: INV-1234567890-ABC123)</li>
                     <li>Paste ke form di atas</li>
@@ -295,10 +295,10 @@ export default function EmailManagementPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-400">
+                  <h4 className="font-medium text-[#94a3b8]">
                     2. Override Email (Opsional):
                   </h4>
-                  <ul className="text-sm text-gray-500 space-y-1 list-disc list-inside">
+                  <ul className="text-sm text-[#64748b] space-y-1 list-disc list-inside">
                     <li>Kosongkan untuk email dari database</li>
                     <li>Isi jika customer ganti email</li>
                     <li>Email akan tersimpan di database</li>
@@ -308,14 +308,14 @@ export default function EmailManagementPage() {
             </div>
 
             {/* FAQ */}
-            <div className="mt-6 bg-gray-800/50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-400 mb-3">❓ FAQ:</h4>
+            <div className="mt-6 bg-[#1e293b]/50 rounded-lg p-4">
+              <h4 className="font-medium text-[#94a3b8] mb-3">❓ FAQ:</h4>
               <div className="space-y-2 text-sm">
-                <details className="text-gray-500">
-                  <summary className="cursor-pointer text-gray-400 hover:text-gray-300">
+                <details className="text-[#64748b]">
+                  <summary className="cursor-pointer text-[#94a3b8] hover:text-[#cbd5e1]">
                     Email tidak terkirim, apa yang harus dicek?
                   </summary>
-                  <div className="mt-2 pl-4 border-l-2 border-gray-700">
+                  <div className="mt-2 pl-4 border-l-2 border-[#334155]">
                     <p>
                       1. Pastikan konfigurasi email sudah benar di Settings →
                       Email Settings
@@ -326,11 +326,11 @@ export default function EmailManagementPage() {
                   </div>
                 </details>
 
-                <details className="text-gray-500">
-                  <summary className="cursor-pointer text-gray-400 hover:text-gray-300">
+                <details className="text-[#64748b]">
+                  <summary className="cursor-pointer text-[#94a3b8] hover:text-[#cbd5e1]">
                     Bisakah mengirim ke email yang berbeda dari transaksi?
                   </summary>
-                  <div className="mt-2 pl-4 border-l-2 border-gray-700">
+                  <div className="mt-2 pl-4 border-l-2 border-[#334155]">
                     <p>
                       Ya, masukkan email baru di field "Email Tujuan". Email
                       baru akan tersimpan di database menggantikan email lama.
@@ -338,18 +338,18 @@ export default function EmailManagementPage() {
                   </div>
                 </details>
 
-                <details className="text-gray-500">
-                  <summary className="cursor-pointer text-gray-400 hover:text-gray-300">
+                <details className="text-[#64748b]">
+                  <summary className="cursor-pointer text-[#94a3b8] hover:text-[#cbd5e1]">
                     Apakah template email bisa dikustomisasi?
                   </summary>
-                  <div className="mt-2 pl-4 border-l-2 border-gray-700">
+                  <div className="mt-2 pl-4 border-l-2 border-[#334155]">
                     <p>
                       Ya, edit file{" "}
-                      <code className="bg-gray-700 px-1 rounded">
+                      <code className="bg-[#334155] px-1 rounded">
                         lib/email.ts
                       </code>{" "}
                       pada method{" "}
-                      <code className="bg-gray-700 px-1 rounded">
+                      <code className="bg-[#334155] px-1 rounded">
                         generateInvoiceTemplate()
                       </code>{" "}
                       untuk mengubah template.

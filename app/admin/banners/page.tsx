@@ -256,19 +256,19 @@ export default function BannersManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white rounded-2xl p-6">
+    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] rounded-2xl p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Management Banner</h1>
-            <p className="text-gray-400">
+            <p className="text-[#94a3b8]">
               Kelola banner yang tampil di halaman beranda
             </p>
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-[#f1f5f9] px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -293,8 +293,8 @@ export default function BannersManagement() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
           </div>
         ) : banners.length === 0 ? (
-          <div className="bg-gray-800 rounded-xl p-12 text-center">
-            <div className="text-gray-400 mb-4">
+          <div className="bg-[#1e293b] rounded-xl p-12 text-center">
+            <div className="text-[#94a3b8] mb-4">
               <svg
                 className="w-16 h-16 mx-auto mb-4"
                 fill="none"
@@ -317,10 +317,10 @@ export default function BannersManagement() {
             {banners.map((banner) => (
               <div
                 key={banner._id}
-                className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300"
+                className="bg-[#1e293b] rounded-xl overflow-hidden border border-[#334155] hover:border-purple-500 transition-all duration-300"
               >
                 {/* Banner Image */}
-                <div className="relative aspect-[16/9] bg-gray-700">
+                <div className="relative aspect-[16/9] bg-[#334155]">
                   <Image
                     src={banner.imageUrl}
                     alt={banner.alt}
@@ -332,8 +332,8 @@ export default function BannersManagement() {
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold ${
                         banner.isActive
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-500 text-gray-200"
+                          ? "bg-green-500 text-[#f1f5f9]"
+                          : "bg-[#64748b] text-[#e2e8f0]"
                       }`}
                     >
                       {banner.isActive ? "Active" : "Inactive"}
@@ -341,7 +341,7 @@ export default function BannersManagement() {
                   </div>
                   {/* Order Badge */}
                   <div className="absolute top-3 left-3">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-600 text-white">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-600 text-[#f1f5f9]">
                       Order: {banner.order}
                     </span>
                   </div>
@@ -350,11 +350,11 @@ export default function BannersManagement() {
                 {/* Banner Info */}
                 <div className="p-4">
                   <div className="mb-3">
-                    <p className="text-sm text-gray-400 mb-1">Alt Text</p>
-                    <p className="font-semibold text-white">{banner.alt}</p>
+                    <p className="text-sm text-[#94a3b8] mb-1">Alt Text</p>
+                    <p className="font-semibold text-[#f1f5f9]">{banner.alt}</p>
                   </div>
                   <div className="mb-4">
-                    <p className="text-sm text-gray-400 mb-1">Link Tujuan</p>
+                    <p className="text-sm text-[#94a3b8] mb-1">Link Tujuan</p>
                     <p className="text-sm text-purple-400 truncate">
                       {banner.link}
                     </p>
@@ -366,21 +366,21 @@ export default function BannersManagement() {
                       onClick={() => handleToggleActive(banner)}
                       className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                         banner.isActive
-                          ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                          : "bg-green-600 hover:bg-green-700 text-white"
+                          ? "bg-[#334155] hover:bg-[#475569] text-[#e2e8f0]"
+                          : "bg-green-600 hover:bg-green-700 text-[#f1f5f9]"
                       }`}
                     >
                       {banner.isActive ? "Nonaktifkan" : "Aktifkan"}
                     </button>
                     <button
                       onClick={() => handleOpenModal(banner)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300"
+                      className="px-4 py-2 bg-[#3b82f6] hover:bg-[#1d4ed8] text-[#f1f5f9] rounded-lg text-sm font-semibold transition-all duration-300"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(banner._id)}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all duration-300"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-[#f1f5f9] rounded-lg text-sm font-semibold transition-all duration-300"
                     >
                       Hapus
                     </button>
@@ -394,15 +394,15 @@ export default function BannersManagement() {
         {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#1e293b] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b border-gray-700">
+              <div className="flex justify-between items-center p-6 border-b border-[#334155]">
                 <h2 className="text-2xl font-bold">
                   {selectedBanner ? "Edit Banner" : "Tambah Banner Baru"}
                 </h2>
                 <button
                   onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-[#94a3b8] hover:text-[#f1f5f9] transition-colors"
                 >
                   <svg
                     className="w-6 h-6"
@@ -423,12 +423,12 @@ export default function BannersManagement() {
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Image Upload */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Gambar Banner *
                   </label>
                   <div className="space-y-3">
                     {imagePreview && (
-                      <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-gray-700">
+                      <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-[#334155]">
                         <Image
                           src={imagePreview}
                           alt="Preview"
@@ -441,9 +441,9 @@ export default function BannersManagement() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                      className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-[#f1f5f9] hover:file:bg-purple-700"
                     />
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-[#94a3b8]">
                       Format: JPG, PNG, WebP. Ukuran maksimal: 5MB. Rekomendasi
                       rasio 16:9
                     </p>
@@ -452,7 +452,7 @@ export default function BannersManagement() {
 
                 {/* Alt Text */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Alt Text (Deskripsi Gambar) *
                   </label>
                   <input
@@ -462,14 +462,14 @@ export default function BannersManagement() {
                       setFormData({ ...formData, alt: e.target.value })
                     }
                     placeholder="Contoh: Banner Gamepass Terbaru"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     required
                   />
                 </div>
 
                 {/* Link */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Link Tujuan *
                   </label>
                   <input
@@ -479,14 +479,14 @@ export default function BannersManagement() {
                       setFormData({ ...formData, link: e.target.value })
                     }
                     placeholder="Contoh: /gamepass atau https://..."
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     required
                   />
                 </div>
 
                 {/* Order */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Urutan (Order)
                   </label>
                   <input
@@ -498,10 +498,10 @@ export default function BannersManagement() {
                         order: parseInt(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     min="0"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-[#94a3b8] mt-1">
                     Banner dengan order lebih kecil akan tampil lebih dulu
                   </p>
                 </div>
@@ -515,11 +515,11 @@ export default function BannersManagement() {
                     onChange={(e) =>
                       setFormData({ ...formData, isActive: e.target.checked })
                     }
-                    className="w-5 h-5 bg-gray-700 border-gray-600 rounded text-purple-600 focus:ring-purple-500"
+                    className="w-5 h-5 bg-[#334155] border-[#334155] rounded text-purple-600 focus:ring-purple-500"
                   />
                   <label
                     htmlFor="isActive"
-                    className="ml-3 text-sm font-medium text-gray-300"
+                    className="ml-3 text-sm font-medium text-[#cbd5e1]"
                   >
                     Tampilkan banner di halaman beranda
                   </label>
@@ -530,14 +530,14 @@ export default function BannersManagement() {
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-all duration-300"
+                    className="flex-1 px-4 py-3 bg-[#334155] hover:bg-[#475569] text-[#f1f5f9] rounded-lg font-semibold transition-all duration-300"
                     disabled={isSubmitting || uploadingImage}
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-[#f1f5f9] rounded-lg font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isSubmitting || uploadingImage}
                   >
                     {uploadingImage

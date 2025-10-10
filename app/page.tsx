@@ -509,7 +509,7 @@ export default function HomePage() {
       </section>
 
       {/* Hero Section - Enhanced Modern Design */}
-      <section className="relative pb-24 lg:pb-32 overflow-hidden z-0">
+      <section className="relative pb-12 lg:pb-16 overflow-hidden z-0">
         {/* Enhanced Background Gradient */}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
@@ -532,7 +532,7 @@ export default function HomePage() {
             </h1>
 
             {/* Enhanced Description */}
-            <p className="text-xl sm:text-lg text-white/80 max-w-4xl mx-auto mb-12  font-light">
+            <p className="text-xl sm:text-lg text-white/80 max-w-4xl mx-auto mb-8  font-light">
               Platform #1 Indonesia untuk transaksi Robux dengan{" "}
               <span className="text-neon-pink font-medium">harga terbaik</span>,{" "}
               <span className="text-neon-purple font-medium">
@@ -547,7 +547,7 @@ export default function HomePage() {
             </p>
 
             {/* Enhanced CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-20">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
               <button
                 onClick={handleScrollToPembelian}
                 className="group relative btn-neon-primary text-white px-10 py-5 rounded-2xl font-bold text-xl transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-neon-pink/40"
@@ -632,7 +632,7 @@ export default function HomePage() {
             </div>
 
             {/* Real-time Transaction Ticker - Neon Theme */}
-            <div className="mt-16 max-w-6xl mx-auto">
+            <div className="mt-10 max-w-6xl mx-auto">
               <div className="neon-card rounded-xl p-6 overflow-hidden relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-neon-pink/5 to-transparent animate-pulse"></div>
                 <div className="relative">
@@ -794,13 +794,13 @@ export default function HomePage() {
       {/* Premium Products Section */}
       <section
         ref={pembelianRef}
-        className="py-24 lg:py-32 relative overflow-hidden"
+        className="py-12 lg:py-16 relative overflow-hidden"
       >
         {/* Enhanced Background */}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Enhanced Section Header */}
-          <div className="text-center mb-20">
+          <div className="text-center mb-12">
             <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-6 backdrop-blur-sm">
               <Sparkles className="w-4 h-4 mr-2" />
               Robux Premium Experience
@@ -826,7 +826,7 @@ export default function HomePage() {
           </div>
 
           {/* Premium Purchase Card */}
-          <div className="group relative bg-gradient-to-br from-white/5 via-neon-purple/5 to-neon-pink/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 mb-16 max-w-5xl mx-auto hover:border-neon-pink/30 transition-all duration-700 hover:shadow-2xl hover:shadow-neon-pink/20">
+          <div className="group relative bg-gradient-to-br from-white/5 via-neon-purple/5 to-neon-pink/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 mb-10 max-w-5xl mx-auto hover:border-neon-pink/30 transition-all duration-700 hover:shadow-2xl hover:shadow-neon-pink/20">
             <div className="absolute inset-0 bg-gradient-to-br from-neon-pink/5 via-transparent to-neon-purple/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
             <div className="relative text-center mb-10">
@@ -1046,20 +1046,20 @@ export default function HomePage() {
       </section>
 
       {/* Premium Gamepass Section */}
-      <section className="py-24 lg:py-32 relative overflow-hidden">
+      <section className="py-12 lg:py-16 relative overflow-hidden">
         {/* Enhanced Background */}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Enhanced Section Header */}
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-pink/30 text-neon-pink rounded-3xl text-sm font-bold mb-8 backdrop-blur-sm shadow-xl">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-pink/30 text-neon-pink rounded-3xl text-sm font-bold mb-6 backdrop-blur-sm shadow-xl">
               <div className="flex items-center mr-3">
                 <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
                 <Gamepad2 className="w-5 h-5" />
               </div>
               Gamepass & Avatar Premium Collection
             </div>
-            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-8 leading-tight">
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               <span className="text-neon-purple">Game</span> Populer
               <br />
               <span className="text-primary-100">Tersedia</span>
@@ -1081,7 +1081,7 @@ export default function HomePage() {
           </div>
 
           {loadingGamepasses ? (
-            <div className="flex flex-col justify-center items-center py-20">
+            <div className="flex flex-col justify-center items-center py-12">
               <div className="relative mb-6">
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-neon-purple/30 border-t-neon-pink"></div>
               </div>
@@ -1095,7 +1095,7 @@ export default function HomePage() {
               </div>
             </div>
           ) : gamepasses.length === 0 ? (
-            <div className="text-center py-20">
+            <div className="text-center py-12">
               <div className="w-24 h-24 neon-card rounded-full flex items-center justify-center mx-auto mb-6">
                 <Gamepad2 className="w-12 h-12 text-neon-pink" />
               </div>
@@ -1198,21 +1198,21 @@ export default function HomePage() {
       </section>
 
       {/* Premium Features Section */}
-      <section className="py-24 lg:py-32 relative overflow-hidden">
+      <section className="py-12 lg:py-16 relative overflow-hidden">
         {/* Enhanced Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-primary"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(179,84,195,0.1),transparent_60%)]"></div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-neon-purple/15 to-neon-pink/15 border border-neon-pink/40 text-neon-pink rounded-3xl text-sm font-bold mb-8 backdrop-blur-sm shadow-xl">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-neon-purple/15 to-neon-pink/15 border border-neon-pink/40 text-neon-pink rounded-3xl text-sm font-bold mb-6 backdrop-blur-sm shadow-xl">
               <div className="flex items-center mr-3">
                 <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
                 <Star className="w-5 h-5" />
               </div>
               Keunggulan Premium RobuxID
             </div>
-            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-8 leading-tight">
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               <span className="text-neon-purple">Kenapa</span> Pilih
               <br />
               <span className="text-primary-100">RobuxID</span>?
@@ -1535,10 +1535,10 @@ export default function HomePage() {
       </section>
 
       {/* Customer Reviews Marquee Section - Neon Theme */}
-      <section className="py-20 relative bg-gradient-dark-secondary/30">
+      <section className="py-12 relative bg-gradient-dark-secondary/30">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 rounded-full text-sm text-neon-pink font-medium mb-6">
               <span className="w-2 h-2 bg-neon-pink rounded-full mr-2 animate-pulse"></span>
               Testimoni Pelanggan
@@ -1725,10 +1725,10 @@ export default function HomePage() {
       </section>
 
       {/* Interactive FAQ Section - Neon Theme */}
-      <section className="py-20 bg-gradient-to-b from-transparent to-bg-secondary/10">
+      <section className="py-12 bg-gradient-to-b from-transparent to-bg-secondary/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 rounded-full text-sm text-neon-pink font-medium mb-6">
               <span className="w-2 h-2 bg-neon-pink rounded-full mr-2 animate-pulse"></span>
               Frequently Asked Questions

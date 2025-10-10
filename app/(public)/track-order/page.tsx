@@ -10,11 +10,20 @@ import {
   TruckIcon,
   AlertTriangle,
 } from "lucide-react";
+import {
+  isMultiCheckout,
+  getAllTransactions,
+  calculateGrandTotal,
+  calculateOriginalTotal,
+  getTotalItemsCount,
+  getCheckoutDisplayName,
+} from "@/lib/transaction-helpers";
+import { Transaction } from "@/types";
 
 export default function TrackOrderPage() {
   const [invoiceId, setInvoiceId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [transaction, setTransaction] = useState<any>(null);
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [searched, setSearched] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -321,6 +330,23 @@ export default function TrackOrderPage() {
           {/* Transaction Details */}
           {transaction && (
             <div className="space-y-6">
+              {/* Multi-Checkout Indicator */}
+              {isMultiCheckout(transaction) && (
+                <div className="bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <Package className="w-5 h-5 text-primary-100" />
+                    <div>
+                      <h4 className="font-semibold text-white">
+                        Multi-Item Checkout
+                      </h4>
+                      <p className="text-sm text-white/70">
+                        Pesanan ini berisi{" "}
+                        {getAllTransactions(transaction).length} item
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Transaction Header */}
               <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8 relative overflow-hidden">
                 {/* Glow effect */}
@@ -330,11 +356,13 @@ export default function TrackOrderPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
                     <div className="flex-1">
                       <h2 className="text-xl sm:text-2xl font-bold text-white break-words mb-2">
-                        {transaction.serviceName}
+                        {getCheckoutDisplayName(transaction)}
                       </h2>
-                      <p className="text-sm sm:text-base text-white/70 capitalize">
-                        {transaction.serviceType} • Invoice:{" "}
-                        {transaction.invoiceId}
+                      <p className="text-sm sm:text-base text-white/70">
+                        Invoice: {transaction.invoiceId}
+                        {transaction.midtransOrderId && (
+                          <> • Order ID: {transaction.midtransOrderId}</>
+                        )}
                       </p>
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
@@ -342,24 +370,116 @@ export default function TrackOrderPage() {
                         {getStatusBadge(transaction.orderStatus)}
                       </div>
                       <div className="text-right">
-                        {/* Show discount info if available */}
-                        {(transaction.discountPercentage || 0) > 0 && (
-                          <div className="text-sm text-white/60 mb-1">
-                            <span className="line-through">
-                              Rp{" "}
-                              {transaction.totalAmount.toLocaleString("id-ID")}
-                            </span>
-                            <span className="ml-2 text-green-400 font-medium">
-                              -{transaction.discountPercentage}%
-                            </span>
-                          </div>
-                        )}
                         <div className="text-xl sm:text-2xl font-bold text-primary-100">
                           Rp{" "}
-                          {(
-                            transaction.finalAmount || transaction.totalAmount
-                          ).toLocaleString("id-ID")}
+                          {calculateGrandTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
                         </div>
+                        <div className="text-sm text-white/60">
+                          Total Pembayaran
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items List */}
+                  <div className="space-y-4 mt-6">
+                    <h3 className="font-semibold text-white text-lg flex items-center gap-2">
+                      <Package className="w-5 h-5 text-primary-100" />
+                      Detail Items
+                    </h3>
+
+                    {getAllTransactions(transaction).map((item, index) => (
+                      <div
+                        key={item._id}
+                        className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-start gap-3">
+                              {item.serviceImage && (
+                                <img
+                                  src={item.serviceImage}
+                                  alt={item.serviceName}
+                                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-white mb-1">
+                                  {item.serviceName}
+                                </h4>
+                                <p className="text-sm text-white/60 capitalize">
+                                  {item.serviceType}
+                                  {item.serviceCategory &&
+                                    ` • ${item.serviceCategory}`}
+                                </p>
+                                <p className="text-sm text-white/70 mt-1">
+                                  Akun:{" "}
+                                  <span className="font-medium">
+                                    {item.robloxUsername}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-left sm:text-right flex-shrink-0">
+                            <div className="text-sm text-white/60 mb-1">
+                              {item.quantity}x @ Rp{" "}
+                              {item.unitPrice.toLocaleString("id-ID")}
+                            </div>
+                            <div className="font-semibold text-white text-lg">
+                              Rp{" "}
+                              {(
+                                item.finalAmount || item.totalAmount
+                              ).toLocaleString("id-ID")}
+                            </div>
+                            {/* Item Status */}
+                            <div className="mt-2">
+                              {getStatusBadge(item.orderStatus)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Payment Summary */}
+                  <div className="mt-6 pt-6 border-t border-white/10">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-white/70">
+                        <span>
+                          Subtotal ({getTotalItemsCount(transaction)} items):
+                        </span>
+                        <span>
+                          Rp{" "}
+                          {calculateOriginalTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
+                        </span>
+                      </div>
+                      {calculateOriginalTotal(transaction) !==
+                        calculateGrandTotal(transaction) && (
+                        <div className="flex justify-between text-green-400">
+                          <span>Diskon:</span>
+                          <span>
+                            -Rp{" "}
+                            {(
+                              calculateOriginalTotal(transaction) -
+                              calculateGrandTotal(transaction)
+                            ).toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
+                        <span>Total Pembayaran:</span>
+                        <span className="text-primary-100">
+                          Rp{" "}
+                          {calculateGrandTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -694,7 +814,9 @@ export default function TrackOrderPage() {
                         Expires At
                       </div>
                       <div className="font-medium text-white">
-                        {formatDate(transaction.expiresAt)}
+                        {transaction.expiresAt
+                          ? formatDate(transaction.expiresAt)
+                          : "N/A"}
                       </div>
                     </div>
                   </div>

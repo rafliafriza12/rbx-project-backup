@@ -22,6 +22,8 @@ interface Joki {
   features: string[];
   item: JokiItem[];
   createdAt?: string;
+  orderCount?: number; // Number of orders for this joki
+  isHot?: boolean; // Top 3 most ordered joki
 }
 
 export default function JokiPage() {
@@ -43,6 +45,15 @@ export default function JokiPage() {
       const data = await response.json();
 
       if (response.ok) {
+        console.log("=== JOKI SERVICES FROM API ===");
+        console.log("Total joki:", data.jokiServices.length);
+        data.jokiServices.forEach((joki: any) => {
+          console.log(`${joki.gameName}:`, {
+            orderCount: joki.orderCount,
+            isHot: joki.isHot,
+          });
+        });
+
         setJokiServices(data.jokiServices);
       } else {
         setError(data.error || "Gagal mengambil data joki services");
@@ -126,10 +137,21 @@ export default function JokiPage() {
                         </div>
                       )}
 
-                      {/* Hot Badge - Top Right */}
-                      {joki.item && joki.item.length > 0 && (
-                        <div className="bg-gradient-to-r from-primary-100/50 to-primary-200/50 backdrop-blur-[3px] text-white/80 px-2 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-black shadow-[0_0_15px_rgba(246,58,230,0.5)] border border-primary-100/40">
-                          Hot
+                      {/* HOT Badge - Top Right - Based on Order Count */}
+                      {joki.isHot && (
+                        <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-black shadow-[0_0_15px_rgba(239,68,68,0.6)] border border-red-400/40 flex items-center gap-1 animate-pulse">
+                          <svg
+                            className="w-3 h-3 sm:w-3.5 sm:h-3.5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          HOT
                         </div>
                       )}
                     </div>

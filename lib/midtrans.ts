@@ -147,6 +147,7 @@ class MidtransService {
     items: MidtransItem[];
     customer: MidtransCustomerDetails;
     expiryHours?: number;
+    enabledPayments?: string[]; // ✅ NEW: Array of enabled payment methods
     callbackUrls?: {
       finish?: string;
       error?: string;
@@ -165,7 +166,8 @@ class MidtransService {
       },
       item_details: params.items,
       customer_details: params.customer,
-      enabled_payments: [
+      // ✅ Use provided enabled_payments or fallback to all methods
+      enabled_payments: params.enabledPayments || [
         "credit_card",
         "bca_va",
         "bni_va",
@@ -231,6 +233,57 @@ class MidtransService {
       console.error("Midtrans Snap API Error:", error);
       throw error;
     }
+  }
+
+  // Map payment method ID to Midtrans enabled_payments codes
+  static mapPaymentMethodToMidtrans(paymentMethodId: string): string[] {
+    // Mapping berdasarkan payment method ID dari database
+    const mapping: { [key: string]: string[] } = {
+      // E-Wallets
+      gopay: ["gopay"],
+      shopeepay: ["shopeepay"],
+      dana: ["shopeepay"], // Dana menggunakan ShopeePay di Midtrans
+      ovo: ["credit_card"], // OVO via credit card
+      linkaja: ["credit_card"], // LinkAja via credit card
+
+      // Virtual Account
+      bca_va: ["bca_va"],
+      bni_va: ["bni_va"],
+      bri_va: ["bri_va"],
+      mandiri_va: ["echannel"], // Mandiri = echannel di Midtrans
+      permata_va: ["permata_va"],
+      cimb_va: ["other_va"],
+      danamon_va: ["other_va"],
+
+      // QRIS
+      qris: ["qris"],
+
+      // Retail
+      indomaret: ["indomaret"],
+      alfamart: ["alfamart"],
+
+      // Credit Card
+      credit_card: ["credit_card"],
+
+      // Fallback: jika tidak match, return semua
+      all: [
+        "credit_card",
+        "bca_va",
+        "bni_va",
+        "bri_va",
+        "echannel",
+        "permata_va",
+        "other_va",
+        "gopay",
+        "qris",
+        "shopeepay",
+        "indomaret",
+        "alfamart",
+      ],
+    };
+
+    // Return mapped payment method or all if not found
+    return mapping[paymentMethodId] || mapping["all"];
   }
 
   async getTransactionStatus(orderId: string): Promise<{

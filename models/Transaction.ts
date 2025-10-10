@@ -144,7 +144,9 @@ const transactionSchema = new mongoose.Schema(
     // Data Pembayaran Midtrans
     midtransOrderId: {
       type: String,
-      unique: true,
+      // REMOVED unique: true - Multiple transactions can share same midtransOrderId
+      // This is required for multi-item checkout (cart) where multiple transactions
+      // are grouped under one payment (one masterOrderId)
       sparse: true,
     },
     midtransTransactionId: {
@@ -156,6 +158,17 @@ const transactionSchema = new mongoose.Schema(
     },
     redirectUrl: {
       type: String,
+    },
+
+    // Payment Method Information
+    paymentMethodId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PaymentMethod",
+      required: false,
+    },
+    paymentMethodName: {
+      type: String,
+      required: false,
     },
 
     // Status Pembayaran

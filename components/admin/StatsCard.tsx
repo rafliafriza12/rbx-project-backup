@@ -13,14 +13,16 @@ export default function StatsCard({
   color,
 }: StatsCardProps) {
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
+    <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
       <div className="flex items-center">
-        <div className={`${color} rounded-lg p-3 text-white text-2xl`}>
+        <div
+          className={`${color} rounded-lg p-3 text-white text-2xl shadow-md`}
+        >
           {icon}
         </div>
-        <div className="ml-4">
-          <p className="text-gray-400 text-sm">{title}</p>
-          <p className="text-2xl font-bold text-white">{value}</p>
+        <div className="ml-4 flex-1">
+          <p className="text-[#94a3b8] text-sm font-medium">{title}</p>
+          <p className="text-2xl font-bold text-[#f1f5f9] mt-1">{value}</p>
         </div>
       </div>
     </div>

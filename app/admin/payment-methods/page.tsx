@@ -369,10 +369,10 @@ export default function PaymentMethodsPage() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Payment Methods</h1>
+        <h1 className="text-2xl font-bold text-[#f1f5f9]">Payment Methods</h1>
         <button
           onClick={openCreateModal}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
+          className="bg-green-600 text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
         >
           + Tambah Payment Method
         </button>
@@ -380,42 +380,42 @@ export default function PaymentMethodsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700">
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
           <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-900 text-blue-400 border border-blue-700">
+            <div className="p-3 rounded-full bg-[#1e3a8a] text-[#60a5fa] border border-[#1d4ed8]">
               💳
             </div>
             <div className="ml-4">
-              <p className="text-sm text-gray-400">Total Methods</p>
-              <h3 className="text-2xl font-bold text-white">
+              <p className="text-sm text-[#94a3b8]">Total Methods</p>
+              <h3 className="text-2xl font-bold text-[#f1f5f9]">
                 {paymentMethods.length}
               </h3>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700">
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-900 text-green-400 border border-green-700">
               ✓
             </div>
             <div className="ml-4">
-              <p className="text-sm text-gray-400">Active Methods</p>
-              <h3 className="text-2xl font-bold text-white">
+              <p className="text-sm text-[#94a3b8]">Active Methods</p>
+              <h3 className="text-2xl font-bold text-[#f1f5f9]">
                 {paymentMethods.filter((m) => m.isActive).length}
               </h3>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700">
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-purple-900 text-purple-400 border border-purple-700">
               🔗
             </div>
             <div className="ml-4">
-              <p className="text-sm text-gray-400">Midtrans Enabled</p>
-              <h3 className="text-2xl font-bold text-white">
+              <p className="text-sm text-[#94a3b8]">Midtrans Enabled</p>
+              <h3 className="text-2xl font-bold text-[#f1f5f9]">
                 {paymentMethods.filter((m) => m.midtransEnabled).length}
               </h3>
             </div>
@@ -424,33 +424,33 @@ export default function PaymentMethodsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-gray-800 rounded-lg shadow border border-gray-700">
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead className="bg-gray-700">
+      <div className="bg-[#1e293b] rounded-lg shadow border border-[#334155]">
+        <table className="min-w-full divide-y divide-[#334155]">
+          <thead className="bg-[#334155]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Payment Method
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Category
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Fee
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Midtrans
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-gray-800 divide-y divide-gray-700">
+          <tbody className="bg-[#1e293b] divide-y divide-[#334155]">
             {paymentMethods.map((method) => (
-              <tr key={method._id} className="hover:bg-gray-700">
+              <tr key={method._id} className="hover:bg-[#334155]">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {method.icon && method.icon.startsWith("http") ? (
@@ -463,17 +463,17 @@ export default function PaymentMethodsPage() {
                       <span className="text-2xl mr-3">{method.icon}</span>
                     )}
                     <div>
-                      <div className="text-sm font-medium text-white">
+                      <div className="text-sm font-medium text-[#f1f5f9]">
                         {method.name}
                       </div>
-                      <div className="text-sm text-gray-400">{method.code}</div>
+                      <div className="text-sm text-[#94a3b8]">{method.code}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-white capitalize">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#f1f5f9] capitalize">
                   {method.category.replace("_", " ")}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#f1f5f9]">
                   {method.feeType === "percentage"
                     ? `${method.fee}%`
                     : `Rp ${method.fee.toLocaleString("id-ID")}`}
@@ -490,13 +490,13 @@ export default function PaymentMethodsPage() {
                     {method.isActive ? "Active" : "Inactive"}
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#f1f5f9]">
                   {method.midtransEnabled ? "✓ Yes" : "✗ No"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
                     onClick={() => openEditModal(method)}
-                    className="text-blue-400 hover:text-blue-300 mr-4 border border-blue-500 px-3 py-1 rounded"
+                    className="text-[#60a5fa] hover:text-[#93c5fd] mr-4 border border-[#3b82f6] px-3 py-1 rounded"
                   >
                     Edit
                   </button>
@@ -514,10 +514,10 @@ export default function PaymentMethodsPage() {
 
         {paymentMethods.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-400 mb-4">Belum ada payment method</p>
+            <p className="text-[#94a3b8] mb-4">Belum ada payment method</p>
             <button
               onClick={openCreateModal}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
+              className="bg-green-600 text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
             >
               Tambah Payment Method Pertama
             </button>
@@ -527,17 +527,17 @@ export default function PaymentMethodsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-700">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h3 className="text-lg font-medium text-white">
+        <div className="fixed inset-0 bg-[#0f172a] bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e293b] rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-[#334155]">
+            <div className="flex items-center justify-between p-6 border-b border-[#334155]">
+              <h3 className="text-lg font-medium text-[#f1f5f9]">
                 {selectedMethod
                   ? "Edit Payment Method"
                   : "Tambah Payment Method Baru"}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-200"
+                className="text-[#94a3b8] hover:text-[#e2e8f0]"
               >
                 <svg
                   className="w-6 h-6"
@@ -559,13 +559,13 @@ export default function PaymentMethodsPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Payment Method Selector */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Pilih Payment Method *
                   </label>
                   <select
                     value={formData.code}
                     onChange={(e) => handlePaymentCodeChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     required
                     disabled={!!selectedMethod}
                   >
@@ -625,21 +625,21 @@ export default function PaymentMethodsPage() {
 
                 {/* Code (Read Only) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Kode Payment Method
                   </label>
                   <input
                     type="text"
                     value={formData.code}
                     readOnly
-                    className="w-full px-3 py-2 bg-gray-600 border border-gray-600 text-gray-300 rounded-md cursor-not-allowed"
+                    className="w-full px-3 py-2 bg-[#475569] border border-[#334155] text-[#cbd5e1] rounded-md cursor-not-allowed"
                     placeholder="Pilih payment method dulu"
                   />
                 </div>
 
                 {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Nama Payment Method *
                   </label>
                   <input
@@ -648,7 +648,7 @@ export default function PaymentMethodsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder="e.g., GoPay, BCA Virtual Account"
                     required
                   />
@@ -656,7 +656,7 @@ export default function PaymentMethodsPage() {
 
                 {/* Category (Auto-filled, can edit) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Kategori *
                   </label>
                   <select
@@ -664,7 +664,7 @@ export default function PaymentMethodsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, category: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     required
                   >
                     {categoryOptions.map((opt) => (
@@ -677,25 +677,25 @@ export default function PaymentMethodsPage() {
 
                 {/* Icon Upload */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Icon Payment Method *
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleIconFileChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#3b82f6] file:text-[#f1f5f9] hover:file:bg-[#1d4ed8]"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-[#94a3b8] mt-1">
                     Upload gambar icon (max 2MB)
                   </p>
                   {iconPreview && (
                     <div className="mt-2">
-                      <p className="text-xs text-gray-400 mb-1">Preview:</p>
+                      <p className="text-xs text-[#94a3b8] mb-1">Preview:</p>
                       <img
                         src={iconPreview}
                         alt="Icon Preview"
-                        className="w-16 h-16 object-cover rounded border border-gray-600"
+                        className="w-16 h-16 object-cover rounded border border-[#334155]"
                       />
                     </div>
                   )}
@@ -703,7 +703,7 @@ export default function PaymentMethodsPage() {
 
                 {/* Fee Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Tipe Fee *
                   </label>
                   <select
@@ -714,7 +714,7 @@ export default function PaymentMethodsPage() {
                         feeType: e.target.value as "fixed" | "percentage",
                       })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     required
                   >
                     <option value="fixed">Fixed (Nominal Rupiah)</option>
@@ -724,7 +724,7 @@ export default function PaymentMethodsPage() {
 
                 {/* Fee */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Fee Amount *
                   </label>
                   <input
@@ -733,7 +733,7 @@ export default function PaymentMethodsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, fee: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder={
                       formData.feeType === "fixed" ? "e.g., 2500" : "e.g., 0.7"
                     }
@@ -741,7 +741,7 @@ export default function PaymentMethodsPage() {
                     min="0"
                     required
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-[#94a3b8] mt-1">
                     {formData.feeType === "fixed"
                       ? "Dalam Rupiah"
                       : "Dalam persen (e.g., 0.7 untuk 0.7%)"}
@@ -750,7 +750,7 @@ export default function PaymentMethodsPage() {
 
                 {/* Display Order */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Urutan Tampilan
                   </label>
                   <input
@@ -762,7 +762,7 @@ export default function PaymentMethodsPage() {
                         displayOrder: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder="0"
                     min="0"
                   />
@@ -770,7 +770,7 @@ export default function PaymentMethodsPage() {
 
                 {/* Minimum Amount */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Minimal Transaksi (Opsional)
                   </label>
                   <input
@@ -782,7 +782,7 @@ export default function PaymentMethodsPage() {
                         minimumAmount: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder="e.g., 10000"
                     min="0"
                   />
@@ -790,7 +790,7 @@ export default function PaymentMethodsPage() {
 
                 {/* Maximum Amount */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                     Maksimal Transaksi (Opsional)
                   </label>
                   <input
@@ -802,7 +802,7 @@ export default function PaymentMethodsPage() {
                         maximumAmount: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder="e.g., 5000000"
                     min="0"
                   />
@@ -811,7 +811,7 @@ export default function PaymentMethodsPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Deskripsi
                 </label>
                 <textarea
@@ -820,14 +820,14 @@ export default function PaymentMethodsPage() {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   rows={2}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   placeholder="Deskripsi singkat metode pembayaran"
                 />
               </div>
 
               {/* Instructions */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Instruksi Pembayaran (Opsional)
                 </label>
                 <textarea
@@ -836,7 +836,7 @@ export default function PaymentMethodsPage() {
                     setFormData({ ...formData, instructions: e.target.value })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   placeholder="Instruksi langkah-langkah pembayaran"
                 />
               </div>
@@ -850,9 +850,9 @@ export default function PaymentMethodsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, isActive: e.target.checked })
                     }
-                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-[#3b82f6] bg-[#334155] border-[#334155] rounded focus:ring-[#3b82f6]"
                   />
-                  <label className="ml-2 text-sm text-gray-300">
+                  <label className="ml-2 text-sm text-[#cbd5e1]">
                     Aktifkan payment method ini
                   </label>
                 </div>
@@ -867,28 +867,28 @@ export default function PaymentMethodsPage() {
                         midtransEnabled: e.target.checked,
                       })
                     }
-                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-[#3b82f6] bg-[#334155] border-[#334155] rounded focus:ring-[#3b82f6]"
                   />
-                  <label className="ml-2 text-sm text-gray-300">
+                  <label className="ml-2 text-sm text-[#cbd5e1]">
                     Integrasi dengan Midtrans
                   </label>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">
+              <div className="flex justify-end gap-3 pt-6 border-t border-[#334155]">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   disabled={isSubmitting || uploadingIcon}
-                  className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 border border-[#334155] text-[#cbd5e1] rounded-lg hover:bg-[#334155] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || uploadingIcon}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-lg hover:bg-[#1d4ed8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploadingIcon
                     ? "Uploading icon..."

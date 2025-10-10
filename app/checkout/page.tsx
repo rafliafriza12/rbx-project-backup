@@ -796,6 +796,43 @@ function CheckoutContent() {
       console.log("Transaction response:", result);
 
       if (result.success) {
+        // Clear cart items if checkout was from cart
+        const cartItemIds = itemsWithCredentials
+          .map((item: any) => item.cartItemId)
+          .filter((id: any) => id); // Filter out undefined/null IDs
+
+        if (cartItemIds.length > 0 && user?.id) {
+          console.log("=== CLEARING CART ITEMS ===");
+          console.log("Cart Item IDs to remove:", cartItemIds);
+
+          try {
+            const clearResponse = await fetch("/api/cart/clear-items", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                userId: user.id,
+                itemIds: cartItemIds,
+              }),
+            });
+
+            const clearResult = await clearResponse.json();
+            console.log("Clear cart result:", clearResult);
+
+            if (clearResult.success) {
+              console.log(
+                `✅ ${clearResult.removedCount} items removed from cart`
+              );
+            } else {
+              console.error("Failed to clear cart items:", clearResult.error);
+            }
+          } catch (clearError) {
+            console.error("Error clearing cart items:", clearError);
+            // Don't block the checkout flow if cart clear fails
+          }
+        }
+
         // Clear sessionStorage on successful transaction
         sessionStorage.removeItem("checkoutData");
 

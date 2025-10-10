@@ -215,6 +215,9 @@ export default function CartPage() {
 
     // Format data untuk checkout sesuai dengan Transaction model
     const checkoutData = selectedItemsData.map((item) => ({
+      // Cart item ID for clearing after checkout
+      cartItemId: item._id,
+
       // Primary service info (sesuai Transaction model)
       serviceType:
         item.serviceType ||

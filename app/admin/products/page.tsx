@@ -319,7 +319,7 @@ export default function ProductsPage() {
   // Loading state
   if (authLoading || loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+      <div className="flex justify-center items-center min-h-screen bg-[#0f172a]">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
       </div>
     );
@@ -335,9 +335,9 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Kelola Produk</h1>
+          <h1 className="text-3xl font-bold text-[#f1f5f9]">Kelola Produk</h1>
           {currentRobuxPricing && (
-            <p className="text-gray-300 text-sm mt-1">
+            <p className="text-[#cbd5e1] text-sm mt-1">
               Harga saat ini:{" "}
               {currentRobuxPricing.pricePerHundred.toLocaleString("id-ID")} per
               100 Robux untuk kategori 5 hari
@@ -347,13 +347,13 @@ export default function ProductsPage() {
         <div className="flex gap-3">
           <a
             href="/admin/robux-pricing"
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            className="bg-[#475569] text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-[#334155] transition-colors"
           >
             Atur Harga Robux
           </a>
           <button
             onClick={openCreateModal}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            className="bg-[#3b82f6] hover:bg-[#1d4ed8] text-[#f1f5f9] px-6 py-2 rounded-lg font-medium transition-colors"
           >
             + Tambah Produk
           </button>
@@ -361,14 +361,14 @@ export default function ProductsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-700">
+      <div className="border-b border-[#334155]">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab("robux_5_hari")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === "robux_5_hari"
-                ? "border-blue-400 text-blue-400"
-                : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600"
+                ? "border-blue-400 text-[#60a5fa]"
+                : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1] hover:border-[#334155]"
             }`}
           >
             Robux Gamepass (5 Hari)
@@ -377,8 +377,8 @@ export default function ProductsPage() {
             onClick={() => setActiveTab("robux_instant")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === "robux_instant"
-                ? "border-blue-400 text-blue-400"
-                : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600"
+                ? "border-blue-400 text-[#60a5fa]"
+                : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1] hover:border-[#334155]"
             }`}
           >
             Robux Instant
@@ -387,56 +387,56 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Table */}
-      <div className="bg-gray-800 border border-gray-700 shadow-sm rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-600">
-          <thead className="bg-gray-700">
+      <div className="bg-[#1e293b] border border-[#334155] shadow-lg rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-[#334155]">
+          <thead className="bg-[#334155]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Produk
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Robux
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Harga
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Kategori
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Aksi
               </th>
             </tr>
           </thead>
-          <tbody className="bg-gray-800 divide-y divide-gray-600">
+          <tbody className="bg-[#1e293b] divide-y divide-[#334155]">
             {filteredProducts.map((product) => (
-              <tr key={product._id} className="hover:bg-gray-700">
+              <tr key={product._id} className="hover:bg-[#334155]">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div>
-                      <div className="text-sm font-medium text-white">
+                      <div className="text-sm font-medium text-[#f1f5f9]">
                         {product.name}
                       </div>
-                      <div className="text-sm text-gray-400 max-w-xs truncate">
+                      <div className="text-sm text-[#94a3b8] max-w-xs truncate">
                         {product.description}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
                   {product.robuxAmount.toLocaleString()} R$
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
                   <div>
                     <div className="font-medium">
                       Rp {product.price.toLocaleString()}
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       product.category === "robux_5_hari"
@@ -463,7 +463,7 @@ export default function ProductsPage() {
                   <div className="flex justify-end space-x-2">
                     <button
                       onClick={() => openEditModal(product)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-[#3b82f6] hover:text-blue-900"
                     >
                       Edit
                     </button>
@@ -482,7 +482,7 @@ export default function ProductsPage() {
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-500">
+            <div className="text-[#64748b]">
               Belum ada produk untuk kategori{" "}
               {activeTab === "robux_5_hari"
                 ? "Robux Gamepass (5 Hari)"
@@ -495,15 +495,15 @@ export default function ProductsPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 backdrop-blur-[5px] bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-lg shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-lg shadow-lg rounded-md bg-[#1e293b]">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+              <h3 className="text-lg font-medium text-[#0f172a] mb-4">
                 {selectedProduct ? "Edit Produk" : "Tambah Produk Baru"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[#334155] mb-1">
                     Nama Produk *
                   </label>
                   <input
@@ -512,12 +512,12 @@ export default function ProductsPage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[#334155] mb-1">
                     Deskripsi *
                   </label>
                   <textarea
@@ -526,13 +526,13 @@ export default function ProductsPage() {
                     onChange={handleInputChange}
                     required
                     rows={3}
-                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-[#334155] mb-1">
                       Kategori *
                     </label>
                     <select
@@ -540,7 +540,7 @@ export default function ProductsPage() {
                       value={formData.category}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     >
                       <option value="robux_5_hari">
                         Robux Gamepass (5 Hari)
@@ -552,7 +552,7 @@ export default function ProductsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-[#334155] mb-1">
                       Jumlah Robux *
                     </label>
                     <input
@@ -562,15 +562,15 @@ export default function ProductsPage() {
                       onChange={handleInputChange}
                       required
                       min="1"
-                      className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-[#334155] mb-1">
                       Harga (Rp) *
                       {formData.category === "robux_5_hari" && (
-                        <span className="text-xs text-blue-600 ml-1">
+                        <span className="text-xs text-[#3b82f6] ml-1">
                           (Auto-calculated)
                         </span>
                       )}
@@ -584,7 +584,7 @@ export default function ProductsPage() {
                       min="0"
                       step="0.01"
                       readOnly={formData.category === "robux_5_hari"}
-                      className={`w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] ${
                         formData.category === "robux_5_hari"
                           ? "bg-gray-100 cursor-not-allowed"
                           : ""
@@ -592,7 +592,7 @@ export default function ProductsPage() {
                     />
                     {formData.category === "robux_5_hari" &&
                       currentRobuxPricing && (
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-[#475569] mt-1">
                           Berdasarkan{" "}
                           {currentRobuxPricing.pricePerHundred.toLocaleString(
                             "id-ID"
@@ -601,7 +601,7 @@ export default function ProductsPage() {
                           <a
                             href="/admin/robux-pricing"
                             target="_blank"
-                            className="text-blue-600 hover:underline"
+                            className="text-[#3b82f6] hover:underline"
                           >
                             Ubah harga
                           </a>
@@ -616,9 +616,9 @@ export default function ProductsPage() {
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-[#3b82f6] focus:ring-[#3b82f6] border-[#334155] rounded"
                   />
-                  <label className="ml-2 block text-sm text-gray-900">
+                  <label className="ml-2 block text-sm text-[#0f172a]">
                     Produk Aktif
                   </label>
                 </div>
@@ -627,14 +627,14 @@ export default function ProductsPage() {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                    className="px-4 py-2 text-sm font-medium text-[#f1f5f9] bg-[#475569] hover:bg-[#334155] rounded-md"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium text-[#f1f5f9] bg-[#3b82f6] hover:bg-[#1d4ed8] rounded-md disabled:opacity-50"
                   >
                     {isSubmitting
                       ? "Menyimpan..."

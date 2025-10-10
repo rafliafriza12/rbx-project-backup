@@ -4,12 +4,17 @@ import { useState, useEffect } from "react";
 import DataTable from "@/components/admin/DataTable";
 import { toast } from "react-toastify";
 import Link from "next/link";
+import {
+  isMultiCheckout,
+  calculateGrandTotal,
+  getTotalItemsCount,
+} from "@/lib/transaction-helpers";
 
 interface Transaction {
   _id: string;
   invoiceId: string;
   serviceType: string;
-  serviceCategory?: string; // Tambahkan serviceCategory
+  serviceCategory?: string;
   serviceName: string;
   quantity: number;
   unitPrice: number;
@@ -19,9 +24,13 @@ interface Transaction {
   discountAmount?: number;
   finalAmount?: number;
   robloxUsername: string;
-  robloxPassword?: string; // Optional password
+  robloxPassword?: string;
   paymentStatus: string;
   orderStatus: string;
+  customerNotes?: string;
+  // Payment method fields
+  paymentMethodId?: string;
+  paymentMethodName?: string;
   customerInfo?: {
     name: string;
     email: string;
@@ -30,6 +39,11 @@ interface Transaction {
   };
   createdAt: string;
   updatedAt: string;
+  // Multi-checkout fields
+  relatedTransactions?: Transaction[];
+  isMultiCheckout?: boolean;
+  midtransOrderId?: string;
+  masterOrderId?: string;
 }
 
 export default function TransactionsPage() {
@@ -277,23 +291,31 @@ export default function TransactionsPage() {
   };
 
   const getStatusBadge = (status: string, type: "payment" | "order") => {
-    const colors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      settlement: "bg-green-100 text-green-800",
-      failed: "bg-red-100 text-red-800",
-      expired: "bg-gray-100 text-gray-800",
-      processing: "bg-blue-100 text-blue-800",
-      completed: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800",
+    const paymentColors = {
+      pending: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50",
+      settlement: "bg-green-500/20 text-green-300 border border-green-500/50",
+      failed: "bg-red-500/20 text-red-300 border border-red-500/50",
+      expired: "bg-gray-500/20 text-gray-300 border border-gray-500/50",
     };
+
+    const orderColors = {
+      pending: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50",
+      processing: "bg-blue-500/20 text-blue-300 border border-blue-500/50",
+      completed: "bg-green-500/20 text-green-300 border border-green-500/50",
+      cancelled: "bg-red-500/20 text-red-300 border border-red-500/50",
+      waiting_payment:
+        "bg-orange-500/20 text-orange-300 border border-orange-500/50",
+    };
+
+    const colors = type === "payment" ? paymentColors : orderColors;
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${
-          colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800"
+        className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+          colors[status as keyof typeof colors] || colors.pending
         }`}
       >
-        {status}
+        {status.toUpperCase()}
       </span>
     );
   };
@@ -302,8 +324,28 @@ export default function TransactionsPage() {
     {
       key: "invoiceId",
       label: "Invoice",
-      render: (value: string) => (
-        <span className="font-mono text-sm">{value}</span>
+      render: (value: string, row: Transaction) => (
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-sm">{value}</span>
+          {isMultiCheckout(row as any) && (
+            <span className="inline-flex items-center gap-1 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full w-fit">
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
+              </svg>
+              {getTotalItemsCount(row as any)} items
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -335,36 +377,63 @@ export default function TransactionsPage() {
     {
       key: "serviceName",
       label: "Service",
+      render: (value: string, row: Transaction) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">
+            {value.length > 30 ? value.substring(0, 30) + "..." : value}
+          </span>
+          {row.midtransOrderId && (
+            <span className="text-xs text-gray-500 font-mono">
+              ID: {row.midtransOrderId.slice(-8)}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "paymentMethodName",
+      label: "Payment",
       render: (value: string) => (
-        <span className="text-sm">
-          {value.length > 30 ? value.substring(0, 30) + "..." : value}
-        </span>
+        <span className="text-sm text-gray-300">{value || "-"}</span>
       ),
     },
     {
       key: "totalAmount",
       label: "Amount",
-      render: (value: number, row: Transaction) => (
-        <div className="text-sm">
-          {row.discountPercentage && row.discountPercentage > 0 ? (
-            <div className="space-y-1">
-              <div className="text-gray-500 line-through text-xs">
-                {formatCurrency(value)}
-              </div>
-              <div className="flex items-center space-x-1">
-                <span className="font-medium text-green-400">
-                  {formatCurrency(row.finalAmount || value)}
+      render: (value: number, row: Transaction) => {
+        const displayAmount = isMultiCheckout(row as any)
+          ? calculateGrandTotal(row as any)
+          : row.finalAmount || value;
+
+        return (
+          <div className="text-sm">
+            {isMultiCheckout(row as any) ? (
+              <div className="space-y-1">
+                <span className="font-medium text-blue-400">
+                  {formatCurrency(displayAmount)}
                 </span>
-                <span className="bg-green-600 text-white px-1 py-0.5 rounded text-xs">
-                  -{row.discountPercentage}%
-                </span>
+                <div className="text-xs text-blue-400/70">Grand Total</div>
               </div>
-            </div>
-          ) : (
-            <span className="font-medium">{formatCurrency(value)}</span>
-          )}
-        </div>
-      ),
+            ) : row.discountPercentage && row.discountPercentage > 0 ? (
+              <div className="space-y-1">
+                <div className="text-gray-500 line-through text-xs">
+                  {formatCurrency(value)}
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="font-medium text-green-400">
+                    {formatCurrency(row.finalAmount || value)}
+                  </span>
+                  <span className="bg-green-600 text-white px-1 py-0.5 rounded text-xs">
+                    -{row.discountPercentage}%
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <span className="font-medium">{formatCurrency(value)}</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "paymentStatus",
@@ -390,19 +459,19 @@ export default function TransactionsPage() {
         <div className="flex space-x-2">
           <Link
             href={`/admin/transactions/${row._id}`}
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
           >
             View Detail
           </Link>
           <button
             onClick={() => openStatusModal(row)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+            className="bg-[#3b82f6] hover:bg-[#2563eb] text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
           >
             Update Status
           </button>
           <button
             onClick={() => handleDeleteTransaction(row._id)}
-            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
           >
             Delete
           </button>
@@ -423,21 +492,21 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex  justify-between items-center">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-[#f1f5f9]">
             Transaction Management
           </h1>
-          <p className="text-gray-600">
+          <p className="text-[#94a3b8] mt-1">
             Total: {totalTransactions} transactions
           </p>
         </div>
         <button
           onClick={handleExportData}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 font-medium"
         >
           <svg
-            className="w-4 h-4"
+            className="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -454,60 +523,81 @@ export default function TransactionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6 text-white">
+      <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <input
             type="text"
             placeholder="Search invoice or username..."
             value={filters.search}
             onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 "
+            className="px-4 py-2 bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] placeholder-[#94a3b8]"
           />
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 "
+            className="px-4 py-2 bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
           >
-            <option className="text-black" value="">
+            <option className="bg-[#334155] text-[#f1f5f9]" value="">
               All Status
             </option>
-            <option className="text-black" value="payment:pending">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="payment:pending"
+            >
               Payment: Pending
             </option>
-            <option className="text-black" value="payment:settlement">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="payment:settlement"
+            >
               Payment: Settlement
             </option>
-            <option className="text-black" value="payment:failed">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="payment:failed"
+            >
               Payment: Failed
             </option>
-            <option className="text-black" value="order:pending">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="order:pending"
+            >
               Order: Pending
             </option>
-            <option className="text-black" value="order:processing">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="order:processing"
+            >
               Order: Processing
             </option>
-            <option className="text-black" value="order:completed">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="order:completed"
+            >
               Order: Completed
             </option>
-            <option className="text-black" value="order:cancelled">
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="order:cancelled"
+            >
               Order: Cancelled
             </option>
           </select>
           <select
             value={filters.serviceType}
             onChange={(e) => handleFilterChange("serviceType", e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 "
+            className="px-4 py-2 bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
           >
-            <option className="text-black" value="">
+            <option className="bg-[#334155] text-[#f1f5f9]" value="">
               All Types
             </option>
-            <option className="text-black" value="robux">
+            <option className="bg-[#334155] text-[#f1f5f9]" value="robux">
               Robux
             </option>
-            <option className="text-black" value="gamepass">
+            <option className="bg-[#334155] text-[#f1f5f9]" value="gamepass">
               Gamepass
             </option>
-            <option className="text-black" value="joki">
+            <option className="bg-[#334155] text-[#f1f5f9]" value="joki">
               Joki
             </option>
           </select>
@@ -515,19 +605,19 @@ export default function TransactionsPage() {
             type="date"
             value={filters.dateFrom}
             onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 "
+            className="px-4 py-2 bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
             placeholder="From Date"
           />
           <input
             type="date"
             value={filters.dateTo}
             onChange={(e) => handleFilterChange("dateTo", e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 "
+            className="px-4 py-2 bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
             placeholder="To Date"
           />
           <button
             onClick={clearFilters}
-            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+            className="bg-[#475569] text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-[#64748b] transition-colors"
           >
             Clear
           </button>
@@ -536,11 +626,11 @@ export default function TransactionsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="p-3 bg-[#3b82f6]/20 rounded-lg">
               <svg
-                className="w-6 h-6 text-blue-600"
+                className="w-6 h-6 text-[#3b82f6]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -554,8 +644,10 @@ export default function TransactionsPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-white/80">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm font-medium text-[#94a3b8]">
+                Total Revenue
+              </p>
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 {formatCurrency(
                   (transactions || []).reduce(
                     (sum, t) =>
@@ -569,11 +661,11 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
+            <div className="p-3 bg-green-500/20 rounded-lg">
               <svg
-                className="w-6 h-6 text-green-600"
+                className="w-6 h-6 text-green-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -587,8 +679,8 @@ export default function TransactionsPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-white/80">Completed</p>
-              <p className="text-2xl font-bold text-white/">
+              <p className="text-sm font-medium text-[#94a3b8]">Completed</p>
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 {
                   (transactions || []).filter(
                     (t) => t.orderStatus === "completed"
@@ -598,11 +690,11 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
+            <div className="p-3 bg-yellow-500/20 rounded-lg">
               <svg
-                className="w-6 h-6 text-yellow-600"
+                className="w-6 h-6 text-yellow-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -616,8 +708,8 @@ export default function TransactionsPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-white/80">Processing</p>
-              <p className="text-2xl font-bold text-white/">
+              <p className="text-sm font-medium text-[#94a3b8]">Processing</p>
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 {
                   (transactions || []).filter(
                     (t) =>
@@ -629,11 +721,11 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
+            <div className="p-3 bg-red-500/20 rounded-lg">
               <svg
-                className="w-6 h-6 text-red-600"
+                className="w-6 h-6 text-red-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -647,10 +739,10 @@ export default function TransactionsPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-white/80">
+              <p className="text-sm font-medium text-[#94a3b8]">
                 Failed/Cancelled
               </p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 {
                   (transactions || []).filter(
                     (t) =>
@@ -665,9 +757,9 @@ export default function TransactionsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow">
-        <div className="p-6 text-black">
-          <p className="mb-4 text-sm text-gray-600">
+      <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg">
+        <div className="p-6">
+          <p className="mb-4 text-sm text-[#94a3b8]">
             Showing {(transactions || []).length} transactions
             {totalTransactions > 0 && ` of ${totalTransactions} total`}
           </p>
@@ -685,15 +777,15 @@ export default function TransactionsPage() {
 
       {/* Status Update Modal */}
       {showStatusModal && selectedTransaction && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-[4px] bg-opacity-50 flex items-center justify-center z-50 text-black">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 border">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-[#f1f5f9]">
                 Update Transaction Status
               </h3>
               <button
                 onClick={() => setShowStatusModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-[#94a3b8] hover:text-[#f1f5f9] transition-colors"
               >
                 <svg
                   className="w-6 h-6"
@@ -713,30 +805,42 @@ export default function TransactionsPage() {
 
             <div className="space-y-4">
               {/* Transaction Info */}
-              <div className="bg-gray-50 p-3 rounded">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Invoice:</span>{" "}
+              <div className="bg-[#0f172a] border border-[#334155] p-3 rounded-lg">
+                <p className="text-sm text-[#94a3b8]">
+                  <span className="font-medium text-[#f1f5f9]">Invoice:</span>{" "}
                   {selectedTransaction.invoiceId}
                 </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Service:</span>{" "}
+                <p className="text-sm text-[#94a3b8]">
+                  <span className="font-medium text-[#f1f5f9]">Service:</span>{" "}
                   {selectedTransaction.serviceName}
                 </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Username:</span>{" "}
+                <p className="text-sm text-[#94a3b8]">
+                  <span className="font-medium text-[#f1f5f9]">Username:</span>{" "}
                   {selectedTransaction.robloxUsername}
                 </p>
+                {selectedTransaction.paymentMethodName && (
+                  <p className="text-sm text-[#94a3b8]">
+                    <span className="font-medium text-[#f1f5f9]">
+                      Payment Method:
+                    </span>{" "}
+                    <span className="font-semibold text-[#3b82f6]">
+                      {selectedTransaction.paymentMethodName}
+                    </span>
+                  </p>
+                )}
                 {selectedTransaction.robloxPassword && (
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Password:</span>{" "}
-                    <span className="font-mono bg-gray-200 px-1 rounded">
+                  <p className="text-sm text-[#94a3b8]">
+                    <span className="font-medium text-[#f1f5f9]">
+                      Password:
+                    </span>{" "}
+                    <span className="font-mono bg-[#334155] px-2 py-0.5 rounded text-[#f1f5f9]">
                       {selectedTransaction.robloxPassword}
                     </span>
                   </p>
                 )}
                 {!selectedTransaction.robloxPassword &&
                   selectedTransaction.serviceType !== "gamepass" && (
-                    <p className="text-sm text-yellow-600">
+                    <p className="text-sm text-yellow-400">
                       <span className="font-medium">⚠️ Password:</span> Not
                       provided (may be required for this service)
                     </p>
@@ -746,24 +850,26 @@ export default function TransactionsPage() {
                 {selectedTransaction.discountPercentage &&
                 selectedTransaction.discountPercentage > 0 ? (
                   <div className="text-sm">
-                    <div className="text-gray-600">
-                      <span className="font-medium">Subtotal:</span>{" "}
+                    <div className="text-[#94a3b8]">
+                      <span className="font-medium text-[#f1f5f9]">
+                        Subtotal:
+                      </span>{" "}
                       <span className="line-through">
                         {formatCurrency(selectedTransaction.totalAmount)}
                       </span>
                     </div>
-                    <div className="text-gray-600">
-                      <span className="font-medium">
+                    <div className="text-[#94a3b8]">
+                      <span className="font-medium text-[#f1f5f9]">
                         Discount ({selectedTransaction.discountPercentage}%):
                       </span>{" "}
-                      <span className="text-green-600">
+                      <span className="text-green-400">
                         -
                         {formatCurrency(
                           selectedTransaction.discountAmount || 0
                         )}
                       </span>
                     </div>
-                    <div className="text-gray-800 font-semibold">
+                    <div className="text-[#f1f5f9] font-semibold">
                       <span className="font-medium">Final Amount:</span>{" "}
                       {formatCurrency(
                         selectedTransaction.finalAmount ||
@@ -772,35 +878,59 @@ export default function TransactionsPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Amount:</span>{" "}
+                  <p className="text-sm text-[#94a3b8]">
+                    <span className="font-medium text-[#f1f5f9]">Amount:</span>{" "}
                     {formatCurrency(selectedTransaction.totalAmount)}
                   </p>
+                )}
+
+                {/* Customer Notes */}
+                {selectedTransaction.customerNotes && (
+                  <div className="mt-3 pt-3 border-t border-[#334155]">
+                    <p className="text-sm text-[#94a3b8] mb-1">
+                      <span className="font-medium text-[#f1f5f9]">
+                        Customer Notes:
+                      </span>
+                    </p>
+                    <p className="text-sm text-[#e0f2fe] bg-[#1e40af]/20 p-2 rounded border border-[#3b82f6]/50">
+                      {selectedTransaction.customerNotes}
+                    </p>
+                  </div>
                 )}
               </div>
 
               {/* Payment Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#f1f5f9] mb-2">
                   Payment Status
                 </label>
                 <select
                   value={newPaymentStatus}
                   onChange={(e) => setNewPaymentStatus(e.target.value)}
-                  className="w-full border  border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 >
-                  <option value="pending">Pending</option>
-                  <option value="settlement">Settlement</option>
-                  <option value="expired">Expired</option>
-                  <option value="cancel">Cancelled</option>
-                  <option value="failed">Failed</option>
+                  <option className="bg-[#334155]" value="pending">
+                    Pending
+                  </option>
+                  <option className="bg-[#334155]" value="settlement">
+                    Settlement
+                  </option>
+                  <option className="bg-[#334155]" value="expired">
+                    Expired
+                  </option>
+                  <option className="bg-[#334155]" value="cancel">
+                    Cancelled
+                  </option>
+                  <option className="bg-[#334155]" value="failed">
+                    Failed
+                  </option>
                 </select>
 
                 {/* Warning for settlement status */}
                 {newPaymentStatus === "settlement" &&
                   selectedTransaction?.paymentStatus !== "settlement" &&
                   selectedTransaction?.customerInfo?.userId && (
-                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/50 rounded-md">
                       <div className="flex">
                         <div className="flex-shrink-0">
                           <svg
@@ -816,10 +946,10 @@ export default function TransactionsPage() {
                           </svg>
                         </div>
                         <div className="ml-3">
-                          <h3 className="text-sm font-medium text-yellow-800">
+                          <h3 className="text-sm font-medium text-yellow-300">
                             Settlement Status Update
                           </h3>
-                          <div className="mt-2 text-sm text-yellow-700">
+                          <div className="mt-2 text-sm text-yellow-200">
                             <p>
                               This will add{" "}
                               <strong>
@@ -838,33 +968,45 @@ export default function TransactionsPage() {
 
               {/* Order Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#f1f5f9] mb-2">
                   Order Status
                 </label>
                 <select
                   value={newOrderStatus}
                   onChange={(e) => setNewOrderStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 >
-                  <option value="waiting_payment">Waiting Payment</option>
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="failed">Failed</option>
+                  <option className="bg-[#334155]" value="waiting_payment">
+                    Waiting Payment
+                  </option>
+                  <option className="bg-[#334155]" value="pending">
+                    Pending
+                  </option>
+                  <option className="bg-[#334155]" value="processing">
+                    Processing
+                  </option>
+                  <option className="bg-[#334155]" value="completed">
+                    Completed
+                  </option>
+                  <option className="bg-[#334155]" value="cancelled">
+                    Cancelled
+                  </option>
+                  <option className="bg-[#334155]" value="failed">
+                    Failed
+                  </option>
                 </select>
               </div>
 
               {/* Admin Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#f1f5f9] mb-2">
                   Admin Notes (Optional)
                 </label>
                 <textarea
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder="Add notes about this status update..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#334155] border border-[#475569] text-[#f1f5f9] placeholder-[#94a3b8] rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   rows={3}
                 />
               </div>
@@ -874,7 +1016,7 @@ export default function TransactionsPage() {
                 <button
                   onClick={handleModalUpdate}
                   disabled={isUpdating}
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 bg-[#3b82f6] text-white py-2 px-4 rounded-md hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
                 >
                   {isUpdating ? (
                     <>
@@ -907,7 +1049,7 @@ export default function TransactionsPage() {
                 <button
                   onClick={() => setShowStatusModal(false)}
                   disabled={isUpdating}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-[#475569] text-[#f1f5f9] py-2 px-4 rounded-md hover:bg-[#64748b] focus:outline-none focus:ring-2 focus:ring-[#475569] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>

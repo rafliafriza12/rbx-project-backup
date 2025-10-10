@@ -21,7 +21,15 @@ import {
   Gamepad2,
   Target,
   Sparkles,
+  ShoppingBag,
 } from "lucide-react";
+import {
+  isMultiCheckout,
+  getAllTransactions,
+  calculateGrandTotal,
+  getTotalItemsCount,
+  getCheckoutDisplayName,
+} from "@/lib/transaction-helpers";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -287,6 +295,16 @@ export default function TransactionDetailPage() {
         {/* Header Card */}
         <div className="mb-8">
           <div className="neon-card rounded-2xl shadow-lg p-6 sm:p-8">
+            {/* Multi-checkout badge */}
+            {isMultiCheckout(transaction) && (
+              <div className="mb-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-100/20 border border-primary-100/40 rounded-xl backdrop-blur-sm">
+                <ShoppingBag className="w-5 h-5 text-primary-100" />
+                <span className="text-sm font-medium text-primary-100">
+                  Multi-Item Checkout • {getTotalItemsCount(transaction)} Items
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6">
               <div className="flex items-start gap-4">
                 <div className="text-4xl sm:text-5xl flex-shrink-0 hidden md:block">
@@ -294,7 +312,7 @@ export default function TransactionDetailPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 break-words">
-                    {transaction.serviceName}
+                    {getCheckoutDisplayName(transaction)}
                   </h1>
                   <div className="flex flex-wrap gap-3 mb-4">
                     {getStatusBadge(transaction.paymentStatus)}
@@ -319,26 +337,9 @@ export default function TransactionDetailPage() {
               </div>
               <div className="lg:text-right">
                 <div className="space-y-1">
-                  {/* Show discount info if available */}
-                  {(transaction.discountPercentage || 0) > 0 && (
-                    <>
-                      <div className="text-lg text-primary-300 line-through">
-                        Rp {transaction.totalAmount.toLocaleString("id-ID")}
-                      </div>
-                      <div className="text-sm text-emerald-400 font-medium">
-                        Diskon {transaction.discountPercentage}% (-Rp{" "}
-                        {(transaction.discountAmount || 0).toLocaleString(
-                          "id-ID"
-                        )}
-                        )
-                      </div>
-                    </>
-                  )}
                   <div className="text-3xl sm:text-4xl font-bold text-neon-pink mb-2">
                     Rp{" "}
-                    {(
-                      transaction.finalAmount || transaction.totalAmount
-                    ).toLocaleString("id-ID")}
+                    {calculateGrandTotal(transaction).toLocaleString("id-ID")}
                   </div>
                 </div>
                 <div className="text-primary-200">Total Pembayaran</div>
@@ -357,74 +358,160 @@ export default function TransactionDetailPage() {
                 <div className="w-8 h-8 bg-neon-pink/20 rounded-lg flex items-center justify-center">
                   <Package className="w-5 h-5 text-neon-pink" />
                 </div>
-                Ringkasan Pesanan
+                {isMultiCheckout(transaction)
+                  ? "Item Pesanan"
+                  : "Ringkasan Pesanan"}
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
-                    <span className="text-primary-200 font-medium">
-                      Layanan:
-                    </span>
-                    <span className="font-semibold text-white capitalize">
-                      {transaction.serviceType}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
-                    <span className="text-primary-200 font-medium">
-                      Quantity:
-                    </span>
-                    <span className="font-semibold text-white">
-                      {transaction.quantity.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
-                    <span className="text-primary-200 font-medium">
-                      Harga Satuan:
-                    </span>
-                    <span className="font-semibold text-white">
-                      Rp {transaction.unitPrice.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
-                    <span className="text-primary-200 font-medium">
-                      Subtotal:
-                    </span>
-                    <span className="font-semibold text-white">
-                      Rp {transaction.totalAmount.toLocaleString("id-ID")}
-                    </span>
+              {isMultiCheckout(transaction) ? (
+                <>
+                  {/* Multi-Item List */}
+                  <div className="space-y-4 mb-6">
+                    {getAllTransactions(transaction).map((item, index) => (
+                      <div
+                        key={item._id}
+                        className="p-4 bg-primary-900/40 border border-primary-100/20 rounded-xl"
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="text-2xl">
+                            {getServiceIcon(item.serviceType)}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-white mb-1">
+                              {item.serviceName}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-primary-200">
+                              <span className="capitalize">
+                                {item.serviceType}
+                              </span>
+                              {item.serviceCategory && (
+                                <>
+                                  <span>•</span>
+                                  <span>{item.serviceCategory}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-primary-200 mb-1">
+                              {item.quantity}x @ Rp{" "}
+                              {item.unitPrice.toLocaleString("id-ID")}
+                            </div>
+                            <div className="font-semibold text-white">
+                              Rp {item.totalAmount.toLocaleString("id-ID")}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Item-specific details */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-primary-200">Username:</span>
+                            <span className="text-white font-medium">
+                              {item.robloxUsername}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-primary-200">Qty:</span>
+                            <span className="text-white font-medium">
+                              {item.quantity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Show discount if available */}
-                  {(transaction.discountPercentage || 0) > 0 && (
+                  {/* Payment Summary for Multi-Checkout */}
+                  <div className="border-t-2 border-neon-purple/30 pt-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-primary-200">
+                        <span>Total Items:</span>
+                        <span className="font-semibold text-white">
+                          {getTotalItemsCount(transaction)} items
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-t-2 border-neon-purple/30">
+                        <span className="text-lg font-bold text-white">
+                          Grand Total:
+                        </span>
+                        <span className="text-lg font-bold text-neon-pink">
+                          Rp{" "}
+                          {calculateGrandTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
                     <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
                       <span className="text-primary-200 font-medium">
-                        Diskon ({transaction.discountPercentage}%):
+                        Layanan:
                       </span>
-                      <span className="font-semibold text-emerald-400">
-                        -Rp{" "}
-                        {(transaction.discountAmount || 0).toLocaleString(
-                          "id-ID"
-                        )}
+                      <span className="font-semibold text-white capitalize">
+                        {transaction.serviceType}
                       </span>
                     </div>
-                  )}
+                    <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                      <span className="text-primary-200 font-medium">
+                        Quantity:
+                      </span>
+                      <span className="font-semibold text-white">
+                        {transaction.quantity.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                      <span className="text-primary-200 font-medium">
+                        Harga Satuan:
+                      </span>
+                      <span className="font-semibold text-white">
+                        Rp {transaction.unitPrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                      <span className="text-primary-200 font-medium">
+                        Subtotal:
+                      </span>
+                      <span className="font-semibold text-white">
+                        Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                      </span>
+                    </div>
 
-                  <div className="flex justify-between items-center py-3 border-t-2 border-neon-purple/30 mt-4">
-                    <span className="text-lg font-bold text-white">
-                      Total Bayar:
-                    </span>
-                    <span className="text-lg font-bold text-neon-pink">
-                      Rp{" "}
-                      {(
-                        transaction.finalAmount || transaction.totalAmount
-                      ).toLocaleString("id-ID")}
-                    </span>
+                    {/* Show discount if available */}
+                    {(transaction.discountPercentage || 0) > 0 && (
+                      <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                        <span className="text-primary-200 font-medium">
+                          Diskon ({transaction.discountPercentage}%):
+                        </span>
+                        <span className="font-semibold text-emerald-400">
+                          -Rp{" "}
+                          {(transaction.discountAmount || 0).toLocaleString(
+                            "id-ID"
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center py-3 border-t-2 border-neon-purple/30 mt-4">
+                      <span className="text-lg font-bold text-white">
+                        Total Bayar:
+                      </span>
+                      <span className="text-lg font-bold text-neon-pink">
+                        Rp{" "}
+                        {(
+                          transaction.finalAmount || transaction.totalAmount
+                        ).toLocaleString("id-ID")}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Customer Information */}

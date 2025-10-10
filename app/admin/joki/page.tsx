@@ -454,7 +454,7 @@ export default function JokiPage() {
   if (!user) {
     return (
       <div className="flex justify-center items-center h-96">
-        <p className="text-gray-400">Silakan login terlebih dahulu</p>
+        <p className="text-[#94a3b8]">Silakan login terlebih dahulu</p>
       </div>
     );
   }
@@ -462,7 +462,7 @@ export default function JokiPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 bg-gray-900"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 bg-[#0f172a]"></div>
       </div>
     );
   }
@@ -475,7 +475,7 @@ export default function JokiPage() {
           <li className="inline-flex items-center">
             <a
               href="/admin/dashboard"
-              className="inline-flex items-center text-sm font-medium text-gray-300 hover:text-blue-400"
+              className="inline-flex items-center text-sm font-medium text-[#cbd5e1] hover:text-[#60a5fa]"
             >
               Dashboard
             </a>
@@ -483,7 +483,7 @@ export default function JokiPage() {
           <li>
             <div className="flex items-center">
               <svg
-                className="w-6 h-6 text-gray-400"
+                className="w-6 h-6 text-[#94a3b8]"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -493,7 +493,7 @@ export default function JokiPage() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="ml-1 text-sm font-medium text-gray-400 md:ml-2">
+              <span className="ml-1 text-sm font-medium text-[#94a3b8] md:ml-2">
                 Joki Services
               </span>
             </div>
@@ -502,17 +502,17 @@ export default function JokiPage() {
       </nav>
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Kelola Joki Services</h1>
+        <h1 className="text-2xl font-bold text-[#f1f5f9]">Kelola Joki Services</h1>
         <div className="flex gap-2">
           {/* <button
             onClick={createSampleData}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
+            className="bg-green-600 text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
           >
             Buat Sample Data
           </button> */}
           <button
             onClick={openCreateModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors border border-blue-500"
+            className="bg-[#3b82f6] text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-[#1d4ed8] transition-colors border border-[#3b82f6]"
           >
             Tambah Joki Service
           </button>
@@ -521,9 +521,9 @@ export default function JokiPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700">
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
           <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-900 text-blue-400 border border-blue-700">
+            <div className="p-3 rounded-full bg-[#1e3a8a] text-[#60a5fa] border border-[#1d4ed8]">
               <svg
                 className="w-6 h-6"
                 fill="none"
@@ -539,17 +539,17 @@ export default function JokiPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-300">
+              <p className="text-sm font-medium text-[#cbd5e1]">
                 Total Joki Services
               </p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 {jokiServices.length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700">
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-900 text-green-400 border border-green-700">
               <svg
@@ -567,15 +567,15 @@ export default function JokiPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-300">Total Items</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm font-medium text-[#cbd5e1]">Total Items</p>
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 {jokiServices.reduce((sum, joki) => sum + joki.item.length, 0)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700">
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-purple-900 text-purple-400 border border-purple-700">
               <svg
@@ -593,10 +593,10 @@ export default function JokiPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-300">
+              <p className="text-sm font-medium text-[#cbd5e1]">
                 Rata-rata Harga
               </p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-[#f1f5f9]">
                 Rp{" "}
                 {jokiServices.length > 0
                   ? Math.round(
@@ -622,34 +622,34 @@ export default function JokiPage() {
       </div>
 
       {/* Joki Services List */}
-      <div className="bg-gray-800 rounded-lg shadow border border-gray-700">
+      <div className="bg-[#1e293b] rounded-lg shadow border border-[#334155]">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-gray-700">
+            <thead className="bg-[#334155]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Game
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Jumlah Items
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Requirements
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Features
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Tanggal Dibuat
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-600">
+                <th className="px-6 py-3 text-right text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Aksi
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-gray-800 divide-y divide-gray-700">
+            <tbody className="bg-[#1e293b] divide-y divide-[#334155]">
               {jokiServices.map((joki) => (
-                <tr key={joki._id} className="hover:bg-gray-700">
+                <tr key={joki._id} className="hover:bg-[#334155]">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
@@ -658,28 +658,28 @@ export default function JokiPage() {
                         className="h-12 w-12 rounded-lg object-cover mr-4"
                       />
                       <div>
-                        <div className="text-sm font-medium text-white">
+                        <div className="text-sm font-medium text-[#f1f5f9]">
                           {joki.gameName}
                         </div>
-                        <div className="text-sm text-gray-400">
+                        <div className="text-sm text-[#94a3b8]">
                           {joki.caraPesan.length} cara pesan
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#f1f5f9]">
                     {joki.item.length} items
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
                     {joki.features.length} features
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
                     {new Date(joki.createdAt).toLocaleDateString("id-ID")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => openEditModal(joki)}
-                      className="text-blue-400 hover:text-blue-300 mr-4 border border-blue-500 px-3 py-1 rounded"
+                      className="text-[#60a5fa] hover:text-[#93c5fd] mr-4 border border-[#3b82f6] px-3 py-1 rounded"
                     >
                       Edit
                     </button>
@@ -697,10 +697,10 @@ export default function JokiPage() {
 
           {jokiServices.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">Belum ada joki service</p>
+              <p className="text-[#94a3b8] mb-4">Belum ada joki service</p>
               <button
                 onClick={createSampleData}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
+                className="bg-green-600 text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
               >
                 Buat Sample Data
               </button>
@@ -711,17 +711,17 @@ export default function JokiPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-700">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h3 className="text-lg font-medium text-white">
+        <div className="fixed inset-0 bg-[#0f172a] bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-[#1e293b] rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-[#334155]">
+            <div className="flex items-center justify-between p-6 border-b border-[#334155]">
+              <h3 className="text-lg font-medium text-[#f1f5f9]">
                 {selectedJoki
                   ? "Edit Joki Service"
                   : "Tambah Joki Service Baru"}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-200"
+                className="text-[#94a3b8] hover:text-[#e2e8f0]"
               >
                 <svg
                   className="w-6 h-6"
@@ -742,7 +742,7 @@ export default function JokiPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Game Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Nama Game *
                 </label>
                 <input
@@ -752,13 +752,13 @@ export default function JokiPage() {
                     handleInputChange("gameName", e.target.value)
                   }
                   required
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                 />
               </div>
 
               {/* Game Image */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Gambar Game {!selectedJoki ? "*" : ""}
                 </label>
                 <input
@@ -768,7 +768,7 @@ export default function JokiPage() {
                     handleInputChange("gameImageFile", e.target.files?.[0])
                   }
                   required={!selectedJoki}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                 />
                 {selectedJoki && (
                   <div className="mt-2">
@@ -783,7 +783,7 @@ export default function JokiPage() {
 
               {/* Cara Pesan */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Cara Pesan *
                 </label>
                 {formData.caraPesan.map((cara, index) => (
@@ -795,12 +795,12 @@ export default function JokiPage() {
                         handleArrayChange("caraPesan", index, e.target.value)
                       }
                       placeholder={`Langkah ${index + 1}`}
-                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-1 px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                     />
                     <button
                       type="button"
                       onClick={() => removeArrayField("caraPesan", index)}
-                      className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                      className="px-3 py-2 bg-red-600 text-[#f1f5f9] rounded-md hover:bg-red-700 border border-red-500"
                     >
                       Hapus
                     </button>
@@ -809,7 +809,7 @@ export default function JokiPage() {
                 <button
                   type="button"
                   onClick={() => addArrayField("caraPesan")}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-blue-500"
+                  className="mt-2 px-4 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-md hover:bg-[#1d4ed8] border border-[#3b82f6]"
                 >
                   Tambah Langkah
                 </button>
@@ -817,7 +817,7 @@ export default function JokiPage() {
 
               {/* Features */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Features *
                 </label>
                 {formData.features.map((feature, index) => (
@@ -829,12 +829,12 @@ export default function JokiPage() {
                         handleArrayChange("features", index, e.target.value)
                       }
                       placeholder={`Feature ${index + 1}`}
-                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-1 px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                     />
                     <button
                       type="button"
                       onClick={() => removeArrayField("features", index)}
-                      className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                      className="px-3 py-2 bg-red-600 text-[#f1f5f9] rounded-md hover:bg-red-700 border border-red-500"
                     >
                       Hapus
                     </button>
@@ -843,7 +843,7 @@ export default function JokiPage() {
                 <button
                   type="button"
                   onClick={() => addArrayField("features")}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-blue-500"
+                  className="mt-2 px-4 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-md hover:bg-[#1d4ed8] border border-[#3b82f6]"
                 >
                   Tambah Feature
                 </button>
@@ -851,17 +851,17 @@ export default function JokiPage() {
 
               {/* Items */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
                   Items *
                 </label>
                 {formData.items.map((item, index) => (
                   <div
                     key={index}
-                    className="border border-gray-600 p-4 rounded-md mb-4 bg-gray-700"
+                    className="border border-[#334155] p-4 rounded-md mb-4 bg-[#334155]"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                           Nama Item
                         </label>
                         <input
@@ -870,11 +870,11 @@ export default function JokiPage() {
                           onChange={(e) =>
                             handleItemChange(index, "itemName", e.target.value)
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 bg-[#475569] border border-[#475569] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                           Harga (Rp)
                         </label>
                         <input
@@ -883,11 +883,11 @@ export default function JokiPage() {
                           onChange={(e) =>
                             handleItemChange(index, "price", e.target.value)
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 bg-[#475569] border border-[#475569] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                           Deskripsi
                         </label>
                         <textarea
@@ -900,13 +900,13 @@ export default function JokiPage() {
                             )
                           }
                           rows={3}
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 bg-[#475569] border border-[#475569] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                         />
                       </div>
 
                       {/* Syarat Joki */}
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                           Syarat Joki *
                         </label>
                         {item.syaratJoki.map((syarat, syaratIndex) => (
@@ -923,7 +923,7 @@ export default function JokiPage() {
                                 )
                               }
                               placeholder={`Syarat ${syaratIndex + 1}`}
-                              className="flex-1 px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="flex-1 px-3 py-2 bg-[#475569] border border-[#475569] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                             />
                             <button
                               type="button"
@@ -934,7 +934,7 @@ export default function JokiPage() {
                                   syaratIndex
                                 )
                               }
-                              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                              className="px-3 py-2 bg-red-600 text-[#f1f5f9] rounded-md hover:bg-red-700 border border-red-500"
                             >
                               Hapus
                             </button>
@@ -943,7 +943,7 @@ export default function JokiPage() {
                         <button
                           type="button"
                           onClick={() => addItemArrayField(index, "syaratJoki")}
-                          className="mt-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 border border-green-500"
+                          className="mt-1 px-3 py-1.5 bg-green-600 text-[#f1f5f9] text-sm rounded-md hover:bg-green-700 border border-green-500"
                         >
                           Tambah Syarat
                         </button>
@@ -951,7 +951,7 @@ export default function JokiPage() {
 
                       {/* Proses Joki */}
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                           Proses Joki *
                         </label>
                         {item.prosesJoki.map((proses, prosesIndex) => (
@@ -968,7 +968,7 @@ export default function JokiPage() {
                                 )
                               }
                               placeholder={`Proses ${prosesIndex + 1}`}
-                              className="flex-1 px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="flex-1 px-3 py-2 bg-[#475569] border border-[#475569] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                             />
                             <button
                               type="button"
@@ -979,7 +979,7 @@ export default function JokiPage() {
                                   prosesIndex
                                 )
                               }
-                              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                              className="px-3 py-2 bg-red-600 text-[#f1f5f9] rounded-md hover:bg-red-700 border border-red-500"
                             >
                               Hapus
                             </button>
@@ -988,14 +988,14 @@ export default function JokiPage() {
                         <button
                           type="button"
                           onClick={() => addItemArrayField(index, "prosesJoki")}
-                          className="mt-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 border border-green-500"
+                          className="mt-1 px-3 py-1.5 bg-green-600 text-[#f1f5f9] text-sm rounded-md hover:bg-green-700 border border-green-500"
                         >
                           Tambah Proses
                         </button>
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                           Gambar Item
                         </label>
                         <input
@@ -1008,7 +1008,7 @@ export default function JokiPage() {
                               e.target.files?.[0]
                             )
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 bg-[#475569] border border-[#475569] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
                         />
                         {item.imgUrl && (
                           <div className="mt-2">
@@ -1024,7 +1024,7 @@ export default function JokiPage() {
                     <button
                       type="button"
                       onClick={() => removeItem(index)}
-                      className="mt-3 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 border border-red-500"
+                      className="mt-3 px-3 py-2 bg-red-600 text-[#f1f5f9] rounded-md hover:bg-red-700 border border-red-500"
                     >
                       Hapus Item
                     </button>
@@ -1033,25 +1033,25 @@ export default function JokiPage() {
                 <button
                   type="button"
                   onClick={addItem}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-blue-500"
+                  className="px-4 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-md hover:bg-[#1d4ed8] border border-[#3b82f6]"
                 >
                   Tambah Item
                 </button>
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex justify-end gap-4 pt-6 border-t border-gray-700">
+              <div className="flex justify-end gap-4 pt-6 border-t border-[#334155]">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 border border-gray-500"
+                  className="px-4 py-2 bg-[#475569] text-[#f1f5f9] rounded-md hover:bg-[#334155] border border-[#475569]"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 border border-blue-500"
+                  className="px-4 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-md hover:bg-[#1d4ed8] disabled:bg-[#60a5fa] border border-[#3b82f6]"
                 >
                   {isSubmitting
                     ? "Menyimpan..."

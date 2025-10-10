@@ -4,6 +4,7 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import StockAccount from "@/models/StockAccount";
 import MidtransService from "@/lib/midtrans";
+import EmailService from "@/lib/email";
 import mongoose from "mongoose";
 
 // Function to process gamepass purchase for robux_5_hari
@@ -158,7 +159,7 @@ async function processGamepassPurchase(transaction: any) {
   }
 }
 
-// GET - Get transaction by ID atau invoice ID
+// GET - Get transaction by ID atau invoice ID (with related transactions for multi-checkout)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -191,9 +192,30 @@ export async function GET(
       );
     }
 
+    // Check if this is part of a multi-checkout (grouped by midtransOrderId)
+    let relatedTransactions: any[] = [];
+    let isMultiCheckout = false;
+
+    if (transaction.midtransOrderId) {
+      // Find all transactions with the same midtransOrderId
+      relatedTransactions = await Transaction.find({
+        midtransOrderId: transaction.midtransOrderId,
+        _id: { $ne: transaction._id }, // Exclude the current transaction
+      })
+        .populate("customerInfo.userId", "username email")
+        .sort({ createdAt: 1 });
+
+      isMultiCheckout = relatedTransactions.length > 0;
+    }
+
+    // Prepare response data
+    const responseData = transaction.toObject();
+    responseData.relatedTransactions = relatedTransactions;
+    responseData.isMultiCheckout = isMultiCheckout;
+
     return NextResponse.json({
       success: true,
-      data: transaction,
+      data: responseData,
     });
   } catch (error) {
     console.error("Error fetching transaction:", error);
@@ -333,6 +355,25 @@ export async function PUT(
         "Admin changed payment to settlement - processing gamepass purchase"
       );
       await processGamepassPurchase(transaction);
+    }
+
+    // Send invoice email when order status becomes completed
+    if (
+      statusType === "order" &&
+      newStatus === "completed" &&
+      oldOrderStatus !== "completed" &&
+      transaction.customerInfo?.email
+    ) {
+      try {
+        console.log(
+          `Sending invoice email to ${transaction.customerInfo.email} (admin changed order to completed)`
+        );
+        await EmailService.sendInvoiceEmail(transaction);
+        console.log("Invoice email sent successfully");
+      } catch (emailError) {
+        console.error("Error sending invoice email:", emailError);
+        // Don't fail the status update if email fails
+      }
     }
 
     return NextResponse.json({

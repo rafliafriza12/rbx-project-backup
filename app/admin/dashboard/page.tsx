@@ -176,8 +176,8 @@ export default function DashboardPage() {
   // Show loading while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3b82f6]"></div>
       </div>
     );
   }
@@ -190,16 +190,16 @@ export default function DashboardPage() {
   // Show data loading
   if (dataLoading) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3b82f6]"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((stat, index) => (
           <StatsCard key={index} {...stat} />
         ))}
@@ -207,22 +207,22 @@ export default function DashboardPage() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-white">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-[#f1f5f9]">
             Sales Overview
           </h3>
           <SalesChart />
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-white">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-[#f1f5f9]">
             Order Status Distribution
           </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">Pending</span>
+              <span className="text-[#94a3b8]">Pending</span>
               <div className="flex items-center">
-                <div className="w-32 bg-gray-700 rounded-full h-2 mr-2">
+                <div className="w-32 bg-[#334155] rounded-full h-2 mr-2">
                   <div
                     className="bg-yellow-500 h-2 rounded-full"
                     style={{
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                     }}
                   ></div>
                 </div>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-[#f1f5f9]">
                   {calculatePercentage(
                     stats?.pendingOrders || 0,
                     getTotalOrders()
@@ -243,9 +243,9 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">Success</span>
+              <span className="text-[#94a3b8]">Success</span>
               <div className="flex items-center">
-                <div className="w-32 bg-gray-700 rounded-full h-2 mr-2">
+                <div className="w-32 bg-[#334155] rounded-full h-2 mr-2">
                   <div
                     className="bg-green-500 h-2 rounded-full"
                     style={{
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                     }}
                   ></div>
                 </div>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-[#f1f5f9]">
                   {calculatePercentage(
                     stats?.successOrders || 0,
                     getTotalOrders()
@@ -266,9 +266,9 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">Failed</span>
+              <span className="text-[#94a3b8]">Failed</span>
               <div className="flex items-center">
-                <div className="w-32 bg-gray-700 rounded-full h-2 mr-2">
+                <div className="w-32 bg-[#334155] rounded-full h-2 mr-2">
                   <div
                     className="bg-red-500 h-2 rounded-full"
                     style={{
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                     }}
                   ></div>
                 </div>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-[#f1f5f9]">
                   {calculatePercentage(
                     stats?.failedOrders || 0,
                     getTotalOrders()
@@ -293,9 +293,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow">
+      <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg">
         <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4 text-white">
+          <h3 className="text-lg font-semibold mb-4 text-[#f1f5f9]">
             Recent Transactions
           </h3>
           <DataTable

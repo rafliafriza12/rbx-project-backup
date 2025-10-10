@@ -94,14 +94,25 @@ class EmailService {
   static async sendInvoiceEmail(transactionData: any): Promise<boolean> {
     try {
       const settings = await Settings.getSiteSettings();
+
+      // Check if this is a single transaction or array of transactions (multi-checkout)
+      const isMultiTransaction = Array.isArray(transactionData);
+      const transactions = isMultiTransaction
+        ? transactionData
+        : [transactionData];
+
+      // Use first transaction for basic info (they share same customer, invoice, etc)
+      const firstTransaction = transactions[0];
+
       const invoiceHtml = this.generateInvoiceTemplate(
-        transactionData,
-        settings
+        transactions,
+        settings,
+        isMultiTransaction
       );
 
       const emailOptions: EmailOptions = {
-        to: transactionData.customerInfo.email,
-        subject: `Invoice #${transactionData.invoiceId} - ${
+        to: firstTransaction.customerInfo.email,
+        subject: `Invoice #${firstTransaction.invoiceId} - ${
           settings.siteName || "RobuxID"
         }`,
         html: invoiceHtml,
@@ -115,9 +126,19 @@ class EmailService {
   }
 
   private static generateInvoiceTemplate(
-    transaction: any,
-    settings: any
+    transactions: any[],
+    settings: any,
+    isMultiTransaction: boolean = false
   ): string {
+    // Use first transaction for common info (they share same invoice ID, customer, etc)
+    const firstTransaction = transactions[0];
+
+    // Calculate grand total from all transactions
+    const grandTotal = transactions.reduce(
+      (sum, txn) => sum + (txn.totalAmount || 0),
+      0
+    );
+
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -166,13 +187,28 @@ class EmailService {
       return colors[status] || "#6b7280";
     };
 
+    // Generate items rows HTML
+    const itemsRows = transactions
+      .map(
+        (txn) => `
+      <tr>
+        <td>${txn.serviceName}</td>
+        <td>${getServiceTypeLabel(txn.serviceType)}</td>
+        <td>${txn.quantity.toLocaleString("id-ID")}</td>
+        <td>${formatCurrency(txn.unitPrice)}</td>
+        <td>${formatCurrency(txn.unitPrice * txn.quantity)}</td>
+      </tr>
+    `
+      )
+      .join("");
+
     return `
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #${transaction.invoiceId}</title>
+    <title>Invoice #${firstTransaction.invoiceId}</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -291,6 +327,16 @@ class EmailService {
             margin: 20px 0;
             border-radius: 0 8px 8px 0;
         }
+        .roblox-info-item {
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .roblox-info-item:last-child {
+            margin-bottom: 0;
+        }
         .joki-details {
             background: #fef5e7;
             border-left: 4px solid #f6ad55;
@@ -344,19 +390,294 @@ class EmailService {
             font-weight: 600;
             margin: 10px 0;
         }
-        @media (max-width: 600px) {
+        .multi-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        /* Responsive Design - Mobile First Approach */
+        
+        /* Small phones: 320px - 480px */
+        @media (max-width: 480px) {
             body {
-                padding: 10px;
+                padding: 5px;
+                font-size: 14px;
             }
+            
+            .invoice-container {
+                border-radius: 5px;
+            }
+            
+            .header {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 0.95em;
+            }
+            
+            .multi-badge {
+                display: block;
+                margin: 10px 0 0 0;
+                width: fit-content;
+            }
+            
             .content {
-                padding: 20px;
+                padding: 15px;
             }
+            
             .invoice-info {
                 flex-direction: column;
             }
+            
+            .invoice-info div {
+                min-width: 100%;
+                margin-bottom: 15px;
+            }
+            
+            .info-label {
+                font-size: 0.9em;
+            }
+            
+            .info-value {
+                font-size: 1em;
+            }
+            
+            .status-badge {
+                padding: 6px 12px;
+                font-size: 0.75em;
+            }
+            
+            .table-container {
+                padding: 10px;
+                margin: 15px 0;
+                overflow-x: auto;
+            }
+            
+            .table {
+                font-size: 0.85em;
+                min-width: 500px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 10px 8px;
+            }
+            
+            .total-row {
+                font-size: 1em;
+            }
+            
+            .customer-info,
+            .roblox-info,
+            .roblox-info-item,
+            .joki-details,
+            .important-note,
+            .payment-instruction {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            
+            .customer-info h3,
+            .roblox-info h3,
+            .joki-details h3 {
+                font-size: 1.1em;
+            }
+            
+            .customer-info p,
+            .roblox-info p,
+            .roblox-info-item p {
+                font-size: 0.9em;
+                word-break: break-word;
+            }
+            
+            .roblox-info-item {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .footer {
+                padding: 20px 15px;
+            }
+            
             .contact-info {
                 flex-direction: column;
                 gap: 10px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9em;
+                display: block;
+                text-align: center;
+            }
+            
+            .important-note ul,
+            .payment-instruction ul {
+                padding-left: 20px;
+            }
+            
+            .important-note li,
+            .payment-instruction li {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+        }
+        
+        /* Medium phones: 481px - 600px */
+        @media (min-width: 481px) and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .invoice-info {
+                flex-direction: column;
+            }
+            
+            .invoice-info div {
+                min-width: 100%;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            .table {
+                min-width: 550px;
+            }
+            
+            .contact-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        /* Tablets: 601px - 768px */
+        @media (min-width: 601px) and (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .invoice-info div {
+                min-width: 200px;
+            }
+            
+            .table {
+                font-size: 0.95em;
+            }
+            
+            .table th,
+            .table td {
+                padding: 12px;
+            }
+        }
+        
+        /* Small laptops: 769px - 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            body {
+                max-width: 750px;
+            }
+        }
+        
+        /* Print styles for when user prints invoice */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .invoice-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .btn {
+                display: none;
+            }
+            
+            .payment-instruction {
+                display: none;
+            }
+            
+            .table tr:hover {
+                background: transparent;
+            }
+            
+            /* Prevent page breaks inside important sections */
+            .customer-info,
+            .roblox-info,
+            .table-container {
+                page-break-inside: avoid;
+            }
+        }
+        
+        /* Dark mode support for email clients that support it */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a202c;
+            }
+            
+            .invoice-container {
+                background: #2d3748;
+                color: #e2e8f0;
+            }
+            
+            .info-label {
+                color: #a0aec0;
+            }
+            
+            .info-value {
+                color: #e2e8f0;
+            }
+            
+            .customer-info,
+            .table-container {
+                background: #374151;
+            }
+            
+            .customer-info h3 {
+                color: #cbd5e0;
+                border-bottom-color: #4a5568;
+            }
+            
+            .table th {
+                background: #4a5568;
+                color: #e2e8f0;
+            }
+            
+            .table td {
+                border-bottom-color: #4a5568;
+            }
+            
+            .table tr:hover {
+                background: #374151;
             }
         }
     </style>
@@ -366,9 +687,16 @@ class EmailService {
         <!-- Header -->
         <div class="header">
             <h1>${settings.siteName || "RobuxID"}</h1>
-            <p>Invoice Pembelian ${getServiceTypeLabel(
-              transaction.serviceType
-            )}</p>
+            <p>Invoice Pembelian ${
+              isMultiTransaction
+                ? "Multi-Item"
+                : getServiceTypeLabel(firstTransaction.serviceType)
+            }
+            ${
+              isMultiTransaction
+                ? `<span class="multi-badge">${transactions.length} Items</span>`
+                : ""
+            }</p>
         </div>
 
         <!-- Content -->
@@ -377,21 +705,21 @@ class EmailService {
             <div class="invoice-info">
                 <div>
                     <div class="info-label">Invoice ID</div>
-                    <div class="info-value">#${transaction.invoiceId}</div>
+                    <div class="info-value">#${firstTransaction.invoiceId}</div>
                 </div>
                 <div>
                     <div class="info-label">Tanggal Dibuat</div>
                     <div class="info-value">${formatDate(
-                      transaction.createdAt
+                      firstTransaction.createdAt
                     )}</div>
                 </div>
                 <div>
                     <div class="info-label">Status Pembayaran</div>
                     <div class="info-value">
                         <span class="status-badge" style="background-color: ${getStatusColor(
-                          transaction.paymentStatus
+                          firstTransaction.paymentStatus
                         )}">
-                            ${getStatusLabel(transaction.paymentStatus)}
+                            ${getStatusLabel(firstTransaction.paymentStatus)}
                         </span>
                     </div>
                 </div>
@@ -401,67 +729,69 @@ class EmailService {
             <div class="customer-info">
                 <h3>📋 Informasi Customer</h3>
                 <p><strong>Nama:</strong> ${
-                  transaction.customerInfo.name || "Guest"
+                  firstTransaction.customerInfo.name || "Guest"
                 }</p>
-                <p><strong>Email:</strong> ${transaction.customerInfo.email}</p>
+                <p><strong>Email:</strong> ${
+                  firstTransaction.customerInfo.email
+                }</p>
                 ${
-                  transaction.customerInfo.phone
-                    ? `<p><strong>Telepon:</strong> ${transaction.customerInfo.phone}</p>`
+                  firstTransaction.customerInfo.phone
+                    ? `<p><strong>Telepon:</strong> ${firstTransaction.customerInfo.phone}</p>`
                     : ""
                 }
             </div>
 
-            <!-- Roblox Account Info -->
+            <!-- Roblox Account Info for Multi-Checkout -->
+            ${
+              isMultiTransaction
+                ? `
+            <div class="roblox-info">
+                <h3>🎮 Informasi Akun Roblox (Per Item)</h3>
+                <p style="color: #0891b2; margin-bottom: 15px;"><em>Setiap item menggunakan akun berbeda sesuai yang Anda tentukan:</em></p>
+                ${transactions
+                  .map(
+                    (txn, index) => `
+                <div class="roblox-info-item">
+                    <p style="margin: 0 0 8px 0;"><strong>Item ${index + 1}: ${
+                      txn.serviceName
+                    }</strong></p>
+                    <p style="margin: 5px 0;"><strong>Username:</strong> ${
+                      txn.robloxUsername
+                    }</p>
+                    ${
+                      txn.robloxPassword
+                        ? '<p style="margin: 5px 0;"><strong>Password:</strong> ••••••••••</p>'
+                        : ""
+                    }
+                </div>
+                `
+                  )
+                  .join("")}
+                <p style="margin-top: 15px; color: #0f766e;"><em>Data akun Anda aman dan tidak akan disalahgunakan.</em></p>
+            </div>
+            `
+                : `
+            <!-- Roblox Account Info for Single Item -->
             <div class="roblox-info">
                 <h3>🎮 Informasi Akun Roblox</h3>
-                <p><strong>Username:</strong> ${transaction.robloxUsername}</p>
+                <p><strong>Username:</strong> ${
+                  firstTransaction.robloxUsername
+                }</p>
                 ${
-                  transaction.robloxPassword
+                  firstTransaction.robloxPassword
                     ? "<p><strong>Password:</strong> ••••••••••</p>"
                     : ""
                 }
                 <p><em>Data akun Anda aman dan tidak akan disalahgunakan.</em></p>
             </div>
-
-            <!-- Joki Details (if applicable) -->
-            ${
-              transaction.serviceType === "joki" && transaction.jokiDetails
-                ? `
-            <div class="joki-details">
-                <h3>🚀 Detail Jasa Joki</h3>
-                ${
-                  transaction.jokiDetails.gameType
-                    ? `<p><strong>Jenis Game:</strong> ${transaction.jokiDetails.gameType}</p>`
-                    : ""
-                }
-                ${
-                  transaction.jokiDetails.targetLevel
-                    ? `<p><strong>Target Level:</strong> ${transaction.jokiDetails.targetLevel}</p>`
-                    : ""
-                }
-                ${
-                  transaction.jokiDetails.estimatedTime
-                    ? `<p><strong>Estimasi Waktu:</strong> ${transaction.jokiDetails.estimatedTime}</p>`
-                    : ""
-                }
-                ${
-                  transaction.jokiDetails.description
-                    ? `<p><strong>Deskripsi:</strong> ${transaction.jokiDetails.description}</p>`
-                    : ""
-                }
-                ${
-                  transaction.jokiDetails.notes
-                    ? `<p><strong>Catatan:</strong> ${transaction.jokiDetails.notes}</p>`
-                    : ""
-                }
-            </div>
             `
-                : ""
             }
 
             <!-- Order Details -->
             <div class="table-container">
-                <h3>📦 Detail Pesanan</h3>
+                <h3>📦 Detail Pesanan ${
+                  isMultiTransaction ? `(${transactions.length} Items)` : ""
+                }</h3>
                 <table class="table">
                     <thead>
                         <tr>
@@ -473,23 +803,11 @@ class EmailService {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>${transaction.serviceName}</td>
-                            <td>${getServiceTypeLabel(
-                              transaction.serviceType
-                            )}</td>
-                            <td>${transaction.quantity.toLocaleString(
-                              "id-ID"
-                            )}</td>
-                            <td>${formatCurrency(transaction.unitPrice)}</td>
-                            <td>${formatCurrency(
-                              transaction.unitPrice * transaction.quantity
-                            )}</td>
-                        </tr>
+                        ${itemsRows}
                         <tr class="total-row">
                             <td colspan="4"><strong>TOTAL PEMBAYARAN</strong></td>
                             <td><strong>${formatCurrency(
-                              transaction.totalAmount
+                              grandTotal
                             )}</strong></td>
                         </tr>
                     </tbody>
@@ -498,7 +816,7 @@ class EmailService {
 
             <!-- Payment Instructions -->
             ${
-              transaction.paymentStatus === "pending"
+              firstTransaction.paymentStatus === "pending"
                 ? `
             <div class="payment-instruction">
                 <h3>💳 Instruksi Pembayaran</h3>
@@ -510,10 +828,10 @@ class EmailService {
                     <li>Pesanan akan diproses setelah pembayaran berhasil</li>
                 </ul>
                 ${
-                  transaction.redirectUrl
+                  firstTransaction.redirectUrl
                     ? `
                 <p style="text-align: center; margin-top: 20px;">
-                    <a href="${transaction.redirectUrl}" class="btn">💳 Bayar Sekarang</a>
+                    <a href="${firstTransaction.redirectUrl}" class="btn">💳 Bayar Sekarang</a>
                 </p>
                 `
                     : ""
@@ -532,9 +850,14 @@ class EmailService {
                     <li>Proses pesanan akan dimulai setelah pembayaran dikonfirmasi</li>
                     <li>Hubungi customer service jika ada pertanyaan atau kendala</li>
                     ${
-                      transaction.expiresAt
+                      isMultiTransaction
+                        ? "<li>Setiap item akan diproses ke akun Roblox yang berbeda sesuai data Anda</li>"
+                        : ""
+                    }
+                    ${
+                      firstTransaction.expiresAt
                         ? `<li>Invoice ini berlaku hingga ${formatDate(
-                            transaction.expiresAt
+                            firstTransaction.expiresAt
                           )}</li>`
                         : ""
                     }
@@ -592,7 +915,7 @@ class EmailService {
     </div>
 </body>
 </html>
-`;
+    `;
   }
 }
 
