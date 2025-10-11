@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Get order counts for each joki
     const jokiWithOrderCount = await Promise.all(
       jokiServices.map(async (joki) => {
-        const jokiIdString = joki._id.toString();
+        const jokiIdString = (joki as any)._id.toString();
 
         // Method 1: Direct match with joki._id (as ObjectId)
         const orderCountObjectId = await Transaction.countDocuments({
@@ -88,14 +88,18 @@ export async function GET(request: NextRequest) {
 
     console.log("\n=== SORTED JOKI BY ORDER COUNT ===");
     sortedJoki.forEach((joki, index) => {
-      console.log(`${index + 1}. ${joki.gameName}: ${joki.orderCount} orders`);
+      console.log(
+        `${index + 1}. ${(joki as any).gameName}: ${joki.orderCount} orders`
+      );
     });
 
     // Mark top 3 as hot
     const jokiWithHotBadge = sortedJoki.map((joki, index) => {
       const isHot = index < 3 && joki.orderCount > 0;
       console.log(
-        `${joki.gameName}: isHot = ${isHot} (index: ${index}, orderCount: ${joki.orderCount})`
+        `${
+          (joki as any).gameName
+        }: isHot = ${isHot} (index: ${index}, orderCount: ${joki.orderCount})`
       );
 
       return {
@@ -106,8 +110,8 @@ export async function GET(request: NextRequest) {
 
     console.log("\n=== HOT JOKI ===");
     jokiWithHotBadge
-      .filter((j) => j.isHot)
-      .forEach((j) => {
+      .filter((j: any) => j.isHot)
+      .forEach((j: any) => {
         console.log(`🔥 ${j.gameName} (${j.orderCount} orders)`);
       });
 
