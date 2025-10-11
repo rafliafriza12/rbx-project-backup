@@ -190,7 +190,7 @@ export default function AdminGamepassPage() {
 
   if (user?.accessRole !== "admin") {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#0f172a]">
+      <div className="flex items-center justify-center h-screen ">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-400 mb-4">
             Akses Ditolak
@@ -205,7 +205,7 @@ export default function AdminGamepassPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#0f172a]">
+      <div className="flex items-center justify-center h-screen ">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#3b82f6] mx-auto"></div>
           <p className="mt-4 text-[#94a3b8]">Memuat gamepass...</p>
@@ -215,12 +215,14 @@ export default function AdminGamepassPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-[#0f172a]">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-6 ">
+      <div className="">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-[#f1f5f9]">Kelola Gamepass</h1>
+            <h1 className="text-3xl font-bold text-[#f1f5f9]">
+              Kelola Gamepass
+            </h1>
             <p className="mt-2 text-[#94a3b8]">
               Kelola semua gamepass yang tersedia di platform
             </p>
@@ -243,7 +245,9 @@ export default function AdminGamepassPage() {
             <h3 className="text-sm font-medium text-[#94a3b8]">
               Total Gamepass
             </h3>
-            <p className="text-2xl font-bold text-[#f1f5f9]">{gamepasses.length}</p>
+            <p className="text-2xl font-bold text-[#f1f5f9]">
+              {gamepasses.length}
+            </p>
           </div>
 
           <div className="p-6 rounded-lg bg-[#1e293b] shadow-lg">
@@ -423,8 +427,8 @@ export default function AdminGamepassPage() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-lg bg-[#1e293b]">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-lg bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 shadow-2xl">
             <GamepassManager
               isCreate={true}
               onCreate={handleCreate}
@@ -436,8 +440,8 @@ export default function AdminGamepassPage() {
 
       {/* Edit Modal */}
       {editingGamepass && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-lg bg-[#1e293b]">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-lg bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 shadow-2xl">
             <GamepassManager
               gamepass={editingGamepass}
               onUpdate={handleUpdate}

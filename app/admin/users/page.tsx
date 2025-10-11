@@ -822,8 +822,8 @@ export default function UsersPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 text-[#f1f5f9]">
-          <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-[#f1f5f9] shadow-2xl">
             <h3 className="text-lg font-semibold mb-4">
               {selectedUser || selectedStockAccount
                 ? `Edit ${activeTab === "stock" ? "Stock Account" : "User"}`

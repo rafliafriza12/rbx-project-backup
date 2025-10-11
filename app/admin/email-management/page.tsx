@@ -80,8 +80,8 @@ export default function EmailManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen  p-6">
+      <div className="">
         <div className="bg-[#1e293b] rounded-lg shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">

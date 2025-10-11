@@ -502,7 +502,9 @@ export default function JokiPage() {
       </nav>
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#f1f5f9]">Kelola Joki Services</h1>
+        <h1 className="text-2xl font-bold text-[#f1f5f9]">
+          Kelola Joki Services
+        </h1>
         <div className="flex gap-2">
           {/* <button
             onClick={createSampleData}
@@ -711,8 +713,8 @@ export default function JokiPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-[#0f172a] bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-[#1e293b] rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-[#334155]">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e293b]/70 backdrop-blur-2xl rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-[#334155]">
               <h3 className="text-lg font-medium text-[#f1f5f9]">
                 {selectedJoki

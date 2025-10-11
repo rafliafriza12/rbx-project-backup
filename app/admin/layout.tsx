@@ -245,8 +245,8 @@ const adminStyles = `
     color: #64748b !important;
   }
   
-  /* Buttons */
-  .admin-layout button {
+  /* Buttons - Only apply to buttons without bg- classes */
+  .admin-layout button:not([class*="bg-"]) {
     background: #3b82f6 !important;
     color: #ffffff !important;
     border: none !important;
@@ -258,14 +258,29 @@ const adminStyles = `
     transition: all 0.2s ease !important;
   }
   
-  .admin-layout button:hover {
+  .admin-layout button:not([class*="bg-"]):hover {
     background: #2563eb !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
   }
   
-  .admin-layout button:active {
+  .admin-layout button:not([class*="bg-"]):active {
     transform: translateY(0) !important;
+  }
+  
+  /* Allow Tailwind background colors to work - Remove !important from padding and border-radius */
+  .admin-layout button[class*="bg-"] {
+    border: none;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .admin-layout button[class*="bg-"]:hover {
+    transform: translateY(-1px);
+  }
+  
+  .admin-layout button[class*="bg-"]:active {
+    transform: translateY(0);
   }
   
   .admin-layout .btn-secondary {
@@ -353,54 +368,21 @@ const adminStyles = `
     color: #ffffff !important;
   }
   
-  /* Modals and Dropdowns */
-  .admin-layout .modal,
-  .admin-layout .dropdown,
-  .admin-layout [class*="modal"],
-  .admin-layout [class*="Modal"] {
-    background: #1e293b !important;
-    border: 1px solid #334155 !important;
+  /* Modals and Dropdowns - Let inline styles take precedence */
+  /* Removed global modal styling to allow per-page customization */
+  
+  /* Only apply to dropdowns specifically */
+  .admin-layout .dropdown {
+    background: rgba(30, 41, 59, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(51, 65, 85, 0.8) !important;
     border-radius: 0.75rem !important;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
   }
   
-  /* Modal Overlay/Backdrop */
-  .admin-layout .bg-opacity-75 {
-    background-color: rgba(17, 24, 39, 0.75) !important;
-  }
-  
-  .admin-layout .fixed.inset-0 {
-    background-color: rgba(0, 0, 0, 0.75) !important;
-  }
-  
-  /* Specific classes for cards and containers */
-  .admin-layout .bg-gray-800 {
-    background-color: #1e293b !important;
-  }
-  
-  .admin-layout .bg-gray-900 {
-    background-color: #0f172a !important;
-  }
-  
-  .admin-layout .bg-gray-700 {
-    background-color: #334155 !important;
-  }
-  
-  .admin-layout .bg-white {
-    background-color: #1e293b !important;
-  }
-  
-  .admin-layout .bg-blue-900 {
-    background-color: #1e3a8a !important;
-  }
-  
-  .admin-layout .bg-green-900 {
-    background-color: #14532d !important;
-  }
-  
-  .admin-layout .bg-purple-900 {
-    background-color: #581c87 !important;
-  }
+  /* Specific classes for cards and containers - Removed to allow inline styles */
+  /* Let Tailwind utility classes work without override */
   
   .admin-layout .bg-green-600 {
     background-color: #16a34a !important;
@@ -478,18 +460,12 @@ const adminStyles = `
     background-color: #1d4ed8 !important;
   }
   
-  /* Ensure proper backgrounds for specific components */
-  .admin-layout div[class*="rounded"],
-  .admin-layout div[class*="shadow"] {
-    background: inherit !important;
-  }
+  /* Removed generic div selectors that override inline styles */
+  /* This allows modals and other components to use custom backgrounds */
   
-  .admin-layout div[class*="p-"][class*="bg-"],
-  .admin-layout section[class*="bg-"] {
-    background: #1e293b !important;
-  }
+  /* Removed generic selectors to prevent override of inline styles */
   
-  /* Stats Cards */
+  /* Stats Cards - Use more specific selectors */
   .admin-layout [class*="stat"],
   .admin-layout [class*="card"] {
     background: #1e293b !important;
@@ -544,6 +520,24 @@ const adminStyles = `
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
   
+  .admin-layout .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  
+  @media (min-width: 640px) {
+    .admin-layout .sm\\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    
+    .admin-layout .sm\\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    
+    .admin-layout .sm\\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+  }
+  
   @media (min-width: 768px) {
     .admin-layout .md\\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -553,8 +547,26 @@ const adminStyles = `
       grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
     
+    .admin-layout .md\\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+    
     .admin-layout .md\\:space-x-3 > * + * {
       margin-left: 0.75rem !important;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .admin-layout .lg\\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    
+    .admin-layout .lg\\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    
+    .admin-layout .lg\\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     }
   }
   

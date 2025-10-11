@@ -391,13 +391,6 @@ export default function TransactionsPage() {
       ),
     },
     {
-      key: "paymentMethodName",
-      label: "Payment",
-      render: (value: string) => (
-        <span className="text-sm text-gray-300">{value || "-"}</span>
-      ),
-    },
-    {
       key: "totalAmount",
       label: "Amount",
       render: (value: number, row: Transaction) => {
@@ -777,8 +770,8 @@ export default function TransactionsPage() {
 
       {/* Status Update Modal */}
       {showStatusModal && selectedTransaction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-[#f1f5f9]">
                 Update Transaction Status

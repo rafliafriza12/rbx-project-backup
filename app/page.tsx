@@ -46,6 +46,28 @@ interface Gamepass {
   }[];
 }
 
+interface LiveTransaction {
+  id: string;
+  username: string;
+  displayName: string;
+  displayQuantity: string;
+  timeAgo: string;
+  serviceType: string;
+  colorScheme: string;
+}
+
+interface LiveReview {
+  id: string;
+  username: string;
+  initial: string;
+  rating: number;
+  comment: string;
+  serviceInfo: string;
+  timeAgo: string;
+  serviceType: string;
+  colorScheme: string;
+}
+
 export default function HomePage() {
   //ini baru ditambahkan
   const [user, setUser] = useState<any>(null);
@@ -61,6 +83,14 @@ export default function HomePage() {
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
+  // Helper function to format numbers with "k" suffix
+  const formatNumber = (num: number): string => {
+    if (num >= 10000) {
+      return `${(num / 1000).toFixed(1)}k`;
+    }
+    return num.toLocaleString();
+  };
+
   // Gamepass state
   const [gamepasses, setGamepasses] = useState<Gamepass[]>([]);
   const [loadingGamepasses, setLoadingGamepasses] = useState(true);
@@ -69,6 +99,16 @@ export default function HomePage() {
   const [banners, setBanners] = useState<any[]>([]);
   const [loadingBanners, setLoadingBanners] = useState(true);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  // Live Transactions state
+  const [liveTransactions, setLiveTransactions] = useState<LiveTransaction[]>(
+    []
+  );
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+
+  // Reviews state
+  const [liveReviews, setLiveReviews] = useState<LiveReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   // Robux input state
   const [robuxAmount, setRobuxAmount] = useState<number>(0);
@@ -102,6 +142,12 @@ export default function HomePage() {
 
     // Fetch active banners
     fetchActiveBanners();
+
+    // Fetch live transactions
+    fetchLiveTransactions();
+
+    // Fetch live reviews
+    fetchLiveReviews();
   }, []);
 
   // Function to fetch RBX5 statistics
@@ -203,6 +249,44 @@ export default function HomePage() {
       ]);
     } finally {
       setLoadingBanners(false);
+    }
+  };
+
+  // Function to fetch live transactions
+  const fetchLiveTransactions = async () => {
+    try {
+      const response = await fetch("/api/live-transactions");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setLiveTransactions(data.data);
+        }
+      } else {
+        console.error("Failed to fetch live transactions");
+      }
+    } catch (error) {
+      console.error("Error fetching live transactions:", error);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  // Function to fetch live reviews
+  const fetchLiveReviews = async () => {
+    try {
+      const response = await fetch("/api/reviews/live");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setLiveReviews(data.data);
+        }
+      } else {
+        console.error("Failed to fetch live reviews");
+      }
+    } catch (error) {
+      console.error("Error fetching live reviews:", error);
+    } finally {
+      setLoadingReviews(false);
     }
   };
 
@@ -607,7 +691,7 @@ export default function HomePage() {
                     <Users className="text-white w-8 h-8" />
                   </div>
                   <div className="text-3xl font-black text-white mb-2 group-hover:text-neon-pink transition-colors duration-300">
-                    50K+
+                    {loadingStats ? "..." : formatNumber(rbx5Stats.totalOrder)}+
                   </div>
                   <div className="text-white/70 text-sm font-medium">
                     Customers
@@ -644,135 +728,133 @@ export default function HomePage() {
                     </h3>
                   </div>
 
-                  <Marquee
-                    speed={40}
-                    pauseOnHover={true}
-                    className="py-5 overflow-hidden"
-                    gradientWidth={80}
-                  >
-                    <div className="flex items-center neon-card border border-neon-pink/30 rounded-lg p-4 mx-3 min-w-[280px] hover:border-neon-pink/60 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-neon-primary rounded-full flex items-center justify-center mr-4">
-                        <Gem className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">r*******</div>
-                        <div className="text-neon-pink text-sm">1,000 R$</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-neon-pink font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-white/50 text-xs">2 min lalu</div>
-                      </div>
+                  {loadingTransactions ? (
+                    <div className="flex justify-center items-center py-10">
+                      <div className="animate-spin rounded-full h-10 w-10 border-2 border-neon-pink/30 border-t-neon-pink"></div>
                     </div>
+                  ) : liveTransactions.length === 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-white/60">
+                        Belum ada transaksi hari ini
+                      </p>
+                    </div>
+                  ) : (
+                    <Marquee
+                      speed={40}
+                      pauseOnHover={true}
+                      className="py-5 overflow-hidden"
+                      gradientWidth={80}
+                    >
+                      {liveTransactions.map((tx) => {
+                        // Determine style based on colorScheme
+                        const getCardStyle = () => {
+                          switch (tx.colorScheme) {
+                            case "pink":
+                              return {
+                                borderColor: "border-neon-pink/30",
+                                hoverBorder: "hover:border-neon-pink/60",
+                                bgGradient: "bg-gradient-neon-primary",
+                                textColor: "text-neon-pink",
+                                cardClass: "neon-card",
+                              };
+                            case "purple":
+                              return {
+                                borderColor: "border-neon-purple/30",
+                                hoverBorder: "hover:border-neon-purple/60",
+                                bgGradient: "bg-gradient-neon-secondary",
+                                textColor: "text-neon-purple",
+                                cardClass: "neon-card-secondary",
+                              };
+                            case "teal":
+                              return {
+                                borderColor: "border-teal-400/20",
+                                hoverBorder: "hover:border-teal-400/40",
+                                bgGradient:
+                                  "bg-gradient-to-br from-teal-400 to-cyan-500",
+                                textColor: "text-teal-300",
+                                cardClass: "bg-white/5 backdrop-blur-sm",
+                              };
+                            case "amber":
+                              return {
+                                borderColor: "border-amber-400/20",
+                                hoverBorder: "hover:border-amber-400/40",
+                                bgGradient:
+                                  "bg-gradient-to-br from-amber-400 to-yellow-500",
+                                textColor: "text-amber-300",
+                                cardClass: "bg-white/5 backdrop-blur-sm",
+                              };
+                            case "indigo":
+                              return {
+                                borderColor: "border-indigo-400/20",
+                                hoverBorder: "hover:border-indigo-400/40",
+                                bgGradient:
+                                  "bg-gradient-to-br from-indigo-400 to-purple-500",
+                                textColor: "text-indigo-300",
+                                cardClass: "bg-white/5 backdrop-blur-sm",
+                              };
+                            default:
+                              return {
+                                borderColor: "border-neon-pink/30",
+                                hoverBorder: "hover:border-neon-pink/60",
+                                bgGradient: "bg-gradient-neon-primary",
+                                textColor: "text-neon-pink",
+                                cardClass: "neon-card",
+                              };
+                          }
+                        };
 
-                    <div className="flex items-center neon-card-secondary border border-neon-purple/30 rounded-lg p-4 mx-3 min-w-[300px] hover:border-neon-purple/60 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-neon-secondary rounded-full flex items-center justify-center mr-4">
-                        <Gamepad2 className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">a*******</div>
-                        <div className="text-neon-purple text-sm">2,500 R$</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-neon-purple font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-white/50 text-xs">5 min lalu</div>
-                      </div>
-                    </div>
+                        const style = getCardStyle();
 
-                    <div className="flex items-center neon-card border border-neon-pink/30 rounded-lg p-4 mx-3 min-w-[270px] hover:border-neon-pink/60 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-neon-accent rounded-full flex items-center justify-center mr-4">
-                        <Zap className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">m*******</div>
-                        <div className="text-neon-pink text-sm">800 R$</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-neon-pink font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-white/50 text-xs">8 min lalu</div>
-                      </div>
-                    </div>
+                        // Determine icon based on service type
+                        const getIcon = () => {
+                          switch (tx.serviceType) {
+                            case "robux":
+                              return <Gem className="text-white w-5 h-5" />;
+                            case "gamepass":
+                              return (
+                                <Gamepad2 className="text-white w-5 h-5" />
+                              );
+                            case "joki":
+                              return <Rocket className="text-white w-5 h-5" />;
+                            default:
+                              return <Zap className="text-white w-5 h-5" />;
+                          }
+                        };
 
-                    <div className="flex items-center neon-card-secondary border border-neon-purple/30 rounded-lg p-4 mx-3 min-w-[290px] hover:border-neon-purple/60 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-neon-primary rounded-full flex items-center justify-center mr-4">
-                        <Gem className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">s*******</div>
-                        <div className="text-neon-purple text-sm">1,500 R$</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-neon-purple font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-white/50 text-xs">12 min lalu</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center bg-white/5 backdrop-blur-sm border border-teal-400/20 rounded-lg p-4 mx-3 min-w-[310px] hover:bg-white/10 hover:border-teal-400/40 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-full flex items-center justify-center mr-4">
-                        <Gamepad2 className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">d*******</div>
-                        <div className="text-teal-300 text-sm">
-                          Gamepass VIP
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-green-400 font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-gray-400 text-xs">15 min lalu</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center bg-white/5 backdrop-blur-sm border border-amber-400/20 rounded-lg p-4 mx-3 min-w-[285px] hover:bg-white/10 hover:border-amber-400/40 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center mr-4">
-                        <Gem className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">b*******</div>
-                        <div className="text-amber-300 text-sm">3,200 R$</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-green-400 font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-gray-400 text-xs">18 min lalu</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center bg-white/5 backdrop-blur-sm border border-indigo-400/20 rounded-lg p-4 mx-3 min-w-[295px] hover:bg-white/10 hover:border-indigo-400/40 transition-all duration-300">
-                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center mr-4">
-                        <Rocket className="text-white w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-semibold">l*******</div>
-                        <div className="text-indigo-300 text-sm">
-                          Joki Service
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-green-400 font-medium text-sm flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Berhasil
-                        </div>
-                        <div className="text-gray-400 text-xs">22 min lalu</div>
-                      </div>
-                    </div>
-                  </Marquee>
+                        return (
+                          <div
+                            key={tx.id}
+                            className={`flex items-center ${style.cardClass} border ${style.borderColor} rounded-lg p-4 mx-3 min-w-[280px] ${style.hoverBorder} transition-all duration-300`}
+                          >
+                            <div
+                              className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center mr-4`}
+                            >
+                              {getIcon()}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-white font-semibold">
+                                {tx.username}
+                              </div>
+                              <div className={`${style.textColor} text-sm`}>
+                                {tx.displayQuantity}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div
+                                className={`${style.textColor} font-medium text-sm flex items-center gap-1`}
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                Berhasil
+                              </div>
+                              <div className="text-white/50 text-xs">
+                                {tx.timeAgo}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </Marquee>
+                  )}
 
                   <div className="text-center mt-4">
                     <div className="text-sm text-cyan-300">
@@ -1170,14 +1252,6 @@ export default function HomePage() {
                           <span className="text-white/70 text-[10px] sm:text-xs">
                             {gamepass.item?.length || 0} items
                           </span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-yellow-400 text-[10px] sm:text-xs">
-                              ⭐
-                            </span>
-                            <span className="text-white/70 text-[10px] sm:text-xs">
-                              4.9
-                            </span>
-                          </div>
                         </div>
 
                         {/* Action Button - Now serves as visual indicator */}
@@ -1554,170 +1628,126 @@ export default function HomePage() {
 
           {/* Reviews Marquee */}
           <div className="mb-8 py-4">
-            <Marquee
-              speed={35}
-              pauseOnHover={true}
-              gradient={false}
-              className="py-10"
-            >
-              {/* Review Card 1 - Neon Style */}
-              <div className="neon-card rounded-xl p-4 mx-3 min-w-[280px] hover:border-neon-pink/40 hover:-translate-y-2 transition-all duration-500 hover:shadow-neon-pink">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gradient-neon-primary rounded-full flex items-center justify-center font-bold text-white text-sm">
-                    R
-                  </div>
-                  <div className="ml-3">
-                    <div className="font-semibold text-white text-sm">
-                      Rafi*****
-                    </div>
-                    <div className="flex gap-0.5 text-neon-pink">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-white/70 italic mb-3 text-sm">
-                  "Pelayanannya cepet banget! Robux langsung masuk dalam 2
-                  hari."
-                </p>
-                <div className="text-xs text-neon-pink">
-                  <CheckCircle className="inline w-3 h-3 text-neon-pink mr-1" />{" "}
-                  2,500 R$ • 2 hari lalu
-                </div>
+            {loadingReviews ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-neon-pink/30 border-t-neon-pink"></div>
               </div>
+            ) : liveReviews.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-white/60">Belum ada review tersedia</p>
+              </div>
+            ) : (
+              <Marquee
+                speed={35}
+                pauseOnHover={true}
+                gradient={false}
+                className="py-10"
+              >
+                {liveReviews.map((review) => {
+                  // Determine card style based on colorScheme
+                  const getCardStyle = () => {
+                    switch (review.colorScheme) {
+                      case "pink":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-neon-pink/40",
+                          hoverShadow: "hover:shadow-neon-pink",
+                          bgGradient: "bg-gradient-neon-primary",
+                          starColor: "text-neon-pink",
+                          checkColor: "text-neon-pink",
+                        };
+                      case "purple":
+                        return {
+                          cardClass: "neon-card-secondary",
+                          hoverBorder: "hover:border-neon-purple/40",
+                          hoverShadow: "hover:shadow-neon-purple",
+                          bgGradient: "bg-gradient-neon-secondary",
+                          starColor: "text-neon-purple",
+                          checkColor: "text-neon-purple",
+                        };
+                      case "amber":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-amber-400/40",
+                          hoverShadow: "hover:shadow-amber-400/20",
+                          bgGradient:
+                            "bg-gradient-to-br from-amber-400 to-yellow-500",
+                          starColor: "text-amber-300",
+                          checkColor: "text-amber-400",
+                        };
+                      case "teal":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-teal-400/40",
+                          hoverShadow: "hover:shadow-teal-400/20",
+                          bgGradient:
+                            "bg-gradient-to-br from-teal-400 to-cyan-500",
+                          starColor: "text-teal-300",
+                          checkColor: "text-teal-400",
+                        };
+                      case "indigo":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-indigo-400/40",
+                          hoverShadow: "hover:shadow-indigo-400/20",
+                          bgGradient:
+                            "bg-gradient-to-br from-indigo-400 to-purple-500",
+                          starColor: "text-indigo-300",
+                          checkColor: "text-indigo-400",
+                        };
+                      default:
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-neon-pink/40",
+                          hoverShadow: "hover:shadow-neon-pink",
+                          bgGradient: "bg-gradient-neon-primary",
+                          starColor: "text-neon-pink",
+                          checkColor: "text-neon-pink",
+                        };
+                    }
+                  };
 
-              {/* Review Card 2 - Neon Style */}
-              <div className="neon-card-secondary rounded-xl p-4 mx-3 min-w-[290px] hover:border-neon-purple/40 hover:-translate-y-2 transition-all duration-500 hover:shadow-neon-purple">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gradient-neon-secondary rounded-full flex items-center justify-center font-bold text-white text-sm">
-                    A
-                  </div>
-                  <div className="ml-3">
-                    <div className="font-semibold text-white text-sm">
-                      Alex*****
-                    </div>
-                    <div className="flex gap-0.5 text-neon-purple">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-white/70 italic mb-3 text-sm">
-                  "Harga paling murah dan amanah! Udah langganan dari tahun
-                  lalu."
-                </p>
-                <div className="text-xs text-neon-purple">
-                  <CheckCircle className="inline w-3 h-3 text-neon-purple mr-1" />{" "}
-                  5,000 R$ • 1 minggu lalu
-                </div>
-              </div>
+                  const style = getCardStyle();
 
-              {/* Review Card 3 - Neon Style */}
-              <div className="neon-card rounded-xl p-4 mx-3 min-w-[285px] hover:border-neon-pink/40 hover:-translate-y-2 transition-all duration-500 hover:shadow-neon-pink">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gradient-neon-accent rounded-full flex items-center justify-center font-bold text-white text-sm">
-                    M
-                  </div>
-                  <div className="ml-3">
-                    <div className="font-semibold text-white text-sm">
-                      Maya*****
+                  return (
+                    <div
+                      key={review.id}
+                      className={`${style.cardClass} rounded-xl p-4 mx-3 min-w-[280px] ${style.hoverBorder} hover:-translate-y-2 transition-all duration-500 ${style.hoverShadow}`}
+                    >
+                      <div className="flex items-center mb-3">
+                        <div
+                          className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center font-bold text-white text-sm`}
+                        >
+                          {review.initial}
+                        </div>
+                        <div className="ml-3">
+                          <div className="font-semibold text-white text-sm">
+                            {review.username}
+                          </div>
+                          <div className={`flex gap-0.5 ${style.starColor}`}>
+                            {[...Array(review.rating)].map((_, index) => (
+                              <Star
+                                key={index}
+                                className="w-3 h-3 fill-current"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-white/70 italic mb-3 text-sm line-clamp-3">
+                        "{review.comment}"
+                      </p>
+                      <div className={`text-xs ${style.checkColor}`}>
+                        <CheckCircle
+                          className={`inline w-3 h-3 ${style.checkColor} mr-1`}
+                        />{" "}
+                        {review.serviceInfo} • {review.timeAgo}
+                      </div>
                     </div>
-                    <div className="flex gap-0.5 text-neon-pink">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-white/70 italic mb-3 text-sm">
-                  "CS nya ramah banget, dibantu sampe tuntas. Proses gampang!"
-                </p>
-                <div className="text-xs text-neon-pink">
-                  <CheckCircle className="inline w-3 h-3 text-neon-pink mr-1" />{" "}
-                  1,000 R$ • 3 hari lalu
-                </div>
-              </div>
-
-              {/* Review Card 4 - Neon Style */}
-              <div className="neon-card-secondary rounded-xl p-4 mx-3 min-w-[275px] hover:border-neon-purple/40 hover:-translate-y-2 transition-all duration-500 hover:shadow-neon-purple">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gradient-neon-primary rounded-full flex items-center justify-center font-bold text-white text-sm">
-                    D
-                  </div>
-                  <div className="ml-3">
-                    <div className="font-semibold text-white text-sm">
-                      Dino*****
-                    </div>
-                    <div className="flex gap-0.5 text-neon-purple">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-white/70 italic mb-3 text-sm">
-                  "Gamepass langsung aktif sesuai jadwal. Mantap banget!"
-                </p>
-                <div className="text-xs text-neon-purple">
-                  <CheckCircle className="inline w-3 h-3 text-neon-purple mr-1" />{" "}
-                  Gamepass • 5 hari lalu
-                </div>
-              </div>
-
-              {/* Review Card 5 - Neon Style */}
-              <div className="neon-card rounded-xl p-4 mx-3 min-w-[300px] hover:border-neon-pink/40 hover:-translate-y-2 transition-all duration-500 hover:shadow-neon-pink">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gradient-neon-accent rounded-full flex items-center justify-center font-bold text-white text-sm">
-                    S
-                  </div>
-                  <div className="ml-3">
-                    <div className="font-semibold text-white text-sm">
-                      Sari*****
-                    </div>
-                    <div className="flex gap-0.5 text-neon-pink">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-white/70 italic mb-3 text-sm">
-                  "Pertama kali beli disini, ternyata legit dan terpercaya!"
-                </p>
-                <div className="text-xs text-neon-pink">
-                  <CheckCircle className="inline w-3 h-3 text-neon-pink mr-1" />{" "}
-                  3,200 R$ • 1 hari lalu
-                </div>
-              </div>
-
-              {/* Review Card 6 - Neon Style */}
-              <div className="neon-card-secondary rounded-xl p-4 mx-3 min-w-[295px] hover:border-neon-purple/40 hover:-translate-y-2 transition-all duration-500 hover:shadow-neon-purple">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gradient-neon-secondary rounded-full flex items-center justify-center font-bold text-white text-sm">
-                    B
-                  </div>
-                  <div className="ml-3">
-                    <div className="font-semibold text-white text-sm">
-                      Bayu*****
-                    </div>
-                    <div className="flex gap-0.5 text-neon-purple">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-white/70 italic mb-3 text-sm">
-                  "Website nya keren, sistemnya juga aman. Pokoknya top!"
-                </p>
-                <div className="text-xs text-neon-purple">
-                  <CheckCircle className="inline w-3 h-3 text-neon-purple mr-1" />{" "}
-                  4,500 R$ • 6 hari lalu
-                </div>
-              </div>
-            </Marquee>
+                  );
+                })}
+              </Marquee>
+            )}
           </div>
 
           {/* Trust Indicators - Neon Style */}

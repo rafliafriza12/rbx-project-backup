@@ -494,8 +494,8 @@ export default function ProductsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 backdrop-blur-[5px] bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-lg shadow-lg rounded-md bg-[#1e293b]">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 w-full max-w-lg shadow-2xl rounded-lg p-6">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-[#0f172a] mb-4">
                 {selectedProduct ? "Edit Produk" : "Tambah Produk Baru"}

@@ -190,14 +190,6 @@ export default function JokiPage() {
                           <span className="text-white/70 text-[10px] sm:text-xs">
                             Jasa Professional
                           </span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-yellow-400 text-[10px] sm:text-xs">
-                              ⭐
-                            </span>
-                            <span className="text-white/70 text-[10px] sm:text-xs">
-                              4.9
-                            </span>
-                          </div>
                         </div>
 
                         {/* Action Button - Now serves as visual indicator */}

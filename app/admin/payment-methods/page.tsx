@@ -466,7 +466,9 @@ export default function PaymentMethodsPage() {
                       <div className="text-sm font-medium text-[#f1f5f9]">
                         {method.name}
                       </div>
-                      <div className="text-sm text-[#94a3b8]">{method.code}</div>
+                      <div className="text-sm text-[#94a3b8]">
+                        {method.code}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -527,8 +529,8 @@ export default function PaymentMethodsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-[#0f172a] bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1e293b] rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-[#334155]">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e293b]/70 backdrop-blur-2xl rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-[#334155]">
               <h3 className="text-lg font-medium text-[#f1f5f9]">
                 {selectedMethod

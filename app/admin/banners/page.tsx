@@ -256,8 +256,8 @@ export default function BannersManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f1f5f9] rounded-2xl p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen  text-[#f1f5f9] rounded-2xl p-6">
+      <div className="">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -393,8 +393,8 @@ export default function BannersManagement() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#1e293b] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
               {/* Modal Header */}
               <div className="flex justify-between items-center p-6 border-b border-[#334155]">
                 <h2 className="text-2xl font-bold">

@@ -169,16 +169,20 @@ export default function AdminReviewsPage() {
 
   const renderStars = (rating: number) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
-          <span
+          <svg
             key={star}
-            className={`text-sm ${
-              star <= rating ? "text-yellow-400" : "text-[#cbd5e1]"
+            className={`w-5 h-5 ${
+              star <= rating
+                ? "text-yellow-400 fill-yellow-400"
+                : "text-gray-600 fill-gray-600"
             }`}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
           >
-            ⭐
-          </span>
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
         ))}
       </div>
     );
@@ -187,10 +191,10 @@ export default function AdminReviewsPage() {
   const getStatusBadge = (isApproved: boolean) => {
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${
+        className={`px-2 py-1 rounded-full text-xs font-semibold ${
           isApproved
-            ? "bg-green-100 text-green-800"
-            : "bg-yellow-100 text-yellow-800"
+            ? "bg-green-900 text-green-300 border border-green-700"
+            : "bg-yellow-900 text-yellow-300 border border-yellow-700"
         }`}
       >
         {isApproved ? "Approved" : "Pending"}
