@@ -241,9 +241,9 @@ export default function RobuxPricingPage() {
                 Harga per 100 Robux (IDR) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#94a3b8]">
+                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#94a3b8]">
                   Rp
-                </span>
+                </span> */}
                 <input
                   type="number"
                   value={formData.pricePerHundred}
