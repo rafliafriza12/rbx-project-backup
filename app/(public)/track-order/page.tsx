@@ -15,6 +15,7 @@ import {
   getAllTransactions,
   calculateGrandTotal,
   calculateOriginalTotal,
+  calculateTotalDiscount,
   getTotalItemsCount,
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
@@ -41,6 +42,28 @@ export default function TrackOrderPage() {
       const data = await response.json();
       console.log(data.data);
       if (response.ok && data.data) {
+        console.log("=== TRACK ORDER FRONTEND DEBUG ===");
+        console.log("Transaction received:", data.data);
+        console.log("Is Multi Checkout:", data.data.isMultiCheckout);
+        console.log(
+          "Related Transactions:",
+          data.data.relatedTransactions?.length || 0
+        );
+
+        // Debug each item
+        const allItems = [data.data, ...(data.data.relatedTransactions || [])];
+        allItems.forEach((item: any, idx: number) => {
+          console.log(`\nItem ${idx + 1}:`, {
+            name: item.serviceName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalAmount: item.totalAmount,
+            discountAmount: item.discountAmount,
+            finalAmount: item.finalAmount,
+            calculated_total: item.quantity * item.unitPrice,
+          });
+        });
+
         setTransaction(data.data);
       } else {
         setTransaction(null);
@@ -372,9 +395,10 @@ export default function TrackOrderPage() {
                       <div className="text-right">
                         <div className="text-xl sm:text-2xl font-bold text-primary-100">
                           Rp{" "}
-                          {calculateGrandTotal(transaction).toLocaleString(
-                            "id-ID"
-                          )}
+                          {(
+                            calculateGrandTotal(transaction) +
+                            (transaction.paymentFee || 0)
+                          ).toLocaleString("id-ID")}
                         </div>
                         <div className="text-sm text-white/60">
                           Total Pembayaran
@@ -447,162 +471,228 @@ export default function TrackOrderPage() {
 
                   {/* Payment Summary */}
                   <div className="mt-6 pt-6 border-t border-white/10">
-                    <div className="space-y-2">
+                    <h3 className="font-semibold text-white text-base mb-4">
+                      Ringkasan Pembayaran
+                    </h3>
+                    <div className="space-y-3">
+                      {/* Subtotal */}
                       <div className="flex justify-between text-white/70">
                         <span>
                           Subtotal ({getTotalItemsCount(transaction)} items):
                         </span>
-                        <span>
+                        <span className="font-medium text-white">
                           Rp{" "}
                           {calculateOriginalTotal(transaction).toLocaleString(
                             "id-ID"
                           )}
                         </span>
                       </div>
-                      {calculateOriginalTotal(transaction) !==
-                        calculateGrandTotal(transaction) && (
+
+                      {/* Discount - Show if there's any discount */}
+                      {calculateTotalDiscount(transaction) > 0 && (
                         <div className="flex justify-between text-green-400">
-                          <span>Diskon:</span>
                           <span>
+                            Diskon
+                            {(() => {
+                              const firstItem =
+                                getAllTransactions(transaction)[0];
+                              return firstItem &&
+                                firstItem.discountPercentage &&
+                                firstItem.discountPercentage > 0
+                                ? ` (${firstItem.discountPercentage}%)`
+                                : "";
+                            })()}
+                            :
+                          </span>
+                          <span className="font-medium">
                             -Rp{" "}
+                            {calculateTotalDiscount(transaction).toLocaleString(
+                              "id-ID"
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Subtotal after discount */}
+                      {calculateTotalDiscount(transaction) > 0 && (
+                        <div className="flex justify-between text-white/70 text-sm">
+                          <span>Subtotal setelah diskon:</span>
+                          <span className="font-medium text-white">
+                            Rp{" "}
                             {(
                               calculateOriginalTotal(transaction) -
-                              calculateGrandTotal(transaction)
+                              calculateTotalDiscount(transaction)
                             ).toLocaleString("id-ID")}
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
+
+                      {/* Payment Method Name */}
+                      {transaction.paymentMethodName && (
+                        <div className="flex justify-between text-white/70 text-sm">
+                          <span>Metode Pembayaran:</span>
+                          <span className="font-medium text-white">
+                            {transaction.paymentMethodName}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Payment Fee */}
+                      {transaction.paymentFee && transaction.paymentFee > 0 && (
+                        <div className="flex justify-between text-white/70 text-sm">
+                          <span>Biaya Admin:</span>
+                          <span className="font-medium text-white">
+                            Rp {transaction.paymentFee.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Total Payment - Bold and highlighted */}
+                      <div className="flex justify-between text-white font-bold text-lg pt-3 border-t border-white/20">
                         <span>Total Pembayaran:</span>
                         <span className="text-primary-100">
                           Rp{" "}
-                          {calculateGrandTotal(transaction).toLocaleString(
-                            "id-ID"
-                          )}
+                          {(
+                            calculateGrandTotal(transaction) +
+                            (transaction.paymentFee || 0)
+                          ).toLocaleString("id-ID")}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
-                      <h3 className="font-medium text-white mb-4 text-base sm:text-lg flex items-center gap-2">
-                        <Package className="w-5 h-5 text-primary-100" />
-                        Informasi Pesanan
-                      </h3>
-                      <div className="space-y-3 text-sm sm:text-base">
-                        <div className="flex justify-between items-start">
-                          <span className="text-white/60 flex-shrink-0 mr-2">
-                            Tanggal Pesanan:
-                          </span>
-                          <span className="font-medium text-white text-right">
-                            {formatDate(transaction.createdAt)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/60">Quantity:</span>
-                          <span className="font-medium text-white">
-                            {transaction.quantity}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/60">Harga Satuan:</span>
-                          <span className="font-medium text-white">
-                            Rp {transaction.unitPrice.toLocaleString("id-ID")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/60">Subtotal:</span>
-                          <span className="font-medium text-white">
-                            Rp {transaction.totalAmount.toLocaleString("id-ID")}
-                          </span>
-                        </div>
-                        {/* Show discount if available */}
-                        {(transaction.discountPercentage || 0) > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-white/60">
-                              Diskon ({transaction.discountPercentage}%):
+                    {/* Informasi Pesanan - Only show for single checkout */}
+                    {!isMultiCheckout(transaction) && (
+                      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+                        <h3 className="font-medium text-white mb-4 text-base sm:text-lg flex items-center gap-2">
+                          <Package className="w-5 h-5 text-primary-100" />
+                          Informasi Pesanan
+                        </h3>
+                        <div className="space-y-3 text-sm sm:text-base">
+                          <div className="flex justify-between items-start">
+                            <span className="text-white/60 flex-shrink-0 mr-2">
+                              Tanggal Pesanan:
                             </span>
-                            <span className="font-medium text-green-400">
-                              -Rp{" "}
-                              {(transaction.discountAmount || 0).toLocaleString(
-                                "id-ID"
-                              )}
+                            <span className="font-medium text-white text-right">
+                              {formatDate(transaction.createdAt)}
                             </span>
                           </div>
-                        )}
-                        <div className="flex justify-between border-t border-white/20 pt-3">
-                          <span className="text-white font-semibold">
-                            Total Bayar:
-                          </span>
-                          <span className="font-bold text-primary-100">
-                            Rp{" "}
-                            {(
-                              transaction.finalAmount || transaction.totalAmount
-                            ).toLocaleString("id-ID")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/60">Akun Roblox:</span>
-                          <span className="font-medium text-white break-all">
-                            {transaction.robloxUsername}
-                          </span>
-                        </div>
-
-                        {/* Gamepass Information */}
-                        {transaction.gamepass && (
-                          <>
-                            <div className="border-t border-white/20 pt-3">
-                              <h4 className="text-white font-medium mb-2 text-sm">
-                                Detail Gamepass:
-                              </h4>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-white/60">
-                                Gamepass ID:
-                              </span>
-                              <span className="font-medium text-white">
-                                {transaction.gamepass.id}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-white/60">
-                                Nama Gamepass:
-                              </span>
-                              <span className="font-medium text-white break-words">
-                                {transaction.gamepass.name}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-white/60">Product ID:</span>
-                              <span className="font-medium text-white">
-                                {transaction.gamepass.productId}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-white/60">Seller ID:</span>
-                              <span className="font-medium text-white">
-                                {transaction.gamepass.sellerId}
-                              </span>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Service Category Information */}
-                        {transaction.serviceCategory && (
                           <div className="flex justify-between">
-                            <span className="text-white/60">
-                              Kategori Layanan:
-                            </span>
-                            <span className="font-medium text-white capitalize">
-                              {transaction.serviceCategory.replace("_", " ")}
+                            <span className="text-white/60">Quantity:</span>
+                            <span className="font-medium text-white">
+                              {transaction.quantity}
                             </span>
                           </div>
-                        )}
+                          <div className="flex justify-between">
+                            <span className="text-white/60">Harga Satuan:</span>
+                            <span className="font-medium text-white">
+                              Rp {transaction.unitPrice.toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-white/60">Subtotal:</span>
+                            <span className="font-medium text-white">
+                              Rp{" "}
+                              {transaction.totalAmount.toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                          {/* Show discount if available */}
+                          {(transaction.discountPercentage || 0) > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-white/60">
+                                Diskon ({transaction.discountPercentage}%):
+                              </span>
+                              <span className="font-medium text-green-400">
+                                -Rp{" "}
+                                {(
+                                  transaction.discountAmount || 0
+                                ).toLocaleString("id-ID")}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between border-t border-white/20 pt-3">
+                            <span className="text-white font-semibold">
+                              Total Bayar:
+                            </span>
+                            <span className="font-bold text-primary-100">
+                              Rp{" "}
+                              {(
+                                transaction.finalAmount ||
+                                transaction.totalAmount
+                              ).toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-white/60">Akun Roblox:</span>
+                            <span className="font-medium text-white break-all">
+                              {transaction.robloxUsername}
+                            </span>
+                          </div>
+
+                          {/* Gamepass Information */}
+                          {transaction.gamepass && (
+                            <>
+                              <div className="border-t border-white/20 pt-3">
+                                <h4 className="text-white font-medium mb-2 text-sm">
+                                  Detail Gamepass:
+                                </h4>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/60">
+                                  Gamepass ID:
+                                </span>
+                                <span className="font-medium text-white">
+                                  {transaction.gamepass.id}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/60">
+                                  Nama Gamepass:
+                                </span>
+                                <span className="font-medium text-white break-words">
+                                  {transaction.gamepass.name}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/60">
+                                  Product ID:
+                                </span>
+                                <span className="font-medium text-white">
+                                  {transaction.gamepass.productId}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/60">
+                                  Seller ID:
+                                </span>
+                                <span className="font-medium text-white">
+                                  {transaction.gamepass.sellerId}
+                                </span>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Service Category Information */}
+                          {transaction.serviceCategory && (
+                            <div className="flex justify-between">
+                              <span className="text-white/60">
+                                Kategori Layanan:
+                              </span>
+                              <span className="font-medium text-white capitalize">
+                                {transaction.serviceCategory.replace("_", " ")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+                    <div
+                      className={`bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10 ${
+                        isMultiCheckout(transaction) ? "lg:col-span-2" : ""
+                      }`}
+                    >
                       <h3 className="font-medium text-white mb-4 text-base sm:text-lg flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-primary-100" />
                         Informasi Pembeli
@@ -829,7 +919,10 @@ export default function TrackOrderPage() {
                     {(transaction.discountPercentage || 0) > 0 && (
                       <div className="text-sm text-white/50 mb-2">
                         <span className="line-through">
-                          Rp {transaction.totalAmount.toLocaleString("id-ID")}
+                          Rp{" "}
+                          {calculateOriginalTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
                         </span>
                         <span className="ml-2 text-green-400 font-medium">
                           -{transaction.discountPercentage}%
@@ -839,7 +932,8 @@ export default function TrackOrderPage() {
                     <p className="text-2xl sm:text-3xl font-bold text-primary-100">
                       Rp{" "}
                       {(
-                        transaction.finalAmount || transaction.totalAmount
+                        calculateOriginalTotal(transaction) -
+                        calculateTotalDiscount(transaction)
                       ).toLocaleString("id-ID")}
                     </p>
                   </div>

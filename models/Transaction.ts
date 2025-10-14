@@ -72,6 +72,13 @@ const transactionSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Payment Fee (for multi-checkout grouping)
+    paymentFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // Data Akun Roblox (untuk semua layanan)
     robloxUsername: {
       type: String,

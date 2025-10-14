@@ -54,26 +54,17 @@ const PublicAppHeader: React.FC = () => {
           Home
         </Link>
         <Link
-          href="/rbx5"
+          href="/rbx"
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
-            pathname === "/rbx5"
+            pathname.includes("/rbx") ||
+            pathname === "/rbx5" ||
+            pathname.includes("/robux-instant")
               ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
               : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
           }`}
         >
-          Robux 5 Hari
-        </Link>
-        <Link
-          href="/robux-instant"
-          onClick={handleLinkClick}
-          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
-            pathname.includes("robux-instant")
-              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
-              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
-          }`}
-        >
-          Robux Instan
+          RBX
         </Link>
         <Link
           href="/gamepass"
@@ -280,26 +271,17 @@ const PublicAppHeader: React.FC = () => {
           Home
         </Link>
         <Link
-          href="/rbx5"
+          href="/rbx"
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
-            pathname === "/rbx5"
+            pathname.includes("/rbx") ||
+            pathname === "/rbx5" ||
+            pathname.includes("/robux-instant")
               ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
               : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
           }`}
         >
-          Robux 5 Hari
-        </Link>
-        <Link
-          href="/robux-instant"
-          onClick={handleLinkClick}
-          className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
-            pathname.includes("robux-instant")
-              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
-          }`}
-        >
-          Robux Instan
+          RBX
         </Link>
         <Link
           href="/gamepass"

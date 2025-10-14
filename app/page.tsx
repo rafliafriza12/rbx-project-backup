@@ -213,7 +213,7 @@ export default function HomePage() {
               id: 2,
               imageUrl: "/banner2.png",
               link: "/rbx5",
-              alt: "Banner Robux Promo",
+              alt: "Banner RBX Promo",
             },
             {
               id: 3,
@@ -238,7 +238,7 @@ export default function HomePage() {
           id: 2,
           imageUrl: "/banner2.png",
           link: "/rbx5",
-          alt: "Banner Robux Promo",
+          alt: "Banner RBX Promo",
         },
         {
           id: 3,
@@ -321,7 +321,7 @@ export default function HomePage() {
   // Handle redirect to RBX5 page with robux amount
   const handleBuyNow = () => {
     if (robuxAmount <= 0) {
-      toast.error("Silakan masukkan jumlah Robux yang valid");
+      toast.error("Silakan masukkan jumlah RBX yang valid");
       return;
     }
 
@@ -604,12 +604,12 @@ export default function HomePage() {
                 <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-1"></span>
                 <Sparkles className="w-4 h-4" />
               </div>
-              #1 Platform Robux Terpercaya di Indonesia
+              #1 Platform RBX Terpercaya di Indonesia
             </div>
 
             {/* Enhanced Main Heading */}
             <h1 className="text-5xl sm:text-6xl lg:text-8xl font-extrabold text-white mb-8 leading-[0.9] tracking-tight">
-              Jual Beli <span className="text-primary-100">Robux</span>
+              Jual Beli <span className="text-primary-100">RBX</span>
               <br />
               <span className="text-neon-purple">Terpercaya</span> &{" "}
               <span className="text-neon-pink">Termurah</span>
@@ -617,7 +617,7 @@ export default function HomePage() {
 
             {/* Enhanced Description */}
             <p className="text-xl sm:text-lg text-white/80 max-w-4xl mx-auto mb-8  font-light">
-              Platform #1 Indonesia untuk transaksi Robux dengan{" "}
+              Platform #1 Indonesia untuk transaksi RBX dengan{" "}
               <span className="text-neon-pink font-medium">harga terbaik</span>,{" "}
               <span className="text-neon-purple font-medium">
                 proses instan
@@ -638,7 +638,7 @@ export default function HomePage() {
               >
                 <div className="flex items-center justify-center gap-3">
                   <Rocket className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-                  Beli Robux Sekarang
+                  Beli RBX Sekarang
                 </div>
               </button>
               <Link
@@ -885,7 +885,7 @@ export default function HomePage() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-6 backdrop-blur-sm">
               <Sparkles className="w-4 h-4 mr-2" />
-              Robux Premium Experience
+              RBX Premium Experience
             </div>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               Pilih <span className="text-primary-100">RBX</span>
@@ -893,7 +893,7 @@ export default function HomePage() {
               <span className="text-neon-purple">Terbaik</span> Untukmu
             </h2>
             <p className="text-xl sm:text-lg text-white/80 max-w-4xl mx-auto  font-light">
-              Platform terdepan untuk mendapatkan Robux dengan{" "}
+              Platform terdepan untuk mendapatkan RBX dengan{" "}
               <span className="text-neon-pink font-medium">
                 harga terjangkau
               </span>{" "}
@@ -917,13 +917,13 @@ export default function HomePage() {
                   <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
                   <Gem className="w-4 h-4" />
                 </div>
-                Robux Premium - GamePass Official
+                RBX Premium - GamePass Official
               </div>
               <h3 className="text-4xl sm:text-5xl font-black text-white mb-4">
-                Beli <span className="text-primary-100">Robux</span> Instan
+                Beli <span className="text-primary-100">RBX</span> Instan
               </h3>
               <p className="text-xl text-white/80 max-w-2xl mx-auto ">
-                Robux akan otomatis ditambahkan ke akun kamu melalui{" "}
+                RBX akan otomatis ditambahkan ke akun kamu melalui{" "}
                 <span className="text-neon-pink font-semibold">
                   gamepass resmi
                 </span>{" "}
@@ -936,12 +936,12 @@ export default function HomePage() {
               <div className="space-y-6">
                 <label className="flex items-center gap-2 text-lg font-bold text-white">
                   <Gem className="w-5 h-5 text-neon-pink" />
-                  Jumlah Robux
+                  Jumlah RBX
                 </label>
                 <div className="relative group">
                   <input
                     type="number"
-                    placeholder="Masukkan jumlah Robux"
+                    placeholder="Masukkan jumlah RBX"
                     value={robuxAmount === 0 ? "" : robuxAmount.toString()}
                     onChange={(e) => handleRobuxChange(e.target.value)}
                     className="w-full px-6 py-5 border-2 border-white/20 rounded-2xl bg-white/5 backdrop-blur-md text-white text-xl placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300 pr-16 group-hover:border-neon-purple/40"
@@ -1099,14 +1099,14 @@ export default function HomePage() {
                   <div className="w-8 h-8 bg-neon-purple rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Image
                       src="/rux.png"
-                      alt="harga robux"
+                      alt="harga rbx"
                       width={16}
                       height={16}
                       className="brightness-0 invert"
                     />
                   </div>
                   <div className="text-sm font-medium text-white/60">
-                    Harga Robux
+                    Harga RBX
                   </div>
                 </div>
                 <div className="text-lg font-bold text-white">
@@ -1157,7 +1157,7 @@ export default function HomePage() {
               </span>{" "}
               dari game-game favorit.
               <br className="hidden sm:block" />
-              Wujudkan impian Roblox kamu dengan{" "}
+              Wujudkan impian RBX kamu dengan{" "}
               <span className="text-white font-semibold">harga terbaik</span>.
             </p>
           </div>
@@ -1284,12 +1284,12 @@ export default function HomePage() {
                 <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
                 <Star className="w-5 h-5" />
               </div>
-              Keunggulan Premium RobuxID
+              Keunggulan Premium RBXNET
             </div>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               <span className="text-neon-purple">Kenapa</span> Pilih
               <br />
-              <span className="text-primary-100">RobuxID</span>?
+              <span className="text-primary-100">RBXNET</span>?
             </h2>
             <p className="text-xl sm:text-lg text-white/80 max-w-4xl mx-auto  font-light">
               Keamanan tingkat militer, proses instan, dan kepuasan 100%
@@ -1322,7 +1322,7 @@ export default function HomePage() {
                   Proses Instan
                 </h3>
                 <p className="text-white/70  font-medium">
-                  Robux langsung masuk ke akun dalam{" "}
+                  RBX langsung masuk ke akun dalam{" "}
                   <span className="text-primary-200 font-semibold">
                     hitungan detik
                   </span>{" "}
@@ -1425,12 +1425,12 @@ export default function HomePage() {
 
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
                   <span className="text-neon-purple">Mulai</span> Petualangan{" "}
-                  <span className="text-neon-pink">Roblox</span> Sekarang
+                  <span className="text-neon-pink">RBX</span> Sekarang
                 </h2>
 
                 <p className="text-lg text-white/70 mb-8 ">
-                  Bergabung dengan ribuan player yang sudah mempercayai RobuxID.
-                  Dapatkan Robux dengan proses termudah, tercepat, dan teraman.
+                  Bergabung dengan ribuan player yang sudah mempercayai RBXNET.
+                  Dapatkan RBX dengan proses termudah, tercepat, dan teraman.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -1438,7 +1438,7 @@ export default function HomePage() {
                     onClick={handleScrollToPembelian}
                     className="btn-neon-primary px-8 py-4 rounded-2xl font-semibold text-lg hover:-translate-y-2 transition-all duration-300"
                   >
-                    Beli Robux Sekarang
+                    Beli RBX Sekarang
                   </button>
                   <Link
                     href="/gamepass"
@@ -1470,7 +1470,7 @@ export default function HomePage() {
                 <div className="relative">
                   <Image
                     src="/char3.png"
-                    alt="RobuxID Character"
+                    alt="RBXNET Character"
                     width={500}
                     height={400}
                     className="mx-auto max-w-full h-auto"
@@ -1777,7 +1777,7 @@ export default function HomePage() {
             <details className="group neon-card rounded-xl overflow-hidden hover:border-neon-pink/30 transition-all duration-300">
               <summary className="flex items-center justify-between p-6 cursor-pointer group-open:bg-neon-pink/10 transition-all">
                 <h3 className="text-lg font-semibold text-white ">
-                  Berapa lama waktu pengiriman Robux?
+                  Berapa lama waktu pengiriman RBX?
                 </h3>
                 <div className="w-6 h-6 text-neon-pink group-open:rotate-180 transition-transform">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1792,9 +1792,9 @@ export default function HomePage() {
               </summary>
               <div className="px-6 pb-6">
                 <p className="text-white/70 ">
-                  Robux akan dikirim maksimal dalam 5 hari kerja setelah
+                  RBX akan dikirim maksimal dalam 5 hari kerja setelah
                   pembayaran dikonfirmasi. Pengiriman dilakukan melalui gamepass
-                  resmi Roblox untuk memastikan keamanan akun Anda.
+                  resmi RBX untuk memastikan keamanan akun Anda.
                 </p>
               </div>
             </details>
@@ -1857,7 +1857,7 @@ export default function HomePage() {
             <details className="group neon-card-secondary rounded-xl overflow-hidden hover:border-primary-300/30 transition-all duration-300">
               <summary className="flex items-center justify-between p-6 cursor-pointer group-open:bg-primary-300/10 transition-all">
                 <h3 className="text-lg font-semibold text-white ">
-                  Apakah ada minimum pembelian Robux?
+                  Apakah ada minimum pembelian RBX?
                 </h3>
                 <div className="w-6 h-6 text-primary-300 group-open:rotate-180 transition-transform">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1872,9 +1872,9 @@ export default function HomePage() {
               </summary>
               <div className="px-6 pb-6">
                 <p className="text-white/70 ">
-                  Minimum pembelian adalah 100 Robux. Tidak ada batas maksimum,
+                  Minimum pembelian adalah 100 RBX. Tidak ada batas maksimum,
                   jadi Anda bisa membeli sesuai kebutuhan. Semakin banyak yang
-                  dibeli, semakin hemat harga per Robux-nya!
+                  dibeli, semakin hemat harga per RBX-nya!
                 </p>
               </div>
             </details>

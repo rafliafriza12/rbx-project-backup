@@ -75,8 +75,8 @@ export default function JokiPage() {
         <p className="text-sm sm:text-base text-white/80 max-w-xl mx-auto leading-relaxed">
           Kalian ingin cepat naik level cepat, mendapatkan item limited, dan
           menyelesaikan quest dengan cepat? Solusinya dengan joki di website{" "}
-          <span className="text-primary-100 font-semibold">RobuxID</span>{" "}
-          tinggal bayar dan duduk manis semua selesai dengan cepat.
+          <span className="text-primary-100 font-semibold">RBXNET</span> tinggal
+          bayar dan duduk manis semua selesai dengan cepat.
         </p>
       </div>
 

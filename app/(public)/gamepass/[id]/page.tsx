@@ -491,7 +491,7 @@ export default function GamepassDetailPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white">
-                      Username Roblox
+                      Username RBX
                     </h3>
                     <p className="text-white/80 text-sm">
                       Masukkan username untuk pembelian

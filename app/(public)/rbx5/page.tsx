@@ -241,10 +241,7 @@ export default function Rbx5Page() {
           console.log("Parsed homepage data:", data);
 
           if (data.fromHomePage && data.robuxAmount) {
-            console.log(
-              "Setting robux amount from homepage:",
-              data.robuxAmount
-            );
+            console.log("Setting RBX amount from homepage:", data.robuxAmount);
             setRobux(data.robuxAmount);
             setIsFromHomepage(true);
             setHomepageDataProcessed(true);
@@ -398,7 +395,7 @@ export default function Rbx5Page() {
 
       // Show warning toast
       toast.warning(
-        "Jumlah Robux telah diubah. Silakan cek GamePass ulang untuk melanjutkan.",
+        "Jumlah RBX telah diubah. Silakan cek GamePass ulang untuk melanjutkan.",
         {
           position: "top-right",
           autoClose: 5000,
@@ -507,9 +504,9 @@ export default function Rbx5Page() {
         // GamePass not found, show error with existing gamepasses
         let errorMessage = `${data.message}`;
         if (data.allGamepasses && data.allGamepasses.length > 0) {
-          errorMessage += `. Pastikan GamePass dengan harga ${expectedRobux} Robux sudah dibuat dan aktif.`;
+          errorMessage += `. Pastikan GamePass dengan harga ${expectedRobux} RBX sudah dibuat dan aktif.`;
         } else {
-          errorMessage += ` Belum ada GamePass di game ini. Silakan buat GamePass dengan harga ${expectedRobux} Robux terlebih dahulu.`;
+          errorMessage += ` Belum ada GamePass di game ini. Silakan buat GamePass dengan harga ${expectedRobux} RBX terlebih dahulu.`;
         }
         toast.error(errorMessage, {
           position: "top-right",
@@ -726,7 +723,7 @@ export default function Rbx5Page() {
                   {/* <span className="w-2 h-2 bg-primary-100 rounded-full animate-pulse mr-2"></span> */}
                   <DollarSign className="w-4 h-4" />
                 </div>
-                Robux Premium - GamePass Official
+                RBX Premium - GamePass Official
               </div>
 
               {/* Enhanced Main Heading */}
@@ -736,7 +733,7 @@ export default function Rbx5Page() {
 
               {/* Enhanced Description */}
               <p className="text-lg sm:text-base text-white/80 max-w-3xl mx-auto mb-8 font-light">
-                Robux akan otomatis ditambahkan ke akunmu melalui{" "}
+                RBX akan otomatis ditambahkan ke akunmu melalui{" "}
                 <span className="text-primary-100 font-medium">
                   gamepass resmi
                 </span>
@@ -888,17 +885,17 @@ export default function Rbx5Page() {
             <div className="text-center mb-16">
               <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-100/10 to-primary-200/10 border border-primary-100/30 rounded-2xl text-sm text-white/80 font-semibold mb-6 backdrop-blur-sm">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Paket Premium Robux
+                Paket Premium RBX
               </div>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight">
-                Pilih <span className="text-primary-100">Paket Robux</span>
+                Pilih <span className="text-primary-100">Paket RBX</span>
                 <br />
                 <span className="text-transparent bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text">
                   Terbaik
                 </span>
               </h2>
               <p className="text-xl text-white/80 max-w-3xl mx-auto font-light">
-                Pilih jumlah Robux yang sesuai dengan kebutuhanmu.{" "}
+                Pilih jumlah RBX yang sesuai dengan kebutuhanmu.{" "}
                 <span className="text-primary-100 font-medium">
                   Proses instan
                 </span>{" "}
@@ -995,7 +992,7 @@ export default function Rbx5Page() {
                   Pilih Jumlah <span className="text-primary-100">Custom</span>
                 </h3>
                 <p className="text-white/70 text-base">
-                  Geser untuk memilih jumlah Robux yang{" "}
+                  Geser untuk memilih jumlah RBX yang{" "}
                   <span className="text-primary-200 font-medium">
                     diinginkan
                   </span>
@@ -1120,7 +1117,7 @@ export default function Rbx5Page() {
                   </div>
                   <h3 className="text-white font-bold text-base">
                     <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
-                      Jumlah Robux
+                      Jumlah RBX
                     </span>
                   </h3>
                 </div>
@@ -1157,7 +1154,7 @@ export default function Rbx5Page() {
                 <div className="flex items-center gap-2 mt-3">
                   <div className="w-1 h-1 bg-primary-200 rounded-full animate-pulse"></div>
                   <p className="text-xs text-white/70">
-                    Masukan jumlah Robux yang diinginkan (minimum 1 R$)
+                    Masukan jumlah RBX yang diinginkan (minimum 1 R$)
                   </p>
                 </div>
               </div>
@@ -1200,7 +1197,7 @@ export default function Rbx5Page() {
                 <div className="flex items-center gap-2 mt-3">
                   <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse"></div>
                   <p className="text-xs text-white/70">
-                    Harga akan otomatis terhitung berdasarkan jumlah Robux
+                    Harga akan otomatis terhitung berdasarkan jumlah RBX
                   </p>
                 </div>
               </div>
@@ -1248,7 +1245,7 @@ export default function Rbx5Page() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Masukan Username Roblox"
+                    placeholder="Masukan Username RBX"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className={`w-full py-3 px-4 rounded-xl text-white font-medium pr-12 outline-none transition-all duration-300 backdrop-blur-xl ${
@@ -1457,9 +1454,9 @@ export default function Rbx5Page() {
                   <div className="bg-gradient-to-br from-primary-600/25 to-primary-700/25 border border-primary-200/50 rounded-xl p-4">
                     <p className="text-sm text-white/80">
                       {!selectedPlace
-                        ? "Pilih game/place tempat Robux akan dikirim."
+                        ? "Pilih game/place tempat RBX akan dikirim."
                         : robux <= 0
-                        ? "Pilih jumlah Robux yang ingin dibeli."
+                        ? "Pilih jumlah RBX yang ingin dibeli."
                         : !gamepassInstructionShown
                         ? "Buat gamepass sesuai instruksi untuk melanjutkan."
                         : "Semua data sudah lengkap. Klik tombol di bawah untuk melanjutkan ke pembayaran."}
@@ -1492,7 +1489,7 @@ export default function Rbx5Page() {
                               Perhatian
                             </div>
                             <div className="text-xs text-orange-300">
-                              Jumlah Robux telah diubah. Silakan cek GamePass
+                              Jumlah RBX telah diubah. Silakan cek GamePass
                               ulang.
                             </div>
                           </div>
@@ -1513,7 +1510,7 @@ export default function Rbx5Page() {
                       serviceCategory="robux_5_hari"
                       type="rbx5"
                       gameId={selectedPlace?.placeId.toString() || ""}
-                      gameName={selectedPlace?.name || "Roblox"}
+                      gameName={selectedPlace?.name || "RBX"}
                       itemName={`${robux} Robux (5 Hari)`}
                       imgUrl="/robux-icon.png" // Default Robux icon
                       unitPrice={getCurrentPrice()}
@@ -1590,7 +1587,7 @@ export default function Rbx5Page() {
           <ReviewSection
             serviceType="robux"
             serviceCategory="robux_5_hari"
-            title="Reviews Robux 5 Hari"
+            title="Reviews RBX 5 Hari"
           />
         </div>
       </main>
@@ -1813,7 +1810,7 @@ export default function Rbx5Page() {
                   {[
                     {
                       step: "1",
-                      text: "Buka Roblox Studio → pilih game",
+                      text: "Buka RBX Studio → pilih game",
                     },
                     {
                       step: "2",

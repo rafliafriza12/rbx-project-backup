@@ -76,6 +76,11 @@ export interface Transaction {
   discountPercentage?: number;
   discountAmount?: number;
   finalAmount?: number;
+  // Payment Fee (for multi-checkout, stored in first transaction)
+  paymentFee?: number;
+  // Payment Method
+  paymentMethodId?: string;
+  paymentMethodName?: string;
   robloxUsername: string;
   robloxPassword?: string;
   jokiDetails?: JokiDetails;

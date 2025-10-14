@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
               ADMIN LOGIN
             </h1>
             <p className="text-white/70 text-sm sm:text-base">
-              Masuk ke panel admin RobuxID
+              Masuk ke panel admin RBXNET
             </p>
           </div>
 
@@ -270,7 +270,7 @@ export default function AdminLoginPage() {
             </div>
             <h2 className="text-4xl font-bold mb-4">Admin Panel</h2>
             <p className="text-xl opacity-90 mb-8">
-              Kelola platform RobuxID dengan mudah
+              Kelola platform RBXNET dengan mudah
             </p>
           </div>
         </div>

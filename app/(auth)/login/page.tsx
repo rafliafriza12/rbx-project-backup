@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Gem, CheckCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const { login, googleLogin } = useAuth();
@@ -47,7 +48,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 relative overflow-hidden p-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 relative overflow-hidden p-4"
+    >
       {/* Animated Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Gradient overlays */}
@@ -86,7 +93,12 @@ export default function LoginPage() {
       {/* Main Content - Split Layout */}
       <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
         {/* Left Side - Branding */}
-        <div className="w-full lg:w-1/2 text-center lg:text-left space-y-6">
+        <motion.div
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full lg:w-1/2 text-center lg:text-left space-y-6"
+        >
           {/* Logo/Icon */}
           <div className="flex justify-center lg:justify-start mb-8">
             <div className="relative group">
@@ -103,10 +115,9 @@ export default function LoginPage() {
             </h1>
             <p className="text-lg text-white/70 max-w-md mx-auto lg:mx-0">
               Platform terpercaya untuk jasa{" "}
-              <span className="text-neon-pink font-semibold">Robux</span>,{" "}
+              <span className="text-neon-pink font-semibold">RBX</span>,{" "}
               <span className="text-neon-purple font-semibold">Gamepass</span>,
-              dan{" "}
-              <span className="text-neon-pink font-semibold">Joki Roblox</span>
+              dan <span className="text-neon-pink font-semibold">Joki RBX</span>
             </p>
           </div>
 
@@ -130,21 +141,26 @@ export default function LoginPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
             <button
               onClick={() => router.push("/")}
-              className="px-8 py-3 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-105"
+              className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/20 hover:border-neon-pink/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300"
             >
               MASUK
             </button>
             <button
               onClick={() => router.push("/register")}
-              className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/20 hover:border-neon-pink/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300"
+              className="px-8 py-3 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-105"
             >
               DAFTAR
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Side - Login Form */}
-        <div className="w-full lg:w-1/2">
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="w-full lg:w-1/2"
+        >
           <div className="relative group">
             {/* Glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-neon-pink/30 to-neon-purple/30 rounded-3xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
@@ -318,8 +334,8 @@ export default function LoginPage() {
               </form>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

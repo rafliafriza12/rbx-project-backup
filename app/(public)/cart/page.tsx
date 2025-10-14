@@ -83,7 +83,7 @@ export default function CartPage() {
       // If trying to select and already have one selected
       if (selectedItems.length > 0 && !selectedItems.includes(itemId)) {
         toast.error(
-          "Robux 5 Hari hanya bisa memilih 1 item per checkout. Hapus pilihan sebelumnya untuk memilih item lain."
+          "RBX 5 Hari hanya bisa memilih 1 item per checkout. Hapus pilihan sebelumnya untuk memilih item lain."
         );
         return;
       }
@@ -136,7 +136,7 @@ export default function CartPage() {
           if (categoryItemIds.length > 0) {
             setSelectedItems([categoryItemIds[0]]);
             toast.info(
-              "Robux 5 Hari: Hanya 1 item yang dapat dipilih per checkout"
+              "RBX 5 Hari: Hanya 1 item yang dapat dipilih per checkout"
             );
           }
         }
@@ -435,10 +435,10 @@ export default function CartPage() {
                             <div className="text-yellow-400 text-xl">⚠️</div>
                             <div className="flex-1">
                               <p className="text-yellow-300 text-sm font-medium mb-1">
-                                Perhatian: Robux 5 Hari
+                                Perhatian: RBX 5 Hari
                               </p>
                               <p className="text-yellow-200/70 text-xs">
-                                Untuk kategori Robux 5 Hari, Anda{" "}
+                                Untuk kategori RBX 5 Hari, Anda{" "}
                                 <strong>hanya dapat memilih 1 item</strong> per
                                 checkout. Ini karena sistem pemrosesan yang
                                 memerlukan waktu 5 hari per transaksi.

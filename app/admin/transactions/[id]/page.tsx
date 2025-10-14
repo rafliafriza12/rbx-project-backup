@@ -633,7 +633,7 @@ export default function TransactionDetailPage() {
         {/* Roblox Account Information */}
         <div className="bg-[#1e293b] rounded-lg shadow-lg p-6 border border-[#334155]">
           <h2 className="text-lg font-semibold text-[#f1f5f9] mb-4">
-            Roblox Account
+            RBX Account
           </h2>
           <div className="space-y-3">
             <div className="flex justify-between">

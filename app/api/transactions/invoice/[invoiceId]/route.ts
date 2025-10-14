@@ -33,6 +33,48 @@ export async function GET(
       );
     }
 
+    // Check if this is part of multi-checkout by looking for other transactions with same midtransOrderId
+    let relatedTransactions: any[] = [];
+    let isMultiCheckout = false;
+
+    if (transaction.midtransOrderId) {
+      // Find all transactions with the same midtransOrderId (excluding current transaction)
+      const allTransactionsInGroup = await Transaction.find({
+        midtransOrderId: transaction.midtransOrderId,
+        _id: { $ne: transaction._id }, // Exclude current transaction
+      }).exec();
+
+      if (allTransactionsInGroup.length > 0) {
+        isMultiCheckout = true;
+        relatedTransactions = allTransactionsInGroup.map((t: any) => ({
+          _id: t._id.toString(),
+          serviceType: t.serviceType,
+          serviceId: t.serviceId.toString(),
+          serviceName: t.serviceName,
+          serviceImage: t.serviceImage || "",
+          serviceCategory: t.serviceCategory,
+          quantity: t.quantity,
+          unitPrice: t.unitPrice,
+          totalAmount: t.totalAmount,
+          discountPercentage: t.discountPercentage || 0,
+          discountAmount: t.discountAmount || 0,
+          finalAmount: t.finalAmount || t.totalAmount,
+          robloxUsername: t.robloxUsername,
+          orderStatus: t.orderStatus,
+          invoiceId: t.invoiceId,
+          createdAt: t.createdAt,
+        }));
+      }
+    }
+
+    console.log("=== TRACK ORDER DEBUG ===");
+    console.log("Invoice ID:", transaction.invoiceId);
+    console.log("Midtrans Order ID:", transaction.midtransOrderId);
+    console.log("Is Multi-Checkout:", isMultiCheckout);
+    console.log("Related Transactions Count:", relatedTransactions.length);
+    console.log("Main Transaction Discount:", transaction.discountAmount);
+    console.log("Main Transaction Final Amount:", transaction.finalAmount);
+
     // Transform data untuk frontend
     const transformedTransaction = {
       _id: transaction._id.toString(),
@@ -40,6 +82,7 @@ export async function GET(
       serviceId: transaction.serviceId.toString(),
       serviceName: transaction.serviceName,
       serviceImage: transaction.serviceImage || "",
+      serviceCategory: transaction.serviceCategory,
       quantity: transaction.quantity,
       unitPrice: transaction.unitPrice,
       totalAmount: transaction.totalAmount,
@@ -50,8 +93,17 @@ export async function GET(
       robloxUsername: transaction.robloxUsername,
       robloxPassword: transaction.robloxPassword,
       jokiDetails: transaction.jokiDetails || {},
+      robuxInstantDetails: transaction.robuxInstantDetails || {},
+      rbx5Details: transaction.rbx5Details || {},
+      gamepass: transaction.gamepass || {},
+      gamepassDetails: transaction.gamepassDetails || {},
       paymentStatus: transaction.paymentStatus,
       orderStatus: transaction.orderStatus,
+      // Payment method fields
+      paymentMethodId: transaction.paymentMethodId,
+      paymentMethodName: transaction.paymentMethodName || null,
+      // Payment fee (for multi-checkout, only stored in first transaction)
+      paymentFee: transaction.paymentFee || 0,
       customerInfo: transaction.customerInfo || {},
       adminNotes: transaction.adminNotes || "",
       invoiceId: transaction.invoiceId,
@@ -69,6 +121,9 @@ export async function GET(
       updatedAt: transaction.updatedAt,
       paidAt: transaction.paidAt,
       completedAt: transaction.completedAt,
+      // Multi-checkout fields
+      isMultiCheckout: isMultiCheckout,
+      relatedTransactions: relatedTransactions,
     };
 
     return NextResponse.json({
@@ -117,6 +172,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if this is part of multi-checkout by looking for other transactions with same midtransOrderId
+    let relatedTransactions: any[] = [];
+    let isMultiCheckout = false;
+
+    if (transaction.midtransOrderId) {
+      // Find all transactions with the same midtransOrderId (excluding current transaction)
+      const allTransactionsInGroup = await Transaction.find({
+        midtransOrderId: transaction.midtransOrderId,
+        _id: { $ne: transaction._id }, // Exclude current transaction
+      }).exec();
+
+      if (allTransactionsInGroup.length > 0) {
+        isMultiCheckout = true;
+        relatedTransactions = allTransactionsInGroup.map((t: any) => ({
+          _id: t._id.toString(),
+          serviceType: t.serviceType,
+          serviceId: t.serviceId.toString(),
+          serviceName: t.serviceName,
+          serviceImage: t.serviceImage || "",
+          serviceCategory: t.serviceCategory,
+          quantity: t.quantity,
+          unitPrice: t.unitPrice,
+          totalAmount: t.totalAmount,
+          discountPercentage: t.discountPercentage || 0,
+          discountAmount: t.discountAmount || 0,
+          finalAmount: t.finalAmount || t.totalAmount,
+          robloxUsername: t.robloxUsername,
+          orderStatus: t.orderStatus,
+          invoiceId: t.invoiceId,
+          createdAt: t.createdAt,
+        }));
+      }
+    }
+
     // Transform data untuk frontend
     const transformedTransaction = {
       _id: transaction._id.toString(),
@@ -124,6 +213,7 @@ export async function POST(request: NextRequest) {
       serviceId: transaction.serviceId.toString(),
       serviceName: transaction.serviceName,
       serviceImage: transaction.serviceImage || "",
+      serviceCategory: transaction.serviceCategory,
       quantity: transaction.quantity,
       unitPrice: transaction.unitPrice,
       totalAmount: transaction.totalAmount,
@@ -134,8 +224,17 @@ export async function POST(request: NextRequest) {
       robloxUsername: transaction.robloxUsername,
       robloxPassword: transaction.robloxPassword,
       jokiDetails: transaction.jokiDetails || {},
+      robuxInstantDetails: transaction.robuxInstantDetails || {},
+      rbx5Details: transaction.rbx5Details || {},
+      gamepass: transaction.gamepass || {},
+      gamepassDetails: transaction.gamepassDetails || {},
       paymentStatus: transaction.paymentStatus,
       orderStatus: transaction.orderStatus,
+      // Payment method fields
+      paymentMethodId: transaction.paymentMethodId,
+      paymentMethodName: transaction.paymentMethodName || null,
+      // Payment fee (for multi-checkout, only stored in first transaction)
+      paymentFee: transaction.paymentFee || 0,
       customerInfo: transaction.customerInfo || {},
       adminNotes: transaction.adminNotes || "",
       invoiceId: transaction.invoiceId,
@@ -153,6 +252,9 @@ export async function POST(request: NextRequest) {
       updatedAt: transaction.updatedAt,
       paidAt: transaction.paidAt,
       completedAt: transaction.completedAt,
+      // Multi-checkout fields
+      isMultiCheckout: isMultiCheckout,
+      relatedTransactions: relatedTransactions,
     };
 
     return NextResponse.json({

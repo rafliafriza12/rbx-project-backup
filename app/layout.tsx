@@ -28,7 +28,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "RBXNET",
   description:
-    "rbxnet adalah website penjualan Robux yang aman, cepat, dan terpercaya untuk semua pemain Roblox di Indonesia. Nikmati harga terbaik, proses instan, serta layanan customer support yang ramah dan profesional.",
+    "rbxnet adalah website penjualan RBX yang aman, cepat, dan terpercaya untuk semua pemain RBX di Indonesia. Nikmati harga terbaik, proses instan, serta layanan customer support yang ramah dan profesional.",
 };
 
 export default function RootLayout({
@@ -41,11 +41,11 @@ export default function RootLayout({
       <head>
         <meta
           property="og:title"
-          content="rbxnet | Jual Beli Robux Aman, Cepat, & Terpercaya"
+          content="rbxnet | Jual Beli RBX Aman, Cepat, & Terpercaya"
         />
         <meta
           property="og:description"
-          content="Website penjualan Robux terpercaya dengan harga terbaik, proses instan, dan layanan customer support 24/7."
+          content="Website penjualan RBX terpercaya dengan harga terbaik, proses instan, dan layanan customer support 24/7."
         />
         <meta property="og:url" content="https://rbxnet.com" />
         <meta property="og:type" content="website" />

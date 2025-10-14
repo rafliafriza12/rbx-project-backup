@@ -634,13 +634,13 @@ export default function JokiDetailPage() {
                     {/* Username */}
                     <div>
                       <label className="block text-white font-semibold mb-2 sm:mb-3 text-sm sm:text-base">
-                        Username Roblox *
+                        Username RBX *
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 sm:left-4 top-3 sm:top-4 w-4 h-4 sm:w-5 sm:h-5 text-primary-200" />
                         <input
                           type="text"
-                          placeholder="Masukkan Username Roblox"
+                          placeholder="Masukkan Username RBX"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
                           className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 bg-primary-800/30 border-2 border-primary-100/40 rounded-lg sm:rounded-xl text-white placeholder-primary-200/60 focus:border-primary-100 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-sm sm:text-base"
@@ -651,13 +651,13 @@ export default function JokiDetailPage() {
                     {/* Password */}
                     <div>
                       <label className="block text-white font-semibold mb-2 sm:mb-3 text-sm sm:text-base">
-                        Password Roblox *
+                        Password RBX *
                       </label>
                       <div className="relative">
                         <Lock className="absolute left-3 sm:left-4 top-3 sm:top-4 w-4 h-4 sm:w-5 sm:h-5 text-primary-200" />
                         <input
                           type="password"
-                          placeholder="Masukkan Password Roblox"
+                          placeholder="Masukkan Password RBX"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 bg-primary-800/30 border-2 border-primary-100/40 rounded-lg sm:rounded-xl text-white placeholder-primary-200/60 focus:border-primary-100 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-sm sm:text-base"
@@ -906,10 +906,10 @@ export default function JokiDetailPage() {
                         Perhatian!
                       </h3>
                       <p className="text-white/90 leading-relaxed">
-                        Pastikan akun Roblox Anda aman dan tidak sedang
-                        digunakan oleh orang lain. Kami tidak bertanggung jawab
-                        atas kehilangan item atau ban yang disebabkan oleh
-                        pelanggaran Terms of Service Roblox.
+                        Pastikan akun RBX Anda aman dan tidak sedang digunakan
+                        oleh orang lain. Kami tidak bertanggung jawab atas
+                        kehilangan item atau ban yang disebabkan oleh
+                        pelanggaran Terms of Service RBX.
                       </p>
                     </div>
                   </div>

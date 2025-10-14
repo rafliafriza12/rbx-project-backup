@@ -460,7 +460,7 @@ function UniversalInvoiceContent() {
                     orderData.type === "joki") && (
                     <div>
                       <label className="block text-sm font-semibold text-black mb-2">
-                        Username Roblox *
+                        Username RBX *
                       </label>
                       <input
                         type="text"
@@ -476,14 +476,14 @@ function UniversalInvoiceContent() {
                   {orderData.type === "joki" && (
                     <div>
                       <label className="block text-sm font-semibold text-black mb-2">
-                        Password Roblox *
+                        Password RBX *
                       </label>
                       <input
                         type="password"
                         value={customerInfo.robloxPassword}
                         disabled
                         className="w-full bg-gray-100 border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-600 cursor-not-allowed"
-                        placeholder="Password Roblox"
+                        placeholder="Password RBX"
                       />
                     </div>
                   )}
@@ -496,13 +496,13 @@ function UniversalInvoiceContent() {
                     <div className="text-black text-xs">
                       <strong>Penting:</strong>
                       {orderData.type === "gamepass" &&
-                        " Pastikan username Roblox yang dimasukkan benar dan account tidak di-private. Game pass akan dikirim langsung ke account Roblox Anda."}
+                        " Pastikan username RBX yang dimasukkan benar dan account tidak di-private. Game pass akan dikirim langsung ke account RBX Anda."}
                       {orderData.type === "robux5" &&
-                        " Robux akan dikirim dalam 5 hari kerja setelah pembayaran dikonfirmasi. Pastikan username Roblox benar."}
+                        " Robux akan dikirim dalam 5 hari kerja setelah pembayaran dikonfirmasi. Pastikan username RBX benar."}
                       {orderData.type === "robux-instant" &&
-                        " Robux akan dikirim dalam 5-15 menit setelah pembayaran dikonfirmasi. Pastikan username Roblox benar."}
+                        " Robux akan dikirim dalam 5-15 menit setelah pembayaran dikonfirmasi. Pastikan username RBX benar."}
                       {orderData.type === "joki" &&
-                        " Pastikan username dan display name Roblox benar. Layanan joki akan dimulai setelah pembayaran dikonfirmasi."}
+                        " Pastikan username dan display name RBX benar. Layanan joki akan dimulai setelah pembayaran dikonfirmasi."}
                     </div>
                   </div>
                 </div>

@@ -59,15 +59,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate payment method fee
+    // Validate and fetch payment method
     let paymentMethodFee = 0;
+    let validPaymentMethodId = null;
+    let paymentMethodName = null;
+
     if (paymentMethodId) {
-      // You can add logic to fetch payment method and calculate fee
-      // For now, we'll include it in the final calculation
+      try {
+        const PaymentMethod = (await import("@/models/PaymentMethod")).default;
+        const mongoose = await import("mongoose");
+
+        // Check if paymentMethodId is a valid ObjectId string
+        if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
+          // It's already a valid ObjectId, use it directly
+          validPaymentMethodId = paymentMethodId;
+          const paymentMethodDoc = await PaymentMethod.findById(
+            paymentMethodId
+          );
+          if (paymentMethodDoc) {
+            paymentMethodName = paymentMethodDoc.name;
+            // You can add fee calculation here if needed
+          }
+        } else {
+          // It's a payment method code (like "bca_va"), find the ObjectId
+          console.log(`Looking up payment method by code: ${paymentMethodId}`);
+          const paymentMethodDoc = await PaymentMethod.findOne({
+            code: paymentMethodId,
+          });
+
+          if (paymentMethodDoc) {
+            validPaymentMethodId = paymentMethodDoc._id;
+            paymentMethodName = paymentMethodDoc.name;
+            console.log(
+              `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`
+            );
+            // You can add fee calculation here if needed
+          } else {
+            console.warn(
+              `Payment method not found for code: ${paymentMethodId}`
+            );
+            validPaymentMethodId = null;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching payment method:", error);
+        validPaymentMethodId = null;
+      }
     }
 
     const createdTransactions = [];
     const midtransItems = [];
+
+    // Calculate subtotal from all items first - ALWAYS recalculate from quantity × unitPrice
+    const subtotalFromItems = items.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0
+    );
+
+    console.log("=== DISCOUNT DISTRIBUTION DEBUG ===");
+    console.log("Subtotal from items (recalculated):", subtotalFromItems);
+    console.log("Global discount percentage:", discountPercentage || 0);
+    console.log("Global discount amount:", discountAmount || 0);
 
     // Process each item and create transactions
     for (let i = 0; i < items.length; i++) {
@@ -99,23 +151,54 @@ export async function POST(request: NextRequest) {
       }
 
       // Calculate amounts for this item
+      // ALWAYS recalculate from quantity × unitPrice (don't trust frontend)
       const itemTotalAmount = item.quantity * item.unitPrice;
+
+      console.log(`Item ${i + 1} calculation:`, {
+        name: item.serviceName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        calculatedTotal: itemTotalAmount,
+        frontendTotal: item.totalAmount,
+        match: itemTotalAmount === item.totalAmount,
+      });
+
+      // Distribute global discount proportionally to this item
+      let itemDiscountAmount = 0;
+      let itemDiscountPercentage = 0;
+      let itemFinalAmount = itemTotalAmount;
+
+      if (discountAmount && discountAmount > 0 && subtotalFromItems > 0) {
+        // Calculate proportional discount for this item
+        const itemRatio = itemTotalAmount / subtotalFromItems;
+        itemDiscountAmount = Math.round(discountAmount * itemRatio);
+        itemDiscountPercentage = discountPercentage || 0;
+        itemFinalAmount = itemTotalAmount - itemDiscountAmount;
+
+        console.log(`Item ${i + 1} discount distribution:`);
+        console.log(`  - Item total: ${itemTotalAmount}`);
+        console.log(`  - Item ratio: ${itemRatio.toFixed(4)}`);
+        console.log(`  - Item discount: ${itemDiscountAmount}`);
+        console.log(`  - Item final amount: ${itemFinalAmount}`);
+      }
 
       // Prepare transaction data
       const transactionData: any = {
         serviceType: item.serviceType,
         serviceId: item.serviceId,
         serviceName: item.serviceName,
-        serviceImage: item.serviceImage || "",
+        serviceImage: item.serviceImage || null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalAmount: itemTotalAmount,
-        discountPercentage: 0, // Individual items don't have discount in multi-checkout
-        discountAmount: 0,
-        finalAmount: itemTotalAmount,
+        discountPercentage: itemDiscountPercentage,
+        discountAmount: itemDiscountAmount,
+        finalAmount: itemFinalAmount,
         robloxUsername: item.robloxUsername,
         robloxPassword: item.robloxPassword || "",
-        customerNotes: additionalNotes || "", // Customer notes dari form checkout
+        customerNotes: additionalNotes || "",
+        paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
+        paymentMethodName: paymentMethodName,
         customerInfo: {
           ...customerInfo,
           userId: userId || null,
@@ -174,12 +257,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate final amount with discount and payment fee
-    const subtotal =
-      totalAmount ||
-      createdTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
-    const discount = discountAmount || 0;
-    const finalAmountBeforeFee = finalAmount || subtotal - discount;
+    // Calculate totals from created transactions (discount already distributed)
+    const subtotal = createdTransactions.reduce(
+      (sum, t) => sum + t.totalAmount,
+      0
+    );
+    const totalDiscountDistributed = createdTransactions.reduce(
+      (sum, t) => sum + (t.discountAmount || 0),
+      0
+    );
+    const finalAmountBeforeFee = createdTransactions.reduce(
+      (sum, t) => sum + t.finalAmount,
+      0
+    );
+
+    console.log("=== TOTALS CALCULATION DEBUG ===");
+    console.log("Subtotal from transactions:", subtotal);
+    console.log("Total discount distributed:", totalDiscountDistributed);
+    console.log("Final amount (before fee):", finalAmountBeforeFee);
+    console.log(
+      "Expected final amount from request:",
+      finalAmount || "not provided"
+    );
 
     // Create a master order ID for grouping BEFORE saving transactions
     const masterOrderId = `MULTI-${Date.now()}-${Math.random()
@@ -207,13 +306,15 @@ export async function POST(request: NextRequest) {
         0
       );
 
-      // Add discount item if applicable
-      if (discount > 0) {
+      // NOTE: Discount already distributed to individual items, so we add it as a separate line item for transparency
+      if (totalDiscountDistributed > 0) {
         midtransItems.push({
           id: "DISCOUNT",
-          price: -Math.round(discount),
+          price: -Math.round(totalDiscountDistributed),
           quantity: 1,
-          name: `Diskon Member (${discountPercentage}%)`,
+          name: `Diskon Member${
+            discountPercentage ? ` (${discountPercentage}%)` : ""
+          }`,
           brand: "RBX Store",
           category: "discount",
         });
@@ -225,6 +326,20 @@ export async function POST(request: NextRequest) {
         0
       );
       const paymentFee = Math.round(finalAmountBeforeFee) - itemsTotal;
+
+      console.log("=== PAYMENT FEE CALCULATION ===");
+      console.log("Final Amount (from request):", finalAmountBeforeFee);
+      console.log("Items Total (subtotal - discount):", itemsTotal);
+      console.log("Payment Fee:", paymentFee);
+
+      // Store payment fee in FIRST transaction only
+      if (createdTransactions.length > 0 && paymentFee > 0) {
+        createdTransactions[0].paymentFee = paymentFee;
+        await createdTransactions[0].save();
+        console.log(
+          `Payment fee (${paymentFee}) saved to first transaction: ${createdTransactions[0].invoiceId}`
+        );
+      }
 
       // Add payment fee if applicable
       if (paymentFee > 0) {
@@ -319,7 +434,7 @@ export async function POST(request: NextRequest) {
           redirectUrl: snapResult.redirect_url,
           totalTransactions: createdTransactions.length,
           totalAmount: subtotal,
-          discountAmount: discount,
+          discountAmount: totalDiscountDistributed,
           finalAmount: finalAmountBeforeFee,
         },
       });

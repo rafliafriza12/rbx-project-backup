@@ -62,7 +62,7 @@ const PublicAppFooter: React.FC = () => {
                 <div className="relative">
                   <Image
                     src="/logo.png"
-                    alt="RobuxID Logo"
+                    alt="RBXNET Logo"
                     width={60}
                     height={60}
                     className="relative z-10"
@@ -70,7 +70,7 @@ const PublicAppFooter: React.FC = () => {
                   <div className="absolute inset-0 bg-neon-pink/20 rounded-full blur-xl"></div>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white">RobuxID</h3>
+                  <h3 className="text-2xl font-black text-white">RBXNET</h3>
                 </div>
               </div>
               <p className="text-white/70 leading-relaxed">
@@ -356,7 +356,7 @@ const PublicAppFooter: React.FC = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-neon-pink rounded-full animate-pulse"></div>
                 <p className="text-white/60 text-sm">
-                  © 2025 RobuxID - Platform Robux Terpercaya Indonesia
+                  © 2025 RBXNET - Platform Robux Terpercaya Indonesia
                 </p>
               </div>
               <div className="flex items-center gap-4 text-sm text-white/50">

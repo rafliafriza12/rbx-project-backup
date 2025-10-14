@@ -72,7 +72,7 @@ class EmailService {
       const transporter = await this.createTransporter();
 
       const mailOptions = {
-        from: `${settings.emailFromName || "RobuxID"} <${
+        from: `${settings.emailFromName || "RBXNET"} <${
           settings.emailFromAddress || settings.emailUser
         }>`,
         to: options.to,
@@ -113,7 +113,7 @@ class EmailService {
       const emailOptions: EmailOptions = {
         to: firstTransaction.customerInfo.email,
         subject: `Invoice #${firstTransaction.invoiceId} - ${
-          settings.siteName || "RobuxID"
+          settings.siteName || "RBXNET"
         }`,
         html: invoiceHtml,
       };
@@ -686,7 +686,7 @@ class EmailService {
     <div class="invoice-container">
         <!-- Header -->
         <div class="header">
-            <h1>${settings.siteName || "RobuxID"}</h1>
+            <h1>${settings.siteName || "RBXNET"}</h1>
             <p>Invoice Pembelian ${
               isMultiTransaction
                 ? "Multi-Item"
@@ -746,7 +746,7 @@ class EmailService {
               isMultiTransaction
                 ? `
             <div class="roblox-info">
-                <h3>🎮 Informasi Akun Roblox (Per Item)</h3>
+                <h3>🎮 Informasi Akun RBX (Per Item)</h3>
                 <p style="color: #0891b2; margin-bottom: 15px;"><em>Setiap item menggunakan akun berbeda sesuai yang Anda tentukan:</em></p>
                 ${transactions
                   .map(
@@ -773,7 +773,7 @@ class EmailService {
                 : `
             <!-- Roblox Account Info for Single Item -->
             <div class="roblox-info">
-                <h3>🎮 Informasi Akun Roblox</h3>
+                <h3>🎮 Informasi Akun RBX</h3>
                 <p><strong>Username:</strong> ${
                   firstTransaction.robloxUsername
                 }</p>
@@ -846,12 +846,12 @@ class EmailService {
                 <h4>⚠️ Penting untuk Diperhatikan:</h4>
                 <ul>
                     <li>Simpan invoice ini sebagai bukti transaksi</li>
-                    <li>Jangan bagikan informasi akun Roblox kepada orang lain</li>
+                    <li>Jangan bagikan informasi akun RBX kepada orang lain</li>
                     <li>Proses pesanan akan dimulai setelah pembayaran dikonfirmasi</li>
                     <li>Hubungi customer service jika ada pertanyaan atau kendala</li>
                     ${
                       isMultiTransaction
-                        ? "<li>Setiap item akan diproses ke akun Roblox yang berbeda sesuai data Anda</li>"
+                        ? "<li>Setiap item akan diproses ke akun RBX yang berbeda sesuai data Anda</li>"
                         : ""
                     }
                     ${
@@ -867,7 +867,7 @@ class EmailService {
 
         <!-- Footer -->
         <div class="footer">
-            <h3>${settings.siteName || "RobuxID"}</h3>
+            <h3>${settings.siteName || "RBXNET"}</h3>
             <p>${
               settings.siteDescription ||
               "Platform jual beli Robux, Gamepass, dan Jasa Joki terpercaya"
@@ -908,7 +908,7 @@ class EmailService {
             
             <p style="margin-top: 20px; opacity: 0.8; font-size: 0.9em;">
                 © ${new Date().getFullYear()} ${
-      settings.siteName || "RobuxID"
+      settings.siteName || "RBXNET"
     }. Semua hak dilindungi.
             </p>
         </div>

@@ -51,6 +51,21 @@ export function calculateTotalDiscount(transaction: Transaction): number {
 }
 
 /**
+ * Get payment fee (only stored in first/main transaction)
+ */
+export function getPaymentFee(transaction: Transaction): number {
+  // Payment fee is only stored in the main/first transaction
+  return transaction.paymentFee || 0;
+}
+
+/**
+ * Calculate grand total including payment fee
+ */
+export function calculateGrandTotalWithFee(transaction: Transaction): number {
+  return calculateGrandTotal(transaction) + getPaymentFee(transaction);
+}
+
+/**
  * Get total items count in checkout
  */
 export function getTotalItemsCount(transaction: Transaction): number {

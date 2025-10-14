@@ -89,10 +89,10 @@ export default function HomePage() {
               className="mb-3 sm:mb-4 mx-auto sm:mx-0"
             />
             <p className="text-xs sm:text-sm text-gray-400 pl-0 sm:pl-[4px] text-center sm:text-left leading-relaxed">
-              RobuxID, kami mengutamakan kecepatan, keamanan, dan harga yang
-              bersahabat. Beli Robux tanpa khawatir, nikmati pengiriman kilat,
-              dan pilih metode pembayaran favorit Anda. Pengalaman bermain
-              Roblox terbaik, dimulai dari sini!
+              RBXNET, kami mengutamakan kecepatan, keamanan, dan harga yang
+              bersahabat. Beli RBX tanpa khawatir, nikmati pengiriman kilat, dan
+              pilih metode pembayaran favorit Anda. Pengalaman bermain RBX
+              terbaik, dimulai dari sini!
             </p>
           </div>
           <div className="text-center sm:text-left">
@@ -110,7 +110,7 @@ export default function HomePage() {
                   href="/rbx5"
                   className="hover:text-white transition-colors"
                 >
-                  Robux 5 Hari
+                  RBX 5 Hari
                 </Link>
               </li>
               <li>
@@ -118,7 +118,7 @@ export default function HomePage() {
                   href="/robux-instant"
                   className="hover:text-white transition-colors"
                 >
-                  Robux Instant
+                  RBX Instant
                 </Link>
               </li>
               <li>
@@ -232,7 +232,7 @@ export default function HomePage() {
           </div>
         </div>
         <p className="text-center text-gray-500 text-xs sm:text-sm mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-gray-800">
-          © 2025 RobuxID
+          © 2025 RBXNET
         </p>
       </footer>
 
@@ -240,7 +240,7 @@ export default function HomePage() {
       <ReviewSection
         serviceType="robux"
         serviceCategory="robux_instant"
-        title="Reviews Robux Instant"
+        title="Reviews RBX Instant"
       />
     </div>
   );

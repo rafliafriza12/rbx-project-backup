@@ -70,8 +70,8 @@ export default function GamepassPage() {
           <p className="text-sm sm:text-base lg:text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
             Sudah lama mengidamkan Game Pass itu? Atau ingin punya avatar paling
             kece di antara teman-temanmu?{" "}
-            <span className="text-primary-100 font-semibold">RobuxID</span>{" "}
-            hadir untuk mewujudkan semua impian Roblox-mu!
+            <span className="text-primary-100 font-semibold">RBXNET</span> hadir
+            untuk mewujudkan semua impian RBX-mu!
           </p>
         </div>
 

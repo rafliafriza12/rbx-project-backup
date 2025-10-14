@@ -172,6 +172,35 @@ function CheckoutContent() {
     };
   };
 
+  // Recalculate discount when user login status changes
+  useEffect(() => {
+    if (checkoutData && checkoutData.items && checkoutData.items.length > 0) {
+      console.log("=== RECALCULATE DISCOUNT ON USER CHANGE ===");
+      console.log("User changed:", user);
+      console.log("Current checkoutData:", checkoutData);
+
+      // Recalculate base amount
+      const baseAmount = checkoutData.items.reduce((sum: number, item: any) => {
+        return sum + item.quantity * item.unitPrice;
+      }, 0);
+
+      // Recalculate discount based on current user
+      const discount = calculateDiscount(baseAmount);
+
+      console.log("New discount calculated:", discount);
+
+      // Update checkoutData with new discount
+      setCheckoutData({
+        ...checkoutData,
+        discountPercentage: discount.discountPercentage,
+        discountAmount: discount.discountAmount,
+        finalAmount: discount.finalAmount,
+      });
+
+      console.log("CheckoutData updated with new discount");
+    }
+  }, [user]); // Trigger when user changes (login/logout)
+
   // Auto-fill customer info for logged in users
   useEffect(() => {
     if (user && !isGuestCheckout) {

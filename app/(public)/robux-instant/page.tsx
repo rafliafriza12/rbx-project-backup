@@ -326,10 +326,10 @@ const RobuxInstan: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Username Roblox
+                        Username RBX
                       </h3>
                       <p className="text-white/70 text-xs leading-relaxed">
-                        Masukkan username akun Roblox Anda
+                        Masukkan username akun RBX Anda
                       </p>
                     </div>
                   </div>
@@ -500,7 +500,7 @@ const RobuxInstan: React.FC = () => {
                     </div>
                     <input
                       type="text"
-                      placeholder="Masukkan Username Roblox"
+                      placeholder="Masukkan Username RBX"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="py-2 px-3 outline-none text-sm text-white placeholder-white/50 flex-1 min-w-0 transition-all bg-transparent focus:ring-2 focus:ring-primary-100/50 focus:placeholder-white/70"
@@ -532,7 +532,7 @@ const RobuxInstan: React.FC = () => {
                     </div>
                     <input
                       type="password"
-                      placeholder="Masukkan Password Roblox"
+                      placeholder="Masukkan Password RBX"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="py-2 px-3 outline-none text-sm text-white placeholder-white/50 flex-1 min-w-0 transition-all bg-transparent focus:ring-2 focus:ring-primary-100/50 focus:placeholder-white/70"
@@ -561,7 +561,7 @@ const RobuxInstan: React.FC = () => {
                 </label>
                 <div className="relative">
                   <textarea
-                    placeholder="Masukkan backup code Roblox jika akun memiliki 2-step verification"
+                    placeholder="Masukkan backup code RBX jika akun memiliki 2-step verification"
                     value={additionalInfo}
                     onChange={(e) => setAdditionalInfo(e.target.value)}
                     rows={3}

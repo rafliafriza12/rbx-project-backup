@@ -684,6 +684,7 @@ async function handleSingleItemTransaction(body: any) {
     userId: userId || "null",
     gamepass: gamepass ? "[PRESENT]" : "[NOT_PROVIDED]",
     additionalNotes: additionalNotes || "[EMPTY]",
+    paymentMethodId: paymentMethodId || "[NOT_PROVIDED]",
   });
 
   // Validasi input - userId opsional untuk guest checkout
@@ -739,21 +740,57 @@ async function handleSingleItemTransaction(body: any) {
     );
   }
 
-  // Use provided amount or calculate if not provided
-  const calculatedTotalAmount = totalAmount || quantity * unitPrice;
+  // ALWAYS recalculate from quantity × unitPrice (don't trust frontend totalAmount)
+  const calculatedTotalAmount = quantity * unitPrice;
   const calculatedFinalAmount = finalAmount || calculatedTotalAmount;
 
-  // Fetch payment method name if paymentMethodId is provided
+  console.log("Single transaction calculation:", {
+    quantity,
+    unitPrice,
+    calculatedTotal: calculatedTotalAmount,
+    frontendTotal: totalAmount,
+    match: calculatedTotalAmount === totalAmount,
+  });
+
+  // Fetch payment method name and validate paymentMethodId
   let paymentMethodName = null;
+  let validPaymentMethodId = null;
+
   if (paymentMethodId) {
     try {
       const PaymentMethod = (await import("@/models/PaymentMethod")).default;
-      const paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
-      if (paymentMethodDoc) {
-        paymentMethodName = paymentMethodDoc.name;
+      const mongoose = await import("mongoose");
+
+      // Check if paymentMethodId is a valid ObjectId string
+      if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
+        // It's already a valid ObjectId, use it directly
+        validPaymentMethodId = paymentMethodId;
+        const paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+        if (paymentMethodDoc) {
+          paymentMethodName = paymentMethodDoc.name;
+        }
+      } else {
+        // It's a payment method code (like "bca_va"), find the ObjectId
+        console.log(`Looking up payment method by code: ${paymentMethodId}`);
+        const paymentMethodDoc = await PaymentMethod.findOne({
+          code: paymentMethodId,
+        });
+
+        if (paymentMethodDoc) {
+          validPaymentMethodId = paymentMethodDoc._id;
+          paymentMethodName = paymentMethodDoc.name;
+          console.log(
+            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`
+          );
+        } else {
+          console.warn(`Payment method not found for code: ${paymentMethodId}`);
+          // Don't throw error, just log warning and continue without paymentMethodId
+          validPaymentMethodId = null;
+        }
       }
     } catch (error) {
       console.error("Error fetching payment method:", error);
+      validPaymentMethodId = null;
     }
   }
 
@@ -776,7 +813,7 @@ async function handleSingleItemTransaction(body: any) {
     robuxInstantDetails: robuxInstantDetails || undefined,
     rbx5Details: rbx5Details || undefined,
     gamepassDetails: gamepassDetails || undefined,
-    paymentMethodId: paymentMethodId || null,
+    paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
     paymentMethodName: paymentMethodName,
     customerInfo: {
       ...customerInfo,
