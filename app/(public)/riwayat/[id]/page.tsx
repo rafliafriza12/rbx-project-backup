@@ -27,6 +27,8 @@ import {
   isMultiCheckout,
   getAllTransactions,
   calculateGrandTotal,
+  calculateOriginalTotal,
+  calculateTotalDiscount,
   getTotalItemsCount,
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
@@ -337,10 +339,35 @@ export default function TransactionDetailPage() {
               </div>
               <div className="lg:text-right">
                 <div className="space-y-1">
+                  {/* Show discount info if available */}
+                  {calculateTotalDiscount(transaction) > 0 && (
+                    <div className="text-sm text-primary-200/60 line-through mb-1">
+                      Rp{" "}
+                      {(
+                        calculateOriginalTotal(transaction) +
+                        (transaction.paymentFee || 0)
+                      ).toLocaleString("id-ID")}
+                    </div>
+                  )}
                   <div className="text-3xl sm:text-4xl font-bold text-neon-pink mb-2">
                     Rp{" "}
-                    {calculateGrandTotal(transaction).toLocaleString("id-ID")}
+                    {(
+                      calculateGrandTotal(transaction) +
+                      (transaction.paymentFee || 0)
+                    ).toLocaleString("id-ID")}
                   </div>
+                  {/* Show savings badge if there's discount */}
+                  {calculateTotalDiscount(transaction) > 0 && (
+                    <div className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                      <span>💰</span>
+                      <span>
+                        Hemat Rp{" "}
+                        {calculateTotalDiscount(transaction).toLocaleString(
+                          "id-ID"
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-primary-200">Total Pembayaran</div>
               </div>
@@ -426,20 +453,86 @@ export default function TransactionDetailPage() {
                   <div className="border-t-2 border-neon-purple/30 pt-4">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center text-primary-200">
-                        <span>Total Items:</span>
+                        <span>
+                          Subtotal ({getTotalItemsCount(transaction)} items):
+                        </span>
                         <span className="font-semibold text-white">
-                          {getTotalItemsCount(transaction)} items
+                          Rp{" "}
+                          {calculateOriginalTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
                         </span>
                       </div>
+
+                      {/* Show discount if available */}
+                      {calculateTotalDiscount(transaction) > 0 && (
+                        <div className="flex justify-between items-center text-emerald-400">
+                          <span>
+                            Diskon
+                            {(() => {
+                              const firstItem =
+                                getAllTransactions(transaction)[0];
+                              return firstItem &&
+                                firstItem.discountPercentage &&
+                                firstItem.discountPercentage > 0
+                                ? ` (${firstItem.discountPercentage}%)`
+                                : "";
+                            })()}
+                            :
+                          </span>
+                          <span className="font-semibold">
+                            -Rp{" "}
+                            {calculateTotalDiscount(transaction).toLocaleString(
+                              "id-ID"
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Subtotal after discount */}
+                      {calculateTotalDiscount(transaction) > 0 && (
+                        <div className="flex justify-between items-center text-primary-200 text-sm">
+                          <span>Subtotal setelah diskon:</span>
+                          <span className="font-semibold text-white">
+                            Rp{" "}
+                            {(
+                              calculateOriginalTotal(transaction) -
+                              calculateTotalDiscount(transaction)
+                            ).toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Payment Method Name */}
+                      {transaction.paymentMethodName && (
+                        <div className="flex justify-between items-center text-primary-200 text-sm">
+                          <span>Metode Pembayaran:</span>
+                          <span className="font-semibold text-white">
+                            {transaction.paymentMethodName}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Payment Fee */}
+                      {transaction.paymentFee && transaction.paymentFee > 0 && (
+                        <div className="flex justify-between items-center text-primary-200 text-sm">
+                          <span>Biaya Admin:</span>
+                          <span className="font-semibold text-white">
+                            Rp {transaction.paymentFee.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="flex justify-between items-center py-3 border-t-2 border-neon-purple/30">
                         <span className="text-lg font-bold text-white">
                           Grand Total:
                         </span>
                         <span className="text-lg font-bold text-neon-pink">
                           Rp{" "}
-                          {calculateGrandTotal(transaction).toLocaleString(
-                            "id-ID"
-                          )}
+                          {(
+                            calculateGrandTotal(transaction) +
+                            (transaction.paymentFee || 0)
+                          ).toLocaleString("id-ID")}
                         </span>
                       </div>
                     </div>
@@ -498,6 +591,45 @@ export default function TransactionDetailPage() {
                       </div>
                     )}
 
+                    {/* Subtotal after discount */}
+                    {(transaction.discountAmount || 0) > 0 && (
+                      <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                        <span className="text-primary-200 font-medium">
+                          Subtotal setelah diskon:
+                        </span>
+                        <span className="font-semibold text-white">
+                          Rp{" "}
+                          {(
+                            transaction.finalAmount || transaction.totalAmount
+                          ).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Payment Method Name */}
+                    {transaction.paymentMethodName && (
+                      <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                        <span className="text-primary-200 font-medium">
+                          Metode Pembayaran:
+                        </span>
+                        <span className="font-semibold text-white">
+                          {transaction.paymentMethodName}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Payment Fee */}
+                    {transaction.paymentFee && transaction.paymentFee > 0 && (
+                      <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                        <span className="text-primary-200 font-medium">
+                          Biaya Admin:
+                        </span>
+                        <span className="font-semibold text-white">
+                          Rp {transaction.paymentFee.toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-center py-3 border-t-2 border-neon-purple/30 mt-4">
                       <span className="text-lg font-bold text-white">
                         Total Bayar:
@@ -505,7 +637,8 @@ export default function TransactionDetailPage() {
                       <span className="text-lg font-bold text-neon-pink">
                         Rp{" "}
                         {(
-                          transaction.finalAmount || transaction.totalAmount
+                          (transaction.finalAmount || transaction.totalAmount) +
+                          (transaction.paymentFee || 0)
                         ).toLocaleString("id-ID")}
                       </span>
                     </div>

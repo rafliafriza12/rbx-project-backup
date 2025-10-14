@@ -10,6 +10,8 @@ import {
   isMultiCheckout,
   getAllTransactions,
   calculateGrandTotal,
+  calculateOriginalTotal,
+  calculateTotalDiscount,
   getCheckoutDisplayName,
   getTotalItemsCount,
 } from "@/lib/transaction-helpers";
@@ -649,14 +651,44 @@ export default function RiwayatPage() {
                       {/* Amount and Action */}
                       <div className="flex flex-col sm:items-end gap-3">
                         <div className="text-right relative">
+                          {/* Show discount info if available */}
+                          {calculateTotalDiscount(transaction) > 0 && (
+                            <div className="text-xs text-primary-200/60 line-through mb-1">
+                              Rp{" "}
+                              {calculateOriginalTotal(
+                                transaction
+                              ).toLocaleString("id-ID")}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-lg sm:text-xl font-bold text-primary-100 group-hover:scale-105 transition-transform duration-300">
                             <span className="text-white">
                               Rp{" "}
-                              {calculateGrandTotal(transaction).toLocaleString(
-                                "id-ID"
-                              )}
+                              {(
+                                calculateGrandTotal(transaction) +
+                                (transaction.paymentFee || 0)
+                              ).toLocaleString("id-ID")}
                             </span>
                           </div>
+                          {/* Show discount badge if available */}
+                          {calculateTotalDiscount(transaction) > 0 && (
+                            <div className="inline-flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-lg border border-green-500/20 mt-1">
+                              <span>💰</span>
+                              <span>
+                                Hemat Rp{" "}
+                                {calculateTotalDiscount(
+                                  transaction
+                                ).toLocaleString("id-ID")}
+                              </span>
+                            </div>
+                          )}
+                          {/* Show payment fee if available */}
+                          {transaction.paymentFee &&
+                            transaction.paymentFee > 0 && (
+                              <div className="text-xs text-primary-200/70 mt-1">
+                                Termasuk biaya admin Rp{" "}
+                                {transaction.paymentFee.toLocaleString("id-ID")}
+                              </div>
+                            )}
                           {isMulti && (
                             <div className="text-sm text-primary-200/70 mt-1">
                               {getTotalItemsCount(transaction)} total items
