@@ -44,6 +44,7 @@ const RobuxInstan: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const router = useRouter();
 
@@ -158,6 +159,27 @@ const RobuxInstan: React.FC = () => {
 
   return (
     <main className="px-4 sm:px-6 md:px-8">
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
+
       <div className="max-w-6xl mx-auto px-2">
         <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] relative rounded-lg overflow-hidden group">
           <Image
@@ -577,13 +599,12 @@ const RobuxInstan: React.FC = () => {
                   </div>
                   <p className="text-xs text-white/70">
                     Cara lihat backup code:{" "}
-                    <Link
-                      className="underline text-primary-100 hover:text-primary-200 transition-colors hover:glow font-medium"
-                      href={"https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"}
-                      target="_blank"
+                    <button
+                      onClick={() => setShowVideoModal(true)}
+                      className="underline text-primary-100 hover:text-primary-200 transition-colors hover:glow font-medium cursor-pointer"
                     >
                       Klik di sini →
-                    </Link>
+                    </button>
                   </p>
                 </div>
               </div>
@@ -740,6 +761,96 @@ const RobuxInstan: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* Video Tutorial Modal */}
+      {showVideoModal && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-300"
+          onClick={() => setShowVideoModal(false)}
+          style={{ animation: "fadeIn 0.3s ease-out" }}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-xl rounded-3xl border-2 border-primary-100/40 shadow-2xl shadow-primary-100/20 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            style={{ animation: "scaleIn 0.3s ease-out" }}
+          >
+            {/* Decorative Background Elements */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-100/5 via-transparent to-primary-200/5 pointer-events-none"></div>
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-primary-200/20 to-primary-100/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+
+            {/* Header */}
+            <div className="relative z-10 flex items-center justify-between p-6 border-b border-primary-100/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-xl flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary-100" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">
+                    Tutorial Backup Code
+                  </h3>
+                  <p className="text-sm text-white/60">
+                    Cara mendapatkan backup code untuk 2FA
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVideoModal(false)}
+                className="group w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 transition-all duration-300 hover:scale-110"
+              >
+                <span className="text-2xl text-white/80 group-hover:text-red-400 transition-colors">
+                  ×
+                </span>
+              </button>
+            </div>
+
+            {/* Video Content */}
+            <div className="relative z-10 p-6">
+              <div className="rounded-2xl overflow-hidden border-2 border-primary-100/30 shadow-xl">
+                <iframe
+                  width="100%"
+                  height="360"
+                  src="https://www.youtube.com/embed/0N-1478Qki0"
+                  title="Tutorial Backup Code RBX"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full bg-black aspect-video"
+                ></iframe>
+              </div>
+
+              {/* Info Box */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 border border-blue-400/30 rounded-xl backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Info className="w-4 h-4 text-blue-300" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-blue-200 font-semibold text-sm mb-1">
+                      Catatan Penting
+                    </h4>
+                    <p className="text-blue-100/80 text-xs leading-relaxed">
+                      Backup code diperlukan jika akun Roblox Anda menggunakan
+                      2-Step Verification (2FA). Jika tidak ada 2FA, Anda bisa
+                      langsung checkout tanpa mengisi backup code.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="relative w-full z-10 flex items-center justify-end gap-3 p-6 border-t border-primary-100/20">
+              <button
+                onClick={() => setShowVideoModal(false)}
+                className="px-6 py-2.5 w-full bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
+              >
+                Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

@@ -65,6 +65,7 @@ export default function JokiDetailPage() {
   const [selectedItemModal, setSelectedItemModal] = useState<JokiItem | null>(
     null
   );
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // Get requirements and process for specific item from database
   const getItemRequirements = (itemName: string): string[] => {
@@ -508,6 +509,26 @@ export default function JokiDetailPage() {
         .modal-sparkle {
           animation: sparkleAnimation 2s ease-in-out infinite;
         }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
       `}</style>
 
       <main className="text-white relative overflow-hidden">
@@ -685,13 +706,12 @@ export default function JokiDetailPage() {
                       </div>
                       <p className="text-xs sm:text-sm text-primary-200/70 mt-2">
                         Cara lihat backup code:{" "}
-                        <Link
-                          className="text-primary-100 hover:text-primary-200 underline transition-colors"
-                          href="https://youtu.be/0N-1478Qki0?si=Z2g_AuTIOQPn5kDC"
-                          target="_blank"
+                        <button
+                          onClick={() => setShowVideoModal(true)}
+                          className="text-primary-100 hover:text-primary-200 underline transition-colors cursor-pointer"
                         >
                           Klik di sini →
-                        </Link>
+                        </button>
                       </p>
                     </div>
                   </div>
@@ -1264,6 +1284,149 @@ export default function JokiDetailPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Video Tutorial Modal */}
+        {showVideoModal && (
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            onClick={() => setShowVideoModal(false)}
+            style={{
+              animation: "fadeIn 0.3s ease-out",
+            }}
+          >
+            <div
+              className="relative w-full max-w-2xl bg-gradient-to-br from-primary-500/30 to-primary-600/30 backdrop-blur-xl rounded-2xl shadow-2xl border border-primary-100/20 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                animation: "scaleIn 0.3s ease-out",
+              }}
+            >
+              {/* Decorative Elements */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-100 via-primary-200 to-primary-100"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary-100/20 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-primary-200/20 rounded-full blur-3xl"></div>
+
+              {/* Header */}
+              <div className="relative p-6 border-b border-primary-100/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary-100/20 rounded-lg">
+                    <svg
+                      className="w-6 h-6 text-primary-100"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white">
+                      Tutorial Backup Code
+                    </h3>
+                    <p className="text-sm text-white/60 mt-1">
+                      Pelajari cara mendapatkan backup code
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowVideoModal(false)}
+                    className="p-2 hover:bg-primary-100/10 rounded-lg transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5 text-white/60 hover:text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Video Content */}
+              <div className="relative p-6">
+                <div className="relative aspect-video bg-black/30 rounded-xl overflow-hidden border border-primary-100/10">
+                  <iframe
+                    width="100%"
+                    height="360"
+                    src="https://www.youtube.com/embed/0N-1478Qki0"
+                    title="Tutorial Backup Code"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  ></iframe>
+                </div>
+
+                {/* Info Box */}
+                <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="w-5 h-5 text-blue-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-white/80 leading-relaxed">
+                        <span className="font-semibold text-white">
+                          Penting:
+                        </span>{" "}
+                        Backup code diperlukan jika akun Anda menggunakan
+                        verifikasi 2 langkah (2FA). Ikuti tutorial video di atas
+                        untuk mendapatkan backup code dari akun Roblox Anda.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="relative p-6 border-t border-primary-100/20 bg-primary-500/10">
+                <button
+                  onClick={() => setShowVideoModal(false)}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
+                >
+                  Mengerti
+                </button>
+              </div>
+
+              {/* Sparkle Effects */}
+              <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white rounded-full animate-pulse"></div>
+              <div
+                className="absolute top-1/3 right-1/3 w-1 h-1 bg-primary-100 rounded-full"
+                style={{
+                  animation: "sparkleAnimation 2s ease-in-out infinite",
+                }}
+              ></div>
+              <div
+                className="absolute bottom-1/4 right-1/4 w-1 h-1 bg-primary-200 rounded-full"
+                style={{
+                  animation: "sparkleAnimation 2.5s ease-in-out infinite",
+                }}
+              ></div>
             </div>
           </div>
         )}
