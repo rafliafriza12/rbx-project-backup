@@ -52,20 +52,18 @@ export async function PUT(
     const formData = await request.formData();
 
     const gameName = formData.get("gameName") as string;
+    const developer = formData.get("developer") as string;
 
     // Parse with error handling
-    let caraPesan, features, items;
+    let caraPesan, items;
     try {
       const caraPesanStr = formData.get("caraPesan") as string;
-      const featuresStr = formData.get("features") as string;
       const itemsStr = formData.get("items") as string;
 
       console.log("Parsing caraPesan:", caraPesanStr);
-      console.log("Parsing features:", featuresStr);
       console.log("Parsing items:", itemsStr);
 
       caraPesan = JSON.parse(caraPesanStr);
-      features = JSON.parse(featuresStr);
       items = JSON.parse(itemsStr);
     } catch (parseError) {
       console.error("JSON Parse Error:", parseError);
@@ -76,7 +74,7 @@ export async function PUT(
     }
 
     // Validate required fields
-    if (!gameName || !caraPesan || !features || !items) {
+    if (!gameName || !developer || !caraPesan || !items) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
         { status: 400 }
@@ -149,8 +147,8 @@ export async function PUT(
       {
         gameName,
         imgUrl: gameImageUrl,
+        developer,
         caraPesan: caraPesan.filter((item: string) => item.trim()),
-        features: features.filter((item: string) => item.trim()),
         item: processedItems,
       },
       { new: true }

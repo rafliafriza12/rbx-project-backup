@@ -89,6 +89,17 @@ const PublicAppHeader: React.FC = () => {
           Jasa Joki
         </Link>
         <Link
+          href="/reseller"
+          onClick={handleLinkClick}
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
+            pathname.includes("reseller")
+              ? "text-yellow-400 font-bold text-drop-shadow-sm bg-yellow-400/8"
+              : "text-white hover:text-yellow-400 font-medium hover:bg-yellow-400/5 hover:text-drop-shadow-sm"
+          }`}
+        >
+          Reseller
+        </Link>
+        <Link
           href="/leaderboard"
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
@@ -304,6 +315,17 @@ const PublicAppHeader: React.FC = () => {
           }`}
         >
           Jasa Joki
+        </Link>
+        <Link
+          href="/reseller"
+          onClick={handleLinkClick}
+          className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
+            pathname.includes("reseller")
+              ? "text-yellow-400 font-bold bg-yellow-400/20 text-drop-shadow-sm"
+              : "text-white hover:text-yellow-400 hover:bg-yellow-400/10"
+          }`}
+        >
+          Reseller
         </Link>
         <Link
           href="/leaderboard"

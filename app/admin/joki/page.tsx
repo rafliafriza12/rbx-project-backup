@@ -17,8 +17,8 @@ interface Joki {
   _id: string;
   gameName: string;
   imgUrl: string;
+  developer: string;
   caraPesan: string[];
-  features: string[];
   item: JokiItem[];
   createdAt: string;
   updatedAt: string;
@@ -26,8 +26,8 @@ interface Joki {
 
 interface FormData {
   gameName: string;
+  developer: string;
   caraPesan: string[];
-  features: string[];
   items: {
     itemName: string;
     price: string;
@@ -50,8 +50,8 @@ export default function JokiPage() {
 
   const [formData, setFormData] = useState<FormData>({
     gameName: "",
+    developer: "",
     caraPesan: [""],
-    features: [""],
     items: [
       {
         itemName: "",
@@ -93,8 +93,8 @@ export default function JokiPage() {
   const resetForm = () => {
     setFormData({
       gameName: "",
+      developer: "",
       caraPesan: [""],
-      features: [""],
       items: [
         {
           itemName: "",
@@ -133,8 +133,8 @@ export default function JokiPage() {
     console.log("Mapped items:", mappedItems);
     setFormData({
       gameName: joki.gameName,
+      developer: joki.developer,
       caraPesan: joki.caraPesan.length > 0 ? joki.caraPesan : [""],
-      features: joki.features.length > 0 ? joki.features : [""],
       items: mappedItems,
     });
     setShowModal(true);
@@ -150,7 +150,7 @@ export default function JokiPage() {
 
   // Handle array field changes
   const handleArrayChange = (
-    field: "caraPesan" | "features",
+    field: "caraPesan",
     index: number,
     value: string
   ) => {
@@ -163,7 +163,7 @@ export default function JokiPage() {
   };
 
   // Add array field
-  const addArrayField = (field: "caraPesan" | "features") => {
+  const addArrayField = (field: "caraPesan") => {
     setFormData((prev) => ({
       ...prev,
       [field]: [...prev[field], ""],
@@ -171,7 +171,7 @@ export default function JokiPage() {
   };
 
   // Remove array field
-  const removeArrayField = (field: "caraPesan" | "features", index: number) => {
+  const removeArrayField = (field: "caraPesan", index: number) => {
     if (formData[field].length > 1) {
       const newArray = formData[field].filter(
         (_: any, i: number) => i !== index
@@ -296,13 +296,10 @@ export default function JokiPage() {
 
       // Add basic fields
       submitData.append("gameName", formData.gameName);
+      submitData.append("developer", formData.developer);
       submitData.append(
         "caraPesan",
         JSON.stringify(formData.caraPesan.filter((item) => item.trim()))
-      );
-      submitData.append(
-        "features",
-        JSON.stringify(formData.features.filter((item) => item.trim()))
       );
 
       // Add game image if provided
@@ -636,10 +633,7 @@ export default function JokiPage() {
                   Jumlah Items
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
-                  Requirements
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
-                  Features
+                  Developer
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider border-b border-[#334155]">
                   Tanggal Dibuat
@@ -673,7 +667,7 @@ export default function JokiPage() {
                     {joki.item.length} items
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
-                    {joki.features.length} features
+                    {joki.developer}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
                     {new Date(joki.createdAt).toLocaleDateString("id-ID")}
@@ -817,38 +811,21 @@ export default function JokiPage() {
                 </button>
               </div>
 
-              {/* Features */}
+              {/* Developer */}
               <div>
                 <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
-                  Features *
+                  Developer *
                 </label>
-                {formData.features.map((feature, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={feature}
-                      onChange={(e) =>
-                        handleArrayChange("features", index, e.target.value)
-                      }
-                      placeholder={`Feature ${index + 1}`}
-                      className="flex-1 px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeArrayField("features", index)}
-                      className="px-3 py-2 bg-red-600 text-[#f1f5f9] rounded-md hover:bg-red-700 border border-red-500"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => addArrayField("features")}
-                  className="mt-2 px-4 py-2 bg-[#3b82f6] text-[#f1f5f9] rounded-md hover:bg-[#1d4ed8] border border-[#3b82f6]"
-                >
-                  Tambah Feature
-                </button>
+                <input
+                  type="text"
+                  value={formData.developer}
+                  onChange={(e) =>
+                    handleInputChange("developer", e.target.value)
+                  }
+                  placeholder="Nama Developer"
+                  className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6]"
+                  required
+                />
               </div>
 
               {/* Items */}

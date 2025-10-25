@@ -16,7 +16,6 @@ interface GamepassData {
   gameName: string;
   imgUrl: string;
   caraPesan: string[];
-  features: string[];
   showOnHomepage: boolean;
   developer: string;
   item: GamepassItem[];
@@ -313,7 +312,7 @@ export default function AdminGamepassPage() {
                             {gamepass.gameName}
                           </div>
                           <div className="text-sm text-[#94a3b8]">
-                            {gamepass.features.length} fitur
+                            {gamepass.developer}
                           </div>
                         </div>
                       </div>

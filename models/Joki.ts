@@ -47,14 +47,12 @@ const JokiSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    developer: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     caraPesan: [
-      {
-        type: String,
-        required: true,
-        trim: true,
-      },
-    ],
-    features: [
       {
         type: String,
         required: true,
@@ -85,8 +83,8 @@ export interface Joki {
   _id: string;
   gameName: string;
   imgUrl: string;
+  developer: string;
   caraPesan: string[];
-  features: string[];
   item: JokiItem[];
   createdAt: Date;
   updatedAt: Date;

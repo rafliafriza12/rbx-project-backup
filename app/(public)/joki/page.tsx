@@ -18,8 +18,8 @@ interface Joki {
   _id: string;
   gameName: string;
   imgUrl: string;
+  developer: string;
   caraPesan: string[];
-  features: string[];
   item: JokiItem[];
   createdAt?: string;
   orderCount?: number; // Number of orders for this joki
@@ -30,6 +30,7 @@ export default function JokiPage() {
   const [jokiServices, setJokiServices] = useState<Joki[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -66,6 +67,20 @@ export default function JokiPage() {
     }
   };
 
+  // Filter joki services based on search query
+  const filteredJokiServices = jokiServices.filter((joki) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      joki.gameName.toLowerCase().includes(searchLower) ||
+      joki.developer.toLowerCase().includes(searchLower) ||
+      joki.item.some(
+        (item) =>
+          item.itemName.toLowerCase().includes(searchLower) ||
+          item.description.toLowerCase().includes(searchLower)
+      )
+    );
+  });
+
   return (
     <div className="min-h-screen ">
       <div className="text-center px-4 pt-8 sm:pt-12 pb-6 sm:pb-8">
@@ -78,6 +93,66 @@ export default function JokiPage() {
           <span className="text-primary-100 font-semibold">RBXNET</span> tinggal
           bayar dan duduk manis semua selesai dengan cepat.
         </p>
+
+        {/* Search Bar */}
+        <div className="max-w-2xl mx-auto mt-6 sm:mt-8">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl sm:rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Cari game, layanan, atau item..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 sm:px-6 py-3 sm:py-4 pl-12 sm:pl-14 pr-12 bg-primary-800/40 backdrop-blur-xl border-2 border-primary-100/40 rounded-xl sm:rounded-2xl text-white placeholder-white/50 focus:border-primary-100 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-sm sm:text-base"
+              />
+              <svg
+                className="absolute left-4 sm:left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 text-primary-200"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-primary-100/20 rounded-lg transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-white/60 hover:text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Search Results Info */}
+          {searchQuery && (
+            <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-white/70">
+              Ditemukan{" "}
+              <span className="font-bold text-primary-100">
+                {filteredJokiServices.length}
+              </span>{" "}
+              hasil untuk &quot;{searchQuery}&quot;
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -99,16 +174,44 @@ export default function JokiPage() {
         </div>
       ) : (
         <div className="mt-8 sm:mt-10 md:mt-12 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 px-4 sm:px-6">
-          {jokiServices.length === 0 ? (
+          {filteredJokiServices.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 max-w-md mx-auto">
-                <p className="text-white/70 mb-4">
-                  Belum ada jasa joki tersedia
-                </p>
+                {searchQuery ? (
+                  <>
+                    <svg
+                      className="w-16 h-16 sm:w-20 sm:h-20 text-primary-200/50 mx-auto mb-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                    <p className="text-white/70 mb-2">
+                      Tidak ada hasil untuk &quot;{searchQuery}&quot;
+                    </p>
+                    <p className="text-white/50 text-sm mb-4">
+                      Coba gunakan kata kunci lain
+                    </p>
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="px-6 py-2 bg-gradient-to-r from-primary-100 to-primary-200 text-white rounded-lg hover:shadow-lg hover:shadow-primary-100/30 transition-all duration-300 font-semibold text-sm"
+                    >
+                      Tampilkan Semua
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-white/70">Belum ada jasa joki tersedia</p>
+                )}
               </div>
             </div>
           ) : (
-            jokiServices.map((joki) => {
+            filteredJokiServices.map((joki) => {
               const minPrice =
                 joki.item.length > 0
                   ? Math.min(...joki.item.map((item) => item.price))
@@ -162,7 +265,7 @@ export default function JokiPage() {
                         src={joki.imgUrl}
                         alt={joki.gameName}
                         fill
-                        className="object-cover transition-all duration-500 group-hover:scale-110"
+                        className="object-fill transition-all duration-500 group-hover:scale-110"
                       />
 
                       {/* Purple gradient overlay for better contrast */}

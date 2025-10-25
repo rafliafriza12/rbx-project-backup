@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import Gamepass from "@/models/Gamepass";
+import ResellerPackage from "@/models/ResellerPackage";
 import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
 
-// GET - Ambil gamepass berdasarkan ID
+// GET - Ambil reseller package berdasarkan ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -16,27 +16,26 @@ export async function GET(
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
-        { error: "ID gamepass tidak valid" },
+        { error: "ID package tidak valid" },
         { status: 400 }
       );
     }
 
-    const gamepass = await Gamepass.findById(id);
+    const resellerPackage = await ResellerPackage.findById(id);
 
-    if (!gamepass) {
+    if (!resellerPackage) {
       return NextResponse.json(
-        { error: "Gamepass tidak ditemukan" },
+        { error: "Package tidak ditemukan" },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: "Gamepass berhasil diambil",
-      data: gamepass,
+      data: resellerPackage,
     });
   } catch (error: any) {
-    console.error("Get gamepass error:", error);
+    console.error("Get reseller package error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -47,7 +46,7 @@ export async function GET(
   }
 }
 
-// PUT - Update gamepass by ID (Admin only)
+// PUT - Update reseller package by ID (Admin only)
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -77,15 +76,15 @@ export async function PUT(
       );
     }
 
-    const gamepassData = await request.json();
+    const packageData = await request.json();
 
     // Validation
     if (
-      !gamepassData.gameName ||
-      !gamepassData.imgUrl ||
-      !gamepassData.developer ||
-      !gamepassData.caraPesan?.length ||
-      !gamepassData.item?.length
+      !packageData.name ||
+      !packageData.tier ||
+      !packageData.price ||
+      !packageData.duration ||
+      packageData.discount === undefined
     ) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
@@ -93,30 +92,31 @@ export async function PUT(
       );
     }
 
-    // Check homepage limit if trying to set showOnHomepage to true
-    if (gamepassData.showOnHomepage) {
-      const canAdd = await (Gamepass as any).canAddToHomepage(params.id);
-      if (!canAdd) {
+    // Check if tier is being changed and if new tier already exists
+    const currentPackage = await ResellerPackage.findById(params.id);
+    if (currentPackage && currentPackage.tier !== packageData.tier) {
+      const existingPackage = await ResellerPackage.findOne({
+        tier: packageData.tier,
+        _id: { $ne: params.id },
+      });
+      if (existingPackage) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Maksimal 3 gamepass yang dapat ditampilkan di homepage",
-          },
+          { error: `Tier ${packageData.tier} sudah ada` },
           { status: 400 }
         );
       }
     }
 
-    // Update gamepass
-    const updatedGamepass = await Gamepass.findByIdAndUpdate(
+    // Update package
+    const updatedPackage = await ResellerPackage.findByIdAndUpdate(
       params.id,
-      gamepassData,
+      packageData,
       { new: true, runValidators: true }
     );
 
-    if (!updatedGamepass) {
+    if (!updatedPackage) {
       return NextResponse.json(
-        { error: "Gamepass tidak ditemukan" },
+        { error: "Package tidak ditemukan" },
         { status: 404 }
       );
     }
@@ -124,13 +124,13 @@ export async function PUT(
     return NextResponse.json(
       {
         success: true,
-        message: "Gamepass berhasil diperbarui",
-        data: updatedGamepass,
+        message: "Paket reseller berhasil diperbarui",
+        data: updatedPackage,
       },
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("Update gamepass error:", error);
+    console.error("Update reseller package error:", error);
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(
@@ -155,7 +155,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete gamepass by ID (Admin only)
+// DELETE - Hapus reseller package by ID (Admin only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -185,26 +185,21 @@ export async function DELETE(
       );
     }
 
-    // Delete gamepass
-    const deletedGamepass = await Gamepass.findByIdAndDelete(params.id);
+    const deletedPackage = await ResellerPackage.findByIdAndDelete(params.id);
 
-    if (!deletedGamepass) {
+    if (!deletedPackage) {
       return NextResponse.json(
-        { error: "Gamepass tidak ditemukan" },
+        { error: "Package tidak ditemukan" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Gamepass berhasil dihapus",
-        data: deletedGamepass,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: "Paket reseller berhasil dihapus",
+    });
   } catch (error: any) {
-    console.error("Delete gamepass error:", error);
+    console.error("Delete reseller package error:", error);
     return NextResponse.json(
       {
         success: false,

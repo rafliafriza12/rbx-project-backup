@@ -21,6 +21,10 @@ import {
   Lock,
   Shield,
   Info,
+  Loader2,
+  Search,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
@@ -40,8 +44,8 @@ interface Joki {
   _id: string;
   gameName: string;
   imgUrl: string;
+  developer: string;
   caraPesan: string[];
-  features: string[];
   item: JokiItem[];
 }
 
@@ -59,6 +63,15 @@ export default function JokiDetailPage() {
   const [password, setPassword] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // User search states
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -85,6 +98,39 @@ export default function JokiDetailPage() {
   const jokiId = params.id as string;
   const userId = "guest"; // Simplified for now
 
+  // Function to search for user info
+  const searchUserInfo = async (username: string) => {
+    if (!username || username.trim().length < 2) {
+      setUserInfo(null);
+      setUserSearchError(null);
+      return;
+    }
+
+    setIsSearchingUser(true);
+    setUserSearchError(null);
+
+    try {
+      const response = await fetch(
+        `/api/user-info?username=${encodeURIComponent(username.trim())}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setUserInfo(data);
+        setUserSearchError(null);
+      } else {
+        setUserInfo(null);
+        setUserSearchError(data.message || "User tidak ditemukan");
+      }
+    } catch (error) {
+      console.error("Error searching user:", error);
+      setUserInfo(null);
+      setUserSearchError("Terjadi kesalahan saat mencari user");
+    } finally {
+      setIsSearchingUser(false);
+    }
+  };
+
   // Check if all required fields are filled
   // Computed values for multi-select
   const selectedItemsArray = Object.keys(selectedItems).filter(
@@ -103,7 +149,27 @@ export default function JokiDetailPage() {
   );
 
   const isFormValid =
-    hasSelectedItems && username.trim() !== "" && password.trim() !== "";
+    hasSelectedItems &&
+    username.trim() !== "" &&
+    password.trim() !== "" &&
+    userInfo !== null;
+
+  // Filter items based on search query
+  const filteredItems = joki
+    ? joki.item.filter((item) => {
+        const searchLower = searchQuery.toLowerCase();
+        return (
+          item.itemName.toLowerCase().includes(searchLower) ||
+          item.description.toLowerCase().includes(searchLower) ||
+          item.syaratJoki.some((req) =>
+            req.toLowerCase().includes(searchLower)
+          ) ||
+          item.prosesJoki.some((proc) =>
+            proc.toLowerCase().includes(searchLower)
+          )
+        );
+      })
+    : [];
 
   // Helper functions for multi-select
   const updateQuantity = (itemName: string, change: number) => {
@@ -132,6 +198,45 @@ export default function JokiDetailPage() {
       fetchJoki();
     }
   }, [jokiId]);
+
+  // Debounced search effect for username
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Reset user info when input is cleared
+    if (!username || username.trim().length < 2) {
+      setUserInfo(null);
+      setUserSearchError(null);
+      setIsSearchingUser(false);
+      return;
+    }
+
+    // Set new timeout for 1 second delay
+    const newTimeout = setTimeout(() => {
+      searchUserInfo(username);
+    }, 1000);
+
+    setSearchTimeout(newTimeout);
+
+    // Cleanup function
+    return () => {
+      if (newTimeout) {
+        clearTimeout(newTimeout);
+      }
+    };
+  }, [username]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, []);
 
   const fetchJoki = async () => {
     try {
@@ -190,6 +295,7 @@ export default function JokiDetailPage() {
           robloxPassword: password,
           jokiDetails: {
             gameName: joki.gameName,
+            developer: joki.developer,
             itemName: item.itemName,
             imgUrl: item.imgUrl, // Add item image to jokiDetails
             description: item.description,
@@ -197,7 +303,6 @@ export default function JokiDetailPage() {
             additionalInfo: additionalInfo,
             syaratJoki: item.syaratJoki,
             prosesJoki: item.prosesJoki,
-            features: joki.features,
           },
         };
 
@@ -278,13 +383,13 @@ export default function JokiDetailPage() {
           robloxPassword: password,
           jokiDetails: {
             gameName: joki.gameName,
+            developer: joki.developer,
             itemName: item.itemName,
             description: item.description,
             notes: additionalInfo,
             additionalInfo: additionalInfo,
             syaratJoki: item.syaratJoki,
             prosesJoki: item.prosesJoki,
-            features: joki.features,
           },
         };
       })
@@ -569,7 +674,7 @@ export default function JokiDetailPage() {
                       src={joki.imgUrl}
                       alt={joki.gameName}
                       fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="object-fill group-hover:scale-110 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/20"></div>
 
@@ -599,7 +704,7 @@ export default function JokiDetailPage() {
                   </div>
 
                   {/* Features */}
-                  <div className="space-y-3 sm:space-y-4">
+                  {/* <div className="space-y-3 sm:space-y-4">
                     <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                       <div className="p-1.5 sm:p-2 bg-primary-100/20 rounded-lg">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-primary-100" />
@@ -620,7 +725,7 @@ export default function JokiDetailPage() {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
                 <button
                   onClick={() => setIsShowReview(!isShowReview)}
@@ -658,15 +763,102 @@ export default function JokiDetailPage() {
                         Username RBX *
                       </label>
                       <div className="relative">
-                        <User className="absolute left-3 sm:left-4 top-3 sm:top-4 w-4 h-4 sm:w-5 sm:h-5 text-primary-200" />
+                        <User className="absolute left-3 sm:left-4 top-3 sm:top-4 w-4 h-4 sm:w-5 sm:h-5 text-primary-200 z-10" />
                         <input
                           type="text"
                           placeholder="Masukkan Username RBX"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
-                          className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 bg-primary-800/30 border-2 border-primary-100/40 rounded-lg sm:rounded-xl text-white placeholder-primary-200/60 focus:border-primary-100 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-sm sm:text-base"
+                          className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 bg-primary-800/30 border-2 rounded-lg sm:rounded-xl text-white placeholder-primary-200/60 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-sm sm:text-base ${
+                            userInfo
+                              ? "border-emerald-500/60 bg-emerald-500/10"
+                              : username && userSearchError
+                              ? "border-red-500/60 bg-red-500/10"
+                              : "border-primary-100/40 focus:border-primary-100"
+                          }`}
                         />
+                        {/* Status Icon */}
+                        <div className="absolute right-3 sm:right-4 top-3 sm:top-4">
+                          {isSearchingUser ? (
+                            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary-100" />
+                          ) : userInfo ? (
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+                          ) : username && userSearchError ? (
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                          ) : (
+                            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-primary-200/60" />
+                          )}
+                        </div>
                       </div>
+
+                      {/* Status Messages */}
+                      {username && username.length >= 2 && (
+                        <div className="mt-2">
+                          {isSearchingUser && (
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-yellow-400">
+                              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                              <span>Mencari username...</span>
+                            </div>
+                          )}
+                          {!isSearchingUser && userInfo && (
+                            <div className="flex items-center gap-3 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg sm:rounded-xl">
+                              {/* User Avatar */}
+                              {userInfo.avatar ? (
+                                <img
+                                  src={userInfo.avatar}
+                                  alt={userInfo.username}
+                                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-600 ring-2 ring-emerald-400/60 object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-emerald-400/30 to-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-400/60 flex-shrink-0">
+                                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+                                </div>
+                              )}
+
+                              {/* User Info */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm sm:text-base text-white font-bold truncate">
+                                  {userInfo.username}
+                                </p>
+                                <p className="text-xs text-emerald-300">
+                                  ID: {userInfo.id}
+                                </p>
+                                {userInfo.displayName &&
+                                  userInfo.displayName !==
+                                    userInfo.username && (
+                                    <p className="text-xs text-emerald-300 truncate">
+                                      Display: {userInfo.displayName}
+                                    </p>
+                                  )}
+                              </div>
+
+                              {/* Check Icon */}
+                              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400 flex-shrink-0" />
+                            </div>
+                          )}
+                          {!isSearchingUser && userSearchError && (
+                            <div className="flex items-start gap-2 p-2 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm text-red-400 font-semibold">
+                                  User tidak ditemukan
+                                </p>
+                                <p className="text-xs text-white/70 mt-1">
+                                  API Robloxxnya Lagi Limit, Coba Sebentar Lagi
+                                  Ya
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Helper Text */}
+                      {(!username || username.length < 2) && (
+                        <p className="text-xs sm:text-sm text-primary-200/70 mt-2">
+                          Ketik minimal 2 karakter untuk mencari username
+                        </p>
+                      )}
                     </div>
 
                     {/* Password */}
@@ -732,175 +924,264 @@ export default function JokiDetailPage() {
                     </h2>
                   </div>
 
-                  {joki.item.length > 0 ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 auto-rows-fr ">
-                      {joki.item.map((item, idx) => {
-                        const quantity = selectedItems[item.itemName] || 0;
-                        const isSelected = quantity > 0;
-
-                        return (
-                          <div
-                            key={idx}
-                            className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-6 transition-all duration-500 overflow-hidden flex flex-col h-full min-h-[180px] sm:min-h-[200px] md:min-h-[280px] ${
-                              isSelected
-                                ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-xl md:shadow-2xl shadow-primary-100/20 md:shadow-primary-100/30 scale-[1.01] md:scale-105"
-                                : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-[1.005] md:hover:scale-102"
-                            }`}
+                  {/* Search Bar for Items */}
+                  {joki.item.length > 0 && (
+                    <div className="mb-4 sm:mb-6">
+                      <div className="relative group/search">
+                        <input
+                          type="text"
+                          placeholder="Cari layanan atau item..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 pl-9 sm:pl-11 pr-10 bg-primary-800/30 border-2 border-primary-100/40 rounded-lg sm:rounded-xl text-white placeholder-white/50 focus:border-primary-100 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-xs sm:text-sm"
+                        />
+                        <svg
+                          className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-primary-200"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
+                        </svg>
+                        {searchQuery && (
+                          <button
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-primary-100/20 rounded-lg transition-colors"
                           >
-                            {/* Card glow effect */}
-                            <div
-                              className={`absolute inset-0 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-2xl transition-opacity duration-300 ${
-                                isSelected
-                                  ? "opacity-100"
-                                  : "opacity-0 group-hover/item:opacity-100"
-                              }`}
-                            ></div>
-
-                            {/* Floating particles for selected items */}
-                            {isSelected && (
-                              <>
-                                <div className="absolute top-4 left-4 w-1 h-1 bg-primary-100/70 rounded-full animate-ping"></div>
-                                <div className="absolute top-6 left-8 w-1.5 h-1.5 bg-primary-200/60 rounded-full animate-ping delay-300"></div>
-                                <div className="absolute bottom-4 right-4 w-1 h-1 bg-primary-100/80 rounded-full animate-ping delay-500"></div>
-                              </>
-                            )}
-
-                            {/* Requirements Icon Only */}
-                            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 md:top-4 md:right-4 z-20">
-                              {/* Icon Syarat & Proses */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedItemModal(item);
-                                  setShowModal(true);
-                                }}
-                                className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 hover:border-blue-400/60 rounded sm:rounded-md md:rounded-lg text-blue-400 hover:text-blue-300 transition-all duration-300 flex items-center justify-center backdrop-blur-sm"
-                                title="Lihat Syarat & Proses"
-                              >
-                                <FileText className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4" />
-                              </button>
-                            </div>
-
-                            {/* Item Image */}
-                            <div className="relative w-full h-20 sm:h-24 md:h-36 rounded-md sm:rounded-lg md:rounded-xl overflow-hidden mb-1.5 sm:mb-2 md:mb-4 border border-primary-100/20 shadow group-hover/item:shadow-lg transition-all duration-300">
-                              <Image
-                                src={item.imgUrl}
-                                alt={item.itemName}
-                                fill
-                                className="object-cover group-hover/item:scale-110 transition-transform duration-500"
+                            <svg
+                              className="w-3 h-3 sm:w-4 sm:h-4 text-white/60 hover:text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
-                            </div>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {searchQuery && (
+                        <div className="mt-2 text-xs sm:text-sm text-white/70">
+                          Ditemukan{" "}
+                          <span className="font-bold text-primary-100">
+                            {filteredItems.length}
+                          </span>{" "}
+                          hasil
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                            {/* Item Info */}
-                            <div className="relative z-10 flex-1 flex flex-col">
-                              <h4 className="font-bold text-white mb-1 sm:mb-1.5 md:mb-2 text-xs sm:text-sm md:text-lg line-clamp-1 sm:line-clamp-2 leading-tight">
-                                {item.itemName}
-                              </h4>
+                  {joki.item.length > 0 ? (
+                    <>
+                      {filteredItems.length === 0 ? (
+                        <div className="text-center py-12">
+                          <svg
+                            className="w-16 h-16 sm:w-20 sm:h-20 text-primary-200/50 mx-auto mb-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                          </svg>
+                          <p className="text-white/70 mb-2">
+                            Tidak ada hasil untuk &quot;{searchQuery}&quot;
+                          </p>
+                          <p className="text-white/50 text-sm mb-4">
+                            Coba gunakan kata kunci lain
+                          </p>
+                          <button
+                            onClick={() => setSearchQuery("")}
+                            className="px-6 py-2 bg-gradient-to-r from-primary-100 to-primary-200 text-white rounded-lg hover:shadow-lg hover:shadow-primary-100/30 transition-all duration-300 font-semibold text-sm"
+                          >
+                            Tampilkan Semua
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 auto-rows-fr ">
+                          {filteredItems.map((item, idx) => {
+                            const quantity = selectedItems[item.itemName] || 0;
+                            const isSelected = quantity > 0;
 
-                              <div className="flex items-center justify-center mb-1 sm:mb-2 md:mb-4">
-                                <div className="flex items-center gap-0.5 sm:gap-1">
-                                  <Gem className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 text-primary-100" />
-                                  <span className="text-white font-bold text-xs sm:text-xs md:text-lg">
-                                    Rp {item.price.toLocaleString()}
-                                  </span>
-                                </div>
-                              </div>
+                            return (
+                              <div
+                                key={idx}
+                                className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-6 transition-all duration-500 overflow-hidden flex flex-col h-full min-h-[180px] sm:min-h-[200px] md:min-h-[280px] ${
+                                  isSelected
+                                    ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-xl md:shadow-2xl shadow-primary-100/20 md:shadow-primary-100/30 scale-[1.01] md:scale-105"
+                                    : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-[1.005] md:hover:scale-102"
+                                }`}
+                              >
+                                {/* Card glow effect */}
+                                <div
+                                  className={`absolute inset-0 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-2xl transition-opacity duration-300 ${
+                                    isSelected
+                                      ? "opacity-100"
+                                      : "opacity-0 group-hover/item:opacity-100"
+                                  }`}
+                                ></div>
 
-                              {/* Spacer untuk push button ke bawah */}
-                              <div className="flex-1 min-h-[1px]"></div>
+                                {/* Floating particles for selected items */}
+                                {isSelected && (
+                                  <>
+                                    <div className="absolute top-4 left-4 w-1 h-1 bg-primary-100/70 rounded-full animate-ping"></div>
+                                    <div className="absolute top-6 left-8 w-1.5 h-1.5 bg-primary-200/60 rounded-full animate-ping delay-300"></div>
+                                    <div className="absolute bottom-4 right-4 w-1 h-1 bg-primary-100/80 rounded-full animate-ping delay-500"></div>
+                                  </>
+                                )}
 
-                              {/* Tombol Pilih / Selected Status - Always at bottom */}
-                              <div className="mt-auto">
-                                {!isSelected ? (
+                                {/* Requirements Icon Only */}
+                                <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 md:top-4 md:right-4 z-20">
+                                  {/* Icon Syarat & Proses */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      updateQuantity(item.itemName, 1);
+                                      setSelectedItemModal(item);
+                                      setShowModal(true);
                                     }}
-                                    className="w-full py-1.5 sm:py-2 md:py-3 px-1.5 sm:px-2 md:px-4 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-md sm:rounded-lg md:rounded-xl transition-all duration-300 hover:scale-105 shadow hover:shadow-lg md:hover:shadow-primary-100/30 flex items-center justify-center gap-1 text-xs sm:text-xs md:text-base"
+                                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 hover:border-blue-400/60 rounded sm:rounded-md md:rounded-lg text-blue-400 hover:text-blue-300 transition-all duration-300 flex items-center justify-center backdrop-blur-sm"
+                                    title="Lihat Syarat & Proses"
                                   >
-                                    <span className="inline">Pilih</span>
-                                    {/* <span className="sm:hidden">+</span> */}
+                                    <FileText className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4" />
                                   </button>
-                                ) : (
-                                  <div className="p-1 sm:p-1.5 md:p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 rounded-md sm:rounded-lg md:rounded-xl">
-                                    <div className="flex items-center justify-center gap-1 text-green-400">
-                                      <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Quantity Controls - Only show when selected */}
-                              {isSelected && (
-                                <div className="mt-1 sm:mt-2 md:mt-4 p-1.5 sm:p-2 md:p-4 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-md sm:rounded-lg md:rounded-xl border border-primary-100/40 backdrop-blur-sm">
-                                  <div className="flex items-center justify-between mb-1 sm:mb-1.5 md:mb-3">
-                                    <span className="text-xs md:text-sm font-bold text-primary-100 flex items-center gap-0.5 sm:gap-1">
-                                      <span className="hidden sm:inline">
-                                        Qty:
-                                      </span>
-                                    </span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeItem(item.itemName);
-                                      }}
-                                      className="px-1 sm:px-1.5 md:px-3 py-0.5 md:py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 hover:border-red-400/60 rounded text-red-400 hover:text-red-300 transition-all duration-300 text-xs font-medium flex items-center gap-0.5 sm:gap-1"
-                                    >
-                                      <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                      <span className="hidden md:inline">
-                                        Batal
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateQuantity(item.itemName, -1);
-                                      }}
-                                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-10 md:h-10 bg-gradient-to-r from-red-500/30 to-red-600/30 hover:from-red-600/30 hover:to-red-700/30 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow hover:shadow-lg md:hover:shadow-xl hover:scale-110"
-                                    >
-                                      <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
-                                    </button>
-                                    <div className="w-6 h-5 sm:w-7 sm:h-6 md:w-12 md:h-10 bg-gradient-to-r from-primary-100/30 to-primary-200/30 border border-primary-100 rounded sm:rounded-md md:rounded-lg flex items-center justify-center">
-                                      <span className="font-black text-white text-xs sm:text-sm md:text-lg">
-                                        {quantity}
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateQuantity(item.itemName, 1);
-                                      }}
-                                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-10 md:h-10 bg-gradient-to-r from-green-500/30  to-green-600/30 hover:from-green-600/30 hover:to-green-700/30 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow hover:shadow-lg md:hover:shadow-xl hover:scale-110"
-                                    >
-                                      <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
-                                    </button>
-                                  </div>
-
-                                  {/* Subtotal */}
-                                  <div className="mt-1 sm:mt-1.5 md:mt-3 pt-1 sm:pt-1.5 md:pt-3 border-t border-primary-100/30">
-                                    <div className="flex flex-col items-start md:items-center">
-                                      <span className="text-primary-200 text-xs md:text-sm">
-                                        Total:
-                                      </span>
-                                      <span className="text-primary-100 font-bold text-xs sm:text-sm md:text-lg">
-                                        Rp{" "}
-                                        {(
-                                          item.price * quantity
-                                        ).toLocaleString()}
-                                      </span>
-                                    </div>
-                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+
+                                {/* Item Image */}
+                                <div className="relative w-full h-20 sm:h-24 md:h-36 rounded-md sm:rounded-lg md:rounded-xl overflow-hidden mb-1.5 sm:mb-2 md:mb-4 border border-primary-100/20 shadow group-hover/item:shadow-lg transition-all duration-300">
+                                  <Image
+                                    src={item.imgUrl}
+                                    alt={item.itemName}
+                                    fill
+                                    className="object-fill group-hover/item:scale-110 transition-transform duration-500"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
+                                </div>
+
+                                {/* Item Info */}
+                                <div className="relative z-10 flex-1 flex flex-col">
+                                  <h4 className="font-bold text-white mb-1 sm:mb-1.5 md:mb-2 text-xs sm:text-sm md:text-lg line-clamp-1 sm:line-clamp-2 leading-tight">
+                                    {item.itemName}
+                                  </h4>
+
+                                  <div className="flex items-center justify-center mb-1 sm:mb-2 md:mb-4">
+                                    <div className="flex items-center gap-0.5 sm:gap-1">
+                                      <Gem className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 text-primary-100" />
+                                      <span className="text-white font-bold text-xs sm:text-xs md:text-lg">
+                                        Rp {item.price.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Spacer untuk push button ke bawah */}
+                                  <div className="flex-1 min-h-[1px]"></div>
+
+                                  {/* Tombol Pilih / Selected Status - Always at bottom */}
+                                  <div className="mt-auto">
+                                    {!isSelected ? (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateQuantity(item.itemName, 1);
+                                        }}
+                                        className="w-full py-1.5 sm:py-2 md:py-3 px-1.5 sm:px-2 md:px-4 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-md sm:rounded-lg md:rounded-xl transition-all duration-300 hover:scale-105 shadow hover:shadow-lg md:hover:shadow-primary-100/30 flex items-center justify-center gap-1 text-xs sm:text-xs md:text-base"
+                                      >
+                                        <span className="inline">Pilih</span>
+                                        {/* <span className="sm:hidden">+</span> */}
+                                      </button>
+                                    ) : (
+                                      <div className="p-1 sm:p-1.5 md:p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 rounded-md sm:rounded-lg md:rounded-xl">
+                                        <div className="flex items-center justify-center gap-1 text-green-400">
+                                          <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Quantity Controls - Only show when selected */}
+                                  {isSelected && (
+                                    <div className="mt-1 sm:mt-2 md:mt-4 p-1.5 sm:p-2 md:p-4 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-md sm:rounded-lg md:rounded-xl border border-primary-100/40 backdrop-blur-sm">
+                                      <div className="flex items-center justify-between mb-1 sm:mb-1.5 md:mb-3">
+                                        <span className="text-xs md:text-sm font-bold text-primary-100 flex items-center gap-0.5 sm:gap-1">
+                                          <span className="hidden sm:inline">
+                                            Qty:
+                                          </span>
+                                        </span>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeItem(item.itemName);
+                                          }}
+                                          className="px-1 sm:px-1.5 md:px-3 py-0.5 md:py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 hover:border-red-400/60 rounded text-red-400 hover:text-red-300 transition-all duration-300 text-xs font-medium flex items-center gap-0.5 sm:gap-1"
+                                        >
+                                          <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                          <span className="hidden md:inline">
+                                            Batal
+                                          </span>
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            updateQuantity(item.itemName, -1);
+                                          }}
+                                          className="w-5 h-5 sm:w-6 sm:h-6 md:w-10 md:h-10 bg-gradient-to-r from-red-500/30 to-red-600/30 hover:from-red-600/30 hover:to-red-700/30 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow hover:shadow-lg md:hover:shadow-xl hover:scale-110"
+                                        >
+                                          <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
+                                        </button>
+                                        <div className="w-6 h-5 sm:w-7 sm:h-6 md:w-12 md:h-10 bg-gradient-to-r from-primary-100/30 to-primary-200/30 border border-primary-100 rounded sm:rounded-md md:rounded-lg flex items-center justify-center">
+                                          <span className="font-black text-white text-xs sm:text-sm md:text-lg">
+                                            {quantity}
+                                          </span>
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            updateQuantity(item.itemName, 1);
+                                          }}
+                                          className="w-5 h-5 sm:w-6 sm:h-6 md:w-10 md:h-10 bg-gradient-to-r from-green-500/30  to-green-600/30 hover:from-green-600/30 hover:to-green-700/30 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow hover:shadow-lg md:hover:shadow-xl hover:scale-110"
+                                        >
+                                          <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
+                                        </button>
+                                      </div>
+
+                                      {/* Subtotal */}
+                                      <div className="mt-1 sm:mt-1.5 md:mt-3 pt-1 sm:pt-1.5 md:pt-3 border-t border-primary-100/30">
+                                        <div className="flex flex-col items-start md:items-center">
+                                          <span className="text-primary-200 text-xs md:text-sm">
+                                            Total:
+                                          </span>
+                                          <span className="text-primary-100 font-bold text-xs sm:text-sm md:text-lg">
+                                            Rp{" "}
+                                            {(
+                                              item.price * quantity
+                                            ).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center py-12">
                       <Gem className="w-16 h-16 text-primary-200/50 mx-auto mb-4" />

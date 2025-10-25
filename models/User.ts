@@ -10,7 +10,9 @@ export interface IUser extends Document {
   googleId?: string;
   profilePicture?: string;
   accessRole: "user" | "admin";
-  memberRole: mongoose.Types.ObjectId | null;
+  resellerTier?: number;
+  resellerExpiry?: Date;
+  resellerPackageId?: mongoose.Types.ObjectId;
   spendedMoney: number;
   isVerified: boolean;
   createdAt: Date;
@@ -117,10 +119,17 @@ const UserSchema: Schema<IUser> = new Schema(
       default: "user",
       required: true,
     },
-    memberRole: {
+    resellerTier: {
+      type: Number,
+      min: 1,
+      max: 3,
+    },
+    resellerExpiry: {
+      type: Date,
+    },
+    resellerPackageId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Role",
-      default: null,
+      ref: "ResellerPackage",
     },
     spendedMoney: {
       type: Number,

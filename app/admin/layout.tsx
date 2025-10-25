@@ -633,7 +633,7 @@ const menuItems: MenuItem[] = [
   { title: "Transaksi", icon: "📦", href: "/admin/transactions" },
   { title: "Users", icon: "👥", href: "/admin/users" },
   { title: "Reviews", icon: "⭐", href: "/admin/reviews" },
-  { title: "Roles", icon: "🎭", href: "/admin/roles" },
+  { title: "Reseller", icon: "🎭", href: "/admin/reseller" },
   { title: "Produk Robux", icon: "🎮", href: "/admin/products" },
   { title: "Harga Robux", icon: "💰", href: "/admin/robux-pricing" },
   { title: "Gamepass", icon: "🎯", href: "/admin/gamepass" },

@@ -13,7 +13,6 @@ interface GamepassData {
   gameName: string;
   imgUrl: string;
   caraPesan: string[];
-  features: string[];
   showOnHomepage: boolean;
   developer: string;
   item: GamepassItem[];
@@ -43,7 +42,6 @@ export default function GamepassManager({
       gameName: "",
       imgUrl: "",
       caraPesan: [""],
-      features: [""],
       showOnHomepage: false,
       developer: "",
       item: [{ itemName: "", imgUrl: "", price: 0 }],
@@ -187,22 +185,6 @@ export default function GamepassManager({
     setEditedGamepass({
       ...editedGamepass,
       caraPesan: editedGamepass.caraPesan.filter((_, i) => i !== index),
-    });
-  };
-
-  // Add new feature
-  const addFeature = () => {
-    setEditedGamepass({
-      ...editedGamepass,
-      features: [...editedGamepass.features, ""],
-    });
-  };
-
-  // Remove feature
-  const removeFeature = (index: number) => {
-    setEditedGamepass({
-      ...editedGamepass,
-      features: editedGamepass.features.filter((_, i) => i !== index),
     });
   };
 
@@ -396,50 +378,6 @@ export default function GamepassManager({
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               + Tambah Cara Pesan
-            </button>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Fitur *
-          </label>
-          <div className="space-y-2">
-            {editedGamepass.features.map((feature, index) => (
-              <div key={index} className="flex gap-2">
-                <input
-                  type="text"
-                  value={feature}
-                  onChange={(e) => {
-                    const newFeatures = [...editedGamepass.features];
-                    newFeatures[index] = e.target.value;
-                    setEditedGamepass({
-                      ...editedGamepass,
-                      features: newFeatures,
-                    });
-                  }}
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                  placeholder={`Fitur ${index + 1}`}
-                  required
-                />
-                {editedGamepass.features.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(index)}
-                    className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                  >
-                    -
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addFeature}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              + Tambah Fitur
             </button>
           </div>
         </div>

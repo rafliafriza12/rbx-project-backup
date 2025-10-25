@@ -208,7 +208,7 @@ export default function TransactionDetailPage() {
   const showManualPurchaseButton =
     isRobux5Hari &&
     transaction?.paymentStatus === "settlement" &&
-    transaction?.orderStatus === "failed" &&
+    transaction?.orderStatus === "pending" &&
     transaction?.gamepass;
 
   if (loading) {

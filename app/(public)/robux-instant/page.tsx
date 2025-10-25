@@ -19,6 +19,10 @@ import {
   Zap,
   FileText,
   Gem,
+  Loader2,
+  Search,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 
 interface Product {
@@ -46,7 +50,48 @@ const RobuxInstan: React.FC = () => {
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [showVideoModal, setShowVideoModal] = useState(false);
 
+  // User search states
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
+
   const router = useRouter();
+
+  // Function to search for user info
+  const searchUserInfo = async (username: string) => {
+    if (!username || username.trim().length < 2) {
+      setUserInfo(null);
+      setUserSearchError(null);
+      return;
+    }
+
+    setIsSearchingUser(true);
+    setUserSearchError(null);
+
+    try {
+      const response = await fetch(
+        `/api/user-info?username=${encodeURIComponent(username.trim())}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setUserInfo(data);
+        setUserSearchError(null);
+      } else {
+        setUserInfo(null);
+        setUserSearchError(data.message || "User tidak ditemukan");
+      }
+    } catch (error) {
+      console.error("Error searching user:", error);
+      setUserInfo(null);
+      setUserSearchError("Terjadi kesalahan saat mencari user");
+    } finally {
+      setIsSearchingUser(false);
+    }
+  };
 
   // Fetch products from database
   useEffect(() => {
@@ -79,6 +124,45 @@ const RobuxInstan: React.FC = () => {
     fetchProducts();
   }, []);
 
+  // Debounced search effect for username
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Reset user info when input is cleared
+    if (!username || username.trim().length < 2) {
+      setUserInfo(null);
+      setUserSearchError(null);
+      setIsSearchingUser(false);
+      return;
+    }
+
+    // Set new timeout for 1 second delay
+    const newTimeout = setTimeout(() => {
+      searchUserInfo(username);
+    }, 1000);
+
+    setSearchTimeout(newTimeout);
+
+    // Cleanup function
+    return () => {
+      if (newTimeout) {
+        clearTimeout(newTimeout);
+      }
+    };
+  }, [username]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, []);
+
   // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -100,8 +184,8 @@ const RobuxInstan: React.FC = () => {
   const isFormValid =
     selectedProduct !== null &&
     username.trim() !== "" &&
-    password.trim() !== ""; // Backup code is optional
-  username.trim() !== "" && password.trim() !== "";
+    password.trim() !== "" &&
+    userInfo !== null; // Backup code is optional
 
   const handlePurchase = () => {
     if (!isFormValid || !selectedProduct) return;
@@ -516,9 +600,33 @@ const RobuxInstan: React.FC = () => {
                   <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <div className="flex items-center border border-primary-100/30 rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full max-w-[520px] mx-auto lg:mx-0 group/input hover:border-primary-100/60 focus-within:border-primary-100/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary-100/20">
-                    <div className="px-3 py-2 border-r border-primary-100/30 bg-gradient-to-r from-primary-100/25 to-primary-200/15 flex items-center justify-center group-hover/input:scale-110 transition-transform duration-300">
-                      <User className="w-5 h-5 text-primary-100 group-hover/input:animate-pulse" />
+                  <div
+                    className={`flex items-center border rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full max-w-[520px] mx-auto lg:mx-0 group/input transition-all duration-300 hover:shadow-lg ${
+                      userInfo
+                        ? "border-emerald-500/60 bg-emerald-500/10 hover:border-emerald-500/80"
+                        : username && userSearchError
+                        ? "border-red-500/60 bg-red-500/10 hover:border-red-500/80"
+                        : "border-primary-100/30 hover:border-primary-100/60 focus-within:border-primary-100/80 hover:shadow-primary-100/20"
+                    }`}
+                  >
+                    <div
+                      className={`px-3 py-2 border-r flex items-center justify-center group-hover/input:scale-110 transition-transform duration-300 ${
+                        userInfo
+                          ? "border-emerald-500/30 bg-gradient-to-r from-emerald-500/25 to-emerald-600/15"
+                          : username && userSearchError
+                          ? "border-red-500/30 bg-gradient-to-r from-red-500/25 to-red-600/15"
+                          : "border-primary-100/30 bg-gradient-to-r from-primary-100/25 to-primary-200/15"
+                      }`}
+                    >
+                      <User
+                        className={`w-5 h-5 group-hover/input:animate-pulse ${
+                          userInfo
+                            ? "text-emerald-500"
+                            : username && userSearchError
+                            ? "text-red-500"
+                            : "text-primary-100"
+                        }`}
+                      />
                     </div>
                     <input
                       type="text"
@@ -527,14 +635,84 @@ const RobuxInstan: React.FC = () => {
                       onChange={(e) => setUsername(e.target.value)}
                       className="py-2 px-3 outline-none text-sm text-white placeholder-white/50 flex-1 min-w-0 transition-all bg-transparent focus:ring-2 focus:ring-primary-100/50 focus:placeholder-white/70"
                     />
-                    {username && (
-                      <div className="px-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                      </div>
-                    )}
+                    <div className="px-3">
+                      {isSearchingUser ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-primary-100" />
+                      ) : userInfo ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-500" />
+                      ) : username && userSearchError ? (
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      ) : (
+                        <Search className="w-4 h-4 text-primary-200/60" />
+                      )}
+                    </div>
                   </div>
-                  {username && (
-                    <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary-100/60 to-transparent animate-pulse"></div>
+
+                  {/* Status Messages */}
+                  {username && username.length >= 2 && (
+                    <div className="mt-2 max-w-[520px] mx-auto lg:mx-0">
+                      {isSearchingUser && (
+                        <div className="flex items-center gap-2 text-xs text-yellow-400 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Mencari username...</span>
+                        </div>
+                      )}
+                      {!isSearchingUser && userInfo && (
+                        <div className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                          {/* User Avatar */}
+                          {userInfo.avatar ? (
+                            <img
+                              src={userInfo.avatar}
+                              alt={userInfo.username}
+                              className="w-10 h-10 rounded-lg bg-slate-600 ring-2 ring-emerald-400/60 object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400/30 to-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-400/60 flex-shrink-0">
+                              <User className="w-5 h-5 text-emerald-400" />
+                            </div>
+                          )}
+
+                          {/* User Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white font-bold truncate">
+                              {userInfo.username}
+                            </p>
+                            <p className="text-xs text-emerald-300">
+                              ID: {userInfo.id}
+                            </p>
+                            {userInfo.displayName &&
+                              userInfo.displayName !== userInfo.username && (
+                                <p className="text-xs text-emerald-300 truncate">
+                                  Display: {userInfo.displayName}
+                                </p>
+                              )}
+                          </div>
+
+                          {/* Check Icon */}
+                          <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                        </div>
+                      )}
+                      {!isSearchingUser && userSearchError && (
+                        <div className="flex items-start gap-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-red-400 font-semibold">
+                              User tidak ditemukan
+                            </p>
+                            <p className="text-xs text-white/70 mt-1">
+                              API Robloxxnya Lagi Limit, Coba Sebentar Lagi Ya
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Helper Text */}
+                  {(!username || username.length < 2) && (
+                    <p className="text-xs text-primary-200/70 mt-2 max-w-[520px] mx-auto lg:mx-0">
+                      Ketik minimal 2 karakter untuk mencari username
+                    </p>
                   )}
                 </div>
               </div>

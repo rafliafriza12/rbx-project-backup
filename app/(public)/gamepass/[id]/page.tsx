@@ -18,6 +18,10 @@ import {
   Zap,
   Heart,
   Gift,
+  Loader2,
+  Search,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
@@ -38,7 +42,6 @@ interface Gamepass {
   gameName: string;
   imgUrl: string;
   caraPesan: string[];
-  features: string[];
   showOnHomepage: boolean;
   developer: string;
   item: GamepassItem[];
@@ -54,12 +57,54 @@ export default function GamepassDetailPage() {
   const [username, setUsername] = useState("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
+  // User search states
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
+
   const params = useParams();
   const router = useRouter();
   const gamepassId = params.id as string;
 
+  // Function to search for user info
+  const searchUserInfo = async (username: string) => {
+    if (!username || username.trim().length < 2) {
+      setUserInfo(null);
+      setUserSearchError(null);
+      return;
+    }
+
+    setIsSearchingUser(true);
+    setUserSearchError(null);
+
+    try {
+      const response = await fetch(
+        `/api/user-info?username=${encodeURIComponent(username.trim())}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setUserInfo(data);
+        setUserSearchError(null);
+      } else {
+        setUserInfo(null);
+        setUserSearchError(data.message || "User tidak ditemukan");
+      }
+    } catch (error) {
+      console.error("Error searching user:", error);
+      setUserInfo(null);
+      setUserSearchError("Terjadi kesalahan saat mencari user");
+    } finally {
+      setIsSearchingUser(false);
+    }
+  };
+
   // Check if all required fields are filled
-  const isFormValid = selectedItems.length > 0 && username.trim() !== "";
+  const isFormValid =
+    selectedItems.length > 0 && username.trim() !== "" && userInfo !== null;
 
   // Calculate total price
   const totalPrice = selectedItems.reduce(
@@ -118,6 +163,45 @@ export default function GamepassDetailPage() {
     }
   }, [gamepassId]);
 
+  // Debounced search effect for username
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Reset user info when input is cleared
+    if (!username || username.trim().length < 2) {
+      setUserInfo(null);
+      setUserSearchError(null);
+      setIsSearchingUser(false);
+      return;
+    }
+
+    // Set new timeout for 1 second delay
+    const newTimeout = setTimeout(() => {
+      searchUserInfo(username);
+    }, 1000);
+
+    setSearchTimeout(newTimeout);
+
+    // Cleanup function
+    return () => {
+      if (newTimeout) {
+        clearTimeout(newTimeout);
+      }
+    };
+  }, [username]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, []);
+
   const fetchGamepass = async () => {
     try {
       setLoading(true);
@@ -174,7 +258,6 @@ export default function GamepassDetailPage() {
             itemName: item.itemName,
             imgUrl: item.imgUrl,
             developer: gamepass.developer,
-            features: gamepass.features,
             caraPesan: gamepass.caraPesan,
           },
         };
@@ -234,7 +317,6 @@ export default function GamepassDetailPage() {
         itemName: item.itemName,
         imgUrl: item.imgUrl,
         developer: gamepass.developer,
-        features: gamepass.features,
         caraPesan: gamepass.caraPesan,
       },
     }));
@@ -365,7 +447,7 @@ export default function GamepassDetailPage() {
                     src={gamepass.imgUrl}
                     alt={gamepass.gameName}
                     fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-700"
+                    className="object-fill group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/20"></div>
 
@@ -399,7 +481,7 @@ export default function GamepassDetailPage() {
                       Epic Features
                     </h3>
                   </div>
-                  <div className="space-y-3">
+                  {/* <div className="space-y-3">
                     {gamepass.features.map((feature, index) => (
                       <div
                         key={index}
@@ -410,7 +492,7 @@ export default function GamepassDetailPage() {
                         </span>
                       </div>
                     ))}
-                  </div>
+                  </div> */}
                 </div>
               </div>
               <button
@@ -479,38 +561,143 @@ export default function GamepassDetailPage() {
               </div>
             </div>
 
-            {/* Username Input */}
+            {/* Username Input with Validation */}
             <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
               <div className="absolute -top-10 -right-10 w-20 h-20 bg-primary-100/10 rounded-full blur-xl animate-pulse"></div>
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-6">
+              <div className="relative z-10 space-y-6">
+                <div className="flex items-center gap-4">
                   <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
                     <User className="w-6 h-6 text-primary-100" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white">
-                      Username RBX
+                      Username RBX <span className="text-red-400">*</span>
                     </h3>
                     <p className="text-white/80 text-sm">
-                      Masukkan username untuk pembelian
+                      Masukkan username Roblox Anda
                     </p>
                   </div>
                 </div>
 
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Contoh: PlayerName123"
-                    className="w-full px-6 py-4 bg-gradient-to-r from-primary-800/40 to-primary-700/30 border-2 border-primary-100/30 rounded-2xl text-white placeholder-primary-300 focus:outline-none focus:border-primary-100/70 focus:ring-4 focus:ring-primary-100/20 transition-all duration-300 text-lg font-medium hover:bg-gradient-to-r hover:from-primary-800/60 hover:to-primary-700/50"
-                  />
-                  {username && (
-                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
+                <div className="space-y-4">
+                  {/* Input Field with Dynamic Border */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Masukkan username Roblox..."
+                      className={`w-full px-6 py-4 pr-14 bg-gradient-to-r from-primary-800/40 to-primary-700/30 border-2 rounded-2xl text-white placeholder-primary-300 focus:outline-none focus:ring-4 transition-all duration-300 text-lg font-medium ${
+                        userInfo
+                          ? "border-emerald-500 focus:border-emerald-400 focus:ring-emerald-500/20"
+                          : userSearchError
+                          ? "border-red-500 focus:border-red-400 focus:ring-red-500/20"
+                          : "border-primary-100/30 focus:border-primary-100/70 focus:ring-primary-100/20"
+                      }`}
+                    />
+
+                    {/* Status Icon */}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      {isSearchingUser && (
+                        <Loader2 className="w-5 h-5 text-primary-100 animate-spin" />
+                      )}
+                      {!isSearchingUser && userInfo && (
+                        <CheckCircle className="w-5 h-5 text-emerald-400" />
+                      )}
+                      {!isSearchingUser && userSearchError && (
+                        <AlertCircle className="w-5 h-5 text-red-400" />
+                      )}
+                      {!isSearchingUser &&
+                        !userInfo &&
+                        !userSearchError &&
+                        username.length >= 2 && (
+                          <Search className="w-5 h-5 text-primary-200" />
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Status Messages */}
+                  <div className="min-h-[24px]">
+                    {isSearchingUser && (
+                      <div className="flex items-center gap-2 text-primary-200 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Mencari username...</span>
+                      </div>
+                    )}
+
+                    {!isSearchingUser && userInfo && (
+                      <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Username ditemukan!</span>
+                      </div>
+                    )}
+
+                    {!isSearchingUser && userSearchError && (
+                      <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>
+                          API Robloxxnya Lagi Limit, Coba Sebentar Lagi Ya
+                        </span>
+                      </div>
+                    )}
+
+                    {!isSearchingUser &&
+                      !userInfo &&
+                      !userSearchError &&
+                      username.length > 0 &&
+                      username.length < 2 && (
+                        <p className="text-primary-300 text-sm">
+                          Minimal 2 karakter untuk pencarian
+                        </p>
+                      )}
+                  </div>
+
+                  {/* User Avatar Card */}
+                  {userInfo && (
+                    <div className="relative bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-2 border-emerald-400/30 rounded-2xl p-4 overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent"></div>
+
+                      <div className="relative flex items-center gap-4">
+                        {/* Avatar */}
+                        <div className="relative w-12 h-12 flex-shrink-0">
+                          {userInfo.avatar ? (
+                            <div className="relative w-full h-full rounded-xl overflow-hidden ring-2 ring-emerald-400/50">
+                              <img
+                                src={userInfo.avatar}
+                                alt={userInfo.username}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center ring-2 ring-emerald-400/50">
+                              <User className="w-6 h-6 text-white" />
+                            </div>
+                          )}
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-primary-800 flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        </div>
+
+                        {/* User Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-white font-bold text-base truncate">
+                              {userInfo.username}
+                            </p>
+                            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          </div>
+                          <p className="text-emerald-300 text-sm">
+                            ID: {userInfo.id}
+                          </p>
+                          {userInfo.displayName &&
+                            userInfo.displayName !== userInfo.username && (
+                              <p className="text-primary-200 text-xs mt-0.5">
+                                Display: {userInfo.displayName}
+                              </p>
+                            )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -592,7 +779,7 @@ export default function GamepassDetailPage() {
                             src={item.imgUrl}
                             alt={item.itemName}
                             fill
-                            className="object-cover group-hover/item:scale-110 transition-transform duration-500"
+                            className="object-fill group-hover/item:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
                         </div>

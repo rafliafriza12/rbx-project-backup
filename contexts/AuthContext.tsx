@@ -19,9 +19,11 @@ interface User {
   phone: string;
   countryCode: string;
   accessRole: "user" | "admin";
-  memberRole: MemberRole | null; // Now it's an object, not just string
+  resellerTier?: number;
+  resellerExpiry?: Date;
+  resellerPackageId?: string;
   spendedMoney: number;
-  diskon: number; // This comes from memberRole.diskon
+  diskon: number;
   isVerified: boolean;
   profilePicture?: string;
   googleId?: string;
@@ -97,11 +99,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log("=== AUTH CONTEXT DEBUG ===");
         console.log("Response data:", data);
         console.log("User data:", data.user);
-        console.log("User memberRole:", data.user?.memberRole);
-        console.log(
-          "User diskon from memberRole:",
-          data.user?.memberRole?.diskon || 0
-        );
+        console.log("User resellerTier:", data.user?.resellerTier);
+        console.log("User discount from reseller:", data.user?.diskon || 0);
         setUser(data.user);
       } else {
         setUser(null);

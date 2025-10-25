@@ -46,6 +46,12 @@ interface CheckoutItem {
   jokiDetails?: any;
   robuxInstantDetails?: any;
   rbx5Details?: any;
+  resellerDetails?: {
+    tier: number;
+    duration: number;
+    discount: number;
+    features: string[];
+  };
 }
 
 interface CheckoutData {
@@ -142,8 +148,8 @@ function CheckoutContent() {
   const calculateDiscount = (amount: number) => {
     console.log("=== CALCULATE DISCOUNT DEBUG ===");
     console.log("User object:", user);
-    console.log("User memberRole:", user?.memberRole);
-    console.log("User diskon from memberRole:", user?.memberRole?.diskon || 0);
+    console.log("User resellerTier:", user?.resellerTier);
+    console.log("User discount:", user?.diskon || 0);
     console.log("Amount to calculate:", amount);
 
     if (!user) {
@@ -155,7 +161,7 @@ function CheckoutContent() {
       };
     }
 
-    const discountPercentage = user.memberRole ? user.memberRole.diskon : 0;
+    const discountPercentage = user.diskon || 0;
     const discountAmount = Math.round((amount * discountPercentage) / 100);
     const finalAmount = amount - discountAmount;
 
@@ -340,9 +346,10 @@ function CheckoutContent() {
             setRobloxUsername(firstItem.robloxUsername);
           }
 
-          // Only set password for services that require it
+          // Only set password for services that require it (not for gamepass, rbx5, or reseller)
           if (
             firstItem.serviceType !== "gamepass" &&
+            firstItem.serviceType !== "reseller" &&
             !(firstItem.serviceType === "robux" && firstItem.rbx5Details)
           ) {
             if (firstItem.robloxPassword) {
@@ -351,7 +358,7 @@ function CheckoutContent() {
             }
           } else {
             console.log(
-              "11. Gamepass or Robux 5 Hari detected - clearing password field"
+              "11. Gamepass, Reseller, or Robux 5 Hari detected - clearing password field"
             );
             setRobloxPassword("");
           }
@@ -537,7 +544,12 @@ function CheckoutContent() {
     // Validation - hanya cek form jika bukan multi-checkout dari cart
     // Multi-checkout dari cart: data sudah ada di setiap item
     if (!isMultiCheckoutFromCart) {
-      if (!robloxUsername.trim()) {
+      // Reseller packages don't need Roblox credentials
+      const isResellerPurchase = checkoutData.items.some(
+        (item) => item.serviceType === "reseller"
+      );
+
+      if (!isResellerPurchase && !robloxUsername.trim()) {
         toast.error("Username Roblox harus diisi");
         return;
       }
@@ -1332,201 +1344,209 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {/* Roblox Account */}
-              <div className="neon-card rounded-2xl p-5">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                  <div className="w-7 h-7 bg-neon-purple/20 rounded-lg flex items-center justify-center mr-3">
-                    <Gamepad2 className="w-4 h-4 text-neon-purple" />
-                  </div>
-                  Data Akun Roblox
-                  {isMultiCheckoutFromCart && (
-                    <span className="ml-auto text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Data dari Cart
-                    </span>
-                  )}
-                </h3>
-
-                {/* Info jika multi-checkout dari cart */}
-                {isMultiCheckoutFromCart ? (
-                  <div className="space-y-4">
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                      <p className="text-sm text-blue-200 flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <span>
-                          Anda checkout multiple items dari keranjang. Data
-                          Roblox (username, password, backup code) untuk setiap
-                          item sudah disimpan saat menambahkan ke keranjang.
-                        </span>
-                      </p>
+              {/* Roblox Account - Hide for Reseller packages */}
+              {!checkoutData.items.some(
+                (item) => item.serviceType === "reseller"
+              ) && (
+                <div className="neon-card rounded-2xl p-5">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                    <div className="w-7 h-7 bg-neon-purple/20 rounded-lg flex items-center justify-center mr-3">
+                      <Gamepad2 className="w-4 h-4 text-neon-purple" />
                     </div>
+                    Data Akun Roblox
+                    {isMultiCheckoutFromCart && (
+                      <span className="ml-auto text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Data dari Cart
+                      </span>
+                    )}
+                  </h3>
 
-                    {/* Show items dengan credentials */}
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium text-primary-200">
-                        Items dengan Data Roblox:
-                      </p>
-                      {checkoutData.items.map((item, index) => {
-                        // Extract backup code from different sources
+                  {/* Info jika multi-checkout dari cart */}
+                  {isMultiCheckoutFromCart ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                        <p className="text-sm text-blue-200 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>
+                            Anda checkout multiple items dari keranjang. Data
+                            Roblox (username, password, backup code) untuk
+                            setiap item sudah disimpan saat menambahkan ke
+                            keranjang.
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* Show items dengan credentials */}
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-primary-200">
+                          Items dengan Data Roblox:
+                        </p>
+                        {checkoutData.items.map((item, index) => {
+                          // Extract backup code from different sources
+                          const backupCode =
+                            item.jokiDetails?.notes ||
+                            item.jokiDetails?.additionalInfo ||
+                            item.robuxInstantDetails?.notes ||
+                            item.robuxInstantDetails?.additionalInfo ||
+                            item.rbx5Details?.backupCode;
+
+                          return (
+                            <div
+                              key={index}
+                              className="bg-white/5 border border-white/10 rounded-lg p-3"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-neon-pink/20 to-neon-purple/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-bold text-white">
+                                    #{index + 1}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-white truncate">
+                                    {item.serviceName}
+                                  </p>
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-xs text-primary-300">
+                                      Username:{" "}
+                                      <span className="text-green-400 font-medium">
+                                        {item.robloxUsername || "Belum diisi"}
+                                      </span>
+                                    </p>
+                                    {item.robloxPassword && (
+                                      <p className="text-xs text-primary-300">
+                                        Password:{" "}
+                                        <span className="text-yellow-400 font-mono">
+                                          ••••••••
+                                        </span>
+                                      </p>
+                                    )}
+                                    {backupCode && backupCode.trim() !== "" && (
+                                      <p className="text-xs text-primary-300">
+                                        Backup Code:{" "}
+                                        <span className="text-blue-400 font-medium">
+                                          {backupCode}
+                                        </span>
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    // Form untuk single checkout
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-primary-200 mb-2">
+                          Username Roblox{" "}
+                          <span className="text-neon-pink">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={robloxUsername}
+                          onChange={(e) => setRobloxUsername(e.target.value)}
+                          className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                          placeholder="Masukkan username Roblox"
+                          required
+                        />
+                      </div>
+                      {/* Password hanya diperlukan untuk robux instant dan joki */}
+                      {checkoutData.items.some(
+                        (item) =>
+                          item.serviceType === "joki" ||
+                          (item.serviceType === "robux" &&
+                            item.robuxInstantDetails)
+                      ) && (
+                        <div>
+                          <label className="block text-sm font-medium text-primary-200 mb-2">
+                            Password Roblox{" "}
+                            <span className="text-neon-pink">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? "text" : "password"}
+                              value={robloxPassword}
+                              onChange={(e) =>
+                                setRobloxPassword(e.target.value)
+                              }
+                              className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                              placeholder="Masukkan password Roblox"
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Display Backup Code if exists (read-only) */}
+                      {checkoutData.items.some((item) => {
                         const backupCode =
                           item.jokiDetails?.notes ||
                           item.jokiDetails?.additionalInfo ||
                           item.robuxInstantDetails?.notes ||
-                          item.robuxInstantDetails?.additionalInfo ||
-                          item.rbx5Details?.backupCode;
+                          item.robuxInstantDetails?.additionalInfo;
+                        return backupCode && backupCode.trim() !== "";
+                      }) && (
+                        <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border-2 border-green-500/30 rounded-xl p-4">
+                          <label className="text-sm font-medium text-green-300 mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Backup Code (2FA)
+                            <span className="text-xs text-green-400/70 font-normal">
+                              - Dari halaman pemesanan
+                            </span>
+                          </label>
+                          {(() => {
+                            // Get backup code from first item that has it
+                            const itemWithBackup = checkoutData.items.find(
+                              (item) => {
+                                const backupCode =
+                                  item.jokiDetails?.notes ||
+                                  item.jokiDetails?.additionalInfo ||
+                                  item.robuxInstantDetails?.notes ||
+                                  item.robuxInstantDetails?.additionalInfo;
+                                return backupCode && backupCode.trim() !== "";
+                              }
+                            );
 
-                        return (
-                          <div
-                            key={index}
-                            className="bg-white/5 border border-white/10 rounded-lg p-3"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-neon-pink/20 to-neon-purple/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-bold text-white">
-                                  #{index + 1}
-                                </span>
+                            if (!itemWithBackup) return null;
+
+                            const backupCode =
+                              itemWithBackup.jokiDetails?.notes ||
+                              itemWithBackup.jokiDetails?.additionalInfo ||
+                              itemWithBackup.robuxInstantDetails?.notes ||
+                              itemWithBackup.robuxInstantDetails
+                                ?.additionalInfo;
+
+                            return (
+                              <div className="w-full p-3 border-2 border-green-500/40 rounded-lg bg-green-500/5 backdrop-blur-md text-green-200 font-mono">
+                                {backupCode}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-white truncate">
-                                  {item.serviceName}
-                                </p>
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-xs text-primary-300">
-                                    Username:{" "}
-                                    <span className="text-green-400 font-medium">
-                                      {item.robloxUsername || "Belum diisi"}
-                                    </span>
-                                  </p>
-                                  {item.robloxPassword && (
-                                    <p className="text-xs text-primary-300">
-                                      Password:{" "}
-                                      <span className="text-yellow-400 font-mono">
-                                        ••••••••
-                                      </span>
-                                    </p>
-                                  )}
-                                  {backupCode && backupCode.trim() !== "" && (
-                                    <p className="text-xs text-primary-300">
-                                      Backup Code:{" "}
-                                      <span className="text-blue-400 font-medium">
-                                        {backupCode}
-                                      </span>
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  // Form untuk single checkout
-                  <div className="grid gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Username Roblox{" "}
-                        <span className="text-neon-pink">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={robloxUsername}
-                        onChange={(e) => setRobloxUsername(e.target.value)}
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                        placeholder="Masukkan username Roblox"
-                        required
-                      />
-                    </div>
-                    {/* Password hanya diperlukan untuk robux instant dan joki */}
-                    {checkoutData.items.some(
-                      (item) =>
-                        item.serviceType === "joki" ||
-                        (item.serviceType === "robux" &&
-                          item.robuxInstantDetails)
-                    ) && (
-                      <div>
-                        <label className="block text-sm font-medium text-primary-200 mb-2">
-                          Password Roblox{" "}
-                          <span className="text-neon-pink">*</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            value={robloxPassword}
-                            onChange={(e) => setRobloxPassword(e.target.value)}
-                            className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                            placeholder="Masukkan password Roblox"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
+                            );
+                          })()}
+                          <p className="text-xs text-green-400/70 mt-2">
+                            ℹ️ Backup code akan dikirim ke admin bersama pesanan
+                            Anda
+                          </p>
                         </div>
-                      </div>
-                    )}
-
-                    {/* Display Backup Code if exists (read-only) */}
-                    {checkoutData.items.some((item) => {
-                      const backupCode =
-                        item.jokiDetails?.notes ||
-                        item.jokiDetails?.additionalInfo ||
-                        item.robuxInstantDetails?.notes ||
-                        item.robuxInstantDetails?.additionalInfo;
-                      return backupCode && backupCode.trim() !== "";
-                    }) && (
-                      <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border-2 border-green-500/30 rounded-xl p-4">
-                        <label className="text-sm font-medium text-green-300 mb-2 flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
-                          Backup Code (2FA)
-                          <span className="text-xs text-green-400/70 font-normal">
-                            - Dari halaman pemesanan
-                          </span>
-                        </label>
-                        {(() => {
-                          // Get backup code from first item that has it
-                          const itemWithBackup = checkoutData.items.find(
-                            (item) => {
-                              const backupCode =
-                                item.jokiDetails?.notes ||
-                                item.jokiDetails?.additionalInfo ||
-                                item.robuxInstantDetails?.notes ||
-                                item.robuxInstantDetails?.additionalInfo;
-                              return backupCode && backupCode.trim() !== "";
-                            }
-                          );
-
-                          if (!itemWithBackup) return null;
-
-                          const backupCode =
-                            itemWithBackup.jokiDetails?.notes ||
-                            itemWithBackup.jokiDetails?.additionalInfo ||
-                            itemWithBackup.robuxInstantDetails?.notes ||
-                            itemWithBackup.robuxInstantDetails?.additionalInfo;
-
-                          return (
-                            <div className="w-full p-3 border-2 border-green-500/40 rounded-lg bg-green-500/5 backdrop-blur-md text-green-200 font-mono">
-                              {backupCode}
-                            </div>
-                          );
-                        })()}
-                        <p className="text-xs text-green-400/70 mt-2">
-                          ℹ️ Backup code akan dikirim ke admin bersama pesanan
-                          Anda
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Universal Additional Notes for All Services */}
               <div className="neon-card rounded-2xl p-5">

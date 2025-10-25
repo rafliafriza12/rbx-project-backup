@@ -1277,7 +1277,7 @@ export default function Rbx5Page() {
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-red-400" />
                         <span className="text-sm text-red-300">
-                          {userSearchError}
+                          API Robloxxnya Lagi Limit, Coba Sebentar Lagi Ya
                         </span>
                       </div>
                     </div>

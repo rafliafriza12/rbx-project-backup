@@ -4,7 +4,6 @@ export interface IGamepass extends Document {
   gameName: string;
   imgUrl: string;
   caraPesan: string[];
-  features: string[];
   showOnHomepage: boolean;
   developer: string;
   item: {
@@ -37,16 +36,6 @@ const GamepassSchema: Schema = new Schema(
           return v && v.length > 0;
         },
         message: "Minimal satu cara pesan diperlukan",
-      },
-    },
-    features: {
-      type: [String],
-      default: [],
-      validate: {
-        validator: function (v: string[]) {
-          return v && v.length > 0;
-        },
-        message: "Minimal satu fitur diperlukan",
       },
     },
     showOnHomepage: {

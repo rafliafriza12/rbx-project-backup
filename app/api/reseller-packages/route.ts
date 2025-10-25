@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import Gamepass from "@/models/Gamepass";
+import ResellerPackage from "@/models/ResellerPackage";
 import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
-import { uploadToCloudinary } from "@/lib/cloudinary";
 
-// GET - Ambil semua gamepass
+// GET - Ambil semua reseller packages
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
@@ -38,21 +37,26 @@ export async function GET(request: NextRequest) {
           { status: 403 }
         );
       }
+
+      // Return all packages for admin
+      const packages = await ResellerPackage.find({}).sort({ tier: 1 });
+      return NextResponse.json({
+        success: true,
+        data: packages,
+      });
     }
 
-    // Ambil semua gamepass, urutkan berdasarkan tanggal terbaru
-    const gamepasses = await Gamepass.find({})
-      .select(
-        "gameName imgUrl caraPesan showOnHomepage developer item createdAt updatedAt"
-      )
-      .sort({ createdAt: -1 });
+    // For public, only return active packages
+    const packages = await ResellerPackage.find({ isActive: true }).sort({
+      tier: 1,
+    });
 
     return NextResponse.json({
       success: true,
-      data: gamepasses,
+      data: packages,
     });
   } catch (error: any) {
-    console.error("Get gamepasses error:", error);
+    console.error("Get reseller packages error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
       { status: 500 }
@@ -60,7 +64,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Buat gamepass baru (Admin only)
+// POST - Buat reseller package baru (Admin only)
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
@@ -87,15 +91,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const gamepassData = await request.json();
+    const packageData = await request.json();
 
     // Validation
     if (
-      !gamepassData.gameName ||
-      !gamepassData.imgUrl ||
-      !gamepassData.developer ||
-      !gamepassData.caraPesan?.length ||
-      !gamepassData.item?.length
+      !packageData.name ||
+      !packageData.tier ||
+      !packageData.price ||
+      !packageData.duration ||
+      packageData.discount === undefined
     ) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
@@ -103,34 +107,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check homepage limit if trying to set showOnHomepage to true
-    if (gamepassData.showOnHomepage) {
-      const canAdd = await (Gamepass as any).canAddToHomepage();
-      if (!canAdd) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Maksimal 3 gamepass yang dapat ditampilkan di homepage",
-          },
-          { status: 400 }
-        );
-      }
+    // Check if tier already exists
+    const existingPackage = await ResellerPackage.findOne({
+      tier: packageData.tier,
+    });
+    if (existingPackage) {
+      return NextResponse.json(
+        { error: `Tier ${packageData.tier} sudah ada` },
+        { status: 400 }
+      );
     }
 
-    // Create new gamepass
-    const newGamepass = new Gamepass(gamepassData);
-    await newGamepass.save();
+    // Create new package
+    const newPackage = new ResellerPackage(packageData);
+    await newPackage.save();
 
     return NextResponse.json(
       {
         success: true,
-        message: "Gamepass berhasil dibuat",
-        data: newGamepass,
+        message: "Paket reseller berhasil dibuat",
+        data: newPackage,
       },
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("Create gamepass error:", error);
+    console.error("Create reseller package error:", error);
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(

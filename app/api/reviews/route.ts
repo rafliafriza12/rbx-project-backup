@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const serviceCategory = searchParams.get("serviceCategory");
     const serviceId = searchParams.get("serviceId");
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "3");
     const skip = (page - 1) * limit;
 
     // Build filter object
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const reviews = await Review.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
+      .limit(3)
       .lean();
 
     const total = await Review.countDocuments(filter);

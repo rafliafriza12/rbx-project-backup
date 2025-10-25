@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import User from "@/models/User";
+import ResellerPackage from "@/models/ResellerPackage";
 import { midtransService } from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 
@@ -149,6 +151,41 @@ export async function POST(request: NextRequest) {
         updatedTransactions[0].oldStatus.payment === "settlement";
 
       if (!wasAlreadySettled) {
+        // Activate reseller if this is a reseller package purchase
+        for (const transaction of transactions) {
+          if (transaction.serviceType === "reseller" && transaction.userId) {
+            try {
+              const user = await User.findById(transaction.userId);
+              if (user && transaction.serviceId) {
+                const resellerPackage = await ResellerPackage.findById(
+                  transaction.serviceId
+                );
+
+                if (resellerPackage) {
+                  // Calculate expiry date
+                  const expiryDate = new Date();
+                  expiryDate.setMonth(
+                    expiryDate.getMonth() + resellerPackage.duration
+                  );
+
+                  // Update user with reseller info
+                  user.resellerTier = resellerPackage.tier;
+                  user.resellerExpiry = expiryDate;
+                  user.resellerPackageId = resellerPackage._id;
+                  await user.save();
+
+                  console.log(
+                    `Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}, Expires: ${expiryDate}`
+                  );
+                }
+              }
+            } catch (resellerError) {
+              console.error("Failed to activate reseller:", resellerError);
+              // Don't fail the webhook for reseller activation errors
+            }
+          }
+        }
+
         try {
           if (firstTransaction.customerInfo?.email) {
             await EmailService.sendInvoiceEmail(firstTransaction);

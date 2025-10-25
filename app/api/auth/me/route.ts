@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import Role from "@/models/Role";
+import ResellerPackage from "@/models/ResellerPackage";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Ensure Role model is loaded
-    console.log("Role model loaded:", !!Role);
+    // Ensure ResellerPackage model is loaded
+    console.log("ResellerPackage model loaded:", !!ResellerPackage);
 
     const token = request.cookies.get("token")?.value;
 
@@ -35,13 +35,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Manually populate memberRole if exists
-    let memberRole = null;
-    if (user.memberRole) {
+    // Get reseller discount if user has active reseller package
+    let resellerDiscount = 0;
+    if (
+      user.resellerPackageId &&
+      user.resellerExpiry &&
+      new Date(user.resellerExpiry) > new Date()
+    ) {
       try {
-        memberRole = await Role.findById(user.memberRole);
+        const resellerPackage = await ResellerPackage.findById(
+          user.resellerPackageId
+        );
+        if (resellerPackage) {
+          resellerDiscount = resellerPackage.discount;
+        }
       } catch (error) {
-        console.log("Failed to populate memberRole:", error);
+        console.log("Failed to get reseller package:", error);
       }
     }
 
@@ -53,9 +62,11 @@ export async function GET(request: NextRequest) {
       phone: user.phone,
       countryCode: user.countryCode,
       accessRole: user.accessRole,
-      memberRole: memberRole,
+      resellerTier: user.resellerTier,
+      resellerExpiry: user.resellerExpiry,
+      resellerPackageId: user.resellerPackageId,
       spendedMoney: user.spendedMoney,
-      diskon: memberRole ? memberRole.diskon : 0, // Get discount from memberRole
+      diskon: resellerDiscount, // Get discount from reseller package
       isVerified: user.isVerified,
       profilePicture: user.profilePicture,
       googleId: user.googleId,
