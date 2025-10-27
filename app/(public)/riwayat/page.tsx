@@ -12,8 +12,10 @@ import {
   calculateGrandTotal,
   calculateOriginalTotal,
   calculateTotalDiscount,
+  calculateSubtotalAfterDiscount,
   getCheckoutDisplayName,
   getTotalItemsCount,
+  getPaymentFee,
 } from "@/lib/transaction-helpers";
 import {
   Clock,
@@ -85,6 +87,45 @@ export default function RiwayatPage() {
         const data: ApiResponse<Transaction[]> = await response.json();
         console.log("Response data:", data);
         console.log("Transactions received:", data.data?.length || 0);
+
+        // Debug: Log first transaction details
+        if (data.data && data.data.length > 0) {
+          const firstTx = data.data[0];
+          console.log("=== FIRST TRANSACTION DEBUG ===");
+          console.log("Invoice ID:", firstTx.invoiceId);
+          console.log("Total Amount:", firstTx.totalAmount);
+          console.log("Discount Amount:", firstTx.discountAmount);
+          console.log("Final Amount:", firstTx.finalAmount);
+          console.log("Payment Fee:", firstTx.paymentFee);
+          console.log("Is Multi Checkout:", firstTx.isMultiCheckout);
+          console.log(
+            "Related Transactions Count:",
+            firstTx.relatedTransactions?.length || 0
+          );
+
+          // Test helper functions
+          console.log("=== HELPER FUNCTIONS TEST ===");
+          console.log(
+            "calculateOriginalTotal:",
+            calculateOriginalTotal(firstTx)
+          );
+          console.log(
+            "calculateTotalDiscount:",
+            calculateTotalDiscount(firstTx)
+          );
+          console.log(
+            "calculateSubtotalAfterDiscount:",
+            calculateSubtotalAfterDiscount(firstTx)
+          );
+          console.log("getPaymentFee:", getPaymentFee(firstTx));
+          console.log("calculateGrandTotal:", calculateGrandTotal(firstTx));
+
+          // Manual calculation
+          const manualCalc =
+            calculateSubtotalAfterDiscount(firstTx) + getPaymentFee(firstTx);
+          console.log("Manual Calculation (subtotal + fee):", manualCalc);
+        }
+
         setTransactions(data.data || []);
       } else {
         const errorData = await response.json();
@@ -651,7 +692,7 @@ export default function RiwayatPage() {
                       {/* Amount and Action */}
                       <div className="flex flex-col sm:items-end gap-3">
                         <div className="text-right relative">
-                          {/* Show discount info if available */}
+                          {/* Show original price if there's discount */}
                           {calculateTotalDiscount(transaction) > 0 && (
                             <div className="text-xs text-primary-200/60 line-through mb-1">
                               Rp{" "}
@@ -660,15 +701,41 @@ export default function RiwayatPage() {
                               ).toLocaleString("id-ID")}
                             </div>
                           )}
+
+                          {/* Price breakdown */}
+                          <div className="space-y-1 mb-2">
+                            {/* Subtotal after discount */}
+                            {(calculateTotalDiscount(transaction) > 0 ||
+                              getPaymentFee(transaction) > 0) && (
+                              <div className="text-xs text-primary-200/70">
+                                Subtotal: Rp{" "}
+                                {calculateSubtotalAfterDiscount(
+                                  transaction
+                                ).toLocaleString("id-ID")}
+                              </div>
+                            )}
+
+                            {/* Payment fee */}
+                            {getPaymentFee(transaction) > 0 && (
+                              <div className="text-xs text-primary-200/70">
+                                Biaya Admin: Rp{" "}
+                                {getPaymentFee(transaction).toLocaleString(
+                                  "id-ID"
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Grand Total */}
                           <div className="flex items-center gap-2 text-lg sm:text-xl font-bold text-primary-100 group-hover:scale-105 transition-transform duration-300">
                             <span className="text-white">
                               Rp{" "}
-                              {(
-                                calculateGrandTotal(transaction) +
-                                (transaction.paymentFee || 0)
-                              ).toLocaleString("id-ID")}
+                              {calculateGrandTotal(transaction).toLocaleString(
+                                "id-ID"
+                              )}
                             </span>
                           </div>
+
                           {/* Show discount badge if available */}
                           {calculateTotalDiscount(transaction) > 0 && (
                             <div className="inline-flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-lg border border-green-500/20 mt-1">
@@ -681,14 +748,7 @@ export default function RiwayatPage() {
                               </span>
                             </div>
                           )}
-                          {/* Show payment fee if available */}
-                          {transaction.paymentFee &&
-                            transaction.paymentFee > 0 && (
-                              <div className="text-xs text-primary-200/70 mt-1">
-                                Termasuk biaya admin Rp{" "}
-                                {transaction.paymentFee.toLocaleString("id-ID")}
-                              </div>
-                            )}
+
                           {isMulti && (
                             <div className="text-sm text-primary-200/70 mt-1">
                               {getTotalItemsCount(transaction)} total items

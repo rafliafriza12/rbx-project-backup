@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       countryCode: "+62",
       password: hashedPassword,
       accessRole: "admin",
-      memberRole: null,
+      resellerTier: 0,
       spendedMoney: 0,
       isVerified: true,
     });

@@ -567,9 +567,9 @@ function CheckoutContent() {
         return;
       }
     } else {
-      // Multi-checkout: validasi setiap item punya credentials
+      // Multi-checkout: validasi setiap item punya credentials (kecuali reseller)
       const missingCredentials = checkoutData.items.some(
-        (item) => !item.robloxUsername
+        (item) => item.serviceType !== "reseller" && !item.robloxUsername
       );
 
       if (missingCredentials) {
@@ -620,12 +620,31 @@ function CheckoutContent() {
     const selectedPayment = allMethods.find(
       (pm) => pm.id === selectedPaymentMethod
     );
+
+    // Calculate base amount (after discount, before payment fee)
+    const baseAmountAfterDiscount =
+      checkoutData.finalAmount || checkoutData.totalAmount;
+
     const paymentFee = selectedPayment
-      ? calculatePaymentFee(
-          checkoutData.finalAmount || checkoutData.totalAmount,
-          selectedPayment
-        )
+      ? calculatePaymentFee(baseAmountAfterDiscount, selectedPayment)
       : 0;
+
+    // Calculate final amount (after discount + payment fee)
+    const finalAmountWithFee = baseAmountAfterDiscount + paymentFee;
+
+    console.log("\n=== PAYMENT CALCULATION DEBUG ===");
+    console.log("Subtotal:", checkoutData.totalAmount);
+    console.log(
+      "Discount Percentage:",
+      checkoutData.discountPercentage || 0,
+      "%"
+    );
+    console.log("Discount Amount:", checkoutData.discountAmount || 0);
+    console.log("After Discount (Base):", baseAmountAfterDiscount);
+    console.log("Selected Payment Method:", selectedPayment?.name);
+    console.log("Payment Fee:", paymentFee);
+    console.log("FINAL AMOUNT (to send to Midtrans):", finalAmountWithFee);
+    console.log("================================\n");
 
     console.log("\n=== PREPARE ITEMS WITH CREDENTIALS ===");
     console.log("Original checkoutData.items:", checkoutData.items);
@@ -704,8 +723,7 @@ function CheckoutContent() {
       totalAmount: checkoutData.totalAmount,
       discountPercentage: checkoutData.discountPercentage || 0,
       discountAmount: checkoutData.discountAmount || 0,
-      finalAmount:
-        (checkoutData.finalAmount || checkoutData.totalAmount) + paymentFee,
+      finalAmount: finalAmountWithFee, // This includes payment fee
       paymentMethod: selectedPaymentMethod,
       paymentFee: paymentFee,
       additionalNotes: additionalNotes.trim() || undefined, // Universal additional notes from checkout
@@ -782,9 +800,7 @@ function CheckoutContent() {
             totalAmount: checkoutData.totalAmount,
             discountPercentage: checkoutData.discountPercentage || 0,
             discountAmount: checkoutData.discountAmount || 0,
-            finalAmount:
-              (checkoutData.finalAmount || checkoutData.totalAmount) +
-              paymentFee,
+            finalAmount: finalAmountWithFee, // Already includes payment fee
             paymentMethodId: selectedPaymentMethod,
             paymentFee: paymentFee,
             additionalNotes: additionalNotes.trim() || undefined,
@@ -804,9 +820,7 @@ function CheckoutContent() {
             totalAmount: checkoutData.totalAmount,
             discountPercentage: checkoutData.discountPercentage || 0,
             discountAmount: checkoutData.discountAmount || 0,
-            finalAmount:
-              (checkoutData.finalAmount || checkoutData.totalAmount) +
-              paymentFee,
+            finalAmount: finalAmountWithFee, // Already includes payment fee
             robloxUsername: itemsWithCredentials[0].robloxUsername,
             robloxPassword: itemsWithCredentials[0].robloxPassword || null,
             jokiDetails: itemsWithCredentials[0].jokiDetails,
@@ -1062,7 +1076,7 @@ function CheckoutContent() {
                   {(checkoutData.discountPercentage || 0) > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-green-400">
-                        Diskon Member ({checkoutData.discountPercentage}%):
+                        Diskon ({checkoutData.discountPercentage}%):
                       </span>
                       <span className="text-green-400">
                         - Rp{" "}

@@ -13,16 +13,9 @@ interface User {
   countryCode: string;
   password?: string;
   accessRole: "user" | "admin";
-  memberRole:
-    | string
-    | {
-        _id: string;
-        member: string;
-        diskon: number;
-        description?: string;
-        isActive: boolean;
-      }
-    | null;
+  resellerTier?: number;
+  resellerExpiry?: Date;
+  resellerPackageId?: string;
   spendedMoney: number;
   isVerified: boolean;
   googleId?: string;
@@ -32,14 +25,14 @@ interface User {
   __v?: number;
 }
 
-interface Role {
+interface ResellerPackage {
   _id: string;
-  member: string;
-  diskon: number;
-  description?: string;
+  name: string;
+  tier: number;
+  discount: number;
+  duration: number;
+  features: string[];
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface StockAccount {
@@ -57,7 +50,9 @@ interface StockAccount {
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [resellerPackages, setResellerPackages] = useState<ResellerPackage[]>(
+    []
+  );
   const [stockAccounts, setStockAccounts] = useState<StockAccount[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -74,14 +69,16 @@ export default function UsersPage() {
     phone: "",
     countryCode: "+62",
     accessRole: "user" as "user" | "admin",
-    memberRole: "",
+    resellerTier: 0,
+    resellerExpiry: "",
+    resellerPackageId: "",
     password: "",
     robloxCookie: "",
   });
 
   useEffect(() => {
     fetchUsers();
-    fetchRoles();
+    fetchResellerPackages();
     if (activeTab === "stock") {
       fetchStockAccounts();
     }
@@ -125,27 +122,28 @@ export default function UsersPage() {
     }
   };
 
-  const fetchRoles = async () => {
+  const fetchResellerPackages = async () => {
     try {
-      const response = await fetch("/api/admin/roles");
+      const response = await fetch("/api/reseller-packages");
       if (response.ok) {
-        const data = await response.json();
-        console.log("Roles API Response:", data);
+        const result = await response.json();
+        console.log("Reseller Packages API Response:", result);
 
-        if (data.roles) {
-          setRoles(data.roles.filter((role: Role) => role.isActive));
-        } else {
-          console.error("No roles data found");
-          setRoles([]);
-        }
+        // Handle both response formats: {data: [...]} or {packages: [...]}
+        const packagesData = result.data || result.packages || [];
+
+        console.log("Extracted packages:", packagesData);
+        console.log("Packages count:", packagesData.length);
+
+        setResellerPackages(packagesData);
       } else {
         const errorData = await response.json();
-        console.error("Failed to fetch roles:", errorData);
-        setRoles([]);
+        console.error("Failed to fetch reseller packages:", errorData);
+        setResellerPackages([]);
       }
     } catch (error) {
-      console.error("Error fetching roles:", error);
-      setRoles([]);
+      console.error("Error fetching reseller packages:", error);
+      setResellerPackages([]);
     }
   };
 
@@ -182,10 +180,11 @@ export default function UsersPage() {
       phone: user.phone,
       countryCode: user.countryCode,
       accessRole: user.accessRole,
-      memberRole:
-        typeof user.memberRole === "object" && user.memberRole
-          ? user.memberRole._id
-          : user.memberRole || "",
+      resellerTier: user.resellerTier || 0,
+      resellerExpiry: user.resellerExpiry
+        ? new Date(user.resellerExpiry).toISOString().split("T")[0]
+        : "",
+      resellerPackageId: user.resellerPackageId || "",
       password: "", // Always empty for security
       robloxCookie: "",
     });
@@ -226,7 +225,9 @@ export default function UsersPage() {
       phone: "",
       countryCode: "+62",
       accessRole: "user",
-      memberRole: "",
+      resellerTier: 0,
+      resellerExpiry: "",
+      resellerPackageId: "",
       password: "",
       robloxCookie: account.robloxCookie,
     });
@@ -293,7 +294,9 @@ export default function UsersPage() {
             phone: "",
             countryCode: "+62",
             accessRole: "user",
-            memberRole: "",
+            resellerTier: 0,
+            resellerExpiry: "",
+            resellerPackageId: "",
             password: "",
             robloxCookie: "",
           });
@@ -316,7 +319,9 @@ export default function UsersPage() {
           phone: formData.phone,
           countryCode: formData.countryCode,
           accessRole: formData.accessRole,
-          memberRole: formData.memberRole || null,
+          resellerTier: formData.resellerTier || null,
+          resellerExpiry: formData.resellerExpiry || null,
+          resellerPackageId: formData.resellerPackageId || null,
           ...(formData.password && { password: formData.password }),
         };
 
@@ -343,7 +348,9 @@ export default function UsersPage() {
             phone: "",
             countryCode: "+62",
             accessRole: "user",
-            memberRole: "",
+            resellerTier: 0,
+            resellerExpiry: "",
+            resellerPackageId: "",
             password: "",
             robloxCookie: "",
           });
@@ -374,7 +381,7 @@ export default function UsersPage() {
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
     { key: "spending", label: "Total Spending" },
-    { key: "memberRole", label: "Member Role" },
+    { key: "resellerTier", label: "Reseller Tier" },
     { key: "joined", label: "Joined" },
   ];
 
@@ -428,7 +435,9 @@ export default function UsersPage() {
               phone: "",
               countryCode: "+62",
               accessRole: activeTab === "admins" ? "admin" : "user",
-              memberRole: "",
+              resellerTier: 0,
+              resellerExpiry: "",
+              resellerPackageId: "",
               password: "",
               robloxCookie: "",
             });
@@ -517,9 +526,16 @@ export default function UsersPage() {
                   <p className="text-2xl font-bold">{users.length}</p>
                 </div>
                 <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
-                  <p className="text-sm text-[#f1f5f9]">With Member Role</p>
+                  <p className="text-sm text-[#f1f5f9]">Active Resellers</p>
                   <p className="text-2xl font-bold text-[#3b82f6]">
-                    {users.filter((u) => u.memberRole).length}
+                    {
+                      users.filter(
+                        (u) =>
+                          u.resellerTier &&
+                          u.resellerExpiry &&
+                          new Date(u.resellerExpiry) > new Date()
+                      ).length
+                    }
                   </p>
                 </div>
                 <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
@@ -716,10 +732,11 @@ export default function UsersPage() {
                               <p className="text-sm font-medium text-[#f1f5f9]">
                                 {user.firstName} {user.lastName}
                               </p>
-                              {user.memberRole &&
-                                typeof user.memberRole === "object" && (
+                              {user.resellerTier &&
+                                user.resellerExpiry &&
+                                new Date(user.resellerExpiry) > new Date() && (
                                   <p className="text-xs text-green-600">
-                                    Member: {user.memberRole.member}
+                                    Reseller Tier {user.resellerTier}
                                   </p>
                                 )}
                             </div>
@@ -738,15 +755,22 @@ export default function UsersPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {user.memberRole &&
-                          typeof user.memberRole === "object" ? (
+                          {user.resellerTier &&
+                          user.resellerExpiry &&
+                          new Date(user.resellerExpiry) > new Date() ? (
                             <span className="bg-[#1e40af] text-[#93c5fd] px-2 py-1 rounded text-xs">
-                              {user.memberRole.member} ({user.memberRole.diskon}
-                              %)
+                              Tier {user.resellerTier} - Exp:{" "}
+                              {new Date(user.resellerExpiry).toLocaleDateString(
+                                "id-ID"
+                              )}
+                            </span>
+                          ) : user.resellerTier ? (
+                            <span className="bg-red-900 text-red-300 px-2 py-1 rounded text-xs">
+                              Tier {user.resellerTier} (Expired)
                             </span>
                           ) : (
                             <span className="text-[#94a3b8] text-xs">
-                              No Role
+                              No Reseller
                             </span>
                           )}
                         </td>
@@ -972,25 +996,95 @@ export default function UsersPage() {
                 )}
 
                 {activeTab === "users" && (
-                  <div>
-                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
-                      Member Role
-                    </label>
-                    <select
-                      value={formData.memberRole}
-                      onChange={(e) =>
-                        setFormData({ ...formData, memberRole: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
-                    >
-                      <option value="">No Member Role</option>
-                      {roles.map((role) => (
-                        <option key={role._id} value={role._id}>
-                          {role.member} ({role.diskon}% discount)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
+                        Reseller Package ({resellerPackages.length} packages
+                        available)
+                      </label>
+                      <select
+                        value={formData.resellerPackageId}
+                        onChange={(e) => {
+                          const selectedPackageId = e.target.value;
+                          const selectedPackage = resellerPackages.find(
+                            (pkg) => pkg._id === selectedPackageId
+                          );
+
+                          console.log(
+                            "Selected Package ID:",
+                            selectedPackageId
+                          );
+                          console.log("Selected Package:", selectedPackage);
+                          console.log(
+                            "All Reseller Packages:",
+                            resellerPackages
+                          );
+
+                          if (selectedPackageId === "") {
+                            // No reseller selected
+                            setFormData({
+                              ...formData,
+                              resellerPackageId: "",
+                              resellerTier: 0,
+                              resellerExpiry: "",
+                            });
+                          } else {
+                            // Package selected, set tier from package
+                            setFormData({
+                              ...formData,
+                              resellerPackageId: selectedPackageId,
+                              resellerTier: selectedPackage?.tier || 0,
+                            });
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
+                      >
+                        <option value="">No Reseller</option>
+                        {resellerPackages
+                          .filter((pkg) => pkg.isActive)
+                          .map((pkg) => (
+                            <option key={pkg._id} value={pkg._id}>
+                              {pkg.name} - Tier {pkg.tier} ({pkg.discount}%
+                              discount)
+                            </option>
+                          ))}
+                      </select>
+                      {resellerPackages.length === 0 && (
+                        <p className="text-xs text-red-400 mt-1">
+                          ⚠️ No reseller packages available. Please create
+                          packages first.
+                        </p>
+                      )}
+                      {resellerPackages.filter((pkg) => pkg.isActive).length ===
+                        0 &&
+                        resellerPackages.length > 0 && (
+                          <p className="text-xs text-yellow-400 mt-1">
+                            ⚠️ No active reseller packages. Please activate
+                            packages in settings.
+                          </p>
+                        )}
+                    </div>
+
+                    {formData.resellerPackageId && (
+                      <div>
+                        <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
+                          Reseller Expiry Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.resellerExpiry}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              resellerExpiry: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
+                          required
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {activeTab === "admins" && (

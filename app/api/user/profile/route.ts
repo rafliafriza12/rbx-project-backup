@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import User, { IUser } from "@/models/User";
-import Role from "@/models/Role";
+import ResellerPackage from "@/models/ResellerPackage";
 import dbConnect from "@/lib/mongodb";
 
 export async function GET(request: NextRequest) {
@@ -19,18 +19,12 @@ export async function GET(request: NextRequest) {
     let user: IUser | null = null;
 
     if (userId) {
-      user = await User.findById(userId)
-        .select("-password")
-        .populate("memberRole", "member diskon description isActive");
+      user = await User.findById(userId).select("-password");
     } else if (email) {
-      user = await User.findOne({ email })
-        .select("-password")
-        .populate("memberRole", "member diskon description isActive");
+      user = await User.findOne({ email }).select("-password");
     } else {
       // For demo - get first user, replace with proper JWT validation
-      user = await User.findOne({})
-        .select("-password")
-        .populate("memberRole", "member diskon description isActive");
+      user = await User.findOne({}).select("-password");
     }
 
     if (!user) {
@@ -41,6 +35,21 @@ export async function GET(request: NextRequest) {
         },
         { status: 404 }
       );
+    }
+
+    // Calculate discount from reseller package
+    let diskon = 0;
+    if (
+      user.resellerPackageId &&
+      user.resellerExpiry &&
+      new Date(user.resellerExpiry) > new Date()
+    ) {
+      const resellerPackage = await ResellerPackage.findById(
+        user.resellerPackageId
+      );
+      if (resellerPackage && resellerPackage.isActive) {
+        diskon = resellerPackage.discount;
+      }
     }
 
     // Calculate additional stats - in real app, get from transactions collection
@@ -54,9 +63,11 @@ export async function GET(request: NextRequest) {
       phone: user.phone,
       countryCode: user.countryCode,
       accessRole: user.accessRole,
-      memberRole: user.memberRole,
+      resellerTier: user.resellerTier,
+      resellerExpiry: user.resellerExpiry,
+      resellerPackageId: user.resellerPackageId,
       spendedMoney: user.spendedMoney,
-      diskon: user.memberRole ? (user.memberRole as any).diskon : 0,
+      diskon,
       isVerified: user.isVerified,
       memberSince: user.createdAt,
       totalTransactions,
@@ -144,9 +155,7 @@ export async function PUT(request: NextRequest) {
     const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
       new: true,
       runValidators: true,
-    })
-      .select("-password")
-      .populate("memberRole", "member diskon description isActive");
+    }).select("-password");
 
     if (!updatedUser) {
       return NextResponse.json(
@@ -156,6 +165,21 @@ export async function PUT(request: NextRequest) {
         },
         { status: 500 }
       );
+    }
+
+    // Calculate discount from reseller package
+    let diskon = 0;
+    if (
+      updatedUser.resellerPackageId &&
+      updatedUser.resellerExpiry &&
+      new Date(updatedUser.resellerExpiry) > new Date()
+    ) {
+      const resellerPackage = await ResellerPackage.findById(
+        updatedUser.resellerPackageId
+      );
+      if (resellerPackage && resellerPackage.isActive) {
+        diskon = resellerPackage.discount;
+      }
     }
 
     return NextResponse.json({
@@ -169,11 +193,11 @@ export async function PUT(request: NextRequest) {
         phone: updatedUser.phone,
         countryCode: updatedUser.countryCode,
         accessRole: updatedUser.accessRole,
-        memberRole: updatedUser.memberRole,
+        resellerTier: updatedUser.resellerTier,
+        resellerExpiry: updatedUser.resellerExpiry,
+        resellerPackageId: updatedUser.resellerPackageId,
         spendedMoney: updatedUser.spendedMoney,
-        diskon: updatedUser.memberRole
-          ? (updatedUser.memberRole as any).diskon
-          : 0,
+        diskon,
         isVerified: updatedUser.isVerified,
       },
     });

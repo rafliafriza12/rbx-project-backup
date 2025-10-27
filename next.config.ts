@@ -7,8 +7,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  // Remove trailingSlash or set to false to avoid API route issues
+  // trailingSlash: true,
+  // skipTrailingSlashRedirect: true,
   allowedDevOrigins: ["local-origin.dev", "*.local-origin.dev"],
   images: {
     domains: [

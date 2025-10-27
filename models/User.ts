@@ -121,11 +121,13 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     resellerTier: {
       type: Number,
-      min: 1,
-      max: 3,
+      min: [1, "Tier reseller harus antara 1-3"],
+      max: [3, "Tier reseller harus antara 1-3"],
+      default: null,
     },
     resellerExpiry: {
       type: Date,
+      default: null,
     },
     resellerPackageId: {
       type: mongoose.Schema.Types.ObjectId,

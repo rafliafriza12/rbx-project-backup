@@ -61,15 +61,25 @@ const tierIcons = {
 };
 
 export default function ResellerPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [packages, setPackages] = useState<ResellerPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    fetchPackages();
-  }, []);
+    if (!authLoading && !user) {
+      toast.error("Silakan login terlebih dahulu untuk mengakses halaman ini");
+      router.push("/login?redirect=/reseller");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchPackages();
+    }
+  }, [user]);
 
   const fetchPackages = async () => {
     try {
@@ -93,7 +103,7 @@ export default function ResellerPage() {
   const handleBuyPackage = (pkg: ResellerPackage) => {
     if (!user) {
       toast.error("Silakan login terlebih dahulu");
-      router.push("/login");
+      router.push("/login?redirect=/reseller");
       return;
     }
 
@@ -132,7 +142,8 @@ export default function ResellerPage() {
     router.push("/checkout");
   };
 
-  if (loading) {
+  // Show loading while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -141,8 +152,19 @@ export default function ResellerPage() {
             <div className="absolute top-2 left-1/2 transform -translate-x-1/2 animate-spin rounded-full h-16 w-16 border-4 border-primary-100 border-t-transparent"></div>
           </div>
           <h3 className="text-xl font-bold text-primary-100">
-            Memuat Paket Reseller
+            {authLoading ? "Memeriksa Autentikasi..." : "Memuat Paket Reseller"}
           </h3>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render content if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white/80 mb-4">Mengalihkan ke halaman login...</p>
         </div>
       </div>
     );

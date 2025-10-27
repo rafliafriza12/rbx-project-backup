@@ -3,8 +3,63 @@ import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import StockAccount from "@/models/StockAccount";
+import ResellerPackage from "@/models/ResellerPackage";
 import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
+
+// Activate reseller package for user after payment settlement
+async function activateResellerPackage(transaction: any) {
+  try {
+    if (!transaction.customerInfo?.userId || !transaction.serviceId) {
+      console.log("Missing userId or serviceId for reseller activation");
+      return null;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) {
+      console.log("User not found for reseller activation");
+      return null;
+    }
+
+    const resellerPackage = await ResellerPackage.findById(
+      transaction.serviceId
+    );
+    if (!resellerPackage) {
+      console.log("Reseller package not found:", transaction.serviceId);
+      return null;
+    }
+
+    // Calculate expiry date
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + resellerPackage.duration);
+
+    // Update user with reseller info
+    const previousTier = user.resellerTier || 0;
+    user.resellerTier = resellerPackage.tier;
+    user.resellerExpiry = expiryDate;
+    user.resellerPackageId = resellerPackage._id;
+    await user.save();
+
+    console.log(
+      `✅ Reseller activated for user ${user.email}: Tier ${
+        resellerPackage.tier
+      } (${resellerPackage.name}), Expires: ${expiryDate.toLocaleDateString(
+        "id-ID"
+      )}`
+    );
+
+    return {
+      previousTier,
+      newTier: resellerPackage.tier,
+      packageName: resellerPackage.name,
+      discount: resellerPackage.discount,
+      expiryDate,
+    };
+  } catch (error) {
+    console.error("Error in activateResellerPackage:", error);
+    return null;
+  }
+}
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -285,6 +340,72 @@ export async function POST(request: NextRequest) {
           } catch (userUpdateError) {
             console.error("Error updating user spendedMoney:", userUpdateError);
             // Don't fail the webhook if user update fails
+          }
+        }
+
+        // Activate reseller package if this is a reseller purchase
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.serviceType === "reseller"
+        ) {
+          try {
+            console.log(
+              "Processing reseller package activation for transaction:",
+              transaction.invoiceId
+            );
+            const activationResult = await activateResellerPackage(transaction);
+
+            if (activationResult) {
+              console.log(
+                `✅ Reseller package activated: Tier ${
+                  activationResult.newTier
+                } (${activationResult.packageName}), Discount: ${
+                  activationResult.discount
+                }%, Expires: ${activationResult.expiryDate.toLocaleDateString(
+                  "id-ID"
+                )}`
+              );
+
+              // Update order status to completed on successful activation
+              await transaction.updateStatus(
+                "order",
+                "completed",
+                `Reseller Tier ${
+                  activationResult.newTier
+                } berhasil diaktifkan hingga ${activationResult.expiryDate.toLocaleDateString(
+                  "id-ID"
+                )}`,
+                null
+              );
+            } else {
+              console.log(
+                "❌ Reseller package activation failed for transaction:",
+                transaction.invoiceId
+              );
+
+              // Update order status to pending if activation fails
+              await transaction.updateStatus(
+                "order",
+                "pending",
+                "Gagal mengaktifkan reseller package. Silakan hubungi admin.",
+                null
+              );
+            }
+          } catch (resellerError) {
+            console.error("Error activating reseller package:", resellerError);
+
+            // Update order status to pending on error
+            await transaction.updateStatus(
+              "order",
+              "pending",
+              `Error saat mengaktifkan reseller: ${
+                resellerError instanceof Error
+                  ? resellerError.message
+                  : "Unknown error"
+              }`,
+              null
+            );
           }
         }
 

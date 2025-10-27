@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import Role from "@/models/Role";
+import ResellerPackage from "@/models/ResellerPackage";
 import { comparePassword, generateToken, validateEmail } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
@@ -27,10 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() }).populate(
-      "memberRole",
-      "member diskon description isActive"
-    );
+    const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       return NextResponse.json(
@@ -49,6 +46,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auto-deactivate expired reseller tier on login
+    if (
+      user.resellerTier &&
+      user.resellerExpiry &&
+      new Date(user.resellerExpiry) < new Date()
+    ) {
+      console.log(
+        `🔄 Auto-deactivating expired reseller for user ${user.email}: ` +
+          `Tier ${user.resellerTier} expired on ${user.resellerExpiry}`
+      );
+
+      user.resellerTier = null;
+      user.resellerExpiry = null;
+      user.resellerPackageId = null;
+      await user.save();
+
+      console.log(`✅ Reseller tier deactivated for user ${user.email}`);
+    }
+
+    // Get reseller discount if user has active reseller package
+    let resellerDiscount = 0;
+    if (
+      user.resellerPackageId &&
+      user.resellerExpiry &&
+      new Date(user.resellerExpiry) > new Date()
+    ) {
+      try {
+        const resellerPackage = await ResellerPackage.findById(
+          user.resellerPackageId
+        );
+        if (resellerPackage) {
+          resellerDiscount = resellerPackage.discount;
+        }
+      } catch (error) {
+        console.log("Failed to get reseller package:", error);
+      }
+    }
+
     // Generate token
     const token = generateToken(user._id.toString());
 
@@ -61,10 +96,14 @@ export async function POST(request: NextRequest) {
       phone: user.phone,
       countryCode: user.countryCode,
       accessRole: user.accessRole,
-      memberRole: user.memberRole,
+      resellerTier: user.resellerTier,
+      resellerExpiry: user.resellerExpiry,
+      resellerPackageId: user.resellerPackageId,
       spendedMoney: user.spendedMoney,
-      diskon: user.memberRole ? (user.memberRole as any).diskon : 0, // Get discount from memberRole
+      diskon: resellerDiscount, // Get discount from reseller package
       isVerified: user.isVerified,
+      profilePicture: user.profilePicture,
+      googleId: user.googleId,
     };
 
     const response = NextResponse.json(

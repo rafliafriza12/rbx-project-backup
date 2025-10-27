@@ -56,7 +56,9 @@ export async function PUT(
       countryCode,
       password,
       accessRole,
-      memberRole,
+      resellerTier,
+      resellerExpiry,
+      resellerPackageId,
     } = await request.json();
 
     // Build update data
@@ -68,7 +70,19 @@ export async function PUT(
     if (phone !== undefined) updateData.phone = phone;
     if (countryCode) updateData.countryCode = countryCode;
     if (accessRole) updateData.accessRole = accessRole;
-    if (memberRole !== undefined) updateData.memberRole = memberRole || null;
+
+    // For resellerTier: 0 means "no reseller", so set to null
+    // Only set if value is between 1-3, otherwise set to null
+    if (resellerTier !== undefined) {
+      updateData.resellerTier = resellerTier > 0 ? resellerTier : null;
+    }
+
+    if (resellerExpiry !== undefined)
+      updateData.resellerExpiry = resellerExpiry
+        ? new Date(resellerExpiry)
+        : null;
+    if (resellerPackageId !== undefined)
+      updateData.resellerPackageId = resellerPackageId || null;
 
     // Hash password if provided
     if (password && password.trim() !== "") {
@@ -90,9 +104,7 @@ export async function PUT(
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    })
-      .select("-password")
-      .populate("memberRole", "member diskon description isActive");
+    }).select("-password");
 
     const userResponse = {
       _id: updatedUser._id,
@@ -102,7 +114,9 @@ export async function PUT(
       phone: updatedUser.phone,
       countryCode: updatedUser.countryCode,
       accessRole: updatedUser.accessRole,
-      memberRole: updatedUser.memberRole,
+      resellerTier: updatedUser.resellerTier,
+      resellerExpiry: updatedUser.resellerExpiry,
+      resellerPackageId: updatedUser.resellerPackageId,
       spendedMoney: updatedUser.spendedMoney,
       isVerified: updatedUser.isVerified,
       googleId: updatedUser.googleId,

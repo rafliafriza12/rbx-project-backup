@@ -169,9 +169,52 @@ export async function GET(request: NextRequest) {
             customerInfo: transactions[0].customerInfo,
             paymentStatus: transactions[0].paymentStatus,
             orderStatus: transactions[0].orderStatus,
+            paymentFee: transactions[0].paymentFee,
+            midtransOrderId: transactions[0].midtransOrderId,
           }
         : "No transactions found"
     );
+
+    // Group multi-checkout transactions
+    const processedTransactions = await Promise.all(
+      transactions.map(async (transaction) => {
+        const transactionObj = transaction.toObject();
+
+        // Check if this is part of a multi-checkout by looking for other transactions with same midtransOrderId
+        if (transactionObj.midtransOrderId) {
+          const relatedTransactions = await Transaction.find({
+            midtransOrderId: transactionObj.midtransOrderId,
+            _id: { $ne: transactionObj._id }, // Exclude current transaction
+          }).sort({ createdAt: 1 });
+
+          if (relatedTransactions.length > 0) {
+            transactionObj.isMultiCheckout = true;
+            transactionObj.relatedTransactions = relatedTransactions.map((t) =>
+              t.toObject()
+            );
+          }
+        }
+
+        return transactionObj;
+      })
+    );
+
+    console.log(
+      "Processed transactions with multi-checkout grouping:",
+      processedTransactions.length
+    );
+    if (processedTransactions.length > 0) {
+      console.log("First processed transaction:", {
+        invoiceId: processedTransactions[0].invoiceId,
+        paymentFee: processedTransactions[0].paymentFee,
+        isMultiCheckout: processedTransactions[0].isMultiCheckout,
+        relatedTransactionsCount:
+          processedTransactions[0].relatedTransactions?.length || 0,
+        finalAmount: processedTransactions[0].finalAmount,
+        totalAmount: processedTransactions[0].totalAmount,
+        discountAmount: processedTransactions[0].discountAmount,
+      });
+    }
 
     // Get total count
     const total = await Transaction.countDocuments(query);
@@ -218,7 +261,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: transactions,
+      data: processedTransactions,
       pagination: {
         page,
         limit,
@@ -281,9 +324,13 @@ async function handleMultiItemDirectPurchase(body: any) {
     discountPercentage,
     discountAmount,
     finalAmount,
+    paymentFee: rawPaymentFee, // Receive payment fee from frontend
     additionalNotes,
     paymentMethodId, // Frontend sends paymentMethodId
   } = body;
+
+  // Ensure paymentFee is a number
+  const paymentFee = rawPaymentFee ? Number(rawPaymentFee) : 0;
 
   // Use paymentMethodId as the payment method
   const paymentMethod = paymentMethodId;
@@ -292,6 +339,12 @@ async function handleMultiItemDirectPurchase(body: any) {
   console.log("Number of items:", items.length);
   console.log("Customer info:", customerInfo);
   console.log("User ID:", userId);
+  console.log("Total Amount:", totalAmount);
+  console.log("Discount Percentage:", discountPercentage);
+  console.log("Discount Amount:", discountAmount);
+  console.log("Final Amount:", finalAmount);
+  console.log("Payment Fee (raw):", rawPaymentFee);
+  console.log("Payment Fee (converted):", paymentFee);
   console.log("Additional notes:", additionalNotes);
   console.log("Payment method ID:", paymentMethodId);
   console.log("Payment method:", paymentMethod);
@@ -443,10 +496,10 @@ async function handleMultiItemDirectPurchase(body: any) {
 
     createdTransactions.push(transaction);
 
-    // Prepare Midtrans item
+    // Prepare Midtrans item (will apply discount later)
     midtransItems.push({
       id: `${item.serviceId}-${i}`,
-      price: item.unitPrice,
+      price: item.unitPrice, // Original price, discount will be applied below
       quantity: item.quantity,
       name: item.serviceName,
       brand: "RBX Store",
@@ -469,6 +522,14 @@ async function handleMultiItemDirectPurchase(body: any) {
     createdTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
   const discount = discountAmount || 0;
   const discountPercent = discountPercentage || 0;
+
+  console.log("=== MULTI-ITEM PRICE CALCULATION DEBUG ===");
+  console.log("Subtotal (before discount):", subtotal);
+  console.log("Discount Amount:", discount);
+  console.log("Discount Percentage:", discountPercent);
+  console.log("Payment Fee:", paymentFee);
+  console.log("Final Amount (from frontend):", finalAmount);
+
   const finalAmountAfterDiscount = finalAmount || subtotal - discount;
 
   // Update each transaction with proportional discount
@@ -504,33 +565,42 @@ async function handleMultiItemDirectPurchase(body: any) {
     transaction.midtransOrderId = masterOrderId;
   });
 
-  // Calculate sum of items before adding discount and fee
-  const itemsSubtotal = midtransItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  // Apply discount to each item price (proportionally)
+  if (discount > 0 && midtransItems.length > 0) {
+    const discountMultiplier = 1 - discountPercent / 100;
+    midtransItems.forEach((item) => {
+      const originalPrice = item.price;
+      item.price = Math.round(item.price * discountMultiplier);
 
-  // Add discount item if applicable
-  if (discount > 0) {
-    midtransItems.push({
-      id: "DISCOUNT",
-      price: -Math.round(discount),
-      quantity: 1,
-      name: `Diskon Member (${discountPercentage}%)`,
-      brand: "RBX Store",
-      category: "discount",
+      // Update item name to show discount
+      if (!item.name.includes("Diskon")) {
+        item.name = `${item.name} (Diskon ${discountPercent}%)`;
+      }
+
+      console.log(
+        `Item: ${item.name}, Original: ${originalPrice}, Discounted: ${item.price}`
+      );
     });
   }
 
-  // Calculate payment fee (difference between final amount and items total)
+  // Calculate sum of items AFTER applying discount (BEFORE payment fee)
   const itemsTotal = midtransItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const paymentFee = Math.round(finalAmountAfterDiscount) - itemsTotal;
+
+  console.log("Items total after discount (before payment fee):", itemsTotal);
 
   // Add payment fee if applicable
-  if (paymentFee > 0) {
+  console.log("=== PAYMENT FEE DEBUG ===");
+  console.log("Payment Fee value:", paymentFee);
+  console.log("Payment Fee type:", typeof paymentFee);
+  console.log("Payment Fee > 0:", paymentFee > 0);
+  console.log("Payment Fee && paymentFee > 0:", paymentFee && paymentFee > 0);
+  console.log("Current midtransItems count:", midtransItems.length);
+
+  if (paymentFee && paymentFee > 0) {
+    console.log("✅ ADDING payment fee to items...");
     midtransItems.push({
       id: "PAYMENT_FEE",
       price: paymentFee,
@@ -539,7 +609,14 @@ async function handleMultiItemDirectPurchase(body: any) {
       brand: "RBX Store",
       category: "fee",
     });
+    console.log("✅ Payment fee added! New items count:", midtransItems.length);
+  } else {
+    console.log("❌ Payment fee NOT added. Reason:");
+    console.log("  - paymentFee is falsy:", !paymentFee);
+    console.log("  - paymentFee <= 0:", paymentFee <= 0);
   }
+
+  console.log("Final midtransItems:", JSON.stringify(midtransItems, null, 2));
 
   // Create Midtrans Snap transaction for all items
   try {
@@ -548,11 +625,23 @@ async function handleMultiItemDirectPurchase(body: any) {
 
     console.log("=== MIDTRANS MULTI-ITEM DEBUG ===");
     console.log("Items:", JSON.stringify(midtransItems, null, 2));
-    console.log("Items subtotal:", itemsSubtotal);
-    console.log("Items with discount:", itemsTotal);
-    console.log("Payment fee:", paymentFee);
-    console.log("Final Amount:", finalAmountAfterDiscount);
+    console.log("Payment fee from frontend:", paymentFee);
+    console.log("Final Amount (from frontend):", finalAmountAfterDiscount);
     console.log("Payment method:", paymentMethod);
+
+    // Calculate total items amount (should match gross_amount sent to Midtrans)
+    const totalItemsAmount = midtransItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    console.log("Total items amount for Midtrans:", totalItemsAmount);
+
+    // Verification
+    console.log("Expected match:", {
+      frontendFinalAmount: finalAmount,
+      calculatedFromItems: totalItemsAmount,
+      match: finalAmount === totalItemsAmount,
+    });
 
     // Map payment method to Midtrans enabled_payments
     const enabledPayments = paymentMethod
@@ -563,7 +652,7 @@ async function handleMultiItemDirectPurchase(body: any) {
 
     const snapResult = await midtransService.createSnapTransaction({
       orderId: masterOrderId,
-      amount: Math.round(finalAmountAfterDiscount),
+      amount: totalItemsAmount, // Total of all items (including payment fee item)
       items: midtransItems,
       customer: {
         first_name: customerInfo.name,
@@ -651,12 +740,14 @@ async function handleSingleItemTransaction(body: any) {
     discountPercentage,
     discountAmount,
     finalAmount,
+    paymentFee, // Receive payment fee from frontend
     robloxUsername,
     robloxPassword,
     jokiDetails,
     robuxInstantDetails,
     rbx5Details,
     gamepassDetails,
+    resellerDetails, // Add resellerDetails
     customerInfo,
     userId,
     gamepass,
@@ -667,6 +758,7 @@ async function handleSingleItemTransaction(body: any) {
   // Use paymentMethodId as the payment method
   const paymentMethod = paymentMethodId;
 
+  console.log("=== SINGLE ITEM TRANSACTION DEBUG ===");
   console.log("Extracted fields:", {
     serviceType,
     serviceId,
@@ -674,6 +766,11 @@ async function handleSingleItemTransaction(body: any) {
     serviceCategory,
     quantity,
     unitPrice,
+    totalAmount,
+    discountPercentage,
+    discountAmount,
+    finalAmount,
+    paymentFee,
     robloxUsername: robloxUsername ? "[PRESENT]" : "[MISSING]",
     robloxPassword: robloxPassword ? "[PRESENT]" : "[MISSING]",
     jokiDetails: jokiDetails ? "[PRESENT]" : "[MISSING]",
@@ -688,10 +785,15 @@ async function handleSingleItemTransaction(body: any) {
   });
 
   // Validasi input - userId opsional untuk guest checkout
-  // Password hanya diperlukan untuk robux instant dan joki, tidak untuk gamepass dan robux 5 hari
+  // Password hanya diperlukan untuk robux instant dan joki, tidak untuk gamepass, robux 5 hari, dan reseller
   let passwordRequired = false;
+  let usernameRequired = true;
 
-  if (serviceType === "robux") {
+  // Reseller packages don't need Roblox credentials
+  if (serviceType === "reseller") {
+    usernameRequired = false;
+    passwordRequired = false;
+  } else if (serviceType === "robux") {
     // Untuk robux, cek kategori
     passwordRequired = serviceCategory === "robux_instant" && !robloxPassword;
   } else if (serviceType === "joki") {
@@ -706,7 +808,7 @@ async function handleSingleItemTransaction(body: any) {
     !serviceName ||
     !quantity ||
     !unitPrice ||
-    !robloxUsername ||
+    (usernameRequired && !robloxUsername) ||
     passwordRequired
   ) {
     console.error("Validation failed - missing fields:", {
@@ -717,6 +819,7 @@ async function handleSingleItemTransaction(body: any) {
       unitPrice: !!unitPrice,
       robloxUsername: !!robloxUsername,
       robloxPassword: !!robloxPassword,
+      usernameRequired,
       passwordRequired,
       serviceTypeNeedsPassword:
         serviceType === "joki" ||
@@ -806,13 +909,14 @@ async function handleSingleItemTransaction(body: any) {
     discountPercentage: discountPercentage || 0,
     discountAmount: discountAmount || 0,
     finalAmount: calculatedFinalAmount,
-    robloxUsername,
-    robloxPassword: robloxPassword || "", // Empty string for gamepass and robux_5_hari
+    robloxUsername: robloxUsername || "", // Empty for reseller
+    robloxPassword: robloxPassword || "", // Empty string for gamepass, robux_5_hari, and reseller
     customerNotes: additionalNotes || "", // Customer notes dari form checkout
     jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
     robuxInstantDetails: robuxInstantDetails || undefined,
     rbx5Details: rbx5Details || undefined,
     gamepassDetails: gamepassDetails || undefined,
+    resellerDetails: resellerDetails || undefined, // Add resellerDetails
     paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
     paymentMethodName: paymentMethodName,
     customerInfo: {
@@ -846,8 +950,11 @@ async function handleSingleItemTransaction(body: any) {
     transactionData.customerInfo
   );
 
-  // Only add serviceCategory for robux services
-  if (serviceType === "robux" && serviceCategory) {
+  // Add serviceCategory for robux and reseller services
+  if (
+    (serviceType === "robux" || serviceType === "reseller") &&
+    serviceCategory
+  ) {
     transactionData.serviceCategory = serviceCategory;
   }
 
@@ -861,12 +968,23 @@ async function handleSingleItemTransaction(body: any) {
   // Generate Midtrans order ID
   const midtransOrderId = transaction.generateMidtransOrderId();
 
-  // Prepare items for Midtrans - adjust price if there's a discount
-  const finalUnitPrice = Math.round(calculatedFinalAmount / quantity);
+  // Calculate price after discount (WITHOUT payment fee)
+  const amountAfterDiscount = totalAmount - (discountAmount || 0);
+  const finalUnitPrice = Math.round(amountAfterDiscount / quantity);
+
+  console.log("=== PRICE CALCULATION DEBUG ===");
+  console.log("Total Amount (subtotal):", totalAmount);
+  console.log("Discount Amount:", discountAmount);
+  console.log("Amount After Discount:", amountAfterDiscount);
+  console.log("Quantity:", quantity);
+  console.log("Final Unit Price:", finalUnitPrice);
+  console.log("Payment Fee:", paymentFee);
+  console.log("Final Amount (from frontend):", calculatedFinalAmount);
+
   const items = [
     {
       id: serviceId,
-      price: finalUnitPrice, // Use final unit price after discount
+      price: finalUnitPrice, // Use unit price after discount (WITHOUT payment fee)
       quantity: quantity,
       name:
         discountPercentage > 0
@@ -899,18 +1017,17 @@ async function handleSingleItemTransaction(body: any) {
     );
     console.log("Payment method:", paymentMethod);
 
-    // Calculate sum of items to check for rounding differences
+    // Calculate sum of items
     const itemsTotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const amountDifference = Math.round(calculatedFinalAmount) - itemsTotal;
 
-    // Add payment fee if there's a difference (due to rounding or actual fee)
-    if (amountDifference > 0) {
+    // Use payment fee from frontend (already calculated correctly)
+    if (paymentFee && paymentFee > 0) {
       items.push({
         id: "PAYMENT_FEE",
-        price: amountDifference,
+        price: paymentFee,
         quantity: 1,
         name: "Biaya Admin",
         brand: "RBX Store",
@@ -921,8 +1038,15 @@ async function handleSingleItemTransaction(body: any) {
     console.log("=== MIDTRANS SINGLE-ITEM DEBUG ===");
     console.log("Items:", JSON.stringify(items, null, 2));
     console.log("Items total:", itemsTotal);
-    console.log("Amount difference:", amountDifference);
-    console.log("Final Amount:", calculatedFinalAmount);
+    console.log("Payment fee from frontend:", paymentFee);
+    console.log("Calculated Final Amount:", calculatedFinalAmount);
+
+    // Calculate total items amount (should match gross_amount sent to Midtrans)
+    const totalItemsAmount = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    console.log("Total items amount for Midtrans:", totalItemsAmount);
 
     // Map payment method to Midtrans enabled_payments
     const enabledPayments = paymentMethod
@@ -933,7 +1057,7 @@ async function handleSingleItemTransaction(body: any) {
 
     const snapResult = await midtransService.createSnapTransaction({
       orderId: midtransOrderId,
-      amount: calculatedFinalAmount, // Use final amount after discount
+      amount: totalItemsAmount, // Total of all items (including payment fee item)
       items,
       customer,
       enabledPayments,

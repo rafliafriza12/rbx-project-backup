@@ -3,17 +3,21 @@
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface GoogleAuthButtonProps {
   mode: "login" | "register";
   onError?: (error: string) => void;
+  redirectUrl?: string;
 }
 
 export default function GoogleAuthButton({
   mode,
   onError,
+  redirectUrl = "/",
 }: GoogleAuthButtonProps) {
   const { googleLogin } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSuccess = async (credentialResponse: any) => {
@@ -21,6 +25,8 @@ export default function GoogleAuthButton({
       try {
         setIsLoading(true);
         await googleLogin(credentialResponse.credential);
+        // Redirect after successful login
+        router.push(redirectUrl);
       } catch (error: any) {
         console.error("Google auth error:", error);
         onError?.(

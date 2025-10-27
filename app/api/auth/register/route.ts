@@ -9,6 +9,10 @@ import {
   generateToken,
 } from "@/lib/auth";
 
+// Force dynamic rendering for this API route
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
@@ -102,7 +106,6 @@ export async function POST(request: NextRequest) {
       countryCode,
       password: hashedPassword,
       accessRole: "user", // Default value
-      memberRole: null, // Default value
       spendedMoney: 0, // Default value
       isVerified: false,
     });
@@ -121,10 +124,14 @@ export async function POST(request: NextRequest) {
       phone: newUser.phone,
       countryCode: newUser.countryCode,
       accessRole: newUser.accessRole,
-      memberRole: newUser.memberRole,
+      resellerTier: newUser.resellerTier,
+      resellerExpiry: newUser.resellerExpiry,
+      resellerPackageId: newUser.resellerPackageId,
       spendedMoney: newUser.spendedMoney,
-      // diskon: 0, // New users don't have memberRole, so no discount
+      diskon: 0, // New users don't have reseller package, so no discount
       isVerified: newUser.isVerified,
+      profilePicture: newUser.profilePicture,
+      googleId: newUser.googleId,
     };
 
     const response = NextResponse.json(

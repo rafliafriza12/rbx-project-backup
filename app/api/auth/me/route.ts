@@ -35,6 +35,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Auto-deactivate expired reseller tier
+    if (
+      user.resellerTier &&
+      user.resellerExpiry &&
+      new Date(user.resellerExpiry) < new Date()
+    ) {
+      console.log(
+        `🔄 Auto-deactivating expired reseller for user ${user.email}: ` +
+          `Tier ${user.resellerTier} expired on ${user.resellerExpiry}`
+      );
+
+      user.resellerTier = null;
+      user.resellerExpiry = null;
+      user.resellerPackageId = null;
+      await user.save();
+
+      console.log(`✅ Reseller tier deactivated for user ${user.email}`);
+    }
+
     // Get reseller discount if user has active reseller package
     let resellerDiscount = 0;
     if (

@@ -25,14 +25,6 @@ import {
   Star,
 } from "lucide-react";
 
-interface MemberRole {
-  _id: string;
-  member: string;
-  diskon: number;
-  description?: string;
-  isActive: boolean;
-}
-
 interface UserProfile {
   id?: string;
   firstName: string;
@@ -45,7 +37,10 @@ interface UserProfile {
   totalTransactions: number;
   spendedMoney: number;
   isVerified: boolean;
-  memberRole: MemberRole | null;
+  resellerTier?: number;
+  resellerExpiry?: Date | string;
+  resellerPackageId?: string;
+  diskon?: number; // Discount percentage from reseller package
 }
 
 interface ProfileStats {
@@ -130,7 +125,10 @@ export default function ProfilePage() {
             totalTransactions: 0,
             spendedMoney: user.spendedMoney,
             isVerified: user.isVerified,
-            memberRole: user.memberRole,
+            resellerTier: user.resellerTier,
+            resellerExpiry: user.resellerExpiry,
+            resellerPackageId: user.resellerPackageId,
+            diskon: user.diskon || 0,
           });
 
           setEditForm({
@@ -350,18 +348,60 @@ export default function ProfilePage() {
                 Diskon
               </span>
               <span className="font-semibold text-green-400">
-                {profileData.memberRole ? profileData.memberRole.diskon : 0}%
+                {profileData.diskon || 0}%
               </span>
             </div>
-            {profileData.memberRole && (
+            {profileData.resellerTier && profileData.resellerTier > 0 && (
+              <>
+                <div className="flex justify-between items-center py-3 border-b border-white/10">
+                  <span className="text-white/70 flex items-center">
+                    <Crown className="w-4 h-4 mr-2" />
+                    Reseller Status
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/30 text-primary-100 text-xs font-medium rounded-full">
+                    Tier {profileData.resellerTier}
+                  </span>
+                </div>
+                {profileData.resellerExpiry && (
+                  <div className="flex justify-between items-center py-3 border-b border-white/10">
+                    <span className="text-white/70 flex items-center">
+                      <Clock className="w-4 h-4 mr-2" />
+                      Berlaku Hingga
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        new Date(profileData.resellerExpiry) > new Date()
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {new Date(profileData.resellerExpiry).toLocaleDateString(
+                        "id-ID",
+                        {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        }
+                      )}
+                      {new Date(profileData.resellerExpiry) <= new Date() &&
+                        " (Expired)"}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+            {(!profileData.resellerTier || profileData.resellerTier === 0) && (
               <div className="flex justify-between items-center py-3 border-b border-white/10">
                 <span className="text-white/70 flex items-center">
                   <Crown className="w-4 h-4 mr-2" />
-                  Member Role
+                  Reseller Status
                 </span>
-                <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/30 text-primary-100 text-xs font-medium rounded-full capitalize">
-                  {profileData.memberRole.member}
-                </span>
+                <Link
+                  href="/reseller"
+                  className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-primary-100 to-primary-200 text-white text-xs font-medium rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300"
+                >
+                  Upgrade ke Reseller
+                </Link>
               </div>
             )}
             {profileData.phone && (

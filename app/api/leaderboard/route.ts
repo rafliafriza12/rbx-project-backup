@@ -72,29 +72,20 @@ export async function GET(request: NextRequest) {
         $unwind: "$userInfo",
       },
       {
-        $lookup: {
-          from: "roles",
-          localField: "userInfo.memberRole",
-          foreignField: "_id",
-          as: "roleInfo",
-        },
-      },
-      {
         $addFields: {
           roleName: {
             $cond: {
-              if: { $gt: [{ $size: "$roleInfo" }, 0] },
-              then: { $arrayElemAt: ["$roleInfo.member", 0] },
+              if: { $gt: ["$userInfo.resellerTier", 0] },
+              then: {
+                $concat: [
+                  "Reseller Tier ",
+                  { $toString: "$userInfo.resellerTier" },
+                ],
+              },
               else: "Regular",
             },
           },
-          discount: {
-            $cond: {
-              if: { $gt: [{ $size: "$roleInfo" }, 0] },
-              then: { $arrayElemAt: ["$roleInfo.diskon", 0] },
-              else: 0,
-            },
-          },
+          discount: { $ifNull: ["$userInfo.resellerTier", 0] },
         },
       },
       {
@@ -289,19 +280,16 @@ export async function POST(request: NextRequest) {
         $unwind: "$userInfo",
       },
       {
-        $lookup: {
-          from: "roles",
-          localField: "userInfo.memberRole",
-          foreignField: "_id",
-          as: "roleInfo",
-        },
-      },
-      {
         $addFields: {
           roleName: {
             $cond: {
-              if: { $gt: [{ $size: "$roleInfo" }, 0] },
-              then: { $arrayElemAt: ["$roleInfo.member", 0] },
+              if: { $gt: ["$userInfo.resellerTier", 0] },
+              then: {
+                $concat: [
+                  "Reseller Tier ",
+                  { $toString: "$userInfo.resellerTier" },
+                ],
+              },
               else: "Regular",
             },
           },

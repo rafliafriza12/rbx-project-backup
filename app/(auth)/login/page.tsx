@@ -1,15 +1,16 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Gem, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function LoginPage() {
+function LoginForm() {
   const { login, googleLogin } = useAuth();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,6 +20,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  // Get redirect URL from query params
+  const redirectUrl = searchParams.get("redirect") || "/";
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -35,7 +39,8 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password, formData.rememberMe);
-      // Login successful, user will be redirected by AuthContext
+      // Login successful, redirect to the intended page
+      router.push(redirectUrl);
     } catch (error: any) {
       setError(error.message || "Terjadi kesalahan saat login");
     } finally {
@@ -180,7 +185,11 @@ export default function LoginPage() {
                 )}
 
                 {/* Google Login Button */}
-                <GoogleAuthButton mode="login" onError={handleGoogleError} />
+                <GoogleAuthButton
+                  mode="login"
+                  onError={handleGoogleError}
+                  redirectUrl={redirectUrl}
+                />
 
                 {/* Divider */}
                 <div className="relative">
@@ -331,5 +340,20 @@ export default function LoginPage() {
         </motion.div>
       </div>
     </motion.div>
+  );
+}
+
+// Wrap with Suspense for useSearchParams
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-pink"></div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

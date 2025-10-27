@@ -21,9 +21,22 @@ export async function POST(request: NextRequest) {
       discountPercentage,
       discountAmount,
       finalAmount,
+      paymentFee: rawPaymentFee, // Receive payment fee from frontend
       paymentMethodId,
       additionalNotes,
     } = body;
+
+    // Ensure paymentFee is a number
+    const paymentFee = rawPaymentFee ? Number(rawPaymentFee) : 0;
+
+    console.log("=== REQUEST DATA DEBUG ===");
+    console.log("Total Amount:", totalAmount);
+    console.log("Discount Percentage:", discountPercentage);
+    console.log("Discount Amount:", discountAmount);
+    console.log("Final Amount:", finalAmount);
+    console.log("Payment Fee (raw):", rawPaymentFee);
+    console.log("Payment Fee (converted):", paymentFee);
+    console.log("Payment Method ID:", paymentMethodId);
 
     // Validasi input
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -237,17 +250,30 @@ export async function POST(request: NextRequest) {
 
       createdTransactions.push(transaction);
 
-      // Prepare Midtrans item
+      // Prepare Midtrans item with discount applied to unit price
+      const itemUnitPriceAfterDiscount =
+        itemDiscountAmount > 0
+          ? Math.round(itemFinalAmount / item.quantity)
+          : item.unitPrice;
+
+      const itemNameWithDiscount =
+        itemDiscountPercentage > 0
+          ? `${item.serviceName} (Diskon ${itemDiscountPercentage}%)`
+          : item.serviceName;
+
       midtransItems.push({
         id: `${item.serviceId}-${i}`,
-        price: item.unitPrice,
+        price: itemUnitPriceAfterDiscount,
         quantity: item.quantity,
-        name: item.serviceName,
+        name: itemNameWithDiscount,
         brand: "RBX Store",
         category: item.serviceType,
       });
 
       console.log(`Transaction created: ${transaction.invoiceId}`);
+      console.log(
+        `  - Midtrans item price: ${itemUnitPriceAfterDiscount} (discount applied: ${itemDiscountAmount})`
+      );
     }
 
     if (createdTransactions.length === 0) {
@@ -300,37 +326,16 @@ export async function POST(request: NextRequest) {
       const baseUrl =
         process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-      // Calculate sum of items before adding discount and fee
-      const itemsSubtotal = midtransItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
-
-      // NOTE: Discount already distributed to individual items, so we add it as a separate line item for transparency
-      if (totalDiscountDistributed > 0) {
-        midtransItems.push({
-          id: "DISCOUNT",
-          price: -Math.round(totalDiscountDistributed),
-          quantity: 1,
-          name: `Diskon Member${
-            discountPercentage ? ` (${discountPercentage}%)` : ""
-          }`,
-          brand: "RBX Store",
-          category: "discount",
-        });
-      }
-
-      // Calculate payment fee (difference between final amount and items total)
+      // Calculate sum of items with discount already applied to unit prices
       const itemsTotal = midtransItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
       );
-      const paymentFee = Math.round(finalAmountBeforeFee) - itemsTotal;
 
-      console.log("=== PAYMENT FEE CALCULATION ===");
-      console.log("Final Amount (from request):", finalAmountBeforeFee);
-      console.log("Items Total (subtotal - discount):", itemsTotal);
-      console.log("Payment Fee:", paymentFee);
+      console.log("=== PAYMENT FEE FROM REQUEST ===");
+      console.log("Payment Fee (from frontend):", paymentFee);
+      console.log("Payment Fee Type:", typeof paymentFee);
+      console.log("Items Total (after discount):", itemsTotal);
 
       // Store payment fee in FIRST transaction only
       if (createdTransactions.length > 0 && paymentFee > 0) {
@@ -341,8 +346,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Add payment fee if applicable
-      if (paymentFee > 0) {
+      // Add payment fee to Midtrans items if applicable
+      if (paymentFee && paymentFee > 0) {
         midtransItems.push({
           id: "PAYMENT_FEE",
           price: paymentFee,
@@ -351,14 +356,17 @@ export async function POST(request: NextRequest) {
           brand: "RBX Store",
           category: "fee",
         });
+        console.log(`✅ Payment fee added to Midtrans items: ${paymentFee}`);
+      } else {
+        console.log(`❌ Payment fee NOT added (value: ${paymentFee})`);
       }
 
       console.log("=== MIDTRANS ITEMS DEBUG ===");
       console.log("Items:", JSON.stringify(midtransItems, null, 2));
-      console.log("Items subtotal:", itemsSubtotal);
-      console.log("Items with discount:", itemsTotal);
+      console.log("Items total (with discount):", itemsTotal);
       console.log("Payment fee:", paymentFee);
-      console.log("Final Amount:", finalAmountBeforeFee);
+      console.log("Subtotal from transactions:", subtotal);
+      console.log("Total discount distributed:", totalDiscountDistributed);
       console.log("Payment method ID:", paymentMethodId);
 
       // Map payment method to Midtrans enabled_payments
@@ -368,9 +376,19 @@ export async function POST(request: NextRequest) {
 
       console.log("Enabled payments for Midtrans:", enabledPayments);
 
+      // Calculate gross_amount from sum of item_details (Midtrans requirement)
+      const grossAmount = midtransItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      console.log("=== MIDTRANS GROSS AMOUNT ===");
+      console.log("Calculated from items:", grossAmount);
+      console.log("Items count:", midtransItems.length);
+
       const snapResult = await midtransService.createSnapTransaction({
         orderId: masterOrderId,
-        amount: Math.round(finalAmountBeforeFee),
+        amount: grossAmount, // Use calculated gross_amount instead of finalAmountBeforeFee
         items: midtransItems,
         customer: {
           first_name: customerInfo.name,

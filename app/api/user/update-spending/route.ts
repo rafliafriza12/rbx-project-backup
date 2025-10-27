@@ -55,7 +55,9 @@ export async function PUT(request: NextRequest) {
       phone: user.phone,
       countryCode: user.countryCode,
       accessRole: user.accessRole,
-      memberRole: user.memberRole,
+      resellerTier: user.resellerTier,
+      resellerExpiry: user.resellerExpiry,
+      resellerPackageId: user.resellerPackageId,
       spendedMoney: user.spendedMoney,
       isVerified: user.isVerified,
     };

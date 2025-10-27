@@ -25,13 +25,46 @@ export function getAllTransactions(transaction: Transaction): Transaction[] {
 
 /**
  * Calculate grand total for all transactions in checkout
+ * Grand Total = Sum of all finalAmount + Payment Fee (only in main transaction)
  */
 export function calculateGrandTotal(transaction: Transaction): number {
   const allTransactions = getAllTransactions(transaction);
-  return allTransactions.reduce(
+
+  console.log(
+    "[calculateGrandTotal] All transactions:",
+    allTransactions.length
+  );
+  console.log(
+    "[calculateGrandTotal] Transactions:",
+    allTransactions.map((t) => ({
+      id: t._id,
+      invoice: t.invoiceId,
+      finalAmount: t.finalAmount,
+      totalAmount: t.totalAmount,
+    }))
+  );
+
+  // Sum all finalAmount (already includes discount)
+  const totalAfterDiscount = allTransactions.reduce(
     (sum, t) => sum + (t.finalAmount || t.totalAmount),
     0
   );
+
+  console.log(
+    "[calculateGrandTotal] Total after discount:",
+    totalAfterDiscount
+  );
+
+  // Add payment fee (only stored in main/first transaction)
+  const paymentFee = getPaymentFee(transaction);
+
+  console.log("[calculateGrandTotal] Payment fee:", paymentFee);
+  console.log(
+    "[calculateGrandTotal] Grand total:",
+    totalAfterDiscount + paymentFee
+  );
+
+  return totalAfterDiscount + paymentFee;
 }
 
 /**
@@ -51,18 +84,41 @@ export function calculateTotalDiscount(transaction: Transaction): number {
 }
 
 /**
- * Get payment fee (only stored in first/main transaction)
+ * Get payment fee (search in all related transactions, not just main)
  */
 export function getPaymentFee(transaction: Transaction): number {
-  // Payment fee is only stored in the main/first transaction
-  return transaction.paymentFee || 0;
+  // Check main transaction first
+  if (transaction.paymentFee && transaction.paymentFee > 0) {
+    return transaction.paymentFee;
+  }
+
+  // If not in main, check related transactions
+  if (
+    transaction.relatedTransactions &&
+    transaction.relatedTransactions.length > 0
+  ) {
+    for (const relatedTx of transaction.relatedTransactions) {
+      if (relatedTx.paymentFee && relatedTx.paymentFee > 0) {
+        return relatedTx.paymentFee;
+      }
+    }
+  }
+
+  // No payment fee found
+  return 0;
 }
 
 /**
- * Calculate grand total including payment fee
+ * Calculate subtotal after discount (before payment fee)
  */
-export function calculateGrandTotalWithFee(transaction: Transaction): number {
-  return calculateGrandTotal(transaction) + getPaymentFee(transaction);
+export function calculateSubtotalAfterDiscount(
+  transaction: Transaction
+): number {
+  const allTransactions = getAllTransactions(transaction);
+  return allTransactions.reduce(
+    (sum, t) => sum + (t.finalAmount || t.totalAmount),
+    0
+  );
 }
 
 /**

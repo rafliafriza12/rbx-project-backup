@@ -17,7 +17,7 @@ const transactionSchema = new mongoose.Schema(
     // Detail Layanan
     serviceType: {
       type: String,
-      enum: ["robux", "gamepass", "joki"],
+      enum: ["robux", "gamepass", "joki", "reseller"],
       required: true,
     },
     serviceCategory: {
@@ -79,15 +79,19 @@ const transactionSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Data Akun Roblox (untuk semua layanan)
+    // Data Akun Roblox (untuk semua layanan kecuali reseller)
     robloxUsername: {
       type: String,
-      required: true,
+      required: function () {
+        // Not required for reseller purchases
+        return this.serviceType !== "reseller";
+      },
       trim: true,
+      default: "",
     },
     robloxPassword: {
       type: String,
-      required: false, // Optional - tidak diperlukan untuk gamepass
+      required: false, // Optional - tidak diperlukan untuk gamepass dan reseller
       default: null,
     },
 
@@ -146,6 +150,14 @@ const transactionSchema = new mongoose.Schema(
       itemName: String,
       gamepassId: String,
       additionalInfo: String,
+    },
+
+    // Data Reseller Package (for reseller purchases)
+    resellerDetails: {
+      tier: Number,
+      duration: Number, // in months
+      discount: Number, // percentage
+      features: [String],
     },
 
     // Data Pembayaran Midtrans

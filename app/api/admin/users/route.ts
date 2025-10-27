@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import Role from "@/models/Role";
+import ResellerPackage from "@/models/ResellerPackage";
 import { verifyToken, hashPassword } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -60,10 +60,9 @@ export async function GET(request: NextRequest) {
     // Calculate skip value for pagination
     const skip = (page - 1) * limit;
 
-    // Get users with pagination and populate memberRole
+    // Get users with pagination
     const users = await User.find(query)
       .select("-password")
-      .populate("memberRole", "member diskon description isActive")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -80,7 +79,9 @@ export async function GET(request: NextRequest) {
       phone: user.phone,
       countryCode: user.countryCode,
       accessRole: user.accessRole,
-      memberRole: user.memberRole,
+      resellerTier: user.resellerTier,
+      resellerExpiry: user.resellerExpiry,
+      resellerPackageId: user.resellerPackageId,
       spendedMoney: user.spendedMoney,
       isVerified: user.isVerified,
       googleId: user.googleId,
@@ -152,7 +153,9 @@ export async function POST(request: NextRequest) {
       countryCode,
       password,
       accessRole,
-      memberRole,
+      resellerTier,
+      resellerExpiry,
+      resellerPackageId,
     } = await request.json();
 
     // Validate required fields
@@ -187,14 +190,13 @@ export async function POST(request: NextRequest) {
     // Add optional fields if provided
     if (phone) userData.phone = phone;
     if (countryCode) userData.countryCode = countryCode;
-    if (memberRole) userData.memberRole = memberRole;
+    if (resellerTier) userData.resellerTier = resellerTier;
+    if (resellerExpiry) userData.resellerExpiry = new Date(resellerExpiry);
+    if (resellerPackageId) userData.resellerPackageId = resellerPackageId;
 
     // Create new user
     const newUser = new User(userData);
     await newUser.save();
-
-    // Populate memberRole for response
-    await newUser.populate("memberRole", "member diskon description isActive");
 
     const userResponse = {
       _id: newUser._id,
@@ -204,7 +206,9 @@ export async function POST(request: NextRequest) {
       phone: newUser.phone,
       countryCode: newUser.countryCode,
       accessRole: newUser.accessRole,
-      memberRole: newUser.memberRole,
+      resellerTier: newUser.resellerTier,
+      resellerExpiry: newUser.resellerExpiry,
+      resellerPackageId: newUser.resellerPackageId,
       spendedMoney: newUser.spendedMoney,
       isVerified: newUser.isVerified,
       createdAt: newUser.createdAt,
