@@ -200,16 +200,17 @@ export default function TransactionDetailPage() {
   // Check if this is robux_5_hari with non-ObjectId serviceId
   const isRobux5Hari =
     transaction?.serviceType === "robux" &&
-    transaction?.serviceCategory === "robux_5_hari" &&
-    transaction?.serviceId &&
-    !transaction.serviceId.match(/^[0-9a-fA-F]{24}$/);
-
+    transaction?.serviceCategory === "robux_5_hari";
   // Check if manual purchase button should be shown
   const showManualPurchaseButton =
     isRobux5Hari &&
     transaction?.paymentStatus === "settlement" &&
     transaction?.orderStatus === "pending" &&
     transaction?.gamepass;
+
+  console.log("isrobux 5 hari : ", isRobux5Hari);
+  console.log("showManualPurchaseButton : ", showManualPurchaseButton);
+  console.log("transaction data : ", transaction);
 
   if (loading) {
     return (

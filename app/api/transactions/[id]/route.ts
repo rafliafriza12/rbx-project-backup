@@ -29,7 +29,7 @@ async function processGamepassPurchase(transaction: any) {
       // Update order status to failed
       await transaction.updateStatus(
         "order",
-        "failed",
+        "pending",
         `Tidak ada akun dengan robux mencukupi (diperlukan: ${gamepassPrice})`,
         null
       );
@@ -58,7 +58,7 @@ async function processGamepassPurchase(transaction: any) {
       console.error("Failed to update account data");
       await transaction.updateStatus(
         "order",
-        "failed",
+        "pending",
         "Gagal memvalidasi akun stock",
         null
       );
@@ -71,7 +71,7 @@ async function processGamepassPurchase(transaction: any) {
       console.error("Account validation failed:", updatedAccountData.message);
       await transaction.updateStatus(
         "order",
-        "failed",
+        "pending",
         `Validasi akun gagal: ${updatedAccountData.message}`,
         null
       );
@@ -83,7 +83,7 @@ async function processGamepassPurchase(transaction: any) {
       console.log("Account robux insufficient after update");
       await transaction.updateStatus(
         "order",
-        "failed",
+        "pending",
         `Robux tidak mencukupi setelah validasi (tersedia: ${updatedAccountData.stockAccount.robux}, diperlukan: ${gamepassPrice})`,
         null
       );
@@ -141,7 +141,7 @@ async function processGamepassPurchase(transaction: any) {
       console.error("Gamepass purchase failed:", purchaseResult.message);
       await transaction.updateStatus(
         "order",
-        "failed",
+        "pending",
         `Pembelian gamepass gagal: ${purchaseResult.message}`,
         null
       );
@@ -150,7 +150,7 @@ async function processGamepassPurchase(transaction: any) {
     console.error("Error processing gamepass purchase:", error);
     await transaction.updateStatus(
       "order",
-      "failed",
+      "pending",
       `Error saat memproses pembelian gamepass: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,

@@ -28,7 +28,7 @@ interface ResellerPackage {
 }
 
 const tierColors = {
-  1: {
+  3: {
     bg: "from-emerald-900/60 via-emerald-800/40 to-emerald-700/50",
     border: "border-emerald-500/40",
     glow: "shadow-emerald-500/20",
@@ -44,7 +44,7 @@ const tierColors = {
     text: "text-slate-300",
     icon: "text-slate-400",
   },
-  3: {
+  1: {
     bg: "from-yellow-900/60 via-yellow-800/40 to-yellow-700/50",
     border: "border-yellow-500/40",
     glow: "shadow-yellow-500/20",
@@ -55,9 +55,9 @@ const tierColors = {
 };
 
 const tierIcons = {
-  1: Award,
+  3: Award,
   2: Shield,
-  3: Crown,
+  1: Crown,
 };
 
 export default function ResellerPage() {
