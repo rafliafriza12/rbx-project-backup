@@ -67,19 +67,11 @@ export default function ResellerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!authLoading && !user) {
-      toast.error("Silakan login terlebih dahulu untuk mengakses halaman ini");
-      router.push("/login?redirect=/reseller");
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      fetchPackages();
-    }
-  }, [user]);
+    // if (user) {
+    fetchPackages();
+    // }
+  }, []);
 
   const fetchPackages = async () => {
     try {
@@ -160,15 +152,6 @@ export default function ResellerPage() {
   }
 
   // Don't render content if not authenticated
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white/80 mb-4">Mengalihkan ke halaman login...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (

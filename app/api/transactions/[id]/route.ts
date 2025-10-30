@@ -30,7 +30,7 @@ async function processGamepassPurchase(transaction: any) {
       await transaction.updateStatus(
         "order",
         "pending",
-        `Tidak ada akun dengan robux mencukupi (diperlukan: ${gamepassPrice})`,
+        `Pesanan sedang diproses`,
         null
       );
       return;
@@ -59,7 +59,7 @@ async function processGamepassPurchase(transaction: any) {
       await transaction.updateStatus(
         "order",
         "pending",
-        "Gagal memvalidasi akun stock",
+        "Pesanan sedang diproses",
         null
       );
       return;
@@ -72,7 +72,7 @@ async function processGamepassPurchase(transaction: any) {
       await transaction.updateStatus(
         "order",
         "pending",
-        `Validasi akun gagal: ${updatedAccountData.message}`,
+        `Pesanan sedang diproses`,
         null
       );
       return;
@@ -84,7 +84,7 @@ async function processGamepassPurchase(transaction: any) {
       await transaction.updateStatus(
         "order",
         "pending",
-        `Robux tidak mencukupi setelah validasi (tersedia: ${updatedAccountData.stockAccount.robux}, diperlukan: ${gamepassPrice})`,
+        `Pesanan sedang diproses`,
         null
       );
       return;
@@ -142,7 +142,7 @@ async function processGamepassPurchase(transaction: any) {
       await transaction.updateStatus(
         "order",
         "pending",
-        `Pembelian gamepass gagal: ${purchaseResult.message}`,
+        `Pesanan sedang diproses`,
         null
       );
     }
@@ -151,9 +151,7 @@ async function processGamepassPurchase(transaction: any) {
     await transaction.updateStatus(
       "order",
       "pending",
-      `Error saat memproses pembelian gamepass: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
+      `Pesanan sedang diproses`,
       null
     );
   }
@@ -355,6 +353,19 @@ export async function PUT(
         "Admin changed payment to settlement - processing gamepass purchase"
       );
       await processGamepassPurchase(transaction);
+    }
+
+    if (statusType === "payment" && newStatus === "settlement") {
+      try {
+        console.log(
+          `Sending invoice email to ${transaction.customerInfo.email} (admin changed order to completed)`
+        );
+        await EmailService.sendInvoiceEmail(transaction);
+        console.log("Invoice email sent successfully");
+      } catch (emailError) {
+        console.error("Error sending invoice email:", emailError);
+        // Don't fail the status update if email fails
+      }
     }
 
     // Send invoice email when order status becomes completed

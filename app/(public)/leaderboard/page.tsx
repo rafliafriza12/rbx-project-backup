@@ -178,8 +178,7 @@ export default function LeaderboardPage() {
     if (!entry.roleName || entry.roleName === "Regular") {
       return (
         <span className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 text-xs font-medium rounded-full flex items-center gap-1">
-          <Shield className="w-3 h-3" />
-          Regular
+          No Tier
         </span>
       );
     } else {
@@ -189,11 +188,6 @@ export default function LeaderboardPage() {
             <Crown className="w-3 h-3" />
             {entry.roleName}
           </span>
-          {entry.discount > 0 && (
-            <span className="text-xs text-primary-200 font-medium">
-              {entry.discount}% OFF
-            </span>
-          )}
         </div>
       );
     }
@@ -373,8 +367,8 @@ export default function LeaderboardPage() {
                   : leaderboard.length.toLocaleString()}
               </div>
               <div className="text-sm text-white/60">
-                {statistics?.vipMembers || 0} VIP •{" "}
-                {statistics?.regularMembers || 0} Regular
+                {statistics?.vipMembers || 0} Reseller •{" "}
+                {statistics?.regularMembers || 0} No Tier
               </div>
             </div>
 
@@ -438,7 +432,7 @@ export default function LeaderboardPage() {
                         Terakhir Order
                       </th>
                       <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
-                        Role
+                        Tier
                       </th>
                     </tr>
                   </thead>

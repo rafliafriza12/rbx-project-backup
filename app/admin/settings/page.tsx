@@ -120,25 +120,25 @@ export default function SettingsPage() {
         </svg>
       ),
     },
-    {
-      id: "api",
-      label: "API External",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-          />
-        </svg>
-      ),
-    },
+    // {
+    //   id: "api",
+    //   label: "API External",
+    //   icon: (
+    //     <svg
+    //       className="w-5 h-5"
+    //       fill="none"
+    //       stroke="currentColor"
+    //       viewBox="0 0 24 24"
+    //     >
+    //       <path
+    //         strokeLinecap="round"
+    //         strokeLinejoin="round"
+    //         strokeWidth={2}
+    //         d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+    //       />
+    //     </svg>
+    //   ),
+    // },
     {
       id: "email",
       label: "Email Settings",
@@ -475,14 +475,31 @@ export default function SettingsPage() {
       case "payment":
         return (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="text-blue-800 font-semibold mb-2">
-                ⚙️ Konfigurasi Midtrans Payment Gateway
-              </h3>
-              <p className="text-[#3b82f6] text-sm">
-                Silakan masukkan kredensial Midtrans untuk mengaktifkan payment
-                gateway
-              </p>
+            <div className="bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <svg
+                  className="w-5 h-5 text-[#60a5fa] mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div>
+                  <h3 className="font-semibold text-[#60a5fa] mb-1">
+                    Konfigurasi Midtrans Payment Gateway
+                  </h3>
+                  <p className="text-sm text-[#94a3b8]">
+                    Silakan masukkan kredensial Midtrans untuk mengaktifkan
+                    payment gateway
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -619,7 +636,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4">
               <h4 className="text-yellow-800 font-medium mb-2">
                 ⚠️ Petunjuk Konfigurasi
               </h4>

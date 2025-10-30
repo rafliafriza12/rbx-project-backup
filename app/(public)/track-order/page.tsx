@@ -124,7 +124,7 @@ export default function TrackOrderPage() {
 
     const statusLabels: { [key: string]: string } = {
       // Payment Status
-      pending: "Menunggu Pembayaran",
+      pending: "Pending",
       settlement: "Sudah Dibayar",
       expired: "Kadaluarsa",
       cancelled: "Dibatalkan",
