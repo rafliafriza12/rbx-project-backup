@@ -933,28 +933,30 @@ export default function UsersPage() {
                         className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
                       />
                     </div>
-                  </>
-                )}
 
-                {activeTab === "admins" && (
-                  <div>
-                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
-                      Access Role
-                    </label>
-                    <select
-                      value={formData.accessRole}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          accessRole: e.target.value as "user" | "admin",
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
-                    >
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
+                        Access Role
+                      </label>
+                      <select
+                        value={formData.accessRole}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            accessRole: e.target.value as "user" | "admin",
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <p className="text-xs text-[#94a3b8] mt-1">
+                        Set whether this user has admin privileges or regular
+                        user access
+                      </p>
+                    </div>
+                  </>
                 )}
 
                 {activeTab !== "stock" && (
@@ -1085,27 +1087,6 @@ export default function UsersPage() {
                       </div>
                     )}
                   </>
-                )}
-
-                {activeTab === "admins" && (
-                  <div>
-                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
-                      Access Role
-                    </label>
-                    <select
-                      value={formData.accessRole}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          accessRole: e.target.value as "user" | "admin",
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9]"
-                    >
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
                 )}
 
                 {!selectedUser && activeTab !== "stock" && (

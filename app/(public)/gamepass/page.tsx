@@ -93,7 +93,7 @@ export default function GamepassPage() {
             </button>
           </div>
         ) : (
-          <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-2  lg:grid-cols-4 gap-6 sm:gap-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             {gamepasses?.length === 0 ? (
               <div className="col-span-full text-center py-16">
                 <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 max-w-md mx-auto">
@@ -152,7 +152,7 @@ export default function GamepassPage() {
                           src={gamepass.imgUrl}
                           alt={gamepass.gameName}
                           fill
-                          className="object-fill transition-all duration-500 group-hover:scale-110"
+                          className="object-contain transition-all duration-500 group-hover:scale-110"
                         />
 
                         {/* Purple gradient overlay for better contrast */}
