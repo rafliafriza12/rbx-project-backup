@@ -475,11 +475,47 @@ export default function Rbx5Page() {
 
     try {
       const expectedRobux = getGamepassAmount();
-      const response = await fetch(
-        `/api/check-gamepass?universeId=${selectedPlace.placeId}&expectedRobux=${expectedRobux}`
+
+      // Get userId from userInfo
+      const userId = userInfo?.id;
+
+      if (!userId) {
+        toast.error(
+          "User ID tidak ditemukan. Mohon cari username Roblox terlebih dahulu."
+        );
+        setIsCheckingGamepass(false);
+        return;
+      }
+
+      console.log(
+        `🔍 Checking gamepass for User ID: ${userId}, expected price: ${expectedRobux} Robux`
       );
+
+      // Use NEW stable API endpoint (User-based GamePass API)
+      // This endpoint is reliable and returns all gamepasses owned by the user
+      const response = await fetch(
+        `/api/check-gamepass?userId=${userId}&expectedRobux=${expectedRobux}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
-      // console.log(data);
+
+      // Log result
+      if (data.success) {
+        console.log(
+          `✅ GamePass found! Name: ${data.gamepass?.name}, Price: ${data.gamepass?.price} Robux`
+        );
+      } else {
+        console.log(
+          `❌ GamePass not found. Total gamepasses: ${
+            data.allGamepasses?.length || 0
+          }`
+        );
+      }
+
       setGamepassCheckResult(data);
 
       if (data.success) {
@@ -490,7 +526,7 @@ export default function Rbx5Page() {
 
         // Show success message
         toast.success(
-          `GamePass berhasil ditemukan! Nama: ${data.gamepass.name}, Harga: ${data.gamepass.price} Robux`,
+          `GamePass berhasil ditemukan! Nama: ${data.gamepass?.name}, Harga: ${data.gamepass?.price} Robux`,
           {
             position: "top-right",
             autoClose: 5000,

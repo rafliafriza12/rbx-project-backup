@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import StockAccount from "@/models/StockAccount";
+import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
+import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -37,24 +39,26 @@ async function processGamepassPurchase(transaction: any) {
 
     console.log("Suitable account found:", suitableAccount.username);
 
-    // Validate dan update account data terlebih dahulu
-    const updateAccountResponse = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/admin/stock-accounts/${suitableAccount._id}`,
+    // Validate dan update account data terlebih dahulu (using direct import)
+    console.log("🔄 Updating stock account data...");
+    const updateRequest = new NextRequest(
+      `http://localhost:3000/api/admin/stock-accounts/${suitableAccount._id}`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
       }
     );
 
+    const updateAccountResponse = await updateStockAccountHandler(
+      updateRequest,
+      { params: Promise.resolve({ id: suitableAccount._id.toString() }) }
+    );
+
     if (!updateAccountResponse.ok) {
-      console.error("Failed to update account data");
+      console.error("❌ Failed to update account data");
       await transaction.updateStatus(
         "order",
         "pending",
@@ -95,25 +99,24 @@ async function processGamepassPurchase(transaction: any) {
       };
     }
 
-    // Lakukan purchase gamepass
-    const purchaseResponse = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/buy-pass`,
+    // Lakukan purchase gamepass (using direct import with Puppeteer)
+    console.log("🎯 Purchasing gamepass...");
+    const purchaseRequest = new NextRequest(
+      "http://localhost:3000/api/buy-pass",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
           productId: transaction.gamepass.productId,
+          productName: transaction.gamepass.name,
           price: transaction.gamepass.price,
           sellerId: transaction.gamepass.sellerId,
         }),
       }
     );
 
+    const purchaseResponse = await buyPassHandler(purchaseRequest);
     const purchaseResult = await purchaseResponse.json();
     console.log(purchaseResult);
     if (purchaseResult.success) {
@@ -127,21 +130,22 @@ async function processGamepassPurchase(transaction: any) {
         null
       );
 
-      // Update account data setelah purchase
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        }/api/admin/stock-accounts/${suitableAccount._id}`,
+      // Update account data setelah purchase (using direct import)
+      console.log("🔄 Updating stock account after purchase...");
+      const updateAfterRequest = new NextRequest(
+        `http://localhost:3000/api/admin/stock-accounts/${suitableAccount._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             robloxCookie: suitableAccount.robloxCookie,
           }),
         }
       );
+
+      await updateStockAccountHandler(updateAfterRequest, {
+        params: Promise.resolve({ id: suitableAccount._id.toString() }),
+      });
 
       return {
         success: true,

@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
 
     await stockAccount.save();
 
+    // Auto-purchase will be triggered manually after admin confirmation
+    // (see: /app/api/admin/stock-accounts/trigger-auto-purchase/route.ts)
+
     return NextResponse.json({
       success: true,
       message: "Stock account berhasil ditambahkan",

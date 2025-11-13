@@ -36,9 +36,14 @@ export async function GET(req: NextRequest) {
     );
 
     // 2️⃣ Fetch user info from Roblox API
-    const userRes = await fetch(
-      `https://users.roblox.com/v1/users/search?keyword=${username}`
-    );
+    const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usernames: [username],
+        excludeBannedUsers: false,
+      }),
+    });
 
     if (!userRes.ok) {
       return NextResponse.json(

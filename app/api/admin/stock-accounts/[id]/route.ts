@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
+import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
 
 export async function PUT(
   req: NextRequest,
@@ -67,10 +68,22 @@ export async function PUT(
       );
     }
 
+    // Start auto-purchase in background (non-blocking)
+    // Will check ALL active stock accounts, not just this one
+    // console.log("🚀 Triggering auto-purchase for pending transactions...");
+    // const autoPurchaseResult = await autoPurchasePendingRobux(
+    //   updatedAccount._id.toString()
+    // );
+
     return NextResponse.json({
       success: true,
-      message: "Stock account berhasil diperbarui",
+      message:
+        "Stock account berhasil diperbarui. Auto-purchase dimulai untuk transaksi pending.",
       stockAccount: updatedAccount,
+      // autoPurchase: {
+      //   sessionId: autoPurchaseResult.sessionId,
+      //   message: autoPurchaseResult.message,
+      // },
     });
   } catch (error) {
     console.error("Error updating stock account:", error);

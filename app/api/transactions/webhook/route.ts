@@ -6,6 +6,8 @@ import StockAccount from "@/models/StockAccount";
 import ResellerPackage from "@/models/ResellerPackage";
 import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
+import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
+import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
 
 // Activate reseller package for user after payment settlement
 async function activateResellerPackage(transaction: any) {
@@ -92,20 +94,22 @@ async function processGamepassPurchase(transaction: any) {
 
     console.log("Suitable account found:", suitableAccount.username);
 
-    // Validate dan update account data terlebih dahulu
-    const updateAccountResponse = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/admin/stock-accounts/${suitableAccount._id}`,
+    // Validate dan update account data terlebih dahulu (using direct import)
+    console.log("🔄 Updating stock account data...");
+    const updateRequest = new NextRequest(
+      `http://localhost:3000/api/admin/stock-accounts/${suitableAccount._id}`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
       }
+    );
+
+    const updateAccountResponse = await updateStockAccountHandler(
+      updateRequest,
+      { params: Promise.resolve({ id: suitableAccount._id.toString() }) }
     );
 
     if (!updateAccountResponse.ok) {
@@ -144,25 +148,24 @@ async function processGamepassPurchase(transaction: any) {
       return;
     }
 
-    // Lakukan purchase gamepass
-    const purchaseResponse = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/buy-pass`,
+    // Lakukan purchase gamepass (using direct import with Puppeteer)
+    console.log("🎯 Purchasing gamepass via Puppeteer...");
+    const purchaseRequest = new NextRequest(
+      "http://localhost:3000/api/buy-pass",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
           productId: transaction.gamepass.productId,
+          productName: transaction.gamepass.name,
           price: transaction.gamepass.price,
           sellerId: transaction.gamepass.sellerId,
         }),
       }
     );
 
+    const purchaseResponse = await buyPassHandler(purchaseRequest);
     const purchaseResult = await purchaseResponse.json();
 
     if (purchaseResult.success) {
@@ -176,21 +179,22 @@ async function processGamepassPurchase(transaction: any) {
         null
       );
 
-      // Update account data setelah purchase
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        }/api/admin/stock-accounts/${suitableAccount._id}`,
+      // Update account data setelah purchase (using direct import)
+      console.log("🔄 Updating stock account after purchase...");
+      const postUpdateRequest = new NextRequest(
+        `http://localhost:3000/api/admin/stock-accounts/${suitableAccount._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             robloxCookie: suitableAccount.robloxCookie,
           }),
         }
       );
+
+      await updateStockAccountHandler(postUpdateRequest, {
+        params: Promise.resolve({ id: suitableAccount._id.toString() }),
+      });
     } else {
       console.error("Gamepass purchase failed:", purchaseResult.message);
       await transaction.updateStatus(

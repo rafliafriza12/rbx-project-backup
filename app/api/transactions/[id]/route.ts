@@ -6,6 +6,7 @@ import StockAccount from "@/models/StockAccount";
 import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 import mongoose from "mongoose";
+import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -90,25 +91,24 @@ async function processGamepassPurchase(transaction: any) {
       return;
     }
 
-    // Lakukan purchase gamepass
-    const purchaseResponse = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/buy-pass`,
+    // Lakukan purchase gamepass (using direct import with Puppeteer)
+    console.log("🎯 Purchasing gamepass via Puppeteer...");
+    const purchaseRequest = new NextRequest(
+      "http://localhost:3000/api/buy-pass",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
           productId: transaction.gamepass.productId,
+          productName: transaction.gamepass.name,
           price: transaction.gamepass.price,
           sellerId: transaction.gamepass.sellerId,
         }),
       }
     );
 
+    const purchaseResponse = await buyPassHandler(purchaseRequest);
     const purchaseResult = await purchaseResponse.json();
 
     if (purchaseResult.success) {
