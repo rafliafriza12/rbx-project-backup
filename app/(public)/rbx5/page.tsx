@@ -1881,7 +1881,19 @@ export default function Rbx5Page() {
             </div>
 
             {/* Fixed Action Buttons */}
-            <div className="p-4 border-t border-primary-100/20 bg-gradient-to-r from-primary-800/20 to-primary-900/20 flex-shrink-0">
+            <div className="p-4 border-t border-primary-100/20 bg-gradient-to-r from-primary-800/20 to-primary-900/20 flex-shrink-0 space-y-3">
+              {/* Create Gamepass Button - Full Width */}
+              <a
+                href={`https://create.roblox.com/dashboard/creations/experiences/${selectedPlace.placeId}/monetization/passes`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Gamepad2 className="w-4 h-4" />
+                Buat GamePass di Roblox
+              </a>
+
+              {/* Check & Cancel Buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={checkGamepassExists}

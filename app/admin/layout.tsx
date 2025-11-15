@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-hot-toast";
 
 // Admin-specific styles - Clean Dark Theme
 const adminStyles = `
@@ -654,6 +655,11 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userName, setUserName] = useState("");
+  const [isAutoPurchaseRunning, setIsAutoPurchaseRunning] = useState(false);
+  const [autoPurchaseProgress, setAutoPurchaseProgress] = useState<{
+    processed: number;
+    total: number;
+  } | null>(null);
 
   const handleLogout = async () => {
     try {
@@ -673,6 +679,120 @@ export default function AdminLayout({
     if (userNameCookie) {
       setUserName(decodeURIComponent(userNameCookie.split("=")[1]));
     }
+  }, []);
+
+  // Monitor auto-purchase progress globally
+  useEffect(() => {
+    // Check if there's an active auto-purchase session
+    const checkAutoPurchaseStatus = async () => {
+      try {
+        // Get active session from localStorage
+        const activeSession = localStorage.getItem("autoPurchaseSessionId");
+        const notifiedSessions = JSON.parse(
+          localStorage.getItem("autoPurchaseNotified") || "[]"
+        );
+
+        if (!activeSession) {
+          setIsAutoPurchaseRunning(false);
+          setAutoPurchaseProgress(null);
+          return;
+        }
+
+        if (notifiedSessions.includes(activeSession)) {
+          setIsAutoPurchaseRunning(false);
+          setAutoPurchaseProgress(null);
+          return;
+        }
+
+        // Poll the progress API
+        const response = await fetch(
+          `/api/auto-purchase/progress/${activeSession}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Update progress state
+          if (data.status === "running") {
+            setIsAutoPurchaseRunning(true);
+            setAutoPurchaseProgress({
+              processed: data.summary?.processedCount || 0,
+              total: data.summary?.totalTransactions || 0,
+            });
+          }
+
+          // Check if completed or failed
+          if (data.status === "completed") {
+            setIsAutoPurchaseRunning(false);
+            setAutoPurchaseProgress(null);
+
+            // Show success notification
+            toast.success(
+              `✅ Auto-purchase selesai! ${
+                data.summary?.processedCount || 0
+              } transaksi berhasil diproses.`,
+              {
+                duration: 6000,
+                position: "top-right",
+                style: {
+                  background: "#1e293b",
+                  color: "#f1f5f9",
+                  border: "1px solid #22c55e",
+                },
+              }
+            );
+
+            // Mark as notified
+            notifiedSessions.push(activeSession);
+            localStorage.setItem(
+              "autoPurchaseNotified",
+              JSON.stringify(notifiedSessions)
+            );
+            localStorage.removeItem("autoPurchaseSessionId");
+          } else if (data.status === "failed") {
+            setIsAutoPurchaseRunning(false);
+            setAutoPurchaseProgress(null);
+
+            // Show error notification
+            toast.error(
+              `❌ Auto-purchase gagal: ${data.error || "Unknown error"}`,
+              {
+                duration: 6000,
+                position: "top-right",
+                style: {
+                  background: "#1e293b",
+                  color: "#f1f5f9",
+                  border: "1px solid #ef4444",
+                },
+              }
+            );
+
+            // Mark as notified
+            notifiedSessions.push(activeSession);
+            localStorage.setItem(
+              "autoPurchaseNotified",
+              JSON.stringify(notifiedSessions)
+            );
+            localStorage.removeItem("autoPurchaseSessionId");
+          }
+        } else if (response.status === 404) {
+          // Session not found, clear it
+          setIsAutoPurchaseRunning(false);
+          setAutoPurchaseProgress(null);
+          localStorage.removeItem("autoPurchaseSessionId");
+        }
+      } catch (error) {
+        console.error("Error checking auto-purchase status:", error);
+      }
+    };
+
+    // Initial check
+    checkAutoPurchaseStatus();
+
+    // Poll every 3 seconds
+    const pollInterval = setInterval(checkAutoPurchaseStatus, 3000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   return (
@@ -802,7 +922,24 @@ export default function AdminLayout({
                     {menuItems.find((item) => item.href === pathname)?.title ||
                       "Dashboard"}
                   </h1>
-                  {/* Notification & Profile can be added here */}
+
+                  {/* Auto-Purchase Status Indicator */}
+                  {isAutoPurchaseRunning && (
+                    <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                        <span className="text-sm font-medium text-blue-400">
+                          Auto-Purchase Running
+                        </span>
+                      </div>
+                      {autoPurchaseProgress && (
+                        <div className="text-xs text-blue-300 border-l border-blue-500/30 pl-3">
+                          {autoPurchaseProgress.processed}/
+                          {autoPurchaseProgress.total} transaksi
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </header>

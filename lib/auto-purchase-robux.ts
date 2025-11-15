@@ -423,7 +423,8 @@ async function purchaseGamepass(
       sellerId,
     });
 
-    const request = new NextRequest("http://localhost:3000/api/buy-pass", {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const request = new NextRequest(`${apiUrl}/api/buy-pass`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

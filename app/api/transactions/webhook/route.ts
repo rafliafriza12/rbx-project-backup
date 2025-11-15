@@ -66,6 +66,8 @@ async function activateResellerPackage(transaction: any) {
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
   try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
     console.log(
       "Processing gamepass purchase for transaction:",
       transaction.invoiceId
@@ -97,7 +99,7 @@ async function processGamepassPurchase(transaction: any) {
     // Validate dan update account data terlebih dahulu (using direct import)
     console.log("🔄 Updating stock account data...");
     const updateRequest = new NextRequest(
-      `http://localhost:3000/api/admin/stock-accounts/${suitableAccount._id}`,
+      `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -150,20 +152,17 @@ async function processGamepassPurchase(transaction: any) {
 
     // Lakukan purchase gamepass (using direct import with Puppeteer)
     console.log("🎯 Purchasing gamepass via Puppeteer...");
-    const purchaseRequest = new NextRequest(
-      "http://localhost:3000/api/buy-pass",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          robloxCookie: suitableAccount.robloxCookie,
-          productId: transaction.gamepass.productId,
-          productName: transaction.gamepass.name,
-          price: transaction.gamepass.price,
-          sellerId: transaction.gamepass.sellerId,
-        }),
-      }
-    );
+    const purchaseRequest = new NextRequest(`${apiUrl}/api/buy-pass`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        robloxCookie: suitableAccount.robloxCookie,
+        productId: transaction.gamepass.productId,
+        productName: transaction.gamepass.name,
+        price: transaction.gamepass.price,
+        sellerId: transaction.gamepass.sellerId,
+      }),
+    });
 
     const purchaseResponse = await buyPassHandler(purchaseRequest);
     const purchaseResult = await purchaseResponse.json();
@@ -182,7 +181,7 @@ async function processGamepassPurchase(transaction: any) {
       // Update account data setelah purchase (using direct import)
       console.log("🔄 Updating stock account after purchase...");
       const postUpdateRequest = new NextRequest(
-        `http://localhost:3000/api/admin/stock-accounts/${suitableAccount._id}`,
+        `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

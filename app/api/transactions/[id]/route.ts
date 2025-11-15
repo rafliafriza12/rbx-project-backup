@@ -93,20 +93,18 @@ async function processGamepassPurchase(transaction: any) {
 
     // Lakukan purchase gamepass (using direct import with Puppeteer)
     console.log("🎯 Purchasing gamepass via Puppeteer...");
-    const purchaseRequest = new NextRequest(
-      "http://localhost:3000/api/buy-pass",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          robloxCookie: suitableAccount.robloxCookie,
-          productId: transaction.gamepass.productId,
-          productName: transaction.gamepass.name,
-          price: transaction.gamepass.price,
-          sellerId: transaction.gamepass.sellerId,
-        }),
-      }
-    );
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const purchaseRequest = new NextRequest(`${apiUrl}/api/buy-pass`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        robloxCookie: suitableAccount.robloxCookie,
+        productId: transaction.gamepass.productId,
+        productName: transaction.gamepass.name,
+        price: transaction.gamepass.price,
+        sellerId: transaction.gamepass.sellerId,
+      }),
+    });
 
     const purchaseResponse = await buyPassHandler(purchaseRequest);
     const purchaseResult = await purchaseResponse.json();

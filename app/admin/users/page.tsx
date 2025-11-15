@@ -76,13 +76,6 @@ export default function UsersPage() {
     robloxCookie: "",
   });
 
-  // Auto-purchase progress modal state
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [progressSessionId, setProgressSessionId] = useState<string | null>(
-    null
-  );
-  const [progressData, setProgressData] = useState<any>(null);
-
   // Confirmation modal for auto-purchase
   const [showAutoPurchaseConfirm, setShowAutoPurchaseConfirm] = useState(false);
   const [pendingStockAccountId, setPendingStockAccountId] = useState<
@@ -96,39 +89,6 @@ export default function UsersPage() {
       fetchStockAccounts();
     }
   }, [activeTab]);
-
-  // Poll progress API when modal is shown
-  useEffect(() => {
-    if (!showProgressModal || !progressSessionId) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(
-          `/api/auto-purchase/progress/${progressSessionId}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setProgressData(data);
-
-          // Close modal when completed or failed
-          if (data.status === "completed" || data.status === "failed") {
-            clearInterval(pollInterval);
-            setTimeout(() => {
-              setShowProgressModal(false);
-              setProgressSessionId(null);
-              setProgressData(null);
-              // Refresh stock accounts to show updated robux
-              fetchStockAccounts();
-            }, 3000); // Keep modal open for 3 seconds to show final status
-          }
-        }
-      } catch (error) {
-        console.error("Error polling progress:", error);
-      }
-    }, 1500); // Poll every 1.5 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [showProgressModal, progressSessionId]);
 
   const fetchUsers = async () => {
     setTableLoading(true);
@@ -302,10 +262,21 @@ export default function UsersPage() {
 
       const data = await response.json();
 
-      if (response.ok && data.autoPurchase?.sessionId) {
-        setProgressSessionId(data.autoPurchase.sessionId);
-        setShowProgressModal(true);
-        toast.success("Auto-purchase started!");
+      if (response.ok) {
+        // Save session ID to localStorage for global monitoring
+        if (data.autoPurchase?.sessionId) {
+          localStorage.setItem(
+            "autoPurchaseSessionId",
+            data.autoPurchase.sessionId
+          );
+        }
+
+        toast.success("🚀 " + (data.message || "Auto-purchase started!"));
+
+        // Refresh stock accounts after some time
+        setTimeout(() => {
+          fetchStockAccounts();
+        }, 10000);
       } else {
         toast.error(data.message || "Failed to start auto-purchase");
       }
@@ -1283,272 +1254,6 @@ export default function UsersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Auto-Purchase Progress Modal */}
-      {showProgressModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1e293b] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            {!progressData ? (
-              // Loading state
-              <div className="p-12 flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mb-4"></div>
-                <p className="text-[#94a3b8] text-lg">
-                  Loading progress data...
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="p-6 border-b border-[#334155]">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-[#f1f5f9]">
-                      🤖 Auto-Purchase Progress
-                    </h2>
-                    <div
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        progressData.status === "running"
-                          ? "bg-blue-500/20 text-blue-400"
-                          : progressData.status === "completed"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
-                    >
-                      {progressData.status === "running"
-                        ? "⚡ Running"
-                        : progressData.status === "completed"
-                        ? "✅ Completed"
-                        : "❌ Failed"}
-                    </div>
-                  </div>
-                  <p className="text-[#94a3b8] mt-2">
-                    {progressData.currentStep || "Initializing..."}
-                  </p>
-                </div>
-
-                <div className="p-6 space-y-6">
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-[#334155] p-4 rounded-lg">
-                      <div className="text-[#94a3b8] text-sm">Total</div>
-                      <div className="text-2xl font-bold text-[#f1f5f9]">
-                        {progressData.summary?.totalTransactions || 0}
-                      </div>
-                    </div>
-                    <div className="bg-[#334155] p-4 rounded-lg">
-                      <div className="text-[#94a3b8] text-sm">Processed</div>
-                      <div className="text-2xl font-bold text-green-400">
-                        {progressData.summary?.processedCount || 0}
-                      </div>
-                    </div>
-                    <div className="bg-[#334155] p-4 rounded-lg">
-                      <div className="text-[#94a3b8] text-sm">Failed</div>
-                      <div className="text-2xl font-bold text-red-400">
-                        {progressData.summary?.failedCount || 0}
-                      </div>
-                    </div>
-                    <div className="bg-[#334155] p-4 rounded-lg">
-                      <div className="text-[#94a3b8] text-sm">Skipped</div>
-                      <div className="text-2xl font-bold text-yellow-400">
-                        {progressData.summary?.skippedCount || 0}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stock Accounts */}
-                  {progressData.stockAccounts &&
-                    progressData.stockAccounts.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#f1f5f9] mb-3">
-                          💰 Available Stock Accounts
-                        </h3>
-                        <div className="bg-[#334155] rounded-lg overflow-hidden">
-                          <div className="max-h-40 overflow-y-auto">
-                            <table className="w-full">
-                              <thead className="bg-[#1e293b] sticky top-0">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-[#94a3b8] text-sm">
-                                    Username
-                                  </th>
-                                  <th className="px-4 py-2 text-right text-[#94a3b8] text-sm">
-                                    Robux
-                                  </th>
-                                  <th className="px-4 py-2 text-center text-[#94a3b8] text-sm">
-                                    Status
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {progressData.stockAccounts.map(
-                                  (
-                                    acc: {
-                                      id: string;
-                                      username: string;
-                                      robux: number;
-                                      status: string;
-                                    },
-                                    idx: number
-                                  ) => (
-                                    <tr
-                                      key={acc.id}
-                                      className={
-                                        idx % 2 === 0 ? "bg-[#2d3748]" : ""
-                                      }
-                                    >
-                                      <td className="px-4 py-2 text-[#f1f5f9]">
-                                        {acc.username}
-                                      </td>
-                                      <td className="px-4 py-2 text-right text-[#f1f5f9]">
-                                        {acc.robux.toLocaleString()}
-                                      </td>
-                                      <td className="px-4 py-2 text-center">
-                                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
-                                          {acc.status}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Transactions */}
-                  {progressData.transactions &&
-                    progressData.transactions.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#f1f5f9] mb-3">
-                          📋 Transactions
-                        </h3>
-                        <div className="bg-[#334155] rounded-lg overflow-hidden">
-                          <div className="max-h-96 overflow-y-auto">
-                            <table className="w-full">
-                              <thead className="bg-[#1e293b] sticky top-0">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-[#94a3b8] text-sm">
-                                    Invoice
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-[#94a3b8] text-sm">
-                                    Gamepass
-                                  </th>
-                                  <th className="px-4 py-2 text-right text-[#94a3b8] text-sm">
-                                    Price
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-[#94a3b8] text-sm">
-                                    Used Account
-                                  </th>
-                                  <th className="px-4 py-2 text-center text-[#94a3b8] text-sm">
-                                    Status
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {progressData.transactions.map(
-                                  (
-                                    txn: {
-                                      invoiceId: string;
-                                      gamepassName: string;
-                                      gamepassPrice: number;
-                                      status: string;
-                                      usedAccount?: string;
-                                      error?: string;
-                                    },
-                                    idx: number
-                                  ) => (
-                                    <tr
-                                      key={txn.invoiceId}
-                                      className={
-                                        idx % 2 === 0 ? "bg-[#2d3748]" : ""
-                                      }
-                                    >
-                                      <td className="px-4 py-2 text-[#f1f5f9] text-sm">
-                                        {txn.invoiceId}
-                                      </td>
-                                      <td className="px-4 py-2 text-[#f1f5f9] text-sm">
-                                        {txn.gamepassName}
-                                      </td>
-                                      <td className="px-4 py-2 text-right text-[#f1f5f9] text-sm">
-                                        {txn.gamepassPrice.toLocaleString()}
-                                      </td>
-                                      <td className="px-4 py-2 text-[#94a3b8] text-sm">
-                                        {txn.usedAccount || "-"}
-                                      </td>
-                                      <td className="px-4 py-2 text-center">
-                                        {txn.status === "completed" ? (
-                                          <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
-                                            ✅ Completed
-                                          </span>
-                                        ) : txn.status === "processing" ? (
-                                          <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400 mr-1"></div>
-                                            Processing
-                                          </span>
-                                        ) : txn.status === "failed" ? (
-                                          <span
-                                            className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded cursor-help"
-                                            title={txn.error}
-                                          >
-                                            ❌ Failed
-                                          </span>
-                                        ) : (
-                                          <span className="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded">
-                                            ⏳ Pending
-                                          </span>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Error Message */}
-                  {progressData.error && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                      <div className="flex items-start">
-                        <span className="text-red-400 text-xl mr-3">⚠️</span>
-                        <div>
-                          <h4 className="text-red-400 font-semibold mb-1">
-                            Error Occurred
-                          </h4>
-                          <p className="text-red-300 text-sm">
-                            {progressData.error}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-6 border-t border-[#334155] flex justify-end">
-                  <button
-                    onClick={() => {
-                      setShowProgressModal(false);
-                      setProgressSessionId(null);
-                      setProgressData(null);
-                    }}
-                    disabled={progressData?.status === "running"}
-                    className={`px-6 py-2 rounded-lg text-[#f1f5f9] ${
-                      progressData?.status === "running"
-                        ? "bg-[#475569] cursor-not-allowed"
-                        : "bg-[#3b82f6] hover:bg-[#1d4ed8]"
-                    }`}
-                  >
-                    {progressData?.status === "running"
-                      ? "Processing..."
-                      : "Close"}
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       )}
