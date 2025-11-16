@@ -797,7 +797,7 @@ const RobuxInstan: React.FC = () => {
 
             <div className="relative z-10">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-6 leading-tight text-center lg:text-left">
-                Pilih Jumlah <span className="text-primary-100">Robux</span>:
+                Pilih Jumlah <span className="text-primary-100">Robux</span>
               </h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 justify-center max-w-[740px] mx-auto">

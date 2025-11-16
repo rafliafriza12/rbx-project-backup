@@ -265,7 +265,7 @@ export default function JokiPage() {
                         src={joki.imgUrl}
                         alt={joki.gameName}
                         fill
-                        className="object-fill transition-all duration-500 group-hover:scale-110"
+                        className="object-contain transition-all duration-500 group-hover:scale-110"
                       />
 
                       {/* Purple gradient overlay for better contrast */}

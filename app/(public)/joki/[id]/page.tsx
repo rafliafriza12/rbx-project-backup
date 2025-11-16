@@ -1020,7 +1020,7 @@ export default function JokiDetailPage() {
                             return (
                               <div
                                 key={idx}
-                                className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-6 transition-all duration-500 overflow-hidden flex flex-col h-full min-h-[180px] sm:min-h-[200px] md:min-h-[280px] ${
+                                className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-6 transition-all duration-500 overflow-hidden flex flex-col items-center gap-3 h-full min-h-[180px] sm:min-h-[200px] md:min-h-[280px] ${
                                   isSelected
                                     ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-xl md:shadow-2xl shadow-primary-100/20 md:shadow-primary-100/30 scale-[1.01] md:scale-105"
                                     : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-[1.005] md:hover:scale-102"
@@ -1072,7 +1072,7 @@ export default function JokiDetailPage() {
                                 </div>
 
                                 {/* Item Info */}
-                                <div className="relative z-10 flex-1 flex flex-col">
+                                <div className="relative z-10 flex-1 flex flex-col gap-2">
                                   <h4 className="font-bold text-white mb-1 sm:mb-1.5 md:mb-2 text-xs sm:text-sm md:text-lg line-clamp-1 sm:line-clamp-2 leading-tight">
                                     {item.itemName}
                                   </h4>
@@ -1113,7 +1113,7 @@ export default function JokiDetailPage() {
 
                                   {/* Quantity Controls - Only show when selected */}
                                   {isSelected && (
-                                    <div className="mt-1 sm:mt-2 md:mt-4 p-1.5 sm:p-2 md:p-4 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-md sm:rounded-lg md:rounded-xl border border-primary-100/40 backdrop-blur-sm">
+                                    <div className="w-full mt-1 sm:mt-2 md:mt-4 p-1.5 sm:p-2 md:p-4 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-md sm:rounded-lg md:rounded-xl border border-primary-100/40 backdrop-blur-sm">
                                       <div className="flex items-center justify-between mb-1 sm:mb-1.5 md:mb-3">
                                         <span className="text-xs md:text-sm font-bold text-primary-100 flex items-center gap-0.5 sm:gap-1">
                                           <span className="hidden sm:inline">

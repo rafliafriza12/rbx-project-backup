@@ -159,7 +159,7 @@ export default function RBXLandingPage() {
       </section>
 
       {/* Banner Carousel Section */}
-      <section className="relative w-full h-40 sm:h-48 lg:h-60 overflow-hidden">
+      <section className="relative w-full full aspect-[16/5] lg:aspect-auto lg:h-60 overflow-hidden">
         {loadingBanners ? (
           <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>

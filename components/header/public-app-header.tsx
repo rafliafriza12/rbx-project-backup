@@ -32,14 +32,10 @@ const PublicAppHeader: React.FC = () => {
     setIsProfileOpen(false);
   }, [pathname]);
   return (
-    <header className="flex w-full justify-between px-4 lg:px-20 py-4 items-center sticky top-0 z-[9999] backdrop-blur-md  shadow-neon-purple border-b border-primary-100 hover:shadow-[0px_7px_50px_#f63ae6] duration-500">
-      <Image
-        src="/logo.png"
-        alt="RID Logo"
-        width={100}
-        height={40}
-        className="object-contain"
-      />
+    <header className="flex w-full justify-between px-4 lg:px-20 py-4 items-center sticky top-0 z-[9999] backdrop-blur-md  shadow-neon-purple border-b border-primary-100  duration-500 bg-[#22102A]">
+      <div className=" relative w-[50px] h-[50px] ">
+        <Image src="/logo.png" alt="RID Logo" fill className="object-contain" />
+      </div>
 
       <nav className="space-x-6 font-medium hidden lg:flex">
         <Link

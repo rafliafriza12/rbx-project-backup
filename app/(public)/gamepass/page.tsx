@@ -244,7 +244,7 @@ export default function GamepassPage() {
                           src={gamepass.imgUrl}
                           alt={gamepass.gameName}
                           fill
-                          className="object-fill transition-all duration-500 group-hover:scale-110"
+                          className="object-contain transition-all duration-500 group-hover:scale-110"
                         />
 
                         {/* Purple gradient overlay for better contrast */}

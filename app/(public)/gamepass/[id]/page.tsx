@@ -798,7 +798,7 @@ export default function GamepassDetailPage() {
                       return (
                         <div
                           key={index}
-                          className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center justify-start ${
+                          className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center justify-start gap-3 ${
                             isSelected
                               ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-2xl shadow-primary-100/30 scale-105"
                               : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-102"
@@ -850,7 +850,7 @@ export default function GamepassDetailPage() {
                           </div>
 
                           {/* Item Info - Always centered */}
-                          <div className="relative z-10 w-full flex flex-col items-center text-center">
+                          <div className="relative z-10 w-full flex flex-col items-center text-center gap-3">
                             <h4 className="font-black text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base line-clamp-2">
                               {item.itemName}
                             </h4>

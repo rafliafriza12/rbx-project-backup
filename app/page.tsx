@@ -387,7 +387,7 @@ export default function HomePage() {
   return (
     <PublicLayout>
       {/* 3-Card Carousel Banner Section */}
-      <section className="relative w-full h-40 sm:h-48 lg:h-60 overflow-hidden ">
+      <section className="relative w-full h-full aspect-[16/5] lg:aspect-auto lg:h-60 overflow-hidden ">
         {loadingBanners ? (
           <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
@@ -998,21 +998,12 @@ export default function HomePage() {
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="relative flex items-center gap-4">
-                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
-                    <Image
-                      src="/cart.png"
-                      alt="Cart Icon"
-                      width={20}
-                      height={20}
-                      className="brightness-0 invert"
-                    />
-                  </div>
                   <span>
                     {robuxAmount > 0
-                      ? `Beli ${robuxAmount.toLocaleString()} RBX`
+                      ? `${robuxAmount.toLocaleString()} RBX`
                       : "Beli RBX Sekarang"}
                   </span>
-                  <Rocket className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
+                  {/* <Rocket className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" /> */}
                 </div>
               </button>
 
@@ -1218,7 +1209,7 @@ export default function HomePage() {
                         src={gamepass.imgUrl}
                         alt={gamepass.gameName}
                         fill
-                        className="object-fill transition-all duration-500 group-hover:scale-110"
+                        className="object-contain transition-all duration-500 group-hover:scale-110"
                       />
 
                       {/* Purple gradient overlay for better contrast */}
@@ -1477,7 +1468,7 @@ export default function HomePage() {
                   />
 
                   {/* Floating badge - Neon Style */}
-                  <div className="absolute top-8 -left-4 neon-card border-2 border-neon-pink rounded-xl p-3 text-sm font-medium text-neon-pink transform rotate-12 shadow-neon-pink">
+                  {/* <div className="absolute hidden md:block top-8 -left-4 neon-card border-2 border-neon-pink rounded-xl p-3 text-sm font-medium text-neon-pink transform rotate-12 shadow-neon-pink">
                     <div className="flex items-center gap-2">
                       <Rocket className="w-6 h-6" />
                       <div>
@@ -1487,7 +1478,7 @@ export default function HomePage() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
