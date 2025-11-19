@@ -71,8 +71,8 @@ export default function JokiPage() {
   const filteredJokiServices = jokiServices.filter((joki) => {
     const searchLower = searchQuery.toLowerCase();
     return (
-      joki.gameName.toLowerCase().includes(searchLower) ||
-      joki.developer.toLowerCase().includes(searchLower) ||
+      joki?.gameName?.toLowerCase()?.includes(searchLower) ||
+      joki?.developer?.toLowerCase()?.includes(searchLower) ||
       joki.item.some(
         (item) =>
           item.itemName.toLowerCase().includes(searchLower) ||

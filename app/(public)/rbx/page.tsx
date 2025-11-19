@@ -159,7 +159,7 @@ export default function RBXLandingPage() {
       </section>
 
       {/* Banner Carousel Section */}
-      <section className="relative w-full full aspect-[16/5] lg:aspect-auto lg:h-60 overflow-hidden">
+      <section className="relative w-full full aspect-[16/4] lg:aspect-auto lg:h-60 overflow-hidden">
         {loadingBanners ? (
           <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
@@ -184,9 +184,6 @@ export default function RBXLandingPage() {
                         zIndex: 30,
                         opacity: 1,
                         filter: "brightness(1)",
-                        left: "50%",
-                        marginLeft: "-40%",
-                        width: "80%",
                       };
                     case -1:
                       return {
@@ -194,8 +191,6 @@ export default function RBXLandingPage() {
                         zIndex: 10,
                         opacity: 0.7,
                         filter: "brightness(0.6)",
-                        left: "10%",
-                        width: "70%",
                       };
                     case 1:
                       return {
@@ -203,8 +198,6 @@ export default function RBXLandingPage() {
                         zIndex: 10,
                         opacity: 0.7,
                         filter: "brightness(0.6)",
-                        left: "30%",
-                        width: "70%",
                       };
                     default:
                       return {
@@ -212,27 +205,39 @@ export default function RBXLandingPage() {
                         zIndex: 0,
                         opacity: 0,
                         filter: "brightness(0.3)",
-                        left: "50%",
-                        marginLeft: "-35%",
-                        width: "70%",
                       };
                   }
                 };
 
                 const cardStyle = getCardStyle(position);
 
+                // Position classes based on card position
+                const getPositionClasses = (pos: number) => {
+                  switch (pos) {
+                    case 0:
+                      // Active: Full width on mobile, 80% on desktop
+                      return "left-0 w-full lg:left-1/2 lg:-ml-[40%] lg:w-[80%]";
+                    case -1:
+                      // Left: Hidden on mobile, visible on desktop
+                      return "left-[10%] w-[70%] opacity-0 lg:opacity-70";
+                    case 1:
+                      // Right: Hidden on mobile, visible on desktop
+                      return "left-[30%] w-[70%] opacity-0 lg:opacity-70";
+                    default:
+                      return "left-0 w-full lg:left-1/2 lg:-ml-[35%] lg:w-[70%]";
+                  }
+                };
+
                 return (
                   <div
                     key={banner._id}
-                    className="absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer"
+                    className={`absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer ${getPositionClasses(
+                      position
+                    )}`}
                     style={{
                       transform: cardStyle.transform,
                       zIndex: cardStyle.zIndex,
-                      opacity: cardStyle.opacity,
                       filter: cardStyle.filter,
-                      left: cardStyle.left,
-                      marginLeft: cardStyle.marginLeft,
-                      width: cardStyle.width,
                     }}
                     onClick={() => {
                       if (position === 0) {
@@ -242,8 +247,12 @@ export default function RBXLandingPage() {
                       }
                     }}
                   >
-                    <div className="relative w-full h-full p-2 sm:p-3 lg:p-4 group">
-                      <div className="relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-3xl">
+                    <div
+                      className={`relative w-full h-full group ${
+                        position === 0 ? "p-0 lg:p-4" : "p-2 sm:p-3 lg:p-4"
+                      }`}
+                    >
+                      <div className="relative w-full h-full overflow-hidden rounded-lg lg:rounded-3xl">
                         <Image
                           src={banner.imageUrl}
                           alt={banner.alt}
@@ -275,7 +284,8 @@ export default function RBXLandingPage() {
               })}
             </div>
 
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-40">
+            {/* Navigation Dots - Hidden on mobile, visible on desktop */}
+            <div className="hidden lg:flex absolute bottom-4 left-1/2 transform -translate-x-1/2 gap-2 z-40">
               {banners.map((_, index) => (
                 <button
                   key={index}
@@ -294,7 +304,7 @@ export default function RBXLandingPage() {
       </section>
 
       {/* Main Content */}
-      <section className="py-12 lg:py-16 relative overflow-hidden">
+      <section className="py-5 lg:py-16 relative overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             {/* RBX 5 Hari Card */}
@@ -328,11 +338,11 @@ export default function RBXLandingPage() {
                   {/* Description */}
                   <p className="text-white/70 text-base sm:text-lg mb-6 leading-relaxed">
                     Beli RBX 5 Hari, RBX akan dirumuskan ke akunmu melalui{" "}
-                    <span className="text-neon-pink font-semibold bg-neon-pink/10 px-2 py-1 rounded-lg">
+                    <span className="text-neon-pink font-semibold bg-neon-pink/10  rounded-lg">
                       pembelian gamepass
                     </span>
                     . RBX akan masuk ke akun kamu dalam waktu{" "}
-                    <span className="text-neon-pink font-semibold bg-neon-pink/10 px-2 py-1 rounded-lg">
+                    <span className="text-neon-pink font-semibold bg-neon-pink/10  rounded-lg">
                       5 hari
                     </span>{" "}
                     setelah selesai diproses!
@@ -413,9 +423,9 @@ export default function RBXLandingPage() {
 
                   {/* Description */}
                   <p className="text-white/70 text-base sm:text-lg mb-6 leading-relaxed">
-                    Top up RBX termurah dengan harga bersahabat, vlog hanya
+                    Top up RBX termurah dengan harga bersahabat, vilog hanya
                     perlu{" "}
-                    <span className="text-neon-pink font-semibold bg-neon-pink/10 px-2 py-1 rounded-lg">
+                    <span className="text-neon-pink font-semibold bg-neon-pink/10 rounded-lg">
                       username dan password
                     </span>
                     , proses cepat dan aman hingga RBX masuk ke akun kamu!

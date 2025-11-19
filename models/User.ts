@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
   firstName: string;
-  lastName: string;
+  lastName?: string; // Optional field
   email: string;
   phone: string;
   countryCode: string;
@@ -29,9 +29,10 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     lastName: {
       type: String,
-      required: [true, "Nama pengguna diperlukan"],
+      required: false, // Optional field
       trim: true,
-      maxlength: [50, "Nama pengguna tidak boleh lebih dari 50 karakter"],
+      default: "", // Default to empty string
+      maxlength: [50, "Nama belakang tidak boleh lebih dari 50 karakter"],
     },
     email: {
       type: String,

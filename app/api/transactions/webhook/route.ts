@@ -422,8 +422,40 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Update order status jika berubah dan sesuai kondisi
-      if (transaction.orderStatus !== statusMapping.orderStatus) {
+      // Handle payment expired - force order status to cancelled
+      if (
+        transaction_status === "expire" &&
+        statusMapping.paymentStatus === "expired"
+      ) {
+        console.log(
+          `⏰ Payment expired for transaction ${transaction.invoiceId}, cancelling order...`
+        );
+        await transaction.updateStatus(
+          "order",
+          "cancelled",
+          `Pesanan dibatalkan karena pembayaran sudah kadaluarsa (expired)`,
+          null
+        );
+      }
+      // Handle payment cancelled or denied - force order status to cancelled
+      else if (
+        (transaction_status === "cancel" || transaction_status === "deny") &&
+        statusMapping.paymentStatus === "cancelled"
+      ) {
+        console.log(
+          `❌ Payment ${transaction_status} for transaction ${transaction.invoiceId}, cancelling order...`
+        );
+        await transaction.updateStatus(
+          "order",
+          "cancelled",
+          `Pesanan dibatalkan karena pembayaran ${
+            transaction_status === "cancel" ? "dibatalkan" : "ditolak"
+          }`,
+          null
+        );
+      }
+      // Update order status jika berubah dan sesuai kondisi (untuk status lainnya)
+      else if (transaction.orderStatus !== statusMapping.orderStatus) {
         // Hanya update order status jika payment status memungkinkan
         const allowedOrderStatusUpdates: { [key: string]: string[] } = {
           waiting_payment: ["processing", "cancelled"],

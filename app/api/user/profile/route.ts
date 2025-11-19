@@ -97,12 +97,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { userId, email, firstName, lastName, phone, countryCode } = body;
 
-    // Validate input
-    if (!firstName || !lastName) {
+    // Validate input - only firstName is required
+    if (!firstName) {
       return NextResponse.json(
         {
           success: false,
-          error: "First name and last name are required",
+          error: "First name is required",
         },
         { status: 400 }
       );
@@ -141,7 +141,7 @@ export async function PUT(request: NextRequest) {
     // Update user data
     const updateData: Partial<IUser> = {
       firstName: firstName.trim(),
-      lastName: lastName.trim(),
+      lastName: lastName ? lastName.trim() : "", // Default to empty string if not provided
     };
 
     if (phone) {

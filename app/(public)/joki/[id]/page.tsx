@@ -1079,7 +1079,7 @@ export default function JokiDetailPage() {
 
                                   <div className="flex items-center justify-center mb-1 sm:mb-2 md:mb-4">
                                     <div className="flex items-center gap-0.5 sm:gap-1">
-                                      <Gem className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 text-primary-100" />
+                                      {/* <Gem className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 text-primary-100" /> */}
                                       <span className="text-white font-bold text-xs sm:text-xs md:text-lg">
                                         Rp {item.price.toLocaleString()}
                                       </span>

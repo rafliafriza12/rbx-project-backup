@@ -14,7 +14,7 @@ interface MemberRole {
 interface User {
   id: string;
   firstName: string;
-  lastName: string;
+  lastName?: string; // Optional field
   email: string;
   phone: string;
   countryCode: string;
@@ -52,7 +52,7 @@ interface AuthContextType {
 
 interface RegisterData {
   firstName: string;
-  lastName: string;
+  lastName?: string; // Optional field
   email: string;
   phone: string;
   countryCode: string;

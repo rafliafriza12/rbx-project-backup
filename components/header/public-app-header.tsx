@@ -43,8 +43,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname === "/"
-              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
-              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           Home
@@ -56,8 +56,8 @@ const PublicAppHeader: React.FC = () => {
             pathname.includes("/rbx") ||
             pathname === "/rbx5" ||
             pathname.includes("/robux-instant")
-              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
-              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           RBX
@@ -67,8 +67,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("gamepass")
-              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
-              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           Gamepass
@@ -78,8 +78,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("joki")
-              ? "text-neon-pink font-bold text-drop-shadow-sm bg-neon-pink/8"
-              : "text-white hover:text-neon-pink font-medium hover:bg-neon-pink/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           Jasa Joki
@@ -89,8 +89,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("reseller")
-              ? "text-yellow-400 font-bold text-drop-shadow-sm bg-yellow-400/8"
-              : "text-white hover:text-yellow-400 font-medium hover:bg-yellow-400/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           Reseller
@@ -100,8 +100,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("leaderboard")
-              ? "text-neon-purple font-bold text-drop-shadow-sm bg-neon-purple/8"
-              : "text-white hover:text-neon-purple font-medium hover:bg-neon-purple/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           Leaderboard
@@ -111,8 +111,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
             pathname.includes("track-order")
-              ? "text-neon-purple font-bold text-drop-shadow-sm bg-neon-purple/8"
-              : "text-white hover:text-neon-purple font-medium hover:bg-neon-purple/5 hover:text-drop-shadow-sm"
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
           }`}
         >
           Cek Pesanan
@@ -271,8 +271,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname === "/"
-              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           Home
@@ -284,8 +284,8 @@ const PublicAppHeader: React.FC = () => {
             pathname.includes("/rbx") ||
             pathname === "/rbx5" ||
             pathname.includes("/robux-instant")
-              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           RBX
@@ -295,8 +295,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("gamepass")
-              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           Gamepass
@@ -306,8 +306,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("joki")
-              ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           Jasa Joki
@@ -317,8 +317,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("reseller")
-              ? "text-yellow-400 font-bold bg-yellow-400/20 text-drop-shadow-sm"
-              : "text-white hover:text-yellow-400 hover:bg-yellow-400/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           Reseller
@@ -328,8 +328,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("leaderboard")
-              ? "text-neon-purple font-bold bg-neon-purple/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-purple hover:bg-neon-purple/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           Leaderboard
@@ -339,8 +339,8 @@ const PublicAppHeader: React.FC = () => {
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
             pathname.includes("track-order")
-              ? "text-neon-purple font-bold bg-neon-purple/20 text-drop-shadow-sm"
-              : "text-white hover:text-neon-purple hover:bg-neon-purple/10"
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
           }`}
         >
           Lacak Pesanan

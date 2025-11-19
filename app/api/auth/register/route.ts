@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     // Validation
     if (
       !firstName ||
-      !lastName ||
       !email ||
       !phone ||
       !countryCode ||
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
       !confirmPassword
     ) {
       return NextResponse.json(
-        { error: "Semua field harus diisi" },
+        { error: "Field yang wajib diisi belum lengkap" },
         { status: 400 }
       );
     }
@@ -100,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Create new user
     const newUser = new User({
       firstName,
-      lastName,
+      lastName: lastName || "", // Default to empty string if not provided
       email: email.toLowerCase(),
       phone,
       countryCode,

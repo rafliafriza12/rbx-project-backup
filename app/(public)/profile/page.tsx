@@ -116,7 +116,7 @@ export default function ProfilePage() {
         if (user) {
           setProfileData({
             firstName: user.firstName,
-            lastName: user.lastName,
+            lastName: user.lastName || "",
             email: user.email,
             phone: user.phone,
             countryCode: user.countryCode,
@@ -479,7 +479,10 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-white/80 mb-2 flex items-center">
                         <User className="w-4 h-4 mr-2" />
-                        Nama Belakang
+                        Nama Belakang{" "}
+                        <span className="text-white/40 text-xs font-normal ml-1">
+                          (Opsional)
+                        </span>
                       </label>
                       <input
                         type="text"
@@ -488,10 +491,10 @@ export default function ProfilePage() {
                           setEditForm({ ...editForm, lastName: e.target.value })
                         }
                         disabled={submitting}
+                        placeholder="Nama Belakang (Opsional)"
                         className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-primary-100 focus:border-primary-100 transition-all duration-300 text-sm sm:text-base ${
                           submitting ? "opacity-50 cursor-not-allowed" : ""
                         }`}
-                        required
                       />
                     </div>
                   </div>

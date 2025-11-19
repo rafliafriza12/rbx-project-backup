@@ -150,6 +150,52 @@ export default function HomePage() {
     fetchLiveReviews();
   }, []);
 
+  // Scroll to section with offset when hash is present in URL
+  useEffect(() => {
+    const hashTarget = window.location.hash.replace("#", "");
+    console.log("🔍 Hash target:", hashTarget);
+
+    if (!hashTarget) return;
+
+    const performScroll = () => {
+      const OFFSET = 90; // navbar height
+      const element = document.getElementById(hashTarget);
+      console.log(
+        "🎯 Attempting scroll to:",
+        hashTarget,
+        "Element found:",
+        !!element
+      );
+
+      if (element) {
+        const top =
+          element.getBoundingClientRect().top + window.scrollY - OFFSET;
+        console.log("✅ Scrolling to position:", top);
+        window.scrollTo({ top, behavior: "smooth" });
+
+        // Clean hash from URL after scroll
+        setTimeout(() => {
+          history.replaceState(null, "", window.location.pathname);
+        }, 1000);
+        return true;
+      }
+      return false;
+    };
+
+    // Try to scroll after a short delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      if (performScroll()) {
+        console.log("✅ Scroll successful");
+      } else {
+        // Retry if element not found
+        console.log("⚠️ Element not found, retrying...");
+        setTimeout(performScroll, 500);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Function to fetch RBX5 statistics
   const fetchRbx5Stats = async () => {
     try {
@@ -386,96 +432,101 @@ export default function HomePage() {
 
   return (
     <PublicLayout>
-      {/* 3-Card Carousel Banner Section */}
-      <section className="relative w-full h-full aspect-[16/5] lg:aspect-auto lg:h-60 overflow-hidden ">
+      {/* Banner Carousel Section */}
+      <section className="relative w-full full aspect-[16/4] lg:aspect-auto lg:h-60 overflow-hidden">
         {loadingBanners ? (
           <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
           </div>
         ) : banners.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neon-purple/20 to-neon-pink/20">
             <p className="text-white/60">Tidak ada banner tersedia</p>
           </div>
         ) : (
           <div className="relative w-full h-full">
             <div className="absolute inset-0 flex items-center justify-center">
               {banners.map((banner, index) => {
-                // Calculate position relative to current banner
                 let position = index - currentBannerIndex;
                 if (position < -1) position = banners.length + position;
                 if (position > 1) position = position - banners.length;
 
-                // Define styles for each position - optimized for mobile visibility
                 const getCardStyle = (pos: number) => {
                   switch (pos) {
-                    case 0: // Center (Active)
+                    case 0:
                       return {
                         transform: "translateX(0%) translateY(0%) scale(1)",
                         zIndex: 30,
                         opacity: 1,
                         filter: "brightness(1)",
-                        left: "50%",
-                        marginLeft: "-40%", // Center the card properly
-                        width: "80%",
                       };
-                    case -1: // Left
+                    case -1:
                       return {
                         transform: "translateX(-20%) translateY(0%) scale(0.8)",
                         zIndex: 10,
                         opacity: 0.7,
                         filter: "brightness(0.6)",
-                        left: "10%",
-                        width: "70%",
                       };
-                    case 1: // Right
+                    case 1:
                       return {
                         transform: "translateX(5.5%) translateY(0%) scale(0.8)",
                         zIndex: 10,
                         opacity: 0.7,
                         filter: "brightness(0.6)",
-                        left: "30%",
-                        width: "70%",
                       };
-                    default: // Hidden
+                    default:
                       return {
                         transform: "translateX(0%) translateY(0%) scale(0.5)",
                         zIndex: 0,
                         opacity: 0,
                         filter: "brightness(0.3)",
-                        left: "50%",
-                        marginLeft: "-35%",
-                        width: "70%",
                       };
                   }
                 };
 
                 const cardStyle = getCardStyle(position);
 
+                // Position classes based on card position
+                const getPositionClasses = (pos: number) => {
+                  switch (pos) {
+                    case 0:
+                      // Active: Full width on mobile, 80% on desktop
+                      return "left-0 w-full lg:left-1/2 lg:-ml-[40%] lg:w-[80%]";
+                    case -1:
+                      // Left: Hidden on mobile, visible on desktop
+                      return "left-[10%] w-[70%] opacity-0 lg:opacity-70";
+                    case 1:
+                      // Right: Hidden on mobile, visible on desktop
+                      return "left-[30%] w-[70%] opacity-0 lg:opacity-70";
+                    default:
+                      return "left-0 w-full lg:left-1/2 lg:-ml-[35%] lg:w-[70%]";
+                  }
+                };
+
                 return (
                   <div
                     key={banner.id}
-                    className="absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer"
+                    className={`absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer ${getPositionClasses(
+                      position
+                    )}`}
                     style={{
                       transform: cardStyle.transform,
                       zIndex: cardStyle.zIndex,
-                      opacity: cardStyle.opacity,
                       filter: cardStyle.filter,
-                      left: cardStyle.left,
-                      marginLeft: cardStyle.marginLeft,
-                      width: cardStyle.width,
                     }}
                     onClick={() => {
                       if (position === 0) {
-                        // If center card, navigate to link
                         window.location.href = banner.link;
                       } else {
-                        // If side card, make it active
                         setCurrentBannerIndex(index);
                       }
                     }}
                   >
-                    <div className="relative w-full h-full p-2 sm:p-3 lg:p-4 group">
-                      <div className="relative w-full h-full overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-3xl ">
+                    <div
+                      className={`relative w-full h-full group ${
+                        position === 0 ? "p-0 lg:p-4" : "p-2 sm:p-3 lg:p-4"
+                      }`}
+                    >
+                      <div className="relative w-full h-full overflow-hidden rounded-lg lg:rounded-3xl">
                         <Image
                           src={banner.imageUrl}
                           alt={banner.alt}
@@ -502,31 +553,6 @@ export default function HomePage() {
                             <div className="absolute -inset-1 bg-gradient-to-r from-primary-100/20 via-primary-200/30 to-primary-100/20 rounded-2xl sm:rounded-3xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
                           </>
                         )}
-                        {position !== 0 && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="bg-white/20 backdrop-blur-md rounded-full p-2 sm:p-3 border border-white/30">
-                              <div
-                                className={`w-4 h-4 sm:w-6 sm:h-6 text-white flex items-center justify-center ${
-                                  position === -1 ? "rotate-180" : ""
-                                }`}
-                              >
-                                <svg
-                                  className="w-3 h-3 sm:w-4 sm:h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 5l7 7-7 7"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -534,60 +560,21 @@ export default function HomePage() {
               })}
             </div>
 
-            {/* Navigation Buttons */}
-            {banners.length > 1 && (
-              <>
+            {/* Navigation Dots - Hidden on mobile, visible on desktop */}
+            <div className="hidden lg:flex absolute bottom-4 left-1/2 transform -translate-x-1/2 gap-2 z-40">
+              {banners.map((_, index) => (
                 <button
-                  onClick={() =>
-                    setCurrentBannerIndex(
-                      currentBannerIndex === 0
-                        ? banners.length - 1
-                        : currentBannerIndex - 1
-                    )
-                  }
-                  className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-40 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-1.5 sm:p-2 lg:p-3 rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-110"
-                >
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={() =>
-                    setCurrentBannerIndex(
-                      currentBannerIndex === banners.length - 1
-                        ? 0
-                        : currentBannerIndex + 1
-                    )
-                  }
-                  className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 z-40 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-1.5 sm:p-2 lg:p-3 rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-110"
-                >
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-              </>
-            )}
+                  key={index}
+                  onClick={() => setCurrentBannerIndex(index)}
+                  className={`transition-all duration-300 rounded-full ${
+                    index === currentBannerIndex
+                      ? "w-8 h-2 bg-gradient-to-r from-neon-pink to-neon-purple"
+                      : "w-2 h-2 bg-white/40 hover:bg-white/60"
+                  }`}
+                  aria-label={`Go to banner ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         )}
       </section>
@@ -599,9 +586,8 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           <div className="text-center">
             {/* Premium Badge */}
-            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-8 backdrop-blur-sm shadow-lg hover:shadow-neon-pink/20 transition-all duration-300">
-              <div className="flex items-center mr-2">
-                <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-1"></span>
+            <div className="inline-flex items-center gap-1 justify-center px-6 py-3 bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-8 backdrop-blur-sm shadow-lg hover:shadow-neon-pink/20 transition-all duration-300">
+              <div className="flex items-center fap-1">
                 <Sparkles className="w-4 h-4" />
               </div>
               #1 Platform RBX Terpercaya di Indonesia
@@ -883,8 +869,8 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Enhanced Section Header */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-6 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center gap-1 px-6 py-3 bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-6 backdrop-blur-sm">
+              <Sparkles className="w-4 h-4 " />
               RBX Premium Experience
             </div>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
@@ -912,9 +898,8 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-br from-neon-pink/5 via-transparent to-neon-purple/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
             <div className="relative text-center mb-10">
-              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 border border-neon-pink/40 rounded-2xl text-sm text-neon-pink font-bold mb-6 backdrop-blur-sm shadow-lg">
-                <div className="flex items-center mr-2">
-                  <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
+              <div className="inline-flex justify-center gap-1 items-center px-6 py-3 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 border border-neon-pink/40 rounded-2xl text-sm text-neon-pink font-bold mb-6 backdrop-blur-sm shadow-lg">
+                <div className="flex items-center ">
                   <Gem className="w-4 h-4" />
                 </div>
                 RBX Premium - GamePass Official
@@ -1125,12 +1110,11 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Enhanced Section Header */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-pink/30 text-neon-pink rounded-3xl text-sm font-bold mb-6 backdrop-blur-sm shadow-xl">
-              <div className="flex items-center mr-3">
-                <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
+            <div className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-pink/30 text-neon-pink rounded-3xl text-sm font-bold mb-6 backdrop-blur-sm shadow-xl">
+              <div className="flex items-center ">
                 <Gamepad2 className="w-5 h-5" />
               </div>
-              Gamepass & Avatar Premium Collection
+              Gamepass & Joki
             </div>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               <span className="text-neon-purple">Game</span> Populer
@@ -1270,9 +1254,8 @@ export default function HomePage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-neon-purple/15 to-neon-pink/15 border border-neon-pink/40 text-neon-pink rounded-3xl text-sm font-bold mb-6 backdrop-blur-sm shadow-xl">
-              <div className="flex items-center mr-3">
-                <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse mr-2"></span>
+            <div className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-neon-purple/15 to-neon-pink/15 border border-neon-pink/40 text-neon-pink rounded-3xl text-sm font-bold mb-6 backdrop-blur-sm shadow-xl">
+              <div className="flex items-center ">
                 <Star className="w-5 h-5" />
               </div>
               Keunggulan Premium RBXNET
@@ -1410,7 +1393,6 @@ export default function HomePage() {
               {/* Content */}
               <div className="text-center lg:text-left order-2 lg:order-1">
                 <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 text-neon-pink rounded-full text-sm font-medium mb-6">
-                  <span className="w-2 h-2 bg-neon-pink rounded-full mr-2 animate-pulse"></span>
                   Siap Mulai Gaming?
                 </div>
 
@@ -1493,7 +1475,6 @@ export default function HomePage() {
             {/* Content */}
             <div className="text-center lg:text-left">
               <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 text-neon-pink rounded-full text-sm font-medium mb-6">
-                <span className="w-2 h-2 bg-neon-pink rounded-full mr-2 animate-pulse"></span>
                 Butuh Bantuan?
               </div>
 
@@ -1581,10 +1562,7 @@ export default function HomePage() {
 
                 {/* Floating elements - Neon Style */}
                 <div className="absolute top-4 right-4 neon-card-secondary border border-neon-pink/30 rounded-xl p-2 text-xs font-medium text-neon-pink">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-neon-pink rounded-full animate-pulse"></div>
-                    Online 24/7
-                  </div>
+                  <div className="flex items-center gap-1">Online 24/7</div>
                 </div>
 
                 <div className="absolute bottom-4 left-4 neon-card border border-neon-purple/30 rounded-xl p-2 text-xs font-medium text-neon-purple shadow-neon-purple">
@@ -1605,7 +1583,6 @@ export default function HomePage() {
           {/* Section Header */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 rounded-full text-sm text-neon-pink font-medium mb-6">
-              <span className="w-2 h-2 bg-neon-pink rounded-full mr-2 animate-pulse"></span>
               Testimoni Pelanggan
             </div>
             <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
@@ -1746,12 +1723,14 @@ export default function HomePage() {
       </section>
 
       {/* Interactive FAQ Section - Neon Theme */}
-      <section className="py-12 bg-gradient-to-b from-transparent to-bg-secondary/10">
+      <section
+        id="faq"
+        className="py-12 bg-gradient-to-b from-transparent to-bg-secondary/10"
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 rounded-full text-sm text-neon-pink font-medium mb-6">
-              <span className="w-2 h-2 bg-neon-pink rounded-full mr-2 animate-pulse"></span>
               Frequently Asked Questions
             </div>
             <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
@@ -1872,15 +1851,14 @@ export default function HomePage() {
           </div>
 
           {/* CTA - Updated Purple Neon Theme */}
-          <div className="text-center mt-12">
+          <div id="contact" className="text-center mt-12">
             <div className="relative bg-gradient-to-r from-primary-600/20 via-primary-500/10 to-primary-700/20 backdrop-blur-xl border border-primary-200/30 rounded-3xl p-8 overflow-hidden group hover:border-primary-100/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary-100/20">
               {/* Background glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 via-transparent to-primary-200/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
               <div className="relative">
-                <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-2xl text-sm text-primary-100 font-semibold mb-6 backdrop-blur-sm shadow-lg">
-                  <div className="flex items-center mr-2">
-                    <span className="w-2 h-2 bg-primary-100 rounded-full animate-pulse mr-2"></span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-2xl text-sm text-primary-100 font-semibold mb-6 backdrop-blur-sm shadow-lg">
+                  <div className="flex items-center ">
                     <HelpCircle className="w-4 h-4" />
                   </div>
                   Butuh Bantuan?

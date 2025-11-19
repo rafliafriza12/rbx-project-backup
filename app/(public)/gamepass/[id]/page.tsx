@@ -857,9 +857,9 @@ export default function GamepassDetailPage() {
 
                             <div className="flex items-center justify-center mb-2 sm:mb-3 md:mb-4">
                               <div className="flex items-center gap-1">
-                                <Gem className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-primary-100" />
+                                {/* <Gem className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-primary-100" /> */}
                                 <span className="text-white font-bold text-xs sm:text-sm md:text-base">
-                                  {item.price.toLocaleString()}
+                                  Rp {item.price.toLocaleString()}
                                 </span>
                               </div>
                             </div>

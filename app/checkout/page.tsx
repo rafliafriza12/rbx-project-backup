@@ -101,6 +101,9 @@ function CheckoutContent() {
     phone: "",
   });
 
+  // Debug render for customerInfo changes
+  console.log("🎨 RENDER - customerInfo.phone:", customerInfo.phone);
+
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -207,16 +210,54 @@ function CheckoutContent() {
     }
   }, [user]); // Trigger when user changes (login/logout)
 
-  // Auto-fill customer info for logged in users
-  useEffect(() => {
-    if (user && !isGuestCheckout) {
-      setCustomerInfo({
-        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
-        email: user.email || "",
-        phone: user.phone || "",
-      });
+  // Helper function to detect and format phone number with country code
+  const formatPhoneNumber = (phone: string, countryCode?: string) => {
+    if (!phone) return "";
+
+    console.log("📱 formatPhoneNumber called with:", { phone, countryCode });
+
+    // If phone already starts with +, return as is
+    if (phone.startsWith("+")) {
+      console.log("✅ Phone already has country code:", phone);
+      return phone;
     }
-  }, [user, isGuestCheckout]);
+
+    // Clean the phone number (remove all non-digit characters)
+    let cleanPhone = phone.replace(/\D/g, "");
+    console.log("🧹 Cleaned phone:", cleanPhone);
+
+    // Auto-detect country code from phone number pattern
+    let detectedCountryCode = countryCode || "+62"; // Default to Indonesia
+
+    // Indonesia: starts with 62 or 0
+    if (cleanPhone.startsWith("62")) {
+      detectedCountryCode = "+62";
+      cleanPhone = cleanPhone.substring(2); // Remove 62
+      console.log("🇮🇩 Detected Indonesia (62):", cleanPhone);
+    } else if (cleanPhone.startsWith("0")) {
+      detectedCountryCode = "+62";
+      cleanPhone = cleanPhone.substring(1); // Remove leading 0
+      console.log("🇮🇩 Detected Indonesia (0):", cleanPhone);
+    }
+    // Malaysia: starts with 60
+    else if (cleanPhone.startsWith("60")) {
+      detectedCountryCode = "+60";
+      cleanPhone = cleanPhone.substring(2);
+      console.log("🇲🇾 Detected Malaysia:", cleanPhone);
+    }
+    // Singapore: starts with 65
+    else if (cleanPhone.startsWith("65")) {
+      detectedCountryCode = "+65";
+      cleanPhone = cleanPhone.substring(2);
+      console.log("🇸🇬 Detected Singapore:", cleanPhone);
+    } else {
+      console.log("🌍 Using default/provided country code");
+    }
+
+    const formatted = `${detectedCountryCode}${cleanPhone}`;
+    console.log("✨ Final formatted phone:", formatted);
+    return formatted;
+  };
 
   // Load Midtrans Snap script
   useEffect(() => {
@@ -258,12 +299,36 @@ function CheckoutContent() {
     // Pre-fill customer info if user is logged in
     if (user && !isGuestCheckout) {
       console.log("2. User is logged in, pre-filling customer info...");
-      console.log("User data:", user);
-      setCustomerInfo({
-        name: (user as any).name || "",
-        email: (user as any).email || "",
-        phone: (user as any).phone || "",
-      });
+      console.log("📦 Full User Object:", JSON.stringify(user, null, 2));
+
+      // Format phone with auto-detection
+      const formattedPhone = formatPhoneNumber(
+        user.phone || "",
+        user.countryCode
+      );
+
+      console.log("📊 Phone formatting details:");
+      console.log("  - Original phone:", user.phone);
+      console.log("  - Country code from DB:", user.countryCode);
+      console.log("  - Formatted result:", formattedPhone);
+
+      console.log("📝 Setting customer info with formatted phone");
+      const newCustomerInfo = {
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
+        email: user.email || "",
+        phone: formattedPhone,
+      };
+
+      setCustomerInfo(newCustomerInfo);
+
+      console.log("✅ Customer info updated in state:");
+      console.log("   New customerInfo:", newCustomerInfo);
+
+      // Verify state after update with setTimeout
+      setTimeout(() => {
+        console.log("🔍 Verifying state after 100ms...");
+        console.log("   customerInfo.phone should be:", formattedPhone);
+      }, 100);
     } else {
       console.log("2. Guest checkout - customer info will be manually filled");
     }
@@ -1350,8 +1415,8 @@ function CheckoutContent() {
                       <label className="block text-sm font-medium text-primary-200 mb-2">
                         Nomor WhatsApp
                       </label>
-                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white">
-                        {user.phone || "Tidak tersedia"}
+                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-mono">
+                        {customerInfo.phone || user.phone || "Tidak tersedia"}
                       </div>
                     </div>
                   </div>

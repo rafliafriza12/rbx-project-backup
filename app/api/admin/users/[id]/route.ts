@@ -67,8 +67,13 @@ export async function PUT(
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (email) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
-    if (countryCode) updateData.countryCode = countryCode;
+    // Phone is optional for admin update - allow empty string or actual value
+    if (phone !== undefined) {
+      updateData.phone = phone.trim() || "";
+    }
+    if (countryCode !== undefined) {
+      updateData.countryCode = countryCode || "";
+    }
     if (accessRole) updateData.accessRole = accessRole;
 
     // For resellerTier: 0 means "no reseller", so set to null
@@ -100,10 +105,11 @@ export async function PUT(
       }
     }
 
-    // Update user
+    // Update user without running validators (admin has full control)
+    // This allows phone to be optional when admin updates
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
-      runValidators: true,
+      runValidators: false, // Skip validation for admin updates
     }).select("-password");
 
     const userResponse = {

@@ -498,7 +498,7 @@ export default function RegisterPage() {
                         htmlFor="firstName"
                         className="block text-sm font-medium text-white/80 mb-2"
                       >
-                        Nama Lengkap
+                        Nama Depan
                       </label>
                       <input
                         type="text"
@@ -507,7 +507,7 @@ export default function RegisterPage() {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-neon-pink focus:border-neon-pink outline-none transition-all duration-300"
-                        placeholder="Nama lengkap"
+                        placeholder="Nama Depan"
                         required
                       />
                     </div>
@@ -516,7 +516,10 @@ export default function RegisterPage() {
                         htmlFor="lastName"
                         className="block text-sm font-medium text-white/80 mb-2"
                       >
-                        Nama Pengguna
+                        Nama Belakang{" "}
+                        <span className="text-white/40 text-xs font-normal">
+                          (Opsional)
+                        </span>
                       </label>
                       <input
                         type="text"
@@ -525,8 +528,7 @@ export default function RegisterPage() {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-neon-pink focus:border-neon-pink outline-none transition-all duration-300"
-                        placeholder="Username"
-                        required
+                        placeholder="Nama Belakang (Opsional)"
                       />
                     </div>
                   </div>

@@ -142,7 +142,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 : "opacity-0 transform translate-y-4"
             }`}
           >
-            Platform Robux Terpercaya Indonesia
+            Platform RBX Terpercaya Indonesia
           </p>
         </div>
 

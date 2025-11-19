@@ -495,7 +495,7 @@ export default function LeaderboardPage() {
 
               {/* Pagination */}
               <div className="bg-white/5 backdrop-blur-sm px-6 py-6 border-t border-white/10">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
                   <div className="text-sm text-white/70">
                     Menampilkan {(pagination.page - 1) * pagination.limit + 1} -{" "}
                     {Math.min(
@@ -510,10 +510,10 @@ export default function LeaderboardPage() {
                         setCurrentPage(Math.max(1, currentPage - 1))
                       }
                       disabled={!pagination.hasPrev}
-                      className="px-5 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
+                      className="px-3 lg:px-5 lg:py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
                     >
                       <ChevronLeft className="w-4 h-4" />
-                      Previous
+                      <span className="hidden lg:block">Previous</span>
                     </button>
                     <span className="px-5 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 text-white rounded-xl font-semibold backdrop-blur-sm">
                       {pagination.page} / {pagination.pages}
@@ -521,9 +521,9 @@ export default function LeaderboardPage() {
                     <button
                       onClick={() => setCurrentPage(currentPage + 1)}
                       disabled={!pagination.hasNext}
-                      className="px-5 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
+                      className="px-3 lg:px-5 lg:py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
                     >
-                      Next
+                      <span className="hidden lg:block">Next</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>

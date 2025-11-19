@@ -2,7 +2,6 @@
 import { ILayoutProps } from "@/types";
 import PublicAppHeader from "@/components/header/public-app-header";
 import PublicAppFooter from "@/components/footer/public-app-footer";
-import HyperspeedBackground from "@/components/HyperspeedBackground";
 import SplashScreen from "@/components/SplashScreen";
 import FloatingCartButton from "@/components/FloatingCartButton";
 import { usePathname } from "next/navigation";
@@ -17,8 +16,13 @@ const PublicLayout: React.FC<ILayoutProps> = ({ children }) => {
 
   useEffect(() => {
     // Show splash screen only on first homepage visit in this session
-    if (isHomepage && isInitialLoad) {
+    // BUT skip if there's a hash in URL (user coming from anchor link)
+    const hasHash = typeof window !== "undefined" && window.location.hash;
+
+    if (isHomepage && isInitialLoad && !hasHash) {
       setShowSplash(true);
+      setIsInitialLoad(false);
+    } else if (hasHash) {
       setIsInitialLoad(false);
     }
   }, [isHomepage, isInitialLoad]);
@@ -44,7 +48,6 @@ const PublicLayout: React.FC<ILayoutProps> = ({ children }) => {
       <div className="w-full relative z-0">
         <div className="w-full h-[30vh]  bg-gradient-to-b from-[#f63ae6]/80 via-[#f63ae6]/40 to-transparent absolute z-[-1] inset-0 blur-[30px]"></div>
         <PublicAppHeader />
-        {isHomepage && <HyperspeedBackground />}
         <div className="w-full flex gap-10 py-10 flex-col mx-auto px-4 md:px-20 min-h-screen overflow-hidden">
           {children}
         </div>

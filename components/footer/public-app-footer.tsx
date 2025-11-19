@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sparkles, Zap, Shield, HeartHandshake } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface SiteSettings {
   whatsappNumber?: string;
@@ -17,6 +18,33 @@ interface SiteSettings {
 const PublicAppFooter: React.FC = () => {
   const [settings, setSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Smooth scroll with top offset to avoid navbar overlap
+  const scrollToSection = (id: string) => {
+    const OFFSET = 90; // px - adjust to match navbar height
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - OFFSET;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  const handleAnchorClick = (e: React.MouseEvent, hash: string) => {
+    e.preventDefault();
+    const targetId = hash.replace("#", "");
+    console.log("🖱️ Footer link clicked:", targetId, "Current path:", pathname);
+
+    if (pathname === "/") {
+      // same page - just scroll
+      console.log("📍 Same page scroll");
+      scrollToSection(targetId);
+    } else {
+      // Cross-page: hard navigate with hash (no router, no splash screen)
+      console.log("🔄 Cross-page hard navigation with hash");
+      window.location.href = `/${hash}`;
+    }
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -74,7 +102,7 @@ const PublicAppFooter: React.FC = () => {
                 </div>
               </div>
               <p className="text-white/70 leading-relaxed">
-                Platform terpercaya untuk transaksi Robux dengan{" "}
+                Platform terpercaya untuk transaksi RBX dengan{" "}
                 <span className="text-neon-pink font-semibold">
                   harga terbaik
                 </span>
@@ -113,16 +141,16 @@ const PublicAppFooter: React.FC = () => {
                     className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                    Robux 5 Hari
+                    RBX 5 Hari
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/robux-instant"
                     className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                    Robux Instant
+                    RBX Instant
                   </Link>
                 </li>
                 <li>
@@ -155,7 +183,8 @@ const PublicAppFooter: React.FC = () => {
               <ul className="space-y-3">
                 <li>
                   <Link
-                    href="#"
+                    href="/#faq"
+                    onClick={(e) => handleAnchorClick(e, "#faq")}
                     className="text-white/70 hover:text-neon-purple transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
@@ -164,7 +193,8 @@ const PublicAppFooter: React.FC = () => {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/#contact"
+                    onClick={(e) => handleAnchorClick(e, "#contact")}
                     className="text-white/70 hover:text-neon-purple transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
@@ -173,7 +203,8 @@ const PublicAppFooter: React.FC = () => {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/#contact"
+                    onClick={(e) => handleAnchorClick(e, "#contact")}
                     className="text-white/70 hover:text-neon-purple transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
@@ -356,7 +387,7 @@ const PublicAppFooter: React.FC = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-neon-pink rounded-full animate-pulse"></div>
                 <p className="text-white/60 text-sm">
-                  © 2025 RBXNET - Platform Robux Terpercaya Indonesia
+                  © 2025 RBXNET - Platform RBX Terpercaya Indonesia
                 </p>
               </div>
               <div className="flex items-center gap-4 text-sm text-white/50">
