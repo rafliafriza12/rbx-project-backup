@@ -25,6 +25,8 @@ import {
   Search,
   CheckCircle,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
@@ -64,6 +66,7 @@ export default function JokiDetailPage() {
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
   // User search states
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -72,6 +75,14 @@ export default function JokiDetailPage() {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
+
+  // Item search timeout
+  const [itemSearchTimeout, setItemSearchTimeout] =
+    useState<NodeJS.Timeout | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -154,10 +165,10 @@ export default function JokiDetailPage() {
     password.trim() !== "" &&
     userInfo !== null;
 
-  // Filter items based on search query
+  // Filter items based on debounced search query
   const filteredItems = joki
     ? joki.item.filter((item) => {
-        const searchLower = searchQuery.toLowerCase();
+        const searchLower = debouncedSearchQuery.toLowerCase();
         return (
           item.itemName.toLowerCase().includes(searchLower) ||
           item.description.toLowerCase().includes(searchLower) ||
@@ -170,6 +181,48 @@ export default function JokiDetailPage() {
         );
       })
     : [];
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+  // Debounced search effect for item search
+  useEffect(() => {
+    // Clear previous timeout
+    if (itemSearchTimeout) {
+      clearTimeout(itemSearchTimeout);
+    }
+
+    // Set new timeout for 1 second delay
+    const newTimeout = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 1000);
+
+    setItemSearchTimeout(newTimeout);
+
+    // Cleanup function
+    return () => {
+      if (newTimeout) {
+        clearTimeout(newTimeout);
+      }
+    };
+  }, [searchQuery]);
+
+  // Reset to page 1 when debounced search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
+
+  // Cleanup item search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (itemSearchTimeout) {
+        clearTimeout(itemSearchTimeout);
+      }
+    };
+  }, []);
 
   // Helper functions for multi-select
   const updateQuantity = (itemName: string, change: number) => {
@@ -1013,14 +1066,14 @@ export default function JokiDetailPage() {
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 auto-rows-fr ">
-                          {filteredItems.map((item, idx) => {
+                          {paginatedItems.map((item, idx) => {
                             const quantity = selectedItems[item.itemName] || 0;
                             const isSelected = quantity > 0;
 
                             return (
                               <div
                                 key={idx}
-                                className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-6 transition-all duration-500 overflow-hidden flex flex-col items-center gap-3 h-full min-h-[180px] sm:min-h-[200px] md:min-h-[280px] ${
+                                className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-6 transition-all duration-500 overflow-hidden flex flex-col items-center gap-3 h-full min-h-[180px] sm:min-h-[200px] md:min-h-[280px] w-full ${
                                   isSelected
                                     ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-xl md:shadow-2xl shadow-primary-100/20 md:shadow-primary-100/30 scale-[1.01] md:scale-105"
                                     : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-[1.005] md:hover:scale-102"
@@ -1066,14 +1119,15 @@ export default function JokiDetailPage() {
                                     src={item.imgUrl}
                                     alt={item.itemName}
                                     fill
+                                    loading="lazy"
                                     className="object-fill group-hover/item:scale-110 transition-transform duration-500"
                                   />
                                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
                                 </div>
 
                                 {/* Item Info */}
-                                <div className="relative z-10 flex-1 flex flex-col gap-2">
-                                  <h4 className="font-bold text-white mb-1 sm:mb-1.5 md:mb-2 text-xs sm:text-sm md:text-lg line-clamp-1 sm:line-clamp-2 leading-tight">
+                                <div className="relative z-10 flex-1 flex flex-col items-center gap-2 w-full">
+                                  <h4 className="font-bold text-center text-white mb-1 sm:mb-1.5 md:mb-2 text-xs sm:text-sm md:text-lg line-clamp-1 sm:line-clamp-2 leading-tight">
                                     {item.itemName}
                                   </h4>
 
@@ -1090,7 +1144,7 @@ export default function JokiDetailPage() {
                                   <div className="flex-1 min-h-[1px]"></div>
 
                                   {/* Tombol Pilih / Selected Status - Always at bottom */}
-                                  <div className="mt-auto">
+                                  <div className="mt-auto w-full">
                                     {!isSelected ? (
                                       <button
                                         onClick={(e) => {
@@ -1103,7 +1157,7 @@ export default function JokiDetailPage() {
                                         {/* <span className="sm:hidden">+</span> */}
                                       </button>
                                     ) : (
-                                      <div className="p-1 sm:p-1.5 md:p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 rounded-md sm:rounded-lg md:rounded-xl">
+                                      <div className="w-full p-1 sm:p-1.5 md:p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 rounded-md sm:rounded-lg md:rounded-xl">
                                         <div className="flex items-center justify-center gap-1 text-green-400">
                                           <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-5 md:h-5" />
                                         </div>
@@ -1179,6 +1233,163 @@ export default function JokiDetailPage() {
                               </div>
                             );
                           })}
+                        </div>
+                      )}
+
+                      {/* Pagination Controls */}
+                      {filteredItems.length > ITEMS_PER_PAGE && (
+                        <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2 sm:gap-3">
+                          {/* Previous Button */}
+                          <button
+                            onClick={() =>
+                              setCurrentPage((prev) => Math.max(prev - 1, 1))
+                            }
+                            disabled={currentPage === 1}
+                            className={`group/nav flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
+                              currentPage === 1
+                                ? "bg-primary-800/30 text-primary-300/50 cursor-not-allowed"
+                                : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:from-primary-200 hover:to-primary-100 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
+                            }`}
+                          >
+                            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+
+                          {/* Page Numbers with Ellipsis */}
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            {/* First Page */}
+                            <button
+                              onClick={() => setCurrentPage(1)}
+                              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
+                                currentPage === 1
+                                  ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                                  : "bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                              }`}
+                            >
+                              1
+                            </button>
+
+                            {/* Left Ellipsis */}
+                            {currentPage > 2 && (
+                              <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white text-xs sm:text-base">
+                                ...
+                              </span>
+                            )}
+
+                            {/* Desktop: Show 3 pages centered on current (only if not first or last) */}
+                            <div className="hidden sm:flex items-center gap-2">
+                              {currentPage > 2 &&
+                                currentPage < totalPages - 1 && (
+                                  <>
+                                    {currentPage > 2 && (
+                                      <button
+                                        onClick={() =>
+                                          setCurrentPage(currentPage - 1)
+                                        }
+                                        className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                                      >
+                                        {currentPage - 1}
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() =>
+                                        setCurrentPage(currentPage)
+                                      }
+                                      className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                                    >
+                                      {currentPage}
+                                    </button>
+                                    {currentPage < totalPages - 1 && (
+                                      <button
+                                        onClick={() =>
+                                          setCurrentPage(currentPage + 1)
+                                        }
+                                        className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                                      >
+                                        {currentPage + 1}
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                              {currentPage === 2 && totalPages > 2 && (
+                                <button
+                                  onClick={() => setCurrentPage(2)}
+                                  className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                                >
+                                  2
+                                </button>
+                              )}
+                              {currentPage === totalPages - 1 &&
+                                totalPages > 2 && (
+                                  <button
+                                    onClick={() =>
+                                      setCurrentPage(totalPages - 1)
+                                    }
+                                    className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                                  >
+                                    {totalPages - 1}
+                                  </button>
+                                )}
+                            </div>
+
+                            {/* Mobile: Show only current page (only if not first or last) */}
+                            <div className="flex sm:hidden items-center gap-1">
+                              {currentPage > 1 && currentPage < totalPages && (
+                                <button
+                                  onClick={() => setCurrentPage(currentPage)}
+                                  className="w-8 h-8 rounded-lg font-bold transition-all duration-300 text-xs bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                                >
+                                  {currentPage}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Right Ellipsis */}
+                            {currentPage < totalPages - 1 && (
+                              <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white text-xs sm:text-base">
+                                ...
+                              </span>
+                            )}
+
+                            {/* Last Page */}
+                            {totalPages > 1 && (
+                              <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
+                                  currentPage === totalPages
+                                    ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                                    : "bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                                }`}
+                              >
+                                {totalPages}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Next Button */}
+                          <button
+                            onClick={() =>
+                              setCurrentPage((prev) =>
+                                Math.min(prev + 1, totalPages)
+                              )
+                            }
+                            disabled={currentPage === totalPages}
+                            className={`group/nav flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
+                              currentPage === totalPages
+                                ? "bg-primary-800/30 text-primary-300/50 cursor-not-allowed"
+                                : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:from-primary-200 hover:to-primary-100 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
+                            }`}
+                          >
+                            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Pagination Info */}
+                      {filteredItems.length > 0 && (
+                        <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-primary-200">
+                          Menampilkan {startIndex + 1}-
+                          {Math.min(endIndex, filteredItems.length)} dari{" "}
+                          {filteredItems.length} item
                         </div>
                       )}
                     </>
@@ -1402,11 +1613,11 @@ export default function JokiDetailPage() {
         {/* Modal untuk Syarat & Proses */}
         {showModal && selectedItemModal && (
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[9999] p-0 sm:p-4 overflow-hidden modal-backdrop"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[9999] p-0 sm:p-4 modal-backdrop"
             onClick={() => setShowModal(false)}
           >
             <div
-              className="group relative bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-2xl border-2 border-primary-100/40 rounded-t-2xl sm:rounded-3xl w-full max-w-4xl h-[90vh] sm:h-auto sm:max-h-[85vh] shadow-2xl shadow-primary-100/20 z-[9999] overflow-hidden transform-gpu modal-content"
+              className="group relative bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-2xl border-2 border-primary-100/40 rounded-t-2xl sm:rounded-3xl w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] shadow-2xl shadow-primary-100/20 z-[9999] transform-gpu modal-content flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Enhanced Background Effects */}
@@ -1422,41 +1633,43 @@ export default function JokiDetailPage() {
               <div className="absolute bottom-20 right-12 w-1.5 h-1.5 bg-primary-100/60 rounded-full modal-sparkle delay-500"></div>
               <div className="absolute top-1/3 right-8 w-1 h-1 bg-primary-100/50 rounded-full modal-sparkle delay-1200"></div>
 
-              {/* Scrollable Content */}
-              <div className="relative z-10 h-full flex flex-col overflow-x-hidden">
+              {/* Modal Layout with Fixed Header & Footer */}
+              <div className="relative z-10 flex flex-col flex-1 min-h-0">
                 {/* Fixed Header */}
-                <div className="flex items-center justify-between p-3 sm:p-6 md:p-8 flex-shrink-0 border-b border-primary-100/20">
-                  <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden border-2 border-primary-100/30">
-                      <Image
-                        src={selectedItemModal.imgUrl}
-                        alt={selectedItemModal.itemName}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-xl md:text-2xl font-bold text-white mb-1 truncate">
-                        {selectedItemModal.itemName}
-                      </h3>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Star className="w-3 h-3 sm:w-4 sm:h-4 text-primary-100 fill-current flex-shrink-0" />
-                        <span className="text-xs sm:text-sm text-primary-200 font-medium truncate">
-                          Premium Service
-                        </span>
+                <div className="flex-shrink-0 bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-xl border-b border-primary-100/20">
+                  <div className="flex items-center justify-between p-3 sm:p-6 md:p-8">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden border-2 border-primary-100/30">
+                        <Image
+                          src={selectedItemModal.imgUrl}
+                          alt={selectedItemModal.itemName}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-xl md:text-2xl font-bold text-white mb-1 truncate">
+                          {selectedItemModal.itemName}
+                        </h3>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-primary-100 fill-current flex-shrink-0" />
+                          <span className="text-xs sm:text-sm text-primary-200 font-medium truncate">
+                            Premium Service
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <button
+                      onClick={() => setShowModal(false)}
+                      className="p-2 sm:p-3 hover:bg-red-500/20 rounded-lg sm:rounded-xl transition-colors duration-300 group/close flex-shrink-0 ml-2"
+                    >
+                      <X className="w-4 h-4 sm:w-6 sm:h-6 text-red-400 group-hover/close:text-red-300" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="p-2 sm:p-3 hover:bg-red-500/20 rounded-lg sm:rounded-xl transition-colors duration-300 group/close flex-shrink-0 ml-2"
-                  >
-                    <X className="w-4 h-4 sm:w-6 sm:h-6 text-red-400 group-hover/close:text-red-300" />
-                  </button>
                 </div>
 
-                {/* Scrollable Content Area */}
+                {/* Scrollable Content Area - This is the scrollable part */}
                 <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-6 md:p-8">
                   <div className="space-y-3 sm:space-y-6">
                     {/* Content Grid */}
@@ -1543,25 +1756,27 @@ export default function JokiDetailPage() {
                 </div>
 
                 {/* Fixed Footer */}
-                <div className="flex-shrink-0 p-3 sm:p-6 md:p-8 border-t border-primary-100/20 space-y-2 sm:space-y-4">
-                  {/* Price Info */}
-                  <div className="flex items-center justify-between p-2 sm:p-4 bg-primary-100/10 rounded-lg sm:rounded-xl border border-primary-100/30">
-                    <span className="text-white font-semibold text-xs sm:text-base">
-                      Harga Service:
-                    </span>
-                    <span className="text-lg sm:text-2xl font-bold text-primary-100">
-                      Rp {selectedItemModal.price.toLocaleString()}
-                    </span>
-                  </div>
+                <div className="flex-shrink-0 bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-xl border-t border-primary-100/20">
+                  <div className="p-3 sm:p-6 md:p-8 space-y-2 sm:space-y-4">
+                    {/* Price Info */}
+                    <div className="flex items-center justify-between p-2 sm:p-4 bg-primary-100/10 rounded-lg sm:rounded-xl border border-primary-100/30">
+                      <span className="text-white font-semibold text-xs sm:text-base">
+                        Harga Service:
+                      </span>
+                      <span className="text-lg sm:text-2xl font-bold text-primary-100">
+                        Rp {selectedItemModal.price.toLocaleString()}
+                      </span>
+                    </div>
 
-                  {/* Close Button */}
-                  <div className="text-center">
-                    <button
-                      onClick={() => setShowModal(false)}
-                      className="w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-100/30 text-sm sm:text-base"
-                    >
-                      Mengerti
-                    </button>
+                    {/* Close Button */}
+                    <div className="text-center">
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white font-bold rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-100/30 text-sm sm:text-base"
+                      >
+                        Mengerti
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

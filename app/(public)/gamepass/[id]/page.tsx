@@ -22,6 +22,8 @@ import {
   Search,
   CheckCircle,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
@@ -57,6 +59,7 @@ export default function GamepassDetailPage() {
   const [username, setUsername] = useState("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
+  const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
 
   // User search states
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -65,6 +68,14 @@ export default function GamepassDetailPage() {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
+
+  // Item search timeout
+  const [itemSearchTimeout, setItemSearchTimeout] =
+    useState<NodeJS.Timeout | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
 
   const params = useParams();
   const router = useRouter();
@@ -158,15 +169,57 @@ export default function GamepassDetailPage() {
     return item?.quantity || 0;
   };
 
-  // Filter items based on search query
+  // Filter items based on debounced search query
   const filteredItems =
     gamepass?.item.filter((item) => {
-      const searchLower = itemSearchQuery.toLowerCase();
+      const searchLower = debouncedItemSearch.toLowerCase();
       return (
         item.itemName.toLowerCase().includes(searchLower) ||
         item.price.toString().includes(searchLower)
       );
     }) || [];
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+  // Debounced search effect for item search
+  useEffect(() => {
+    // Clear previous timeout
+    if (itemSearchTimeout) {
+      clearTimeout(itemSearchTimeout);
+    }
+
+    // Set new timeout for 1 second delay
+    const newTimeout = setTimeout(() => {
+      setDebouncedItemSearch(itemSearchQuery);
+    }, 1000);
+
+    setItemSearchTimeout(newTimeout);
+
+    // Cleanup function
+    return () => {
+      if (newTimeout) {
+        clearTimeout(newTimeout);
+      }
+    };
+  }, [itemSearchQuery]);
+
+  // Reset to page 1 when debounced search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedItemSearch]);
+
+  // Cleanup item search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (itemSearchTimeout) {
+        clearTimeout(itemSearchTimeout);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (gamepassId) {
@@ -483,28 +536,6 @@ export default function GamepassDetailPage() {
                 </div>
 
                 {/* Features */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-primary-100/20 rounded-lg">
-                      <Zap className="w-5 h-5 text-primary-100" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">
-                      Epic Features
-                    </h3>
-                  </div>
-                  {/* <div className="space-y-3">
-                    {gamepass.features.map((feature, index) => (
-                      <div
-                        key={index}
-                        className="group/feature flex items-center gap-4 p-3 bg-primary-800/30 rounded-xl border border-primary-100/20 hover:border-primary-100/40 hover:bg-primary-800/50 transition-all duration-300"
-                      >
-                        <span className="text-sm text-white font-medium">
-                          {feature}
-                        </span>
-                      </div>
-                    ))}
-                  </div> */}
-                </div>
               </div>
               <button
                 onClick={() => setIsShowReview(!isShowReview)}
@@ -791,7 +822,7 @@ export default function GamepassDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    filteredItems.map((item, index) => {
+                    paginatedItems.map((item, index) => {
                       const isSelected = isItemSelected(item.itemName);
                       const quantity = getSelectedQuantity(item.itemName);
 
@@ -844,6 +875,7 @@ export default function GamepassDetailPage() {
                               src={item.imgUrl}
                               alt={item.itemName}
                               fill
+                              loading="lazy"
                               className="object-fill group-hover/item:scale-110 transition-transform duration-500"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
@@ -925,6 +957,151 @@ export default function GamepassDetailPage() {
                     })
                   )}
                 </div>
+
+                {/* Pagination Controls */}
+                {filteredItems.length > ITEMS_PER_PAGE && (
+                  <div className="mt-8 flex items-center justify-center gap-3">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={currentPage === 1}
+                      className={`group/nav flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all duration-300 ${
+                        currentPage === 1
+                          ? "bg-primary-800/30 text-primary-300/50 cursor-not-allowed"
+                          : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:from-primary-200 hover:to-primary-100 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
+                      }`}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    {/* Page Numbers with Ellipsis */}
+                    <div className="flex items-center gap-2">
+                      {/* First Page */}
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
+                          currentPage === 1
+                            ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                            : "bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                        }`}
+                      >
+                        1
+                      </button>
+
+                      {/* Left Ellipsis */}
+                      {currentPage > 2 && (
+                        <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white text-xs sm:text-base">
+                          ...
+                        </span>
+                      )}
+
+                      {/* Desktop: Show 3 pages centered on current (only if not first or last) */}
+                      <div className="hidden sm:flex items-center gap-2">
+                        {currentPage > 2 && currentPage < totalPages - 1 && (
+                          <>
+                            {currentPage > 2 && (
+                              <button
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                              >
+                                {currentPage - 1}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setCurrentPage(currentPage)}
+                              className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                            >
+                              {currentPage}
+                            </button>
+                            {currentPage < totalPages - 1 && (
+                              <button
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                              >
+                                {currentPage + 1}
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {currentPage === 2 && totalPages > 2 && (
+                          <button
+                            onClick={() => setCurrentPage(2)}
+                            className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                          >
+                            2
+                          </button>
+                        )}
+                        {currentPage === totalPages - 1 && totalPages > 2 && (
+                          <button
+                            onClick={() => setCurrentPage(totalPages - 1)}
+                            className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                          >
+                            {totalPages - 1}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Mobile: Show only current page (only if not first or last) */}
+                      <div className="flex sm:hidden items-center gap-1">
+                        {currentPage > 1 && currentPage < totalPages && (
+                          <button
+                            onClick={() => setCurrentPage(currentPage)}
+                            className="w-8 h-8 rounded-lg font-bold transition-all duration-300 text-xs bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                          >
+                            {currentPage}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Right Ellipsis */}
+                      {currentPage < totalPages - 1 && (
+                        <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white text-xs sm:text-base">
+                          ...
+                        </span>
+                      )}
+
+                      {/* Last Page */}
+                      {totalPages > 1 && (
+                        <button
+                          onClick={() => setCurrentPage(totalPages)}
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
+                            currentPage === totalPages
+                              ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
+                              : "bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
+                          }`}
+                        >
+                          {totalPages}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      disabled={currentPage === totalPages}
+                      className={`group/nav flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all duration-300 ${
+                        currentPage === totalPages
+                          ? "bg-primary-800/30 text-primary-300/50 cursor-not-allowed"
+                          : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:from-primary-200 hover:to-primary-100 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
+                      }`}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Pagination Info */}
+                {filteredItems.length > 0 && (
+                  <div className="mt-4 text-center text-sm text-primary-200">
+                    Menampilkan {startIndex + 1}-
+                    {Math.min(endIndex, filteredItems.length)} dari{" "}
+                    {filteredItems.length} item
+                  </div>
+                )}
               </div>
             </div>
 

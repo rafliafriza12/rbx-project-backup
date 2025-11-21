@@ -1709,7 +1709,10 @@ export default function HomePage() {
                         <CheckCircle
                           className={`inline w-3 h-3 ${style.checkColor} mr-1`}
                         />{" "}
-                        {review.serviceInfo} • {review.timeAgo}
+                        {review.serviceInfo.includes("Robux")
+                          ? review.serviceInfo.replace("Robux", "RBX")
+                          : review.serviceInfo}{" "}
+                        • {review.timeAgo}
                       </div>
                     </div>
                   );
