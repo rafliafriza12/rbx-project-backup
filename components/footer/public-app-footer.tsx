@@ -103,9 +103,9 @@ const PublicAppFooter: React.FC = () => {
               </div>
               <p className="text-white/70 leading-relaxed">
                 RBXNET merupakan platform independen yang ditujukan bagi
-                komunitas pemain Rblx yang ingin melakukan jual beli item dengan
+                komunitas pemain RBX yang ingin melakukan jual beli item dengan
                 cara yang aman, praktis, dan nyaman. Kami tidak memiliki
-                afiliasi atau hubungan resmi dengan Roblox Corporation. Seluruh
+                afiliasi atau hubungan resmi dengan RBX Corporation. Seluruh
                 merek dagang dan hak cipta tetap menjadi milik masing-masing
                 pemiliknya.
               </p>
