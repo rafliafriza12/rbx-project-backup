@@ -386,7 +386,7 @@ export default function ReviewSection({
           ) : (
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full flex items-center justify-center">
-                <span className="text-primary-100 text-2xl">�</span>
+                <span className="text-primary-100 text-2xl -mt-1">�</span>
               </div>
               <p className="text-white/70 font-medium">
                 Belum ada review untuk layanan ini.
