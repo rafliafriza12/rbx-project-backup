@@ -911,7 +911,7 @@ export default function TransactionsPage() {
                   <option className="bg-[#334155]" value="expired">
                     Expired
                   </option>
-                  <option className="bg-[#334155]" value="cancel">
+                  <option className="bg-[#334155]" value="cancelled">
                     Cancelled
                   </option>
                   <option className="bg-[#334155]" value="failed">

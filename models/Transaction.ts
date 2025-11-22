@@ -278,6 +278,41 @@ transactionSchema.index({ "customerInfo.userId": 1 });
 transactionSchema.index({ paymentStatus: 1, orderStatus: 1 });
 transactionSchema.index({ createdAt: -1 });
 
+// Pre-save middleware to sanitize status values
+// Convert American spelling "canceled" to British "cancelled"
+transactionSchema.pre("save", function (next) {
+  // Use type assertion to allow "canceled" for sanitization
+  if ((this.paymentStatus as any) === "canceled") {
+    this.paymentStatus = "cancelled";
+  }
+  if ((this.orderStatus as any) === "canceled") {
+    this.orderStatus = "cancelled";
+  }
+  next();
+});
+
+// Pre-findOneAndUpdate middleware for the same sanitization
+transactionSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate() as any;
+  if (update) {
+    if (update.paymentStatus === "canceled") {
+      update.paymentStatus = "cancelled";
+    }
+    if (update.orderStatus === "canceled") {
+      update.orderStatus = "cancelled";
+    }
+    if (update.$set) {
+      if (update.$set.paymentStatus === "canceled") {
+        update.$set.paymentStatus = "cancelled";
+      }
+      if (update.$set.orderStatus === "canceled") {
+        update.$set.orderStatus = "cancelled";
+      }
+    }
+  }
+  next();
+});
+
 // Method untuk update status dengan history
 transactionSchema.methods.updateStatus = function (
   statusType: "payment" | "order",
@@ -285,9 +320,12 @@ transactionSchema.methods.updateStatus = function (
   notes?: string,
   updatedBy?: any
 ) {
+  // Sanitize: Convert "canceled" to "cancelled"
+  const sanitizedStatus = newStatus === "canceled" ? "cancelled" : newStatus;
+
   if (statusType === "payment") {
-    this.paymentStatus = newStatus;
-    if (newStatus === "settlement") {
+    this.paymentStatus = sanitizedStatus;
+    if (sanitizedStatus === "settlement") {
       this.paidAt = new Date();
       // Auto update order status jika pembayaran berhasil
       if (this.orderStatus === "waiting_payment") {
@@ -295,15 +333,15 @@ transactionSchema.methods.updateStatus = function (
       }
     }
   } else {
-    this.orderStatus = newStatus;
-    if (newStatus === "completed") {
+    this.orderStatus = sanitizedStatus;
+    if (sanitizedStatus === "completed") {
       this.completedAt = new Date();
     }
   }
 
-  // Add to history
+  // Add to history (use sanitized status)
   this.statusHistory.push({
-    status: `${statusType}:${newStatus}`,
+    status: `${statusType}:${sanitizedStatus}`,
     timestamp: new Date(),
     notes: notes || "",
     updatedBy: updatedBy,

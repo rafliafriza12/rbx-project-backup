@@ -4,11 +4,14 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
 import GamepassManager from "@/components/admin/GamepassManager";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 
 interface GamepassItem {
   itemName: string;
   imgUrl: string;
-  price: number;
+  robuxAmount: number; // Changed from price to robuxAmount
+  price: number; // Auto-calculated by backend, required for consistency
 }
 
 interface GamepassData {
@@ -31,7 +34,21 @@ export default function AdminGamepassPage() {
   const [editingGamepass, setEditingGamepass] = useState<GamepassData | null>(
     null
   );
+  const [pricePerRobux, setPricePerRobux] = useState(100); // NEW: Harga per Robux
   const { user } = useAuth();
+
+  // Fetch robux setting
+  const fetchRobuxSetting = async () => {
+    try {
+      const response = await fetch("/api/robux-setting");
+      const data = await response.json();
+      if (data.success) {
+        setPricePerRobux(data.data.pricePerRobux);
+      }
+    } catch (error) {
+      console.error("Error fetching robux setting:", error);
+    }
+  };
 
   // Fetch gamepasses
   const fetchGamepasses = async () => {
@@ -55,6 +72,7 @@ export default function AdminGamepassPage() {
 
   useEffect(() => {
     if (user?.accessRole === "admin") {
+      fetchRobuxSetting(); // Fetch robux setting first
       fetchGamepasses();
     }
   }, [user]);
@@ -225,9 +243,20 @@ export default function AdminGamepassPage() {
             <p className="mt-2 text-[#94a3b8]">
               Kelola semua gamepass yang tersedia di platform
             </p>
+            <p className="mt-1 text-sm text-[#60a5fa]">
+              💰 Harga saat ini: Rp {pricePerRobux.toLocaleString()} / Robux
+            </p>
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Robux Settings Button */}
+            <Link href="/admin/robux-pricing" className=" !no-underline">
+              <button className="px-4 py-3 bg-purple-600 text-[#f1f5f9] rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                <span className="hidden sm:inline ">Atur Harga Robux</span>
+              </button>
+            </Link>
+
             {/* Create Button */}
             <button
               onClick={() => setShowCreateModal(true)}
@@ -321,10 +350,24 @@ export default function AdminGamepassPage() {
                       <div className="text-sm text-[#f1f5f9]">
                         {gamepass.item.length} items
                       </div>
-                      <div className="text-sm text-[#94a3b8]">
+                      <div className="text-xs text-[#60a5fa]">
+                        {gamepass.item
+                          .reduce(
+                            (acc, item) => acc + (item.robuxAmount ?? 0),
+                            0
+                          )
+                          .toLocaleString()}{" "}
+                        Robux
+                      </div>
+                      <div className="text-xs text-[#94a3b8]">
                         Rp{" "}
                         {gamepass.item
-                          .reduce((acc, item) => acc + item.price, 0)
+                          .reduce(
+                            (acc, item) =>
+                              acc +
+                              (item.price || item.robuxAmount * pricePerRobux),
+                            0
+                          )
                           .toLocaleString()}
                       </div>
                     </td>
@@ -432,6 +475,7 @@ export default function AdminGamepassPage() {
               isCreate={true}
               onCreate={handleCreate}
               onClose={() => setShowCreateModal(false)}
+              pricePerRobux={pricePerRobux}
             />
           </div>
         </div>
@@ -445,6 +489,7 @@ export default function AdminGamepassPage() {
               gamepass={editingGamepass}
               onUpdate={handleUpdate}
               onClose={() => setEditingGamepass(null)}
+              pricePerRobux={pricePerRobux}
             />
           </div>
         </div>

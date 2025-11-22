@@ -105,7 +105,7 @@ const PublicAppFooter: React.FC = () => {
                 RBXNET merupakan platform independen yang ditujukan bagi
                 komunitas pemain RBX yang ingin melakukan jual beli item dengan
                 cara yang aman, praktis, dan nyaman. Kami tidak memiliki
-                afiliasi atau hubungan resmi dengan RBX Corporation. Seluruh
+                afiliasi atau hubungan resmi dengan Roblox Corporation. Seluruh
                 merek dagang dan hak cipta tetap menjadi milik masing-masing
                 pemiliknya.
               </p>
@@ -122,7 +122,7 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="/"
-                    className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Home
@@ -131,7 +131,7 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="/rbx5"
-                    className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     RBX 5 Hari
@@ -140,7 +140,7 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="/robux-instant"
-                    className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     RBX Instant
@@ -149,7 +149,7 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="/gamepass"
-                    className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Gamepass
@@ -158,7 +158,7 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="/joki"
-                    className="text-white/70 hover:text-neon-pink transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Jasa Joki
@@ -178,7 +178,7 @@ const PublicAppFooter: React.FC = () => {
                   <Link
                     href="/#faq"
                     onClick={(e) => handleAnchorClick(e, "#faq")}
-                    className="text-white/70 hover:text-neon-purple transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     FAQ
@@ -188,7 +188,7 @@ const PublicAppFooter: React.FC = () => {
                   <Link
                     href="/#contact"
                     onClick={(e) => handleAnchorClick(e, "#contact")}
-                    className="text-white/70 hover:text-neon-purple transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Kontak
@@ -198,7 +198,7 @@ const PublicAppFooter: React.FC = () => {
                   <Link
                     href="/#contact"
                     onClick={(e) => handleAnchorClick(e, "#contact")}
-                    className="text-white/70 hover:text-neon-purple transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Cara Beli
@@ -217,18 +217,18 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="#"
-                    className="text-white/70 hover:text-green-400 transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
-                    <span className="w-1 h-1 bg-green-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Kebijakan Privasi
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="#"
-                    className="text-white/70 hover:text-green-400 transition-colors duration-300 flex items-center gap-2 group"
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
-                    <span className="w-1 h-1 bg-green-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Syarat & Ketentuan
                   </Link>
                 </li>

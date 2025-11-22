@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import RobuxSetting from "./RobuxSetting";
 
 export interface IGamepass extends Document {
   gameName: string;
@@ -9,7 +10,8 @@ export interface IGamepass extends Document {
   item: {
     itemName: string;
     imgUrl: string;
-    price: number;
+    robuxAmount: number; // Jumlah Robux (input dari admin)
+    price: number; // Harga dalam Rupiah (auto-calculated)
   }[];
   createdAt: Date;
   updatedAt: Date;
@@ -62,9 +64,14 @@ const GamepassSchema: Schema = new Schema(
             required: [true, "URL gambar item diperlukan"],
             trim: true,
           },
+          robuxAmount: {
+            type: Number,
+            required: [true, "Jumlah Robux diperlukan"],
+            min: [0, "Jumlah Robux tidak boleh negatif"],
+          },
           price: {
             type: Number,
-            required: [true, "Harga item diperlukan"],
+            default: 0, // Will be auto-calculated
             min: [0, "Harga tidak boleh negatif"],
           },
         },
@@ -96,36 +103,118 @@ GamepassSchema.statics.canAddToHomepage = async function (excludeId?: string) {
   return count < 3;
 };
 
-// Pre-save middleware to validate homepage limit
+// Pre-save middleware to validate homepage limit and auto-calculate price
 GamepassSchema.pre("save", async function (next) {
-  if (this.showOnHomepage && this.isModified("showOnHomepage")) {
-    const canAdd = await (this.constructor as any).canAddToHomepage(this._id);
-    if (!canAdd) {
-      const error = new Error(
-        "Maksimal 3 gamepass yang dapat ditampilkan di homepage"
-      );
-      return next(error);
+  try {
+    // Auto-calculate price for each item based on robuxAmount
+    const robuxSetting = await RobuxSetting.findOne();
+    const pricePerRobux = robuxSetting?.pricePerRobux || 100;
+
+    // Map items dengan type assertion yang benar
+    const items = this.item as any[];
+    this.item = items.map((item) => {
+      const itemObj = item.toObject ? item.toObject() : item;
+      const robuxAmount = Number(itemObj.robuxAmount) || 0;
+      const calculatedPrice = Math.round(robuxAmount * pricePerRobux);
+
+      return {
+        ...itemObj,
+        robuxAmount: robuxAmount,
+        price: isNaN(calculatedPrice) ? 0 : calculatedPrice,
+      };
+    }) as any;
+
+    // Validate homepage limit
+    if (this.showOnHomepage && this.isModified("showOnHomepage")) {
+      const canAdd = await (this.constructor as any).canAddToHomepage(this._id);
+      if (!canAdd) {
+        const error = new Error(
+          "Maksimal 3 gamepass yang dapat ditampilkan di homepage"
+        );
+        return next(error);
+      }
     }
+    next();
+  } catch (error: any) {
+    next(error);
   }
-  next();
 });
 
-// Pre-update middleware to validate homepage limit on findByIdAndUpdate
+// Pre-update middleware to validate homepage limit and auto-calculate price on findByIdAndUpdate
 GamepassSchema.pre("findOneAndUpdate", async function (next) {
-  const update = this.getUpdate() as any;
+  try {
+    const update = this.getUpdate() as any;
 
-  if (update && update.showOnHomepage === true) {
-    const gamepassId = this.getQuery()._id;
-    const canAdd = await (this.model as any).canAddToHomepage(gamepassId);
-    if (!canAdd) {
-      const error = new Error(
-        "Maksimal 3 gamepass yang dapat ditampilkan di homepage"
-      );
-      return next(error);
+    // If items are being updated, recalculate prices
+    if (update && update.item) {
+      const robuxSetting = await RobuxSetting.findOne();
+      const pricePerRobux = robuxSetting?.pricePerRobux || 100;
+
+      update.item = update.item.map((item: any) => {
+        const robuxAmount = Number(item.robuxAmount) || 0;
+        const calculatedPrice = Math.round(robuxAmount * pricePerRobux);
+
+        return {
+          ...item,
+          robuxAmount: robuxAmount,
+          price: isNaN(calculatedPrice) ? 0 : calculatedPrice,
+        };
+      });
+
+      this.setUpdate(update);
     }
+
+    // Validate homepage limit
+    if (update && update.showOnHomepage === true) {
+      const gamepassId = this.getQuery()._id;
+      const canAdd = await (this.model as any).canAddToHomepage(gamepassId);
+      if (!canAdd) {
+        const error = new Error(
+          "Maksimal 3 gamepass yang dapat ditampilkan di homepage"
+        );
+        return next(error);
+      }
+    }
+    next();
+  } catch (error: any) {
+    next(error);
   }
-  next();
 });
+
+// Static method to recalculate all prices (digunakan ketika harga per Robux berubah)
+GamepassSchema.statics.recalculateAllPrices = async function () {
+  try {
+    const robuxSetting = await RobuxSetting.findOne();
+    const pricePerRobux = robuxSetting?.pricePerRobux || 100;
+
+    const gamepasses = await this.find();
+
+    const updates = gamepasses.map((gamepass: any) => {
+      const updatedItems = gamepass.item.map((item: any) => {
+        // Ensure robuxAmount is a valid number
+        const robuxAmount = Number(item.robuxAmount) || 0;
+        const calculatedPrice = Math.round(robuxAmount * pricePerRobux);
+
+        return {
+          ...item.toObject(),
+          robuxAmount: robuxAmount, // Ensure it's a number
+          price: isNaN(calculatedPrice) ? 0 : calculatedPrice, // Prevent NaN
+        };
+      });
+
+      return this.findByIdAndUpdate(
+        gamepass._id,
+        { item: updatedItems },
+        { new: true, runValidators: true }
+      );
+    });
+
+    return Promise.all(updates);
+  } catch (error) {
+    console.error("Error recalculating prices:", error);
+    throw error;
+  }
+};
 
 export default mongoose.models.Gamepass ||
   mongoose.model<IGamepass>("Gamepass", GamepassSchema);
