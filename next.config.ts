@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // reactStrictMode: true,
   // Remove trailingSlash or set to false to avoid API route issues
   // trailingSlash: true,
   // skipTrailingSlashRedirect: true,

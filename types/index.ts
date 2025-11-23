@@ -158,3 +158,58 @@ export interface AdminReviewsResponse extends ApiResponse<Review[]> {
     pages: number;
   };
 }
+
+// Chat Types
+export interface ChatUser {
+  _id: string;
+  username: string;
+  email: string;
+  fullName?: string;
+  avatar?: string;
+}
+
+export interface ChatRoom {
+  _id: string;
+  userId: ChatUser;
+  adminId?: ChatUser;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCountAdmin: number;
+  unreadCountUser: number;
+  status: "active" | "closed" | "archived";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  _id: string;
+  roomId: string;
+  senderId: ChatUser;
+  senderRole: "user" | "admin";
+  message: string;
+  type: "text" | "image" | "file" | "system";
+  fileUrl?: string;
+  fileName?: string;
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatRoomsResponse extends ApiResponse<ChatRoom[]> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ChatMessagesResponse extends ApiResponse<ChatMessage[]> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

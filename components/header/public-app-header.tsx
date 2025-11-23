@@ -121,18 +121,43 @@ const PublicAppHeader: React.FC = () => {
 
       <div className="space-x-4 hidden lg:flex items-center">
         {user && (
-          <Link
-            href="/cart"
-            onClick={handleLinkClick}
-            className={`relative p-2 rounded-lg transition-all duration-300 ${
-              pathname === "/cart"
-                ? "text-neon-pink bg-neon-pink/10"
-                : "text-white hover:text-neon-pink hover:bg-neon-pink/5"
-            }`}
-          >
-            <ShoppingCart className="w-6 h-6" />
-            {/* Cart count badge can be added here */}
-          </Link>
+          <>
+            <Link
+              href="/chat"
+              onClick={handleLinkClick}
+              className={`relative p-2 rounded-lg transition-all duration-300 ${
+                pathname === "/chat"
+                  ? "text-neon-pink bg-neon-pink/10"
+                  : "text-white hover:text-neon-pink hover:bg-neon-pink/5"
+              }`}
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </Link>
+            <Link
+              href="/cart"
+              onClick={handleLinkClick}
+              className={`relative p-2 rounded-lg transition-all duration-300 ${
+                pathname === "/cart"
+                  ? "text-neon-pink bg-neon-pink/10"
+                  : "text-white hover:text-neon-pink hover:bg-neon-pink/5"
+              }`}
+            >
+              <ShoppingCart className="w-6 h-6" />
+              {/* Cart count badge can be added here */}
+            </Link>
+          </>
         )}
 
         {user ? (
@@ -347,18 +372,44 @@ const PublicAppHeader: React.FC = () => {
         </Link>
 
         {user && (
-          <Link
-            href="/cart"
-            onClick={handleLinkClick}
-            className={`flex items-center gap-2 font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
-              pathname === "/cart"
-                ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
-                : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
-            }`}
-          >
-            <ShoppingCart className="w-5 h-5" />
-            Keranjang
-          </Link>
+          <>
+            <Link
+              href="/chat"
+              onClick={handleLinkClick}
+              className={`flex items-center gap-2 font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
+                pathname === "/chat"
+                  ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+                  : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+              }`}
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              Chat
+            </Link>
+            <Link
+              href="/cart"
+              onClick={handleLinkClick}
+              className={`flex items-center gap-2 font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
+                pathname === "/cart"
+                  ? "text-neon-pink font-bold bg-neon-pink/20 text-drop-shadow-sm"
+                  : "text-white hover:text-neon-pink hover:bg-neon-pink/10"
+              }`}
+            >
+              <ShoppingCart className="w-5 h-5" />
+              Keranjang
+            </Link>
+          </>
         )}
 
         <div className="flex flex-col gap-3 pt-4 border-t border-neon-purple/30 mt-2">
