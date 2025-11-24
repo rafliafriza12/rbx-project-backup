@@ -110,8 +110,53 @@ function CheckoutContent() {
     useState<string>("");
   const [expandedCategory, setExpandedCategory] = useState<string>("ewallet");
 
+  // Phone validation state
+  const [phoneError, setPhoneError] = useState("");
+
   // Check if this is guest checkout - user bisa checkout tanpa login
   const isGuestCheckout = !user;
+
+  // Check if form is valid (untuk disable button)
+  const isFormValid = () => {
+    // Check basic requirements
+    if (!acceptTerms || !selectedPaymentMethod) return false;
+
+    // Check phone number
+    if (!customerInfo.phone || !customerInfo.phone.trim()) return false;
+
+    // Check if there's phone error
+    if (phoneError) return false;
+
+    // Validate phone format
+    const phoneValidationError = validatePhoneNumber(customerInfo.phone);
+    if (phoneValidationError) return false;
+
+    // Check guest checkout fields
+    if (isGuestCheckout) {
+      if (!customerInfo.name.trim() || !customerInfo.email.trim()) return false;
+    }
+
+    // Check Roblox credentials (jika bukan multi-checkout dan bukan reseller)
+    if (!isMultiCheckoutFromCart && checkoutData) {
+      const isResellerPurchase = checkoutData.items.some(
+        (item) => item.serviceType === "reseller"
+      );
+
+      if (!isResellerPurchase && !robloxUsername.trim()) return false;
+
+      // Check password requirement
+      const requiresPassword = checkoutData.items.some((item) => {
+        return (
+          item.serviceType === "joki" ||
+          (item.serviceType === "robux" && item.robuxInstantDetails)
+        );
+      });
+
+      if (requiresPassword && !robloxPassword.trim()) return false;
+    }
+
+    return true;
+  };
 
   // Payment methods state - fetch from database
   const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>(
@@ -259,6 +304,54 @@ function CheckoutContent() {
     return formatted;
   };
 
+  // Validate phone number format
+  const validatePhoneNumber = (phone: string): string => {
+    if (!phone || !phone.trim()) {
+      return "Nomor WhatsApp wajib diisi";
+    }
+
+    const cleanPhone = phone.replace(/\D/g, "");
+
+    if (cleanPhone.length < 8) {
+      return "Nomor WhatsApp minimal 8 digit";
+    }
+
+    if (cleanPhone.length > 15) {
+      return "Nomor WhatsApp maksimal 15 digit";
+    }
+
+    const validPatterns = [
+      /^\+?62[0-9]{9,13}$/, // Indonesia
+      /^0[0-9]{9,12}$/, // Indonesia local
+      /^\+?60[0-9]{9,10}$/, // Malaysia
+      /^\+?65[0-9]{8}$/, // Singapore
+      /^\+?[1-9][0-9]{7,14}$/, // Other countries
+    ];
+
+    const isValidFormat = validPatterns.some((pattern) =>
+      pattern.test(phone.replace(/[\s-]/g, ""))
+    );
+
+    if (!isValidFormat) {
+      return "Format nomor tidak valid. Contoh: +6281234567890";
+    }
+
+    return ""; // No error
+  };
+
+  // Handle phone input change with validation
+  const handlePhoneChange = (value: string) => {
+    setCustomerInfo((prev) => ({ ...prev, phone: value }));
+
+    // Only validate if user has typed something
+    if (value.trim()) {
+      const error = validatePhoneNumber(value);
+      setPhoneError(error);
+    } else {
+      setPhoneError(""); // Clear error if field is empty (will be caught on submit)
+    }
+  };
+
   // Load Midtrans Snap script
   useEffect(() => {
     const midtransScriptUrl = "https://app.sandbox.midtrans.com/snap/snap.js";
@@ -323,6 +416,13 @@ function CheckoutContent() {
 
       console.log("✅ Customer info updated in state:");
       console.log("   New customerInfo:", newCustomerInfo);
+
+      // Check if user doesn't have phone number - will show editable field
+      if (!user.phone || user.phone.trim() === "") {
+        console.log(
+          "⚠️ User doesn't have phone number - field will be editable"
+        );
+      }
 
       // Verify state after update with setTimeout
       setTimeout(() => {
@@ -668,6 +768,65 @@ function CheckoutContent() {
       toast.error("Data user tidak ditemukan. Silakan login kembali.");
       return;
     }
+
+    // Validate phone number for all users (logged in and guest)
+    if (!customerInfo.phone || !customerInfo.phone.trim()) {
+      toast.error("Nomor WhatsApp wajib diisi!");
+      setPhoneError("Nomor WhatsApp wajib diisi"); // Set error state untuk visual feedback
+      return;
+    }
+
+    // Run full validation on phone number
+    const phoneValidationError = validatePhoneNumber(customerInfo.phone);
+    if (phoneValidationError) {
+      toast.error(phoneValidationError);
+      setPhoneError(phoneValidationError); // Set error state untuk visual feedback
+      return;
+    }
+
+    // Double check: Validate phone number format (redundant but safe)
+    const cleanPhone = customerInfo.phone.replace(/\D/g, ""); // Remove non-digits
+
+    // Phone number must be at least 8 digits and max 15 digits
+    if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+      const errorMsg =
+        "Nomor WhatsApp tidak valid. Minimal 8 digit, maksimal 15 digit.";
+      toast.error(errorMsg);
+      setPhoneError(errorMsg);
+      return;
+    }
+
+    // Check if phone starts with valid country code or local format
+    const validPatterns = [
+      /^\+?62[0-9]{9,13}$/, // Indonesia: +62 or 62, followed by 9-13 digits
+      /^0[0-9]{9,12}$/, // Indonesia: 0 followed by 9-12 digits
+      /^\+?60[0-9]{9,10}$/, // Malaysia: +60 or 60
+      /^\+?65[0-9]{8}$/, // Singapore: +65 or 65
+      /^\+?[1-9][0-9]{7,14}$/, // Other countries: + or digit, followed by 7-14 digits
+    ];
+
+    const isValidFormat = validPatterns.some((pattern) =>
+      pattern.test(customerInfo.phone.replace(/[\s-]/g, ""))
+    );
+
+    if (!isValidFormat) {
+      const errorMsg =
+        "Format nomor WhatsApp tidak valid. Contoh: +6281234567890 atau 081234567890";
+      toast.error(errorMsg);
+      setPhoneError(errorMsg);
+      // Scroll to phone input field
+      setTimeout(() => {
+        const phoneInput = document.querySelector('input[type="tel"]');
+        if (phoneInput) {
+          phoneInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          (phoneInput as HTMLInputElement).focus();
+        }
+      }, 100);
+      return;
+    }
+
+    // Clear phone error if validation passed
+    setPhoneError("");
 
     if (!selectedPaymentMethod) {
       toast.error("Pilih metode pembayaran terlebih dahulu");
@@ -1365,22 +1524,27 @@ function CheckoutContent() {
                       <input
                         type="tel"
                         value={customerInfo.phone}
-                        onChange={(e) =>
-                          setCustomerInfo((prev) => ({
-                            ...prev,
-                            phone: e.target.value,
-                          }))
-                        }
-                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                        placeholder="08123456789"
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        className={`w-full p-3 border-2 rounded-lg backdrop-blur-md text-white placeholder-white/50 focus:bg-white/10 focus:outline-none transition-all duration-300 ${
+                          phoneError
+                            ? "border-red-500/50 bg-red-500/5 focus:border-red-500"
+                            : "border-white/20 bg-white/5 focus:border-neon-pink"
+                        }`}
+                        placeholder="Contoh: +6281234567890 atau 081234567890"
                         required
                       />
+                      {phoneError && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                          <AlertTriangle className="w-4 h-4" />
+                          {phoneError}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Customer Information for Logged In Users (Read-only display) */}
+              {/* Customer Information for Logged In Users (Read-only display with editable phone) */}
               {!isGuestCheckout && user && (
                 <div className="neon-card rounded-2xl p-5">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center">
@@ -1413,11 +1577,39 @@ function CheckoutContent() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-primary-200 mb-2">
-                        Nomor WhatsApp
+                        Nomor WhatsApp <span className="text-neon-pink">*</span>
+                        {(!user.phone || user.phone.trim() === "") && (
+                          <span className="ml-2 text-xs text-yellow-400">
+                            (Harap isi nomor HP)
+                          </span>
+                        )}
                       </label>
-                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-mono">
-                        {customerInfo.phone || user.phone || "Tidak tersedia"}
-                      </div>
+                      {user.phone && user.phone.trim() !== "" ? (
+                        <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-mono">
+                          {customerInfo.phone}
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="tel"
+                            value={customerInfo.phone}
+                            onChange={(e) => handlePhoneChange(e.target.value)}
+                            className={`w-full p-3 border-2 rounded-lg backdrop-blur-md text-white placeholder-white/50 focus:bg-white/10 focus:outline-none transition-all duration-300 ${
+                              phoneError
+                                ? "border-red-500/50 bg-red-500/5 focus:border-red-500"
+                                : "border-yellow-500/50 bg-yellow-500/5 focus:border-neon-pink"
+                            }`}
+                            placeholder="Contoh: +6281234567890 atau 081234567890"
+                            required
+                          />
+                          {phoneError && (
+                            <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                              <AlertTriangle className="w-4 h-4" />
+                              {phoneError}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1524,14 +1716,20 @@ function CheckoutContent() {
                           Username Roblox{" "}
                           <span className="text-neon-pink">*</span>
                         </label>
-                        <input
-                          type="text"
-                          value={robloxUsername}
-                          onChange={(e) => setRobloxUsername(e.target.value)}
-                          className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                          placeholder="Masukkan username Roblox"
-                          required
-                        />
+                        {robloxUsername ? (
+                          <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-medium">
+                            {robloxUsername}
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            value={robloxUsername}
+                            onChange={(e) => setRobloxUsername(e.target.value)}
+                            className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                            placeholder="Masukkan username Roblox"
+                            required
+                          />
+                        )}
                       </div>
                       {/* Password hanya diperlukan untuk robux instant dan joki */}
                       {checkoutData.items.some(
@@ -1545,29 +1743,35 @@ function CheckoutContent() {
                             Password Roblox{" "}
                             <span className="text-neon-pink">*</span>
                           </label>
-                          <div className="relative">
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              value={robloxPassword}
-                              onChange={(e) =>
-                                setRobloxPassword(e.target.value)
-                              }
-                              className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
-                              placeholder="Masukkan password Roblox"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
-                            >
-                              {showPassword ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </button>
-                          </div>
+                          {robloxPassword ? (
+                            <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-mono flex items-center justify-between">
+                              <span>••••••••••••</span>
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={robloxPassword}
+                                onChange={(e) =>
+                                  setRobloxPassword(e.target.value)
+                                }
+                                className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                                placeholder="Masukkan password Roblox"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1758,11 +1962,9 @@ function CheckoutContent() {
               <div className="text-center">
                 <button
                   type="submit"
-                  disabled={
-                    submitting || !acceptTerms || !selectedPaymentMethod
-                  }
+                  disabled={submitting || !isFormValid()}
                   className={`group relative px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 transform inline-flex items-center gap-3 w-full md:w-auto justify-center shadow-xl ${
-                    submitting || !acceptTerms || !selectedPaymentMethod
+                    submitting || !isFormValid()
                       ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600"
                       : "btn-neon-primary hover:scale-105 glow-neon-pink active:scale-95"
                   }`}
@@ -1786,6 +1988,37 @@ function CheckoutContent() {
                     )}
                   </div>
                 </button>
+
+                {/* Helper text jika form belum valid */}
+                {!isFormValid() && !submitting && (
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-yellow-400 flex items-center justify-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>
+                        {!acceptTerms
+                          ? "Harap setujui syarat dan ketentuan"
+                          : !selectedPaymentMethod
+                          ? "Pilih metode pembayaran terlebih dahulu"
+                          : phoneError
+                          ? "Perbaiki format nomor WhatsApp"
+                          : !customerInfo.phone || !customerInfo.phone.trim()
+                          ? "Nomor WhatsApp wajib diisi"
+                          : isGuestCheckout && !customerInfo.name.trim()
+                          ? "Nama lengkap wajib diisi"
+                          : isGuestCheckout && !customerInfo.email.trim()
+                          ? "Email wajib diisi"
+                          : !isMultiCheckoutFromCart &&
+                            checkoutData &&
+                            !checkoutData.items.some(
+                              (item) => item.serviceType === "reseller"
+                            ) &&
+                            !robloxUsername.trim()
+                          ? "Username Roblox wajib diisi"
+                          : "Lengkapi semua field yang diperlukan"}
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
             </form>
           </div>
