@@ -129,14 +129,15 @@ export default function HomePage() {
                   Gamepass
                 </Link>
               </li>
-              <li>
+              {/* JOKI MENU - TEMPORARILY DISABLED */}
+              {/* <li>
                 <Link
                   href="/joki"
                   className="hover:text-white transition-colors"
                 >
                   Jasa Joki
                 </Link>
-              </li>
+              </li> */}
               <li>
                 <Link
                   href="/track-order"
@@ -153,14 +154,15 @@ export default function HomePage() {
                   Gamepass
                 </Link>
               </li>
-              <li>
+              {/* JOKI MENU - TEMPORARILY DISABLED */}
+              {/* <li>
                 <Link
                   href="/joki"
                   className="hover:text-white transition-colors"
                 >
                   Jasa Joki
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
           <div className="text-center sm:text-left">

@@ -73,7 +73,8 @@ const PublicAppHeader: React.FC = () => {
         >
           Gamepass
         </Link>
-        <Link
+        {/* JOKI MENU - TEMPORARILY DISABLED */}
+        {/* <Link
           href="/joki"
           onClick={handleLinkClick}
           className={`transition-all duration-300 px-3 py-2 rounded-lg ${
@@ -83,7 +84,7 @@ const PublicAppHeader: React.FC = () => {
           }`}
         >
           Jasa Joki
-        </Link>
+        </Link> */}
         <Link
           href="/reseller"
           onClick={handleLinkClick}
@@ -301,7 +302,8 @@ const PublicAppHeader: React.FC = () => {
         >
           Gamepass
         </Link>
-        <Link
+        {/* JOKI MENU - TEMPORARILY DISABLED */}
+        {/* <Link
           href="/joki"
           onClick={handleLinkClick}
           className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
@@ -311,7 +313,7 @@ const PublicAppHeader: React.FC = () => {
           }`}
         >
           Jasa Joki
-        </Link>
+        </Link> */}
         <Link
           href="/reseller"
           onClick={handleLinkClick}

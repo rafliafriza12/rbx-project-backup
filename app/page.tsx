@@ -1114,7 +1114,8 @@ export default function HomePage() {
               <div className="flex items-center ">
                 <Gamepad2 className="w-5 h-5" />
               </div>
-              Gamepass & Joki
+              Gamepass
+              {/* & Joki */}
             </div>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
               <span className="text-neon-purple">Game</span> Populer

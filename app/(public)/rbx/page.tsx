@@ -65,14 +65,15 @@ export default function RBXLandingPage() {
               isActive: true,
               order: 2,
             },
-            {
-              _id: "3",
-              imageUrl: "/banner.png",
-              link: "/joki",
-              alt: "Banner Joki Service",
-              isActive: true,
-              order: 3,
-            },
+            // JOKI BANNER - TEMPORARILY DISABLED
+            // {
+            //   _id: "3",
+            //   imageUrl: "/banner.png",
+            //   link: "/joki",
+            //   alt: "Banner Joki Service",
+            //   isActive: true,
+            //   order: 3,
+            // },
           ]);
         }
       }
@@ -95,14 +96,15 @@ export default function RBXLandingPage() {
           isActive: true,
           order: 2,
         },
-        {
-          _id: "3",
-          imageUrl: "/banner.png",
-          link: "/joki",
-          alt: "Banner Joki Service",
-          isActive: true,
-          order: 3,
-        },
+        // JOKI BANNER - TEMPORARILY DISABLED
+        // {
+        //   _id: "3",
+        //   imageUrl: "/banner.png",
+        //   link: "/joki",
+        //   alt: "Banner Joki Service",
+        //   isActive: true,
+        //   order: 3,
+        // },
       ]);
     } finally {
       setLoadingBanners(false);
