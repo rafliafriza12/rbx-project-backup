@@ -3,6 +3,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IChatRoom extends Document {
   userId: mongoose.Types.ObjectId;
   adminId?: mongoose.Types.ObjectId;
+  roomType: 'general' | 'order'; // Type of chat room
+  transactionCode?: string; // Order ID for order support
+  transactionTitle?: string; // Product name for order support
   lastMessage?: string;
   lastMessageAt?: Date;
   unreadCountAdmin: number; // Unread messages for admin
@@ -23,6 +26,19 @@ const ChatRoomSchema = new Schema<IChatRoom>(
     adminId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
+    },
+    roomType: {
+      type: String,
+      enum: ['general', 'order'],
+      default: 'general',
+      required: true,
+    },
+    transactionCode: {
+      type: String,
+      sparse: true, // Allow null but enforce uniqueness when present
+    },
+    transactionTitle: {
+      type: String,
     },
     lastMessage: {
       type: String,
@@ -50,5 +66,6 @@ const ChatRoomSchema = new Schema<IChatRoom>(
 // Index for faster queries
 ChatRoomSchema.index({ userId: 1 });
 ChatRoomSchema.index({ status: 1, lastMessageAt: -1 });
+ChatRoomSchema.index({ transactionCode: 1 }, { sparse: true });
 
 export default mongoose.models.ChatRoom || mongoose.model<IChatRoom>('ChatRoom', ChatRoomSchema);

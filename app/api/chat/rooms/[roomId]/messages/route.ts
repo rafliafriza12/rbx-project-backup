@@ -6,6 +6,8 @@ import Message from '@/models/Message';
 import User from '@/models/User'; // ✅ Import User model explicitly
 import { authenticateToken } from '@/lib/auth';
 import { getPusherInstance } from '@/lib/pusher';
+import PushSubscription from '@/models/PushSubscription';
+import { sendPushNotificationToMany } from '@/lib/webpush';
 
 // Simple in-memory rate limiter (for production, use Redis)
 const messageRateLimiter = new Map<string, { count: number; resetAt: number }>();
@@ -406,12 +408,100 @@ export async function POST(
 
       pusherEventCount = 1;
       console.log(`[POST /messages] ✅ Pusher event sent successfully to private channel`);
+      
+      // If message from USER, notify all ADMINS via admin-notifications channel
+      if (senderRole === 'user') {
+        console.log(`[POST /messages] 📢 Sending admin notification...`);
+        await pusher.trigger('admin-notifications', 'new-message', {
+          roomId,
+          userId: chatRoom.userId.toString(),
+          message: message.trim(),
+          senderName: populatedMessage.senderId?.fullName || populatedMessage.senderId?.username,
+          roomType: chatRoom.roomType,
+          transactionCode: chatRoom.transactionCode,
+          timestamp: new Date(),
+        });
+        pusherEventCount = 2;
+        console.log(`[POST /messages] ✅ Admin notification sent successfully`);
+      }
+      
+      // If message from ADMIN, notify the USER via user-specific channel
+      if (senderRole === 'admin') {
+        console.log(`[POST /messages] 📢 Sending user notification...`);
+        await pusher.trigger(`user-notifications-${chatRoom.userId.toString()}`, 'new-message', {
+          roomId,
+          adminId: user._id.toString(),
+          message: message.trim(),
+          senderName: populatedMessage.senderId?.fullName || populatedMessage.senderId?.username,
+          roomType: chatRoom.roomType,
+          transactionCode: chatRoom.transactionCode,
+          timestamp: new Date(),
+        });
+        pusherEventCount = 2;
+        console.log(`[POST /messages] ✅ User notification sent successfully`);
+      }
+      
       console.log(`[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount}`);
       console.log(`[POST /messages] ================================================`);
     } catch (pusherError) {
       console.error(`[POST /messages] ❌ Pusher error:`, pusherError);
       console.log(`[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount} (failed)`);
       // Continue even if Pusher fails - message already saved
+    }
+
+    // Send web push notifications (background notifications)
+    try {
+      console.log(`[POST /messages] 🔔 Sending web push notifications...`);
+      
+      // Determine receiver ID based on sender role
+      const receiverId = senderRole === 'admin' ? chatRoom.userId : chatRoom.adminId;
+      
+      if (receiverId) {
+        // Get all active push subscriptions for receiver
+        const subscriptions = await PushSubscription.find({
+          userId: receiverId,
+          isActive: true,
+        });
+
+        if (subscriptions.length > 0) {
+          console.log(`[POST /messages] 📱 Found ${subscriptions.length} active subscription(s) for receiver`);
+          
+          // Prepare push notification payload
+          const senderName = populatedMessage.senderId?.fullName || 
+                            populatedMessage.senderId?.username || 
+                            (senderRole === 'admin' ? 'Admin' : 'User');
+          
+          const messagePreview = type === 'image' 
+            ? '📷 Mengirim gambar'
+            : message.trim().substring(0, 100);
+
+          const pushPayload = {
+            title: `💬 Pesan baru dari ${senderName}`,
+            body: messagePreview,
+            icon: '/icon-192x192.png',
+            badge: '/badge-72x72.png',
+            tag: `chat-${roomId}`,
+            data: {
+              roomId,
+              url: senderRole === 'admin' ? '/chat' : '/admin/chat',
+              messageId: populatedMessage._id.toString(),
+            },
+          };
+
+          // Send to all devices
+          const result = await sendPushNotificationToMany(
+            subscriptions.map(s => s.subscription),
+            pushPayload
+          );
+
+          console.log(`[POST /messages] ✅ Web push sent: ${result.success} succeeded, ${result.failed} failed`);
+        } else {
+          console.log(`[POST /messages] ℹ️ No active push subscriptions found for receiver`);
+        }
+      }
+    } catch (pushError) {
+      console.error(`[POST /messages] ❌ Web push error:`, pushError);
+      // Continue even if push fails - message already saved
     }
 
     return NextResponse.json({

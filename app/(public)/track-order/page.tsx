@@ -20,6 +20,7 @@ import {
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
 import { Transaction } from "@/types";
+import Link from "next/link";
 
 export default function TrackOrderPage() {
   const [invoiceId, setInvoiceId] = useState("");
@@ -972,14 +973,14 @@ export default function TrackOrderPage() {
                       🖨️ Cetak Detail
                     </button>
 
-                    <a
-                      href="https://wa.me/6281234567890"
+                    <Link
+                      href="/chat"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 text-green-300 rounded-xl hover:from-green-500/30 hover:to-green-600/30 backdrop-blur-sm transition-all duration-300 font-medium text-sm sm:text-base"
                     >
                       💬 Hubungi CS
-                    </a>
+                    </Link>
 
                     <button
                       onClick={() => {

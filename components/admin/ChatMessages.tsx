@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { format } from "date-fns";
+import { 
+  showChatNotification, 
+  shouldShowNotification, 
+  getNotificationPreference 
+} from "@/lib/notifications";
 
 interface Message {
   _id: string;
@@ -14,6 +19,8 @@ interface Message {
   senderRole: "user" | "admin";
   message: string;
   type: "text" | "image" | "file" | "system";
+  fileUrl?: string;
+  fileName?: string;
   isRead: boolean;
   createdAt: string;
 }
@@ -33,8 +40,12 @@ export default function ChatMessages({
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const pusherRef = useRef<any>(null);
@@ -159,6 +170,26 @@ export default function ChatMessages({
           }
           
           console.log('[Pusher Event] ✅ New message added to state');
+          
+          // Show notification if message is from user (not from admin itself)
+          const isFromUser = data.message.senderRole === 'user';
+          if (isFromUser && shouldShowNotification() && getNotificationPreference()) {
+            const senderName = data.message.senderId?.fullName || 
+                              data.message.senderId?.username || 
+                              'User';
+            
+            showChatNotification({
+              senderName,
+              message: data.message.message,
+              roomId: roomId,
+              isImage: data.message.type === 'image',
+            }).then((shown) => {
+              if (shown) {
+                console.log('[Notification] ✅ Notification shown for new message');
+              }
+            });
+          }
+          
           console.log('[Pusher Event] ================================================');
           return [...prev, data.message];
         });
@@ -215,7 +246,8 @@ export default function ChatMessages({
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || sending) return;
+    // Check if we have either text or image
+    if ((!newMessage.trim() && !selectedImage) || sending) return;
 
     console.log(`[Chat Frontend] ================================================`);
     console.log(`[Chat Frontend] 🔵 Sending new message...`);
@@ -239,14 +271,38 @@ export default function ChatMessages({
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    const messageText = newMessage.trim();
+    const messageText = newMessage.trim() || (selectedImage ? '📷 Image' : '');
     setSending(true);
-    setNewMessage(""); // Clear input immediately for better UX
 
     console.log(`[Chat Frontend] 📤 POST /api/chat/rooms/${roomId}/messages`);
-    console.log(`[Chat Frontend] 💬 Message: "${messageText}"`);
+    console.log(`[Chat Frontend] 💬 Message type: ${selectedImage ? 'image' : 'text'}`);
 
     try {
+      let fileUrl = '';
+      let fileName = '';
+
+      // Upload image first if selected
+      if (selectedImage) {
+        setUploading(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedImage);
+
+        const uploadResponse = await fetch('/api/chat/upload-image', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadData.success) {
+          throw new Error(uploadData.error || 'Failed to upload image');
+        }
+
+        fileUrl = uploadData.data.url;
+        fileName = uploadData.data.fileName;
+        setUploading(false);
+      }
+
       const response = await fetch(`/api/chat/rooms/${roomId}/messages`, {
         method: "POST",
         headers: {
@@ -254,29 +310,33 @@ export default function ChatMessages({
         },
         body: JSON.stringify({
           message: messageText,
-          type: "text",
+          type: selectedImage ? "image" : "text",
+          fileUrl: fileUrl || undefined,
+          fileName: fileName || undefined,
         }),
-        signal: abortController.signal, // Add abort signal
+        signal: abortController.signal,
       });
 
       const data = await response.json();
 
       if (!data.success) {
-        // If failed, restore message to input
-        setNewMessage(messageText);
-        
         // Show user-friendly error for rate limiting
         if (response.status === 429) {
           console.log(`[Chat Frontend] ⚠️ Rate limited by backend!`);
           alert("Terlalu banyak pesan. Mohon tunggu sebentar.");
         } else {
           console.error(`[Chat Frontend] ❌ Failed to send:`, data.error);
+          alert(data.error || 'Failed to send message');
         }
         console.log(`[Chat Frontend] ================================================`);
       } else {
         console.log(`[Chat Frontend] ✅ POST successful - Message ID: ${data.data._id}`);
         
-        // If duplicate detected, log it
+        // Clear inputs on success
+        setNewMessage("");
+        setSelectedImage(null);
+        setImagePreview(null);
+        
         if (data.duplicate) {
           console.warn(`[Chat Frontend] 🔁 Backend returned duplicate (idempotency)`);
         }
@@ -284,10 +344,7 @@ export default function ChatMessages({
         console.log(`[Chat Frontend] ⏳ Waiting for Pusher event...`);
         console.log(`[Chat Frontend] ================================================`);
       }
-      // Message will be added via Pusher real-time update
-      // No need to manually add to state
     } catch (error: any) {
-      // Ignore abort errors (user typed new message quickly)
       if (error.name === 'AbortError') {
         console.log(`[Chat Frontend] 🚫 Request aborted - rapid messaging detected`);
         console.log(`[Chat Frontend] ================================================`);
@@ -296,11 +353,47 @@ export default function ChatMessages({
       
       console.error(`[Chat Frontend] ❌ Error:`, error);
       console.log(`[Chat Frontend] ================================================`);
-      // Restore message on error
-      setNewMessage(messageText);
+      alert(error.message || 'Failed to send message');
     } finally {
       setSending(false);
+      setUploading(false);
       abortControllerRef.current = null;
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Hanya file gambar yang diperbolehkan (JPEG, PNG, GIF, WebP)');
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('Ukuran file maksimal 5MB');
+      return;
+    }
+
+    setSelectedImage(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -398,9 +491,26 @@ export default function ChatMessages({
                             : "bg-slate-700 text-slate-100"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">
-                          {message.message}
-                        </p>
+                        {/* Render Image if type is image */}
+                        {message.type === 'image' && message.fileUrl && (
+                          <div className="mb-2">
+                            <img
+                              src={message.fileUrl}
+                              alt={message.fileName || 'Image'}
+                              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => window.open(message.fileUrl, '_blank')}
+                              style={{ maxHeight: '300px', objectFit: 'contain' }}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Render text message */}
+                        {message.message && message.message !== '📷 Image' && (
+                          <p className="whitespace-pre-wrap break-words">
+                            {message.message}
+                          </p>
+                        )}
+                        
                         <div
                           className={`text-xs mt-1 ${
                             isOwnMessage ? "text-blue-200" : "text-slate-400"
@@ -426,21 +536,61 @@ export default function ChatMessages({
 
       {/* Input Area */}
       <div className="border-t border-slate-700 p-4">
+        {/* Image Preview */}
+        {imagePreview && (
+          <div className="mb-3 relative inline-block">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="max-h-32 rounded-lg border-2 border-blue-500"
+            />
+            <button
+              onClick={handleRemoveImage}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
         <form onSubmit={handleSendMessage} className="flex gap-2">
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          
+          {/* Image Upload Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sending || uploading}
+            className="bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            title="Upload Image"
+          >
+            📷
+          </button>
+          
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Ketik pesan..."
             className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={sending}
+            disabled={sending || uploading}
           />
           <button
             type="submit"
-            disabled={!newMessage.trim() || sending}
+            disabled={(!newMessage.trim() && !selectedImage) || sending || uploading}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition-colors"
           >
-            {sending ? (
+            {uploading ? (
+              <span className="inline-block">⏫</span>
+            ) : sending ? (
               <span className="inline-block animate-spin">⏳</span>
             ) : (
               "Kirim"

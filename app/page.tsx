@@ -1542,11 +1542,11 @@ export default function HomePage() {
               </div>
 
               {/* Quick Contact Button - Neon Style */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <Link href="/chat" className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button className="btn-neon-primary px-8 py-4 rounded-2xl font-semibold text-lg hover:-translate-y-1 transition-all duration-300">
                   Hubungi Support
                 </button>
-              </div>
+              </Link>
             </div>
 
             {/* Character Illustration - Neon Style */}
@@ -1820,7 +1820,7 @@ export default function HomePage() {
                 <p className="text-white/70 ">
                   Anda bisa melacak pesanan melalui halaman "Lacak Pesanan"
                   dengan memasukkan Order ID yang dikirim via email. Atau
-                  hubungi customer service kami di WhatsApp untuk update
+                  hubungi customer service kami di menu chat untuk update
                   real-time.
                 </p>
               </div>
