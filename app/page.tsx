@@ -68,8 +68,19 @@ interface LiveReview {
   colorScheme: string;
 }
 
+interface SiteSettings {
+  whatsappNumber?: string;
+  instagramUrl?: string;
+  discordInvite?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+}
+
 export default function HomePage() {
   //ini baru ditambahkan
+  const [settings, setSettings] = useState<SiteSettings>({});
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [discount, setDiscount] = useState(0);
   const router = useRouter();
@@ -113,6 +124,7 @@ export default function HomePage() {
   // Robux input state
   const [robuxAmount, setRobuxAmount] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+
   useEffect(() => {
     // Check if user logged in
     const token = localStorage.getItem("auth_token");
@@ -148,6 +160,8 @@ export default function HomePage() {
 
     // Fetch live reviews
     fetchLiveReviews();
+
+    fetchSettings();
   }, []);
 
   // Scroll to section with offset when hash is present in URL
@@ -196,6 +210,26 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch("/api/settings");
+      const data = await response.json();
+      if (response.ok) {
+        setSettings({
+          whatsappNumber: data.settings.whatsappNumber,
+          instagramUrl: data.settings.instagramUrl,
+          discordInvite: data.settings.discordInvite,
+          facebookUrl: data.settings.facebookUrl,
+          twitterUrl: data.settings.twitterUrl,
+          youtubeUrl: data.settings.youtubeUrl,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   // Function to fetch RBX5 statistics
   const fetchRbx5Stats = async () => {
     try {
@@ -606,7 +640,7 @@ export default function HomePage() {
               Platform #1 Indonesia untuk transaksi RBX dengan{" "}
               <span className="text-neon-pink font-medium">harga terbaik</span>,{" "}
               <span className="text-neon-purple font-medium">
-                proses instan
+                proses 5 hari
               </span>
               , dan{" "}
               <span className="text-white font-medium">keamanan terjamin</span>.
@@ -885,7 +919,7 @@ export default function HomePage() {
               </span>{" "}
               dan{" "}
               <span className="text-neon-purple font-medium">
-                proses instan
+                proses 5 hari
               </span>
               .
               <br className="hidden sm:block" />
@@ -902,17 +936,13 @@ export default function HomePage() {
                 <div className="flex items-center ">
                   <Gem className="w-4 h-4" />
                 </div>
-                RBX Premium - GamePass Official
+                RBX 5 hari
               </div>
               <h3 className="text-4xl sm:text-5xl font-black text-white mb-4">
-                Beli <span className="text-primary-100">RBX</span> Instan
+                Beli <span className="text-primary-100">RBX</span> 5 Hari
               </h3>
               <p className="text-xl text-white/80 max-w-2xl mx-auto ">
-                RBX akan otomatis ditambahkan ke akun kamu melalui{" "}
-                <span className="text-neon-pink font-semibold">
-                  gamepass resmi
-                </span>{" "}
-                dalam hitungan menit
+                RBX akan otomatis ditambahkan ke akun kamu dalam hitungan menit
               </p>
             </div>
 
@@ -1469,8 +1499,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Support Section - Neon Theme */}
-      <section className="py-20 bg-gradient-dark-secondary/30">
+      {/* Support Section - Minimal Clean Design */}
+      <section id="support" className="py-20 bg-gradient-dark-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Content */}
@@ -1484,15 +1514,23 @@ export default function HomePage() {
                 <span className="text-neon-pink">Membantu</span>
               </h2>
 
-              <p className="text-lg text-white/70 mb-8 ">
+              <p className="text-lg text-white/70 mb-8">
                 Mengalami kendala saat melakukan pembelian? Tim customer service
                 profesional kami siap membantu Anda 24/7 melalui berbagai
                 platform komunikasi.
               </p>
 
-              {/* Contact Methods - Neon Theme */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                <div className="neon-card rounded-2xl p-4 text-center group hover:shadow-neon-pink transition-all duration-300">
+              {/* Contact Methods - Simple Grid */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <Link
+                  href={`https://wa.me/${settings?.whatsappNumber?.replace(
+                    /\D/g,
+                    ""
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="neon-card rounded-2xl p-4 text-center group hover:shadow-neon-pink transition-all duration-300"
+                >
                   <div className="w-12 h-12 neon-card-secondary rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:shadow-neon-pink transition-all duration-300">
                     <Image
                       src="/wa.png"
@@ -1503,9 +1541,14 @@ export default function HomePage() {
                   </div>
                   <div className="text-sm font-medium text-white">WhatsApp</div>
                   <div className="text-xs text-white/50">Chat Langsung</div>
-                </div>
+                </Link>
 
-                <div className="neon-card-secondary rounded-2xl p-4 text-center group hover:shadow-neon-purple transition-all duration-300">
+                <Link
+                  href={settings.discordInvite ?? ""}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="neon-card-secondary rounded-2xl p-4 text-center group hover:shadow-neon-purple transition-all duration-300"
+                >
                   <div className="w-12 h-12 neon-card rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:shadow-neon-purple transition-all duration-300">
                     <Image
                       src="/discord.png"
@@ -1516,9 +1559,14 @@ export default function HomePage() {
                   </div>
                   <div className="text-sm font-medium text-white">Discord</div>
                   <div className="text-xs text-white/50">Server Community</div>
-                </div>
+                </Link>
 
-                <div className="neon-card rounded-2xl p-4 text-center group hover:shadow-neon-pink transition-all duration-300">
+                <Link
+                  href={settings.instagramUrl ?? ""}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="neon-card rounded-2xl p-4 text-center group hover:shadow-neon-pink transition-all duration-300"
+                >
                   <div className="w-12 h-12 neon-card-secondary rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:shadow-neon-pink transition-all duration-300">
                     <Image
                       src="/ig.png"
@@ -1531,22 +1579,81 @@ export default function HomePage() {
                     Instagram
                   </div>
                   <div className="text-xs text-white/50">DM Support</div>
+                </Link>
+              </div>
+
+              {/* Contact Info - Minimal Cards */}
+              <div className="space-y-3 mb-8">
+                {/* Email */}
+                <div className="neon-card rounded-xl p-4 flex items-center gap-3 hover:border-neon-purple/40 transition-all duration-300">
+                  <svg
+                    className="w-5 h-5 text-neon-purple flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <div className="flex-1 text-left">
+                    <div className="text-xs text-white/50 mb-0.5">Email</div>
+                    <a
+                      href="mailto:robuxids@gmail.com"
+                      className="text-sm font-semibold text-white hover:text-neon-purple transition-colors"
+                    >
+                      robuxids@gmail.com
+                    </a>
+                  </div>
                 </div>
 
-                <div className="neon-card-secondary rounded-2xl p-4 text-center group hover:shadow-neon-purple transition-all duration-300">
-                  <div className="w-12 h-12 neon-card rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:shadow-neon-purple transition-all duration-300">
-                    <BookOpen className="text-neon-purple w-6 h-6" />
+                {/* Address */}
+                <div className="neon-card-secondary rounded-xl p-4 flex items-center gap-3 hover:border-neon-pink/40 transition-all duration-300">
+                  <svg
+                    className="w-5 h-5 text-neon-pink flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <div className="flex-1 text-left">
+                    <div className="text-xs text-white/50 mb-0.5">Alamat</div>
+                    <div className="text-sm font-medium text-white leading-relaxed">
+                      Jl. Petojo Utara VI, RT 016 RW 003, Kec. Gambir, Jakarta
+                      Utara
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-white">Panduan</div>
-                  <div className="text-xs text-white/50">Step by Step</div>
                 </div>
               </div>
 
-              {/* Quick Contact Button - Neon Style */}
+              {/* CTA Button */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <button className="btn-neon-primary px-8 py-4 rounded-2xl font-semibold text-lg hover:-translate-y-1 transition-all duration-300">
+                <Link
+                  href={`https://wa.me/${settings?.whatsappNumber?.replace(
+                    /\D/g,
+                    ""
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-neon-primary px-8 py-4 rounded-2xl font-semibold text-lg hover:-translate-y-1 transition-all duration-300"
+                >
                   Hubungi Support
-                </button>
+                </Link>
               </div>
             </div>
 

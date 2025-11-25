@@ -176,6 +176,16 @@ const PublicAppFooter: React.FC = () => {
               <ul className="space-y-3">
                 <li>
                   <Link
+                    href="/#support"
+                    onClick={(e) => handleAnchorClick(e, "#support")}
+                    className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
+                  >
+                    <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    Support
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/#faq"
                     onClick={(e) => handleAnchorClick(e, "#faq")}
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
@@ -256,7 +266,7 @@ const PublicAppFooter: React.FC = () => {
                     <div className="flex gap-4">
                       {settings.whatsappNumber && (
                         <Link
-                          href={`https://wa.me/${settings.whatsappNumber.replace(
+                          href={`https://wa.me/${settings?.whatsappNumber?.replace(
                             /\D/g,
                             ""
                           )}`}
