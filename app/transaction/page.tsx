@@ -35,6 +35,9 @@ interface Transaction {
   createdAt: string;
   robloxUsername: string;
   midtransOrderId: string;
+  // Duitku fields
+  duitkuReference?: string;
+  paymentGateway?: string;
   // Multi-checkout fields
   relatedTransactions?: Transaction[];
   isMultiCheckout?: boolean;
@@ -49,7 +52,39 @@ function TransactionResultContent() {
   const [loading, setLoading] = useState(true);
 
   const orderId = searchParams.get("order_id");
-  const transactionStatus = searchParams.get("transaction_status"); // dari midtrans
+
+  // Midtrans parameters
+  const midtransStatus = searchParams.get("transaction_status");
+
+  // Duitku parameters
+  const duitkuResultCode = searchParams.get("resultCode");
+  const duitkuReference = searchParams.get("reference");
+
+  // Normalize transaction status from different gateways
+  const getTransactionStatus = (): string | null => {
+    // If Midtrans status is present, use it
+    if (midtransStatus) {
+      return midtransStatus;
+    }
+
+    // If Duitku resultCode is present, convert to normalized status
+    if (duitkuResultCode) {
+      switch (duitkuResultCode) {
+        case "00":
+          return "settlement"; // Success
+        case "01":
+          return "pending"; // Pending
+        case "02":
+          return "cancel"; // Cancelled
+        default:
+          return "pending"; // Default to pending for unknown codes
+      }
+    }
+
+    return null;
+  };
+
+  const transactionStatus = getTransactionStatus();
   const action = searchParams.get("action"); // contoh: back
 
   useEffect(() => {
@@ -316,7 +351,7 @@ function TransactionResultContent() {
                           {transaction.invoiceId}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-2">
                         <span className="text-primary-200 font-medium">
                           Order ID:
                         </span>
@@ -324,6 +359,17 @@ function TransactionResultContent() {
                           {transaction.midtransOrderId}
                         </span>
                       </div>
+                      {/* Show Duitku Reference if available */}
+                      {transaction.duitkuReference && (
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-primary-200 font-medium">
+                            Reference:
+                          </span>
+                          <span className="font-mono font-semibold text-primary-100 text-xs">
+                            {transaction.duitkuReference}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center pt-3 border-t border-primary-100/20">
                         <span className="text-lg font-bold text-white">
                           Grand Total:
@@ -359,6 +405,17 @@ function TransactionResultContent() {
                         {transaction.midtransOrderId}
                       </span>
                     </div>
+                    {/* Show Duitku Reference if available */}
+                    {transaction.duitkuReference && (
+                      <div className="flex justify-between sm:col-span-2 py-3 border-b border-primary-100/20">
+                        <span className="text-primary-200 font-medium">
+                          Reference:
+                        </span>
+                        <span className="font-mono font-semibold text-primary-100 text-sm">
+                          {transaction.duitkuReference}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between sm:col-span-2 py-3 border-b border-primary-100/20">
                       <span className="text-primary-200 font-medium flex items-center gap-2">
                         <Package className="w-4 h-4" />

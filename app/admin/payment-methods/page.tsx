@@ -16,6 +16,8 @@ interface PaymentMethod {
   isActive: boolean;
   displayOrder: number;
   midtransEnabled: boolean;
+  duitkuEnabled: boolean;
+  duitkuCode: string;
   minimumAmount?: number;
   maximumAmount?: number;
   instructions?: string;
@@ -34,7 +36,10 @@ interface FormData {
   description: string;
   isActive: boolean;
   displayOrder: string;
+  selectedGateway: "midtrans" | "duitku"; // Radio button selection
   midtransEnabled: boolean;
+  duitkuEnabled: boolean;
+  duitkuCode: string;
   minimumAmount: string;
   maximumAmount: string;
   instructions: string;
@@ -61,7 +66,10 @@ export default function PaymentMethodsPage() {
     description: "",
     isActive: true,
     displayOrder: "0",
+    selectedGateway: "midtrans",
     midtransEnabled: true,
+    duitkuEnabled: false,
+    duitkuCode: "",
     minimumAmount: "",
     maximumAmount: "",
     instructions: "",
@@ -101,6 +109,41 @@ export default function PaymentMethodsPage() {
     { code: "CREDIT_CARD", name: "Credit Card", category: "credit_card" },
   ];
 
+  // Duitku Payment Codes - https://docs.duitku.com/api/id/#payment-method
+  const duitkuPaymentCodes = [
+    { code: "BC", name: "BCA Virtual Account", category: "bank_transfer" },
+    { code: "M2", name: "Mandiri Virtual Account", category: "bank_transfer" },
+    { code: "VA", name: "Maybank Virtual Account", category: "bank_transfer" },
+    { code: "I1", name: "BNI Virtual Account", category: "bank_transfer" },
+    {
+      code: "B1",
+      name: "CIMB Niaga Virtual Account",
+      category: "bank_transfer",
+    },
+    {
+      code: "BT",
+      name: "Permata Bank Virtual Account",
+      category: "bank_transfer",
+    },
+    { code: "A1", name: "ATM Bersama", category: "bank_transfer" },
+    { code: "OV", name: "OVO", category: "ewallet" },
+    { code: "SA", name: "ShopeePay Apps", category: "ewallet" },
+    { code: "LQ", name: "LinkAja Apps (QRIS)", category: "ewallet" },
+    { code: "DA", name: "DANA", category: "ewallet" },
+    { code: "SP", name: "ShopeePay QRIS", category: "qris" },
+    { code: "LQ", name: "LinkAja QRIS", category: "qris" },
+    { code: "NQ", name: "Nobu QRIS", category: "qris" },
+    { code: "DQ", name: "DANA QRIS", category: "qris" },
+    {
+      code: "VC",
+      name: "Credit Card (Visa/Master/JCB)",
+      category: "credit_card",
+    },
+    { code: "IR", name: "Indomaret", category: "retail" },
+    { code: "AG", name: "Alfamart/Alfamidi/Dan+Dan", category: "retail" },
+    { code: "FT", name: "Pegadaian/Pos Indonesia", category: "retail" },
+  ];
+
   useEffect(() => {
     if (user) {
       fetchPaymentMethods();
@@ -137,7 +180,10 @@ export default function PaymentMethodsPage() {
       description: "",
       isActive: true,
       displayOrder: "0",
+      selectedGateway: "midtrans",
       midtransEnabled: true,
+      duitkuEnabled: false,
+      duitkuCode: "",
       minimumAmount: "",
       maximumAmount: "",
       instructions: "",
@@ -153,6 +199,8 @@ export default function PaymentMethodsPage() {
 
   const openEditModal = (method: PaymentMethod) => {
     setSelectedMethod(method);
+    // Determine which gateway based on enabled flags
+    const gateway = method.duitkuEnabled ? "duitku" : "midtrans";
     setFormData({
       code: method.code,
       name: method.name,
@@ -164,7 +212,10 @@ export default function PaymentMethodsPage() {
       description: method.description,
       isActive: method.isActive,
       displayOrder: method.displayOrder.toString(),
+      selectedGateway: gateway,
       midtransEnabled: method.midtransEnabled,
+      duitkuEnabled: method.duitkuEnabled || false,
+      duitkuCode: method.duitkuCode || "",
       minimumAmount: method.minimumAmount?.toString() || "",
       maximumAmount: method.maximumAmount?.toString() || "",
       instructions: method.instructions || "",
@@ -259,6 +310,8 @@ export default function PaymentMethodsPage() {
         isActive: formData.isActive,
         displayOrder: parseInt(formData.displayOrder) || 0,
         midtransEnabled: formData.midtransEnabled,
+        duitkuEnabled: formData.duitkuEnabled,
+        duitkuCode: formData.duitkuCode.toUpperCase(),
         minimumAmount: formData.minimumAmount
           ? parseFloat(formData.minimumAmount)
           : undefined,
@@ -421,10 +474,24 @@ export default function PaymentMethodsPage() {
             </div>
           </div>
         </div>
+
+        <div className="bg-[#1e293b] p-6 rounded-lg shadow border border-[#334155]">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-cyan-900 text-cyan-400 border border-cyan-700">
+              🏦
+            </div>
+            <div className="ml-4">
+              <p className="text-sm text-[#94a3b8]">Duitku Enabled</p>
+              <h3 className="text-2xl font-bold text-[#f1f5f9]">
+                {paymentMethods.filter((m) => m.duitkuEnabled).length}
+              </h3>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-[#1e293b] rounded-lg shadow border border-[#334155]">
+      <div className="bg-[#1e293b] rounded-lg shadow border border-[#334155] overflow-x-auto">
         <table className="min-w-full divide-y divide-[#334155]">
           <thead className="bg-[#334155]">
             <tr>
@@ -441,7 +508,7 @@ export default function PaymentMethodsPage() {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
-                Midtrans
+                Gateway
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-[#cbd5e1] uppercase tracking-wider">
                 Actions
@@ -492,8 +559,18 @@ export default function PaymentMethodsPage() {
                     {method.isActive ? "Active" : "Inactive"}
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#f1f5f9]">
-                  {method.midtransEnabled ? "✓ Yes" : "✗ No"}
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {method.duitkuEnabled ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-900/50 text-cyan-300 border border-cyan-700">
+                      🏦 Duitku ({method.duitkuCode})
+                    </span>
+                  ) : method.midtransEnabled ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-900/50 text-purple-300 border border-purple-700">
+                      💳 Midtrans
+                    </span>
+                  ) : (
+                    <span className="text-[#94a3b8]">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
@@ -558,69 +635,233 @@ export default function PaymentMethodsPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Gateway Selection - Radio Button */}
+              <div className="bg-[#0f172a] p-4 rounded-lg border border-[#334155]">
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-3">
+                  Pilih Payment Gateway <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-6">
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      formData.selectedGateway === "midtrans"
+                        ? "border-[#3b82f6] bg-[#3b82f6]/10"
+                        : "border-[#334155] hover:border-[#475569]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gateway"
+                      value="midtrans"
+                      checked={formData.selectedGateway === "midtrans"}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          selectedGateway: "midtrans",
+                          midtransEnabled: true,
+                          duitkuEnabled: false,
+                          duitkuCode: "",
+                          code: "",
+                          name: "",
+                          category: "ewallet",
+                        });
+                      }}
+                      className="w-4 h-4 text-[#3b82f6]"
+                      disabled={!!selectedMethod}
+                    />
+                    <div>
+                      <span className="text-[#f1f5f9] font-medium">
+                        💳 Midtrans
+                      </span>
+                      <p className="text-xs text-[#94a3b8]">
+                        Snap Payment Gateway
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      formData.selectedGateway === "duitku"
+                        ? "border-[#3b82f6] bg-[#3b82f6]/10"
+                        : "border-[#334155] hover:border-[#475569]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gateway"
+                      value="duitku"
+                      checked={formData.selectedGateway === "duitku"}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          selectedGateway: "duitku",
+                          midtransEnabled: false,
+                          duitkuEnabled: true,
+                          code: "",
+                          name: "",
+                          category: "ewallet",
+                        });
+                      }}
+                      className="w-4 h-4 text-[#3b82f6]"
+                      disabled={!!selectedMethod}
+                    />
+                    <div>
+                      <span className="text-[#f1f5f9] font-medium">
+                        🏦 Duitku
+                      </span>
+                      <p className="text-xs text-[#94a3b8]">Payment API v2</p>
+                    </div>
+                  </label>
+                </div>
+                {selectedMethod && (
+                  <p className="text-xs text-yellow-400 mt-2">
+                    ⚠️ Gateway tidak dapat diubah saat edit
+                  </p>
+                )}
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
-                {/* Payment Method Selector */}
+                {/* Payment Method Selector - Conditional based on gateway */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
-                    Pilih Payment Method *
+                    Pilih Payment Method <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.code}
-                    onChange={(e) => handlePaymentCodeChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                    required
-                    disabled={!!selectedMethod}
-                  >
-                    <option value="">-- Pilih Payment Method --</option>
-                    <optgroup label="E-Wallet">
-                      {midtransPaymentCodes
-                        .filter((pm) => pm.category === "ewallet")
-                        .map((pm) => (
-                          <option key={pm.code} value={pm.code}>
-                            {pm.code} - {pm.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="QRIS">
-                      {midtransPaymentCodes
-                        .filter((pm) => pm.category === "qris")
-                        .map((pm) => (
-                          <option key={pm.code} value={pm.code}>
-                            {pm.code} - {pm.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Bank Transfer">
-                      {midtransPaymentCodes
-                        .filter((pm) => pm.category === "bank_transfer")
-                        .map((pm) => (
-                          <option key={pm.code} value={pm.code}>
-                            {pm.code} - {pm.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Retail">
-                      {midtransPaymentCodes
-                        .filter((pm) => pm.category === "retail")
-                        .map((pm) => (
-                          <option key={pm.code} value={pm.code}>
-                            {pm.code} - {pm.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Credit Card">
-                      {midtransPaymentCodes
-                        .filter((pm) => pm.category === "credit_card")
-                        .map((pm) => (
-                          <option key={pm.code} value={pm.code}>
-                            {pm.code} - {pm.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  </select>
+
+                  {/* Midtrans Payment Methods */}
+                  {formData.selectedGateway === "midtrans" && (
+                    <select
+                      value={formData.code}
+                      onChange={(e) => handlePaymentCodeChange(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                      required
+                      disabled={!!selectedMethod}
+                    >
+                      <option value="">
+                        -- Pilih Payment Method Midtrans --
+                      </option>
+                      <optgroup label="E-Wallet">
+                        {midtransPaymentCodes
+                          .filter((pm) => pm.category === "ewallet")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="QRIS">
+                        {midtransPaymentCodes
+                          .filter((pm) => pm.category === "qris")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Bank Transfer">
+                        {midtransPaymentCodes
+                          .filter((pm) => pm.category === "bank_transfer")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Retail">
+                        {midtransPaymentCodes
+                          .filter((pm) => pm.category === "retail")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Credit Card">
+                        {midtransPaymentCodes
+                          .filter((pm) => pm.category === "credit_card")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                  )}
+
+                  {/* Duitku Payment Methods */}
+                  {formData.selectedGateway === "duitku" && (
+                    <select
+                      value={formData.duitkuCode}
+                      onChange={(e) => {
+                        const selected = duitkuPaymentCodes.find(
+                          (pm) => pm.code === e.target.value
+                        );
+                        if (selected) {
+                          setFormData({
+                            ...formData,
+                            duitkuCode: selected.code,
+                            code: selected.code, // Use duitku code as main code
+                            name: selected.name,
+                            category: selected.category,
+                          });
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                      required
+                      disabled={!!selectedMethod}
+                    >
+                      <option value="">
+                        -- Pilih Payment Method Duitku --
+                      </option>
+                      <optgroup label="E-Wallet">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "ewallet")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="QRIS">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "qris")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Bank Transfer / Virtual Account">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "bank_transfer")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Retail">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "retail")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Credit Card">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "credit_card")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                  )}
+
                   {selectedMethod && (
                     <p className="text-xs text-yellow-400 mt-1">
-                      Kode tidak dapat diubah saat edit
+                      Payment method tidak dapat diubah saat edit
                     </p>
                   )}
                 </div>
@@ -859,21 +1100,25 @@ export default function PaymentMethodsPage() {
                   </label>
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.midtransEnabled}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        midtransEnabled: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-[#3b82f6] bg-[#334155] border-[#334155] rounded focus:ring-[#3b82f6]"
-                  />
-                  <label className="ml-2 text-sm text-[#cbd5e1]">
-                    Integrasi dengan Midtrans
-                  </label>
+                {/* Gateway Info (Read Only) */}
+                <div className="bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
+                  <p className="text-sm text-[#94a3b8]">
+                    Payment Gateway:{" "}
+                    <span className="text-[#f1f5f9] font-medium">
+                      {formData.selectedGateway === "midtrans"
+                        ? "💳 Midtrans"
+                        : "🏦 Duitku"}
+                    </span>
+                  </p>
+                  {formData.selectedGateway === "duitku" &&
+                    formData.duitkuCode && (
+                      <p className="text-sm text-[#94a3b8] mt-1">
+                        Kode Duitku:{" "}
+                        <span className="text-[#f1f5f9] font-medium">
+                          {formData.duitkuCode}
+                        </span>
+                      </p>
+                    )}
                 </div>
               </div>
 

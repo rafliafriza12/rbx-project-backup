@@ -23,9 +23,16 @@ interface Settings {
   maintenanceMessage: string;
 
   // Payment Gateway Settings
+  activePaymentGateway: string;
   midtransServerKey: string;
   midtransClientKey: string;
   midtransMode: string;
+  duitkuMerchantCode: string;
+  duitkuApiKey: string;
+  duitkuMode: string;
+  duitkuCallbackUrl: string;
+  duitkuReturnUrl: string;
+  duitkuExpiryPeriod: number;
 
   // API External Settings
   robuxApiKey: string;
@@ -63,6 +70,7 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [showServerKey, setShowServerKey] = useState(false);
   const [showClientKey, setShowClientKey] = useState(false);
+  const [showDuitkuApiKey, setShowDuitkuApiKey] = useState(false);
   const [showRobuxApiKey, setShowRobuxApiKey] = useState(false);
   const [showGamepassApiKey, setShowGamepassApiKey] = useState(false);
   const [showTelegramBotToken, setShowTelegramBotToken] = useState(false);
@@ -120,25 +128,6 @@ export default function SettingsPage() {
         </svg>
       ),
     },
-    // {
-    //   id: "api",
-    //   label: "API External",
-    //   icon: (
-    //     <svg
-    //       className="w-5 h-5"
-    //       fill="none"
-    //       stroke="currentColor"
-    //       viewBox="0 0 24 24"
-    //     >
-    //       <path
-    //         strokeLinecap="round"
-    //         strokeLinejoin="round"
-    //         strokeWidth={2}
-    //         d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-    //       />
-    //     </svg>
-    //   ),
-    // },
     {
       id: "email",
       label: "Email Settings",
@@ -475,10 +464,11 @@ export default function SettingsPage() {
       case "payment":
         return (
           <div className="space-y-6">
-            <div className="bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4 mb-6">
+            {/* Payment Gateway Selector */}
+            <div className="bg-gradient-to-r from-[#1e3a8a]/30 to-[#7c3aed]/30 border border-[#1d4ed8] rounded-lg p-4 mb-6">
               <div className="flex items-start gap-3">
                 <svg
-                  className="w-5 h-5 text-[#60a5fa] mt-0.5 flex-shrink-0"
+                  className="w-6 h-6 text-[#60a5fa] mt-0.5 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -487,177 +477,386 @@ export default function SettingsPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                   />
                 </svg>
-                <div>
+                <div className="flex-1">
                   <h3 className="font-semibold text-[#60a5fa] mb-1">
-                    Konfigurasi Midtrans Payment Gateway
+                    Pilih Payment Gateway Aktif
                   </h3>
-                  <p className="text-sm text-[#94a3b8]">
-                    Silakan masukkan kredensial Midtrans untuk mengaktifkan
-                    payment gateway
+                  <p className="text-sm text-[#94a3b8] mb-3">
+                    Pilih payment gateway yang akan digunakan untuk transaksi
                   </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleInputChange("activePaymentGateway", "midtrans")
+                      }
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        settings.activePaymentGateway === "midtrans"
+                          ? "border-[#3b82f6] bg-[#3b82f6]/20 text-[#60a5fa]"
+                          : "border-[#334155] bg-[#1e293b] text-[#94a3b8] hover:border-[#475569]"
+                      }`}
+                    >
+                      <div className="font-semibold text-lg mb-1">Midtrans</div>
+                      <div className="text-xs opacity-80">Snap Payment</div>
+                      {settings.activePaymentGateway === "midtrans" && (
+                        <div className="mt-2 text-xs bg-[#22c55e]/20 text-[#22c55e] px-2 py-1 rounded inline-block">
+                          ✓ Aktif
+                        </div>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleInputChange("activePaymentGateway", "duitku")
+                      }
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        settings.activePaymentGateway === "duitku"
+                          ? "border-[#3b82f6] bg-[#3b82f6]/20 text-[#60a5fa]"
+                          : "border-[#334155] bg-[#1e293b] text-[#94a3b8] hover:border-[#475569]"
+                      }`}
+                    >
+                      <div className="font-semibold text-lg mb-1">Duitku</div>
+                      <div className="text-xs opacity-80">Payment API v2</div>
+                      {settings.activePaymentGateway === "duitku" && (
+                        <div className="mt-2 text-xs bg-[#22c55e]/20 text-[#22c55e] px-2 py-1 rounded inline-block">
+                          ✓ Aktif
+                        </div>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
-                  Midtrans Server Key
-                </label>
-                <div className="relative">
-                  <input
-                    type={showServerKey ? "text" : "password"}
-                    value={settings.midtransServerKey}
-                    onChange={(e) =>
-                      handleInputChange("midtransServerKey", e.target.value)
-                    }
-                    className="w-full p-3 pr-12 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
-                    placeholder="Masukkan Server Key Midtrans"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowServerKey(!showServerKey)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94a3b8] hover:text-[#475569]"
-                  >
-                    {showServerKey ? (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+            {/* Midtrans Configuration - Only show when Midtrans is active */}
+            {settings.activePaymentGateway === "midtrans" && (
+              <div className="border rounded-lg p-6 border-[#3b82f6] bg-[#1e293b]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-[#f1f5f9] flex items-center gap-2">
+                    <span className="text-xl">💳</span> Konfigurasi Midtrans
+                  </h3>
+                  <span className="text-xs bg-[#22c55e]/20 text-[#22c55e] px-2 py-1 rounded">
+                    Gateway Aktif
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Midtrans Server Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showServerKey ? "text" : "password"}
+                        value={settings.midtransServerKey}
+                        onChange={(e) =>
+                          handleInputChange("midtransServerKey", e.target.value)
+                        }
+                        className="w-full p-3 pr-12 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                        placeholder="Masukkan Server Key Midtrans"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowServerKey(!showServerKey)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94a3b8] hover:text-[#475569]"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        {showServerKey ? (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Midtrans Client Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showClientKey ? "text" : "password"}
+                        value={settings.midtransClientKey}
+                        onChange={(e) =>
+                          handleInputChange("midtransClientKey", e.target.value)
+                        }
+                        className="w-full p-3 pr-12 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                        placeholder="Masukkan Client Key Midtrans"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowClientKey(!showClientKey)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94a3b8] hover:text-[#475569]"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
-                    )}
-                  </button>
+                        {showClientKey ? (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Mode Midtrans
+                    </label>
+                    <select
+                      value={settings.midtransMode}
+                      onChange={(e) =>
+                        handleInputChange("midtransMode", e.target.value)
+                      }
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9]"
+                    >
+                      <option value="sandbox">Sandbox (Testing)</option>
+                      <option value="production">Production (Live)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4">
+                  <h4 className="text-[#fbbf24] font-medium mb-2">
+                    ⚠️ Petunjuk Midtrans
+                  </h4>
+                  <ul className="text-[#94a3b8] text-sm space-y-1">
+                    <li>
+                      • Daftar di{" "}
+                      <a
+                        href="https://midtrans.com"
+                        className="text-[#3b82f6] underline"
+                        target="_blank"
+                      >
+                        Midtrans.com
+                      </a>
+                    </li>
+                    <li>• Ambil Server Key dan Client Key dari dashboard</li>
+                    <li>• Gunakan mode Sandbox untuk testing</li>
+                  </ul>
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
-                  Midtrans Client Key
-                </label>
-                <div className="relative">
-                  <input
-                    type={showClientKey ? "text" : "password"}
-                    value={settings.midtransClientKey}
-                    onChange={(e) =>
-                      handleInputChange("midtransClientKey", e.target.value)
-                    }
-                    className="w-full p-3 pr-12 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
-                    placeholder="Masukkan Client Key Midtrans"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowClientKey(!showClientKey)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94a3b8] hover:text-[#475569]"
-                  >
-                    {showClientKey ? (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+            {/* Duitku Configuration - Only show when Duitku is active */}
+            {settings.activePaymentGateway === "duitku" && (
+              <div className="border rounded-lg p-6 border-[#3b82f6] bg-[#1e293b]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-[#f1f5f9] flex items-center gap-2">
+                    <span className="text-xl">🏦</span> Konfigurasi Duitku
+                  </h3>
+                  <span className="text-xs bg-[#22c55e]/20 text-[#22c55e] px-2 py-1 rounded">
+                    Gateway Aktif
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Duitku Merchant Code
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.duitkuMerchantCode || ""}
+                      onChange={(e) =>
+                        handleInputChange("duitkuMerchantCode", e.target.value)
+                      }
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                      placeholder="Masukkan Merchant Code Duitku"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Duitku API Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showDuitkuApiKey ? "text" : "password"}
+                        value={settings.duitkuApiKey || ""}
+                        onChange={(e) =>
+                          handleInputChange("duitkuApiKey", e.target.value)
+                        }
+                        className="w-full p-3 pr-12 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                        placeholder="Masukkan API Key Duitku"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDuitkuApiKey(!showDuitkuApiKey)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94a3b8] hover:text-[#475569]"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        {showDuitkuApiKey ? (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Mode Duitku
+                    </label>
+                    <select
+                      value={settings.duitkuMode || "sandbox"}
+                      onChange={(e) =>
+                        handleInputChange("duitkuMode", e.target.value)
+                      }
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9]"
+                    >
+                      <option value="sandbox">Sandbox (Testing)</option>
+                      <option value="production">Production (Live)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Expiry Period (menit)
+                    </label>
+                    <input
+                      type="number"
+                      value={settings.duitkuExpiryPeriod || 1440}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "duitkuExpiryPeriod",
+                          parseInt(e.target.value) || 1440
+                        )
+                      }
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                      placeholder="1440 (24 jam)"
+                      min={60}
+                      max={10080}
+                    />
+                    <p className="text-xs text-[#94a3b8] mt-1">
+                      Default: 1440 menit (24 jam)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4">
+                  <h4 className="text-[#fbbf24] font-medium mb-2">
+                    ⚠️ Petunjuk Duitku
+                  </h4>
+                  <ul className="text-[#94a3b8] text-sm space-y-1">
+                    <li>
+                      • Daftar di{" "}
+                      <a
+                        href="https://duitku.com"
+                        className="text-[#3b82f6] underline"
+                        target="_blank"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
-                    )}
-                  </button>
+                        Duitku.com
+                      </a>
+                    </li>
+                    <li>
+                      • Ambil Merchant Code dan API Key dari dashboard merchant
+                    </li>
+                    <li>
+                      • Set Callback URL di dashboard:{" "}
+                      <code className="bg-[#334155] px-1 rounded text-xs">
+                        {typeof window !== "undefined"
+                          ? window.location.origin
+                          : ""}
+                        /api/transactions/webhook/duitku
+                      </code>
+                    </li>
+                    <li>• Gunakan mode Sandbox untuk testing</li>
+                  </ul>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
-                  Mode Midtrans
-                </label>
-                <select
-                  value={settings.midtransMode}
-                  onChange={(e) =>
-                    handleInputChange("midtransMode", e.target.value)
-                  }
-                  className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9]"
-                >
-                  <option value="sandbox">Sandbox (Testing)</option>
-                  <option value="production">Production (Live)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="bg-[#1e3a8a]/20 border border-[#1d4ed8] rounded-lg p-4">
-              <h4 className="text-yellow-800 font-medium mb-2">
-                ⚠️ Petunjuk Konfigurasi
-              </h4>
-              <ul className="text-yellow-700 text-sm space-y-1">
-                <li>
-                  • Daftar akun di{" "}
-                  <a
-                    href="https://midtrans.com"
-                    className="text-[#3b82f6] underline"
-                    target="_blank"
-                  >
-                    Midtrans.com
-                  </a>
-                </li>
-                <li>
-                  • Ambil Server Key dan Client Key dari dashboard Midtrans
-                </li>
-                <li>• Gunakan mode Sandbox untuk testing</li>
-                <li>• Pindah ke Production ketika sudah siap live</li>
-              </ul>
-            </div>
+            )}
           </div>
         );
 

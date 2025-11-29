@@ -16,8 +16,10 @@ import {
   calculateGrandTotal,
   calculateOriginalTotal,
   calculateTotalDiscount,
+  calculateSubtotalAfterDiscount,
   getTotalItemsCount,
   getCheckoutDisplayName,
+  getPaymentFee,
 } from "@/lib/transaction-helpers";
 import { Transaction } from "@/types";
 
@@ -383,9 +385,6 @@ export default function TrackOrderPage() {
                       </h2>
                       <p className="text-sm sm:text-base text-white/70">
                         Invoice: {transaction.invoiceId}
-                        {transaction.midtransOrderId && (
-                          <> • Order ID: {transaction.midtransOrderId}</>
-                        )}
                       </p>
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
@@ -395,10 +394,9 @@ export default function TrackOrderPage() {
                       <div className="text-right">
                         <div className="text-xl sm:text-2xl font-bold text-primary-100">
                           Rp{" "}
-                          {(
-                            calculateGrandTotal(transaction) +
-                            (transaction.paymentFee || 0)
-                          ).toLocaleString("id-ID")}
+                          {calculateGrandTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
                         </div>
                         <div className="text-sm text-white/60">
                           Total Pembayaran
@@ -538,11 +536,12 @@ export default function TrackOrderPage() {
                       )}
 
                       {/* Payment Fee */}
-                      {transaction.paymentFee && transaction.paymentFee > 0 && (
+                      {getPaymentFee(transaction) > 0 && (
                         <div className="flex justify-between text-white/70 text-sm">
                           <span>Biaya Admin:</span>
                           <span className="font-medium text-white">
-                            Rp {transaction.paymentFee.toLocaleString("id-ID")}
+                            Rp{" "}
+                            {getPaymentFee(transaction).toLocaleString("id-ID")}
                           </span>
                         </div>
                       )}
@@ -552,10 +551,9 @@ export default function TrackOrderPage() {
                         <span>Total Pembayaran:</span>
                         <span className="text-primary-100">
                           Rp{" "}
-                          {(
-                            calculateGrandTotal(transaction) +
-                            (transaction.paymentFee || 0)
-                          ).toLocaleString("id-ID")}
+                          {calculateGrandTotal(transaction).toLocaleString(
+                            "id-ID"
+                          )}
                         </span>
                       </div>
                     </div>
@@ -888,13 +886,40 @@ export default function TrackOrderPage() {
                       </div>
                     )}
 
-                    {transaction.midtransOrderId && (
+                    {/* Order ID - show either midtransOrderId or duitkuOrderId */}
+                    {(transaction.midtransOrderId ||
+                      transaction.duitkuOrderId) && (
                       <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                         <div className="text-white/60 text-sm mb-1">
-                          Order ID Midtrans
+                          Order ID
                         </div>
                         <div className="font-medium text-white text-xs break-all">
-                          {transaction.midtransOrderId}
+                          {transaction.midtransOrderId ||
+                            transaction.duitkuOrderId}
+                        </div>
+                      </div>
+                    )}
+
+                    {transaction.duitkuReference && (
+                      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                        <div className="text-white/60 text-sm mb-1">
+                          Reference Duitku
+                        </div>
+                        <div className="font-medium text-white text-xs break-all">
+                          {transaction.duitkuReference}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Payment Fee */}
+                    {getPaymentFee(transaction) > 0 && (
+                      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                        <div className="text-white/60 text-sm mb-1">
+                          Biaya Admin
+                        </div>
+                        <div className="font-medium text-white">
+                          Rp{" "}
+                          {getPaymentFee(transaction).toLocaleString("id-ID")}
                         </div>
                       </div>
                     )}
@@ -931,10 +956,7 @@ export default function TrackOrderPage() {
                     )}
                     <p className="text-2xl sm:text-3xl font-bold text-primary-100">
                       Rp{" "}
-                      {(
-                        calculateOriginalTotal(transaction) -
-                        calculateTotalDiscount(transaction)
-                      ).toLocaleString("id-ID")}
+                      {calculateGrandTotal(transaction).toLocaleString("id-ID")}
                     </p>
                   </div>
                 </div>
@@ -953,12 +975,19 @@ export default function TrackOrderPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {(transaction.paymentStatus === "pending" ||
                       transaction.orderStatus === "waiting_payment") &&
-                      transaction.snapToken && (
+                      (transaction.snapToken ||
+                        transaction.duitkuPaymentUrl) && (
                         <a
                           href={
                             transaction.redirectUrl ||
-                            `/transaction/pending?order_id=${transaction.midtransOrderId}`
+                            transaction.duitkuPaymentUrl ||
+                            `/transaction/pending?order_id=${
+                              transaction.midtransOrderId ||
+                              transaction.duitkuOrderId
+                            }`
                           }
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-yellow-500/20 to-amber-600/20 border border-yellow-500/40 text-yellow-300 rounded-xl hover:from-yellow-500/30 hover:to-amber-600/30 backdrop-blur-sm transition-all duration-300 font-medium text-sm sm:text-base"
                         >
                           💳 Lanjutkan Pembayaran

@@ -69,6 +69,8 @@ interface PaymentMethod {
   fee: number;
   feeType: "fixed" | "percentage";
   description: string;
+  minimumAmount?: number;
+  maximumAmount?: number;
 }
 
 interface PaymentCategory {
@@ -162,6 +164,53 @@ function CheckoutContent() {
   const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>(
     []
   );
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
+
+  // Active payment gateway - only need to know which one is active
+  // All configs (keys, URLs) are handled by libs on server-side
+  const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+
+  // Fungsi untuk mengecek apakah payment method tersedia berdasarkan amount
+  const isPaymentMethodAvailable = (
+    method: PaymentMethod,
+    amount: number
+  ): boolean => {
+    // Check minimum amount
+    if (method.minimumAmount && method.minimumAmount > 0) {
+      if (amount < method.minimumAmount) {
+        return false;
+      }
+    }
+
+    // Check maximum amount (0 means unlimited)
+    if (method.maximumAmount && method.maximumAmount > 0) {
+      if (amount > method.maximumAmount) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Fungsi untuk mendapatkan pesan error transaksi limit
+  const getTransactionLimitMessage = (
+    method: PaymentMethod,
+    amount: number
+  ): string | null => {
+    if (method.minimumAmount && method.minimumAmount > 0) {
+      if (amount < method.minimumAmount) {
+        return `Min. Rp ${method.minimumAmount.toLocaleString("id-ID")}`;
+      }
+    }
+
+    if (method.maximumAmount && method.maximumAmount > 0) {
+      if (amount > method.maximumAmount) {
+        return `Maks. Rp ${method.maximumAmount.toLocaleString("id-ID")}`;
+      }
+    }
+
+    return null;
+  };
 
   // Fungsi untuk menghitung biaya payment method
   const calculatePaymentFee = (baseAmount: number, method: PaymentMethod) => {
@@ -352,36 +401,9 @@ function CheckoutContent() {
     }
   };
 
-  // Load Midtrans Snap script
-  useEffect(() => {
-    const midtransScriptUrl = "https://app.sandbox.midtrans.com/snap/snap.js";
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
-
-    let scriptTag = document.querySelector(
-      `script[src="${midtransScriptUrl}"]`
-    ) as HTMLScriptElement;
-
-    if (!scriptTag) {
-      scriptTag = document.createElement("script");
-      scriptTag.src = midtransScriptUrl;
-      scriptTag.setAttribute("data-client-key", clientKey);
-      scriptTag.async = true;
-
-      scriptTag.onload = () => {
-        console.log("Midtrans Snap script loaded successfully");
-      };
-
-      scriptTag.onerror = () => {
-        console.error("Failed to load Midtrans Snap script");
-      };
-
-      document.body.appendChild(scriptTag);
-    }
-
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
+  // Note: Midtrans/Duitku scripts are NOT loaded here
+  // Payment redirect URLs are provided by API transaction response
+  // All payment gateway configs are handled server-side by libs
 
   useEffect(() => {
     console.log("=== CHECKOUT PAGE DEBUG START ===");
@@ -602,11 +624,40 @@ function CheckoutContent() {
     console.log("=== CHECKOUT PAGE DEBUG END ===");
   }, [user, router, searchParams]);
 
-  // Fetch payment methods from database
+  // Fetch active payment gateway FIRST
   useEffect(() => {
-    const fetchPaymentMethods = async () => {
+    const fetchPaymentSettings = async () => {
       try {
-        const response = await fetch("/api/payment-methods?active=true");
+        const response = await fetch("/api/settings/public");
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setActivePaymentGateway(
+            result.data.activePaymentGateway || "midtrans"
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching payment settings:", error);
+        // Default to midtrans if fetch fails
+        setActivePaymentGateway("midtrans");
+      }
+    };
+
+    fetchPaymentSettings();
+  }, []);
+
+  // Fetch payment methods AFTER gateway is known (filtered by active gateway)
+  useEffect(() => {
+    // Wait until we know which gateway is active
+    if (!activePaymentGateway) return;
+
+    const fetchPaymentMethods = async () => {
+      setPaymentMethodsLoading(true);
+      try {
+        // Fetch payment methods filtered by active gateway
+        const response = await fetch(
+          `/api/payment-methods?active=true&gateway=${activePaymentGateway}`
+        );
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -631,6 +682,12 @@ function CheckoutContent() {
               fee: method.fee,
               feeType: method.feeType,
               description: method.description,
+              minimumAmount: method.minimumAmount || 0,
+              maximumAmount: method.maximumAmount || 0,
+              // Include gateway-specific codes
+              duitkuCode: method.duitkuCode,
+              midtransEnabled: method.midtransEnabled,
+              duitkuEnabled: method.duitkuEnabled,
             });
           });
 
@@ -653,13 +710,14 @@ function CheckoutContent() {
         }
       } catch (error) {
         console.error("Error fetching payment methods:", error);
-        // Set default payment methods if fetch fails
         setPaymentCategories([]);
+      } finally {
+        setPaymentMethodsLoading(false);
       }
     };
 
     fetchPaymentMethods();
-  }, []);
+  }, [activePaymentGateway]); // Re-fetch when gateway changes
 
   // Helper functions for category mapping
   const getCategoryName = (category: string) => {
@@ -833,6 +891,33 @@ function CheckoutContent() {
       return;
     }
 
+    // Validate payment method availability based on amount
+    const allMethods = getAllMethods();
+    const selectedPayment = allMethods.find(
+      (pm) => pm.id === selectedPaymentMethod
+    );
+
+    if (!selectedPayment) {
+      toast.error("Metode pembayaran tidak valid");
+      return;
+    }
+
+    const baseAmountAfterDiscount =
+      checkoutData.finalAmount || checkoutData.totalAmount;
+
+    if (!isPaymentMethodAvailable(selectedPayment, baseAmountAfterDiscount)) {
+      const limitMessage = getTransactionLimitMessage(
+        selectedPayment,
+        baseAmountAfterDiscount
+      );
+      toast.error(
+        `Metode pembayaran ${selectedPayment.name} tidak tersedia. ${
+          limitMessage || ""
+        }`
+      );
+      return;
+    }
+
     if (!acceptTerms) {
       toast.error("Anda harus menyetujui syarat dan ketentuan");
       return;
@@ -840,18 +925,10 @@ function CheckoutContent() {
 
     setSubmitting(true);
 
-    const allMethods = getAllMethods();
-    const selectedPayment = allMethods.find(
-      (pm) => pm.id === selectedPaymentMethod
+    const paymentFee = calculatePaymentFee(
+      baseAmountAfterDiscount,
+      selectedPayment
     );
-
-    // Calculate base amount (after discount, before payment fee)
-    const baseAmountAfterDiscount =
-      checkoutData.finalAmount || checkoutData.totalAmount;
-
-    const paymentFee = selectedPayment
-      ? calculatePaymentFee(baseAmountAfterDiscount, selectedPayment)
-      : 0;
 
     // Calculate final amount (after discount + payment fee)
     const finalAmountWithFee = baseAmountAfterDiscount + paymentFee;
@@ -948,7 +1025,7 @@ function CheckoutContent() {
       discountPercentage: checkoutData.discountPercentage || 0,
       discountAmount: checkoutData.discountAmount || 0,
       finalAmount: finalAmountWithFee, // This includes payment fee
-      paymentMethod: selectedPaymentMethod,
+      paymentMethodId: selectedPaymentMethod, // Send as paymentMethodId (API can handle both code and ObjectId)
       paymentFee: paymentFee,
       additionalNotes: additionalNotes.trim() || undefined, // Universal additional notes from checkout
       customerInfo: isGuestCheckout
@@ -1117,11 +1194,14 @@ function CheckoutContent() {
 
         toast.success("Transaksi berhasil dibuat!");
 
-        // Open Midtrans payment page
-        if (result.data?.snapToken) {
-          // Use Midtrans Snap
-          const snapUrl = `https://app.sandbox.midtrans.com/snap/v2/vtweb/${result.data.snapToken}`;
-          window.location.href = result.data.redirectUrl || snapUrl;
+        // Redirect to payment page based on response from API
+        // API transaction already provides the correct redirect URL from libs
+        if (result.data?.redirectUrl) {
+          // Use redirect URL from API (works for both Midtrans and Duitku)
+          window.location.href = result.data.redirectUrl;
+        } else if (result.data?.duitkuPaymentUrl) {
+          // Duitku specific payment URL
+          window.location.href = result.data.duitkuPaymentUrl;
         } else if (result.data?.transaction?._id) {
           // Fallback to transaction detail
           router.push(`/transaction/${result.data.transaction._id}`);
@@ -1364,107 +1444,187 @@ function CheckoutContent() {
                   <CreditCard className="w-4 h-4 text-neon-purple" />
                 </div>
                 Pilih Metode Pembayaran
+                {activePaymentGateway && (
+                  <span className="ml-2 text-xs font-normal text-primary-300">
+                    (
+                    {activePaymentGateway === "midtrans"
+                      ? "Midtrans"
+                      : "Duitku"}
+                    )
+                  </span>
+                )}
               </h3>
 
-              <div className="space-y-3">
-                {paymentCategories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="neon-card-secondary rounded-xl overflow-hidden"
-                  >
-                    {/* Category Header */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedCategory(
-                          expandedCategory === category.id ? "" : category.id
-                        )
-                      }
-                      className="w-full p-4 flex items-center justify-between text-left hover:bg-primary-600/20 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-neon-pink/10 rounded-lg flex items-center justify-center mr-3">
-                          <category.icon className="w-4 h-4 text-neon-pink" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">
-                            {category.name}
-                          </h4>
-                          <p className="text-xs text-white">
-                            {category.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-neon-purple">
-                        {expandedCategory === category.id ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4" />
+              {paymentMethodsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-pink"></div>
+                  <span className="ml-3 text-primary-300">
+                    Memuat metode pembayaran...
+                  </span>
+                </div>
+              ) : paymentCategories.length === 0 ? (
+                <div className="text-center py-8 text-primary-300">
+                  <p>Tidak ada metode pembayaran tersedia.</p>
+                  <p className="text-sm mt-1">Silakan hubungi admin.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paymentCategories.map((category) => {
+                    const baseAmount =
+                      checkoutData.finalAmount || checkoutData.totalAmount;
+                    const availableMethodsCount = category.methods.filter(
+                      (method) => isPaymentMethodAvailable(method, baseAmount)
+                    ).length;
+                    const totalMethodsCount = category.methods.length;
+
+                    return (
+                      <div
+                        key={category.id}
+                        className="neon-card-secondary rounded-xl overflow-hidden"
+                      >
+                        {/* Category Header */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedCategory(
+                              expandedCategory === category.id
+                                ? ""
+                                : category.id
+                            )
+                          }
+                          className="w-full p-4 flex items-center justify-between text-left hover:bg-primary-600/20 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-neon-pink/10 rounded-lg flex items-center justify-center mr-3">
+                              <category.icon className="w-4 h-4 text-neon-pink" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-white">
+                                {category.name}
+                                {availableMethodsCount < totalMethodsCount && (
+                                  <span className="ml-2 text-xs font-normal text-primary-400">
+                                    ({availableMethodsCount}/{totalMethodsCount}{" "}
+                                    tersedia)
+                                  </span>
+                                )}
+                              </h4>
+                              <p className="text-xs text-white">
+                                {category.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-neon-purple">
+                            {expandedCategory === category.id ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Category Methods */}
+                        {expandedCategory === category.id && (
+                          <div className="border-t border-neon-purple/20 p-4 pt-3">
+                            <div className="grid grid-cols-1 gap-3">
+                              {category.methods.map((method) => {
+                                const baseAmount =
+                                  checkoutData.finalAmount ||
+                                  checkoutData.totalAmount;
+                                const fee = calculatePaymentFee(
+                                  baseAmount,
+                                  method
+                                );
+                                const isAvailable = isPaymentMethodAvailable(
+                                  method,
+                                  baseAmount
+                                );
+                                const limitMessage = getTransactionLimitMessage(
+                                  method,
+                                  baseAmount
+                                );
+
+                                return (
+                                  <div
+                                    key={method.id}
+                                    onClick={() =>
+                                      isAvailable &&
+                                      setSelectedPaymentMethod(method.id)
+                                    }
+                                    className={`p-3 rounded-lg border-2 transition-all duration-300 ${
+                                      !isAvailable
+                                        ? "border-primary-600/30 bg-primary-800/30 cursor-not-allowed opacity-60"
+                                        : selectedPaymentMethod === method.id
+                                        ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink cursor-pointer"
+                                        : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20 cursor-pointer"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center">
+                                        {method.icon &&
+                                        method.icon.startsWith("http") ? (
+                                          <img
+                                            src={method.icon}
+                                            alt={method.name}
+                                            className={`w-6 h-6 object-cover rounded mr-2 ${
+                                              !isAvailable ? "grayscale" : ""
+                                            }`}
+                                          />
+                                        ) : (
+                                          <span
+                                            className={`text-lg mr-2 ${
+                                              !isAvailable ? "opacity-50" : ""
+                                            }`}
+                                          >
+                                            {method.icon}
+                                          </span>
+                                        )}
+                                        <span
+                                          className={`font-semibold text-sm ${
+                                            !isAvailable
+                                              ? "text-white/50"
+                                              : "text-white"
+                                          }`}
+                                        >
+                                          {method.name}
+                                        </span>
+                                      </div>
+                                      <div className="text-right">
+                                        {!isAvailable && limitMessage ? (
+                                          <div className="text-xs text-red-400 font-medium">
+                                            {limitMessage}
+                                          </div>
+                                        ) : (
+                                          <div className="text-xs text-white">
+                                            +{" "}
+                                            {method.feeType === "percentage"
+                                              ? `${method.fee}%`
+                                              : `Rp ${fee.toLocaleString(
+                                                  "id-ID"
+                                                )}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <p
+                                      className={`text-xs ${
+                                        !isAvailable
+                                          ? "text-white/40"
+                                          : "text-white"
+                                      }`}
+                                    >
+                                      {method.description}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </button>
-
-                    {/* Category Methods */}
-                    {expandedCategory === category.id && (
-                      <div className="border-t border-neon-purple/20 p-4 pt-3">
-                        <div className="grid grid-cols-1 gap-3">
-                          {category.methods.map((method) => {
-                            const fee = calculatePaymentFee(
-                              checkoutData.finalAmount ||
-                                checkoutData.totalAmount,
-                              method
-                            );
-                            return (
-                              <div
-                                key={method.id}
-                                onClick={() =>
-                                  setSelectedPaymentMethod(method.id)
-                                }
-                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                                  selectedPaymentMethod === method.id
-                                    ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink"
-                                    : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="flex items-center">
-                                    {method.icon &&
-                                    method.icon.startsWith("http") ? (
-                                      <img
-                                        src={method.icon}
-                                        alt={method.name}
-                                        className="w-6 h-6 object-cover rounded mr-2"
-                                      />
-                                    ) : (
-                                      <span className="text-lg mr-2">
-                                        {method.icon}
-                                      </span>
-                                    )}
-                                    <span className="font-semibold text-white text-sm">
-                                      {method.name}
-                                    </span>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-xs text-white">
-                                      +{" "}
-                                      {method.feeType === "percentage"
-                                        ? `${method.fee}%`
-                                        : `Rp ${fee.toLocaleString("id-ID")}`}
-                                    </div>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-white">
-                                  {method.description}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

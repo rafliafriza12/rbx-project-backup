@@ -332,6 +332,32 @@ export default function TransactionDetailPage() {
                         </span>
                       </span>
                     </div>
+                    {/* Order ID - Midtrans or Duitku */}
+                    {(transaction.midtransOrderId ||
+                      transaction.duitkuOrderId) && (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-neon-purple" />
+                          <span className="font-medium">Order ID:</span>
+                          <span className="font-mono text-white text-xs">
+                            {transaction.midtransOrderId ||
+                              transaction.duitkuOrderId}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {/* Duitku Reference */}
+                    {transaction.duitkuReference && (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span className="flex items-center gap-2">
+                          <Receipt className="w-4 h-4 text-neon-purple" />
+                          <span className="font-medium">Reference:</span>
+                          <span className="font-mono text-white text-xs">
+                            {transaction.duitkuReference}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-neon-purple" />
                       <span>{formatDate(transaction.createdAt)}</span>
@@ -757,13 +783,44 @@ export default function TransactionDetailPage() {
             </h2>
 
             <div className="space-y-4">
-              {transaction.midtransOrderId && (
+              {(transaction.midtransOrderId || transaction.duitkuOrderId) && (
                 <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
                   <span className="text-primary-200 font-medium">
                     Order ID:
                   </span>
                   <span className="font-mono text-sm text-white break-all">
-                    {transaction.midtransOrderId}
+                    {transaction.midtransOrderId || transaction.duitkuOrderId}
+                  </span>
+                </div>
+              )}
+              {transaction.duitkuReference && (
+                <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                  <span className="text-primary-200 font-medium">
+                    Reference:
+                  </span>
+                  <span className="font-mono text-sm text-white break-all">
+                    {transaction.duitkuReference}
+                  </span>
+                </div>
+              )}
+              {transaction.duitkuVaNumber && (
+                <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                  <span className="text-primary-200 font-medium">
+                    VA Number:
+                  </span>
+                  <span className="font-mono text-sm text-white break-all">
+                    {transaction.duitkuVaNumber}
+                  </span>
+                </div>
+              )}
+              {/* Payment Fee */}
+              {getPaymentFee(transaction) > 0 && (
+                <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
+                  <span className="text-primary-200 font-medium">
+                    Biaya Admin:
+                  </span>
+                  <span className="font-mono text-sm text-white">
+                    Rp {getPaymentFee(transaction).toLocaleString("id-ID")}
                   </span>
                 </div>
               )}
@@ -776,13 +833,18 @@ export default function TransactionDetailPage() {
             {/* Payment Action */}
             {(transaction.paymentStatus === "pending" ||
               transaction.orderStatus === "waiting_payment") &&
-              transaction.snapToken && (
+              (transaction.snapToken || transaction.duitkuPaymentUrl) && (
                 <div className="mt-6">
                   <a
                     href={
                       transaction.redirectUrl ||
-                      `/transaction/pending?order_id=${transaction.midtransOrderId}`
+                      transaction.duitkuPaymentUrl ||
+                      `/transaction/pending?order_id=${
+                        transaction.midtransOrderId || transaction.duitkuOrderId
+                      }`
                     }
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 btn-neon-primary rounded-xl transition-all duration-300 font-semibold shadow-lg transform hover:scale-105"
                   >
                     <CreditCard className="w-5 h-5" />

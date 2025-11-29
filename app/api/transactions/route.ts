@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
+import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
 
 // GET - Ambil semua transaksi user atau admin
@@ -349,14 +351,40 @@ async function handleMultiItemDirectPurchase(body: any) {
   console.log("Payment method ID:", paymentMethodId);
   console.log("Payment method:", paymentMethod);
 
-  // Fetch payment method name if paymentMethodId is provided
+  // Fetch payment method name and validate paymentMethodId (can be ObjectId or code)
   let paymentMethodName = null;
+  let validPaymentMethodId = null;
+  let paymentMethodDoc = null;
+
   if (paymentMethodId) {
     try {
       const PaymentMethod = (await import("@/models/PaymentMethod")).default;
-      const paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
-      if (paymentMethodDoc) {
-        paymentMethodName = paymentMethodDoc.name;
+      const mongoose = await import("mongoose");
+
+      // Check if paymentMethodId is a valid ObjectId string
+      if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
+        // It's already a valid ObjectId, use it directly
+        validPaymentMethodId = paymentMethodId;
+        paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+        if (paymentMethodDoc) {
+          paymentMethodName = paymentMethodDoc.name;
+        }
+      } else {
+        // It's a payment method code (like "bca_va", "gopay"), find by code
+        console.log(`Looking up payment method by code: ${paymentMethodId}`);
+        paymentMethodDoc = await PaymentMethod.findOne({
+          code: paymentMethodId.toUpperCase(),
+        });
+
+        if (paymentMethodDoc) {
+          validPaymentMethodId = paymentMethodDoc._id;
+          paymentMethodName = paymentMethodDoc.name;
+          console.log(
+            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`
+          );
+        } else {
+          console.warn(`Payment method not found for code: ${paymentMethodId}`);
+        }
       }
     } catch (error) {
       console.error("Error fetching payment method:", error);
@@ -551,6 +579,12 @@ async function handleMultiItemDirectPurchase(body: any) {
     }
   }
 
+  // Store payment fee in the first transaction object (will be saved later with gateway data)
+  if (paymentFee && paymentFee > 0 && createdTransactions.length > 0) {
+    createdTransactions[0].paymentFee = paymentFee;
+    console.log("Payment fee set to first transaction:", paymentFee);
+  }
+
   // Create a master order ID for grouping BEFORE Midtrans call
   const masterOrderId = `ORDER-${Date.now()}-${Math.random()
     .toString(36)
@@ -618,69 +652,168 @@ async function handleMultiItemDirectPurchase(body: any) {
 
   console.log("Final midtransItems:", JSON.stringify(midtransItems, null, 2));
 
-  // Create Midtrans Snap transaction for all items
+  // Get active payment gateway from settings
+  const settings = await Settings.getSiteSettings();
+  const activeGateway = settings.activePaymentGateway || "midtrans";
+
+  console.log("=== PAYMENT GATEWAY SELECTION ===");
+  console.log("Active Payment Gateway:", activeGateway);
+
+  // Create payment gateway transaction
   try {
-    const midtransService = new MidtransService();
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-    console.log("=== MIDTRANS MULTI-ITEM DEBUG ===");
-    console.log("Items:", JSON.stringify(midtransItems, null, 2));
-    console.log("Payment fee from frontend:", paymentFee);
-    console.log("Final Amount (from frontend):", finalAmountAfterDiscount);
-    console.log("Payment method:", paymentMethod);
-
-    // Calculate total items amount (should match gross_amount sent to Midtrans)
+    // Calculate total items amount
     const totalItemsAmount = midtransItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    console.log("Total items amount for Midtrans:", totalItemsAmount);
 
-    // Verification
-    console.log("Expected match:", {
-      frontendFinalAmount: finalAmount,
-      calculatedFromItems: totalItemsAmount,
-      match: finalAmount === totalItemsAmount,
-    });
+    console.log("=== MULTI-ITEM PAYMENT DEBUG ===");
+    console.log("Items:", JSON.stringify(midtransItems, null, 2));
+    console.log("Payment fee from frontend:", paymentFee);
+    console.log("Final Amount (from frontend):", finalAmountAfterDiscount);
+    console.log("Payment method:", paymentMethod);
+    console.log("Total items amount:", totalItemsAmount);
 
-    // Map payment method to Midtrans enabled_payments
-    const enabledPayments = paymentMethod
-      ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
-      : undefined;
+    let paymentResult: {
+      token?: string;
+      redirect_url?: string;
+      paymentUrl?: string;
+      reference?: string;
+      vaNumber?: string;
+      qrString?: string;
+    };
 
-    console.log("Enabled payments for Midtrans:", enabledPayments);
+    if (activeGateway === "duitku") {
+      // ===== DUITKU PAYMENT GATEWAY =====
+      console.log("Using Duitku payment gateway");
 
-    const snapResult = await midtransService.createSnapTransaction({
-      orderId: masterOrderId,
-      amount: totalItemsAmount, // Total of all items (including payment fee item)
-      items: midtransItems,
-      customer: {
-        first_name: customerInfo.name,
-        email: customerInfo.email,
-        phone: customerInfo.phone || "",
-      },
-      enabledPayments,
-      expiryHours: 24,
-      callbackUrls: {
-        finish: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
-        error: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
-        pending: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
-      },
-    });
+      await duitkuService.initializeConfig();
 
-    // Update all transactions with Midtrans data (snapToken and redirectUrl)
-    const updatePromises = createdTransactions.map(async (transaction) => {
-      transaction.snapToken = snapResult.token;
-      transaction.redirectUrl = snapResult.redirect_url;
-      // midtransOrderId already set before Midtrans call
-      await transaction.save();
-    });
+      // Get Duitku payment code from PaymentMethod (already fetched above)
+      let duitkuPaymentCode = "VC"; // Default to credit card
+      if (paymentMethodDoc && paymentMethodDoc.duitkuCode) {
+        duitkuPaymentCode = paymentMethodDoc.duitkuCode;
+      }
 
-    await Promise.all(updatePromises);
+      console.log("Duitku payment code:", duitkuPaymentCode);
 
-    console.log(
-      `All ${createdTransactions.length} transactions updated with Midtrans data`
-    );
+      // Build product details string
+      const productDetails = midtransItems
+        .map((item) => `${item.name} x${item.quantity}`)
+        .join(", ");
+
+      const duitkuResult = await duitkuService.createTransaction({
+        orderId: masterOrderId,
+        amount: totalItemsAmount,
+        paymentMethod: duitkuPaymentCode,
+        productDetails: productDetails.substring(0, 255), // Max 255 chars
+        customer: {
+          firstName: customerInfo.name,
+          email: customerInfo.email,
+          phoneNumber: customerInfo.phone || "",
+        },
+        returnUrl: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+        callbackUrl: `${baseUrl}/api/transactions/webhook/duitku`,
+      });
+
+      paymentResult = {
+        paymentUrl: duitkuResult.paymentUrl,
+        reference: duitkuResult.reference,
+        vaNumber: duitkuResult.vaNumber,
+        qrString: duitkuResult.qrString,
+      };
+
+      // Update all transactions with Duitku data
+      const updatePromises = createdTransactions.map(
+        async (transaction, index) => {
+          transaction.paymentGateway = "duitku";
+          transaction.duitkuOrderId = masterOrderId;
+          transaction.duitkuPaymentUrl = duitkuResult.paymentUrl;
+          transaction.duitkuReference = duitkuResult.reference || "";
+          transaction.duitkuVaNumber = duitkuResult.vaNumber || "";
+          transaction.duitkuQrString = duitkuResult.qrString || "";
+          transaction.redirectUrl = duitkuResult.paymentUrl; // For backward compatibility
+
+          // Log payment fee for first transaction
+          if (index === 0) {
+            console.log(
+              "First transaction paymentFee before save:",
+              transaction.paymentFee
+            );
+          }
+
+          await transaction.save();
+        }
+      );
+
+      await Promise.all(updatePromises);
+
+      console.log(
+        `All ${createdTransactions.length} transactions updated with Duitku data`
+      );
+    } else {
+      // ===== MIDTRANS PAYMENT GATEWAY =====
+      console.log("Using Midtrans payment gateway");
+
+      const midtransService = new MidtransService();
+
+      // Map payment method to Midtrans enabled_payments
+      const enabledPayments = paymentMethod
+        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
+        : undefined;
+
+      console.log("Enabled payments for Midtrans:", enabledPayments);
+
+      const snapResult = await midtransService.createSnapTransaction({
+        orderId: masterOrderId,
+        amount: totalItemsAmount,
+        items: midtransItems,
+        customer: {
+          first_name: customerInfo.name,
+          email: customerInfo.email,
+          phone: customerInfo.phone || "",
+        },
+        enabledPayments,
+        expiryHours: 24,
+        callbackUrls: {
+          finish: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+          error: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+          pending: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
+        },
+      });
+
+      paymentResult = {
+        token: snapResult.token,
+        redirect_url: snapResult.redirect_url,
+      };
+
+      // Update all transactions with Midtrans data
+      const updatePromises = createdTransactions.map(
+        async (transaction, index) => {
+          transaction.paymentGateway = "midtrans";
+          transaction.snapToken = snapResult.token;
+          transaction.redirectUrl = snapResult.redirect_url;
+
+          // Log payment fee for first transaction
+          if (index === 0) {
+            console.log(
+              "First transaction paymentFee before save:",
+              transaction.paymentFee
+            );
+          }
+
+          await transaction.save();
+        }
+      );
+
+      await Promise.all(updatePromises);
+
+      console.log(
+        `All ${createdTransactions.length} transactions updated with Midtrans data`
+      );
+    }
 
     // Send invoice email
     try {
@@ -702,18 +835,28 @@ async function handleMultiItemDirectPurchase(body: any) {
       data: {
         transactions: createdTransactions,
         masterOrderId: masterOrderId,
-        snapToken: snapResult.token,
-        redirectUrl: snapResult.redirect_url,
+        paymentGateway: activeGateway,
+        // Midtrans specific
+        snapToken: paymentResult.token || null,
+        // Common redirect URL (works for both gateways)
+        redirectUrl:
+          paymentResult.redirect_url || paymentResult.paymentUrl || null,
+        // Duitku specific
+        duitkuPaymentUrl: paymentResult.paymentUrl || null,
+        duitkuReference: paymentResult.reference || null,
+        duitkuVaNumber: paymentResult.vaNumber || null,
+        duitkuQrString: paymentResult.qrString || null,
+        // Transaction info
         totalTransactions: createdTransactions.length,
         totalAmount: subtotal,
         discountAmount: discount,
         finalAmount: finalAmountAfterDiscount,
       },
     });
-  } catch (midtransError) {
-    console.error("Midtrans Error:", midtransError);
+  } catch (paymentError) {
+    console.error("Payment Gateway Error:", paymentError);
 
-    // Delete created transactions if Midtrans fails
+    // Delete created transactions if payment gateway fails
     const deletePromises = createdTransactions.map((t) =>
       Transaction.findByIdAndDelete(t._id)
     );
@@ -1002,19 +1145,18 @@ async function handleSingleItemTransaction(body: any) {
     phone: customerInfo.phone || "",
   };
 
-  // Create Midtrans Snap transaction
-  try {
-    const midtransService = new MidtransService();
+  // Get active payment gateway from settings
+  const settings = await Settings.getSiteSettings();
+  const activeGateway = settings.activePaymentGateway || "midtrans";
 
-    // Debug environment variables
+  // Create payment gateway transaction
+  try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    console.log("=== CALLBACK URLs DEBUG ===");
+
+    console.log("=== PAYMENT GATEWAY SELECTION (Single Item) ===");
+    console.log("Active Payment Gateway:", activeGateway);
     console.log("NEXT_PUBLIC_BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
     console.log("Base URL used:", baseUrl);
-    console.log(
-      "Finish URL:",
-      `${baseUrl}/transaction/success?order_id=${midtransOrderId}`
-    );
     console.log("Payment method:", paymentMethod);
 
     // Calculate sum of items
@@ -1035,44 +1177,125 @@ async function handleSingleItemTransaction(body: any) {
       });
     }
 
-    console.log("=== MIDTRANS SINGLE-ITEM DEBUG ===");
-    console.log("Items:", JSON.stringify(items, null, 2));
-    console.log("Items total:", itemsTotal);
-    console.log("Payment fee from frontend:", paymentFee);
-    console.log("Calculated Final Amount:", calculatedFinalAmount);
-
-    // Calculate total items amount (should match gross_amount sent to Midtrans)
+    // Calculate total items amount
     const totalItemsAmount = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    console.log("Total items amount for Midtrans:", totalItemsAmount);
 
-    // Map payment method to Midtrans enabled_payments
-    const enabledPayments = paymentMethod
-      ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
-      : undefined;
+    console.log("=== SINGLE-ITEM PAYMENT DEBUG ===");
+    console.log("Items:", JSON.stringify(items, null, 2));
+    console.log("Items total:", itemsTotal);
+    console.log("Payment fee from frontend:", paymentFee);
+    console.log("Total items amount:", totalItemsAmount);
 
-    console.log("Enabled payments for Midtrans:", enabledPayments);
+    // Generate order ID
+    const orderId = transaction.generateMidtransOrderId();
 
-    const snapResult = await midtransService.createSnapTransaction({
-      orderId: midtransOrderId,
-      amount: totalItemsAmount, // Total of all items (including payment fee item)
-      items,
-      customer,
-      enabledPayments,
-      expiryHours: 24,
-      callbackUrls: {
-        finish: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
-        error: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
-        pending: `${baseUrl}/transaction/?order_id=${midtransOrderId}`,
-      },
-    });
+    let paymentResult: {
+      token?: string;
+      redirect_url?: string;
+      paymentUrl?: string;
+      reference?: string;
+      vaNumber?: string;
+      qrString?: string;
+    };
 
-    // Update transaction dengan data Midtrans
-    transaction.snapToken = snapResult.token;
-    transaction.redirectUrl = snapResult.redirect_url;
-    transaction.midtransOrderId = midtransOrderId;
+    if (activeGateway === "duitku") {
+      // ===== DUITKU PAYMENT GATEWAY =====
+      console.log("Using Duitku payment gateway");
+
+      await duitkuService.initializeConfig();
+
+      // Get Duitku payment code from PaymentMethod
+      let duitkuPaymentCode = "VC"; // Default to credit card
+      if (validPaymentMethodId) {
+        try {
+          const PaymentMethod = (await import("@/models/PaymentMethod"))
+            .default;
+          const paymentMethodDoc = await PaymentMethod.findById(
+            validPaymentMethodId
+          );
+          if (paymentMethodDoc && paymentMethodDoc.duitkuCode) {
+            duitkuPaymentCode = paymentMethodDoc.duitkuCode;
+          }
+        } catch (error) {
+          console.error("Error fetching Duitku payment code:", error);
+        }
+      }
+
+      console.log("Duitku payment code:", duitkuPaymentCode);
+
+      // Build product details string
+      const productDetails = `${serviceName} x${quantity}`;
+
+      const duitkuResult = await duitkuService.createTransaction({
+        orderId: orderId,
+        amount: totalItemsAmount,
+        paymentMethod: duitkuPaymentCode,
+        productDetails: productDetails.substring(0, 255),
+        customer: {
+          firstName: customerInfo.name,
+          email: customerInfo.email,
+          phoneNumber: customerInfo.phone || "",
+        },
+        returnUrl: `${baseUrl}/transaction/?order_id=${orderId}`,
+        callbackUrl: `${baseUrl}/api/transactions/webhook/duitku`,
+      });
+
+      paymentResult = {
+        paymentUrl: duitkuResult.paymentUrl,
+        reference: duitkuResult.reference,
+        vaNumber: duitkuResult.vaNumber,
+        qrString: duitkuResult.qrString,
+      };
+
+      // Update transaction with Duitku data
+      transaction.paymentGateway = "duitku";
+      transaction.duitkuOrderId = orderId;
+      transaction.duitkuPaymentUrl = duitkuResult.paymentUrl;
+      transaction.duitkuReference = duitkuResult.reference || "";
+      transaction.duitkuVaNumber = duitkuResult.vaNumber || "";
+      transaction.duitkuQrString = duitkuResult.qrString || "";
+      transaction.redirectUrl = duitkuResult.paymentUrl;
+    } else {
+      // ===== MIDTRANS PAYMENT GATEWAY =====
+      console.log("Using Midtrans payment gateway");
+
+      const midtransService = new MidtransService();
+
+      // Map payment method to Midtrans enabled_payments
+      const enabledPayments = paymentMethod
+        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
+        : undefined;
+
+      console.log("Enabled payments for Midtrans:", enabledPayments);
+
+      const snapResult = await midtransService.createSnapTransaction({
+        orderId: orderId,
+        amount: totalItemsAmount,
+        items,
+        customer,
+        enabledPayments,
+        expiryHours: 24,
+        callbackUrls: {
+          finish: `${baseUrl}/transaction/?order_id=${orderId}`,
+          error: `${baseUrl}/transaction/?order_id=${orderId}`,
+          pending: `${baseUrl}/transaction/?order_id=${orderId}`,
+        },
+      });
+
+      paymentResult = {
+        token: snapResult.token,
+        redirect_url: snapResult.redirect_url,
+      };
+
+      // Update transaction with Midtrans data
+      transaction.paymentGateway = "midtrans";
+      transaction.snapToken = snapResult.token;
+      transaction.redirectUrl = snapResult.redirect_url;
+      transaction.midtransOrderId = orderId;
+    }
 
     // Save transaction
     await transaction.save();
@@ -1096,19 +1319,27 @@ async function handleSingleItemTransaction(body: any) {
       }
     } catch (emailError) {
       console.error("Error sending invoice email:", emailError);
-      // Don't fail the transaction if email fails
     }
 
     return NextResponse.json({
       success: true,
       data: {
         transaction: transaction,
-        snapToken: snapResult.token,
-        redirectUrl: snapResult.redirect_url,
+        paymentGateway: activeGateway,
+        // Midtrans specific
+        snapToken: paymentResult.token || null,
+        // Common redirect URL
+        redirectUrl:
+          paymentResult.redirect_url || paymentResult.paymentUrl || null,
+        // Duitku specific
+        duitkuPaymentUrl: paymentResult.paymentUrl || null,
+        duitkuReference: paymentResult.reference || null,
+        duitkuVaNumber: paymentResult.vaNumber || null,
+        duitkuQrString: paymentResult.qrString || null,
       },
     });
-  } catch (midtransError) {
-    console.error("Midtrans Error:", midtransError);
+  } catch (paymentError) {
+    console.error("Payment Gateway Error:", paymentError);
     return NextResponse.json(
       { error: "Failed to create payment gateway. Please try again later." },
       { status: 500 }

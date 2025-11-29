@@ -11,6 +11,8 @@ export interface IPaymentMethod extends Document {
   isActive: boolean; // Status aktif/nonaktif
   displayOrder: number; // Urutan tampilan
   midtransEnabled: boolean; // Apakah terintegrasi dengan Midtrans
+  duitkuEnabled: boolean; // Apakah terintegrasi dengan Duitku
+  duitkuCode: string; // Kode metode pembayaran Duitku (e.g., "BC", "OV", "DA")
   minimumAmount?: number; // Minimal transaksi (opsional)
   maximumAmount?: number; // Maksimal transaksi (opsional)
   instructions?: string; // Instruksi pembayaran (opsional)
@@ -76,6 +78,16 @@ const PaymentMethodSchema = new Schema<IPaymentMethod>(
     midtransEnabled: {
       type: Boolean,
       default: true,
+    },
+    duitkuEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    duitkuCode: {
+      type: String,
+      default: "",
+      trim: true,
+      uppercase: true,
     },
     minimumAmount: {
       type: Number,

@@ -179,6 +179,32 @@ const transactionSchema = new mongoose.Schema(
       type: String,
     },
 
+    // Data Pembayaran Duitku
+    duitkuOrderId: {
+      type: String,
+      sparse: true,
+    },
+    duitkuReference: {
+      type: String,
+      sparse: true,
+    },
+    duitkuPaymentUrl: {
+      type: String,
+    },
+    duitkuVaNumber: {
+      type: String,
+    },
+    duitkuQrString: {
+      type: String,
+    },
+
+    // Payment Gateway Used
+    paymentGateway: {
+      type: String,
+      enum: ["midtrans", "duitku"],
+      default: "midtrans",
+    },
+
     // Payment Method Information
     paymentMethodId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -103,6 +103,10 @@ export async function PUT(
       paymentMethod.displayOrder = body.displayOrder;
     if (body.midtransEnabled !== undefined)
       paymentMethod.midtransEnabled = body.midtransEnabled;
+    if (body.duitkuEnabled !== undefined)
+      paymentMethod.duitkuEnabled = body.duitkuEnabled;
+    if (body.duitkuCode !== undefined)
+      paymentMethod.duitkuCode = body.duitkuCode;
     if (body.minimumAmount !== undefined)
       paymentMethod.minimumAmount = body.minimumAmount;
     if (body.maximumAmount !== undefined)

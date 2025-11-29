@@ -58,7 +58,14 @@ const settingsSchema = new mongoose.Schema(
       default: 10000,
     },
 
-    // Payment Gateway Settings
+    // Payment Gateway Settings - General
+    activePaymentGateway: {
+      type: String,
+      enum: ["midtrans", "duitku"],
+      default: "midtrans",
+    },
+
+    // Midtrans Settings
     midtransServerKey: {
       type: String,
       default: "",
@@ -71,6 +78,33 @@ const settingsSchema = new mongoose.Schema(
       type: String,
       enum: ["sandbox", "production"],
       default: "sandbox",
+    },
+
+    // Duitku Settings
+    duitkuMerchantCode: {
+      type: String,
+      default: "",
+    },
+    duitkuApiKey: {
+      type: String,
+      default: "",
+    },
+    duitkuMode: {
+      type: String,
+      enum: ["sandbox", "production"],
+      default: "sandbox",
+    },
+    duitkuCallbackUrl: {
+      type: String,
+      default: "",
+    },
+    duitkuReturnUrl: {
+      type: String,
+      default: "",
+    },
+    duitkuExpiryPeriod: {
+      type: Number,
+      default: 1440, // 24 hours in minutes
     },
 
     // API External Settings

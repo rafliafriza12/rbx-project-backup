@@ -43,12 +43,15 @@ class MidtransService {
   private isProduction: boolean = false;
   private snapApiUrl: string = "";
   private coreApiUrl: string = "";
+  private configInitialized: boolean = false;
 
   constructor() {
-    this.initializeConfig();
+    // Don't call async in constructor - will be called when needed
   }
 
-  private async initializeConfig() {
+  async initializeConfig() {
+    if (this.configInitialized) return; // Already initialized
+
     try {
       // Coba ambil dari database Settings
       const settings = await Settings.getSiteSettings();
@@ -88,6 +91,8 @@ class MidtransService {
         this.coreApiUrl = "https://api.sandbox.midtrans.com/v2";
       }
 
+      this.configInitialized = true;
+
       if (!this.serverKey || !this.clientKey) {
         console.warn("Midtrans keys not configured properly");
       }
@@ -107,6 +112,8 @@ class MidtransService {
           "https://app.sandbox.midtrans.com/snap/v1/transactions";
         this.coreApiUrl = "https://api.sandbox.midtrans.com/v2";
       }
+
+      this.configInitialized = true;
 
       if (!this.serverKey || !this.clientKey) {
         throw new Error(
@@ -414,6 +421,25 @@ class MidtransService {
     return this.isProduction
       ? "https://app.midtrans.com/snap/snap.js"
       : "https://app.sandbox.midtrans.com/snap/snap.js";
+  }
+
+  // Async versions that ensure config is loaded first
+  async getClientKeyAsync(): Promise<string> {
+    await this.initializeConfig();
+    return this.clientKey;
+  }
+
+  async getSnapUrlAsync(): Promise<string> {
+    await this.initializeConfig();
+    return this.isProduction
+      ? "https://app.midtrans.com/snap/snap.js"
+      : "https://app.sandbox.midtrans.com/snap/snap.js";
+  }
+
+  // Check if service is configured
+  async isConfigured(): Promise<boolean> {
+    await this.initializeConfig();
+    return !!(this.serverKey && this.clientKey);
   }
 }
 

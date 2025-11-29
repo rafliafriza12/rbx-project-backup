@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const activeOnly = url.searchParams.get("active") === "true";
     const category = url.searchParams.get("category");
+    const gateway = url.searchParams.get("gateway"); // "midtrans" or "duitku"
 
     let query: any = {};
 
@@ -19,6 +20,13 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       query.category = category;
+    }
+
+    // Filter by payment gateway
+    if (gateway === "midtrans") {
+      query.midtransEnabled = true;
+    } else if (gateway === "duitku") {
+      query.duitkuEnabled = true;
     }
 
     const paymentMethods = await PaymentMethod.find(query).sort({
@@ -99,6 +107,9 @@ export async function POST(request: NextRequest) {
       displayOrder: body.displayOrder || 0,
       midtransEnabled:
         body.midtransEnabled !== undefined ? body.midtransEnabled : true,
+      duitkuEnabled:
+        body.duitkuEnabled !== undefined ? body.duitkuEnabled : false,
+      duitkuCode: body.duitkuCode || "",
       minimumAmount: body.minimumAmount,
       maximumAmount: body.maximumAmount,
       instructions: body.instructions,

@@ -102,10 +102,19 @@ export interface Transaction {
   invoiceId: string;
   statusHistory: TransactionStatusHistory[];
   expiresAt?: string;
+  // Midtrans Payment Data
   midtransOrderId?: string;
   midtransTransactionId?: string;
   snapToken?: string;
   redirectUrl?: string;
+  // Duitku Payment Data
+  duitkuOrderId?: string;
+  duitkuReference?: string;
+  duitkuPaymentUrl?: string;
+  duitkuVaNumber?: string;
+  duitkuQrString?: string;
+  // Payment Gateway Info
+  paymentGateway?: "midtrans" | "duitku";
   paidAt?: string;
   completedAt?: string;
   createdAt: string;

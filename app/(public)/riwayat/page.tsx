@@ -350,14 +350,15 @@ export default function RiwayatPage() {
       }
     });
 
-  // Group transactions by midtransOrderId for multi-checkout display
+  // Group transactions by midtransOrderId or duitkuOrderId for multi-checkout display
   const groupTransactionsByCheckout = (transactions: Transaction[]) => {
     const grouped = new Map<string, Transaction[]>();
     const singles: Transaction[] = [];
 
     transactions.forEach((transaction) => {
-      if (transaction.midtransOrderId) {
-        const orderId = transaction.midtransOrderId;
+      // Use midtransOrderId or duitkuOrderId for grouping
+      const orderId = transaction.midtransOrderId || transaction.duitkuOrderId;
+      if (orderId) {
         if (!grouped.has(orderId)) {
           grouped.set(orderId, []);
         }
@@ -769,12 +770,19 @@ export default function RiwayatPage() {
                           </Link>
                           {(transaction.paymentStatus === "pending" ||
                             transaction.orderStatus === "waiting_payment") &&
-                            transaction.snapToken && (
+                            (transaction.snapToken ||
+                              transaction.duitkuPaymentUrl) && (
                               <a
                                 href={
                                   transaction.redirectUrl ||
-                                  `/transaction/pending?order_id=${transaction.midtransOrderId}`
+                                  transaction.duitkuPaymentUrl ||
+                                  `/transaction/pending?order_id=${
+                                    transaction.midtransOrderId ||
+                                    transaction.duitkuOrderId
+                                  }`
                                 }
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="relative overflow-hidden flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg transition-all duration-300 hover:scale-105 font-medium text-sm shadow-lg group/pay"
                               >
                                 {/* Payment button pulse effect */}
