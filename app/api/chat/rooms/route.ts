@@ -58,17 +58,6 @@ export async function GET(request: NextRequest) {
         userId: { $in: userIds }
       }).lean();
 
-      // Find an admin for auto-creating general rooms
-      const admin = await User.findOne({ 
-        accessRole: { $in: ['admin', 'superadmin'] } 
-      }).sort({ accessRole: 1 });
-
-      if (!admin) {
-        return NextResponse.json({ 
-          error: 'No admin available in the system' 
-        }, { status: 503 });
-      }
-
       // Create a map of userId -> array of rooms
       const roomsByUser = new Map<string, any[]>();
       existingRooms.forEach((room: any) => {
@@ -79,77 +68,87 @@ export async function GET(request: NextRequest) {
         roomsByUser.get(userId)!.push(room);
       });
 
-      // Ensure every user has a general chat room
-      const roomsToCreate: any[] = [];
+      // NO AUTO-CREATE: Chat rooms are only created when admin/user explicitly creates them
+      // This minimizes Pusher connections and network idle
+
+      // Combine users with their chat room data
+      // Users WITHOUT rooms will also be included with hasRoom: false
+      const usersWithChatData: any[] = [];
+      
       for (const u of users) {
-        const user = u as any;
-        const userId = user._id.toString();
-        const userRooms = roomsByUser.get(userId) || [];
-        const hasGeneralRoom = userRooms.some((r: any) => r.roomType === 'general');
+        const userObj = u as any;
+        const userRooms = roomsByUser.get(userObj._id.toString()) || [];
         
-        if (!hasGeneralRoom) {
-          // User doesn't have general room, create it
-          roomsToCreate.push({
-            userId: user._id,
-            adminId: admin._id,
-            roomType: 'general',
-            status: 'active',
+        if (userRooms.length > 0) {
+          // User has rooms - add each room
+          userRooms.forEach((room: any) => {
+            usersWithChatData.push({
+              _id: room._id,
+              userId: {
+                _id: userObj._id,
+                username: userObj.username,
+                email: userObj.email,
+                fullName: `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim() || userObj.username,
+                avatar: userObj.profilePicture,
+              },
+              roomType: room.roomType || 'general',
+              transactionCode: room.transactionCode || null,
+              transactionTitle: room.transactionTitle || null,
+              lastMessage: room.lastMessage || null,
+              lastMessageAt: room.lastMessageAt || null,
+              unreadCountAdmin: room.unreadCountAdmin || 0,
+              unreadCountUser: room.unreadCountUser || 0,
+              status: room.status || 'closed',
+              createdAt: room.createdAt || userObj.createdAt,
+              hasRoom: true,
+            });
+          });
+        } else {
+          // User has NO rooms - add user entry without room
+          usersWithChatData.push({
+            _id: null, // No room ID
+            userId: {
+              _id: userObj._id,
+              username: userObj.username,
+              email: userObj.email,
+              fullName: `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim() || userObj.username,
+              avatar: userObj.profilePicture,
+            },
+            roomType: null,
+            transactionCode: null,
+            transactionTitle: null,
+            lastMessage: null,
+            lastMessageAt: null,
+            unreadCountAdmin: 0,
+            unreadCountUser: 0,
+            status: null,
+            createdAt: userObj.createdAt,
+            hasRoom: false,
           });
         }
       }
 
-      // Bulk create missing general rooms
-      if (roomsToCreate.length > 0) {
-        const createdRooms = await ChatRoom.insertMany(roomsToCreate);
-        console.log(`[GET /rooms] 🆕 Auto-created ${createdRooms.length} general chat rooms`);
-        
-        // Add newly created rooms to the map
-        createdRooms.forEach((room: any) => {
-          const userId = room.userId.toString();
-          if (!roomsByUser.has(userId)) {
-            roomsByUser.set(userId, []);
-          }
-          roomsByUser.get(userId)!.push(room);
-        });
-      }
-
-      // Combine users with their chat room data
-      const usersWithChatData = users.flatMap((u: any) => {
-        const userRooms = roomsByUser.get(u._id.toString()) || [];
-        
-        // Map each room to a formatted object
-        return userRooms.map((room: any) => ({
-          _id: room._id,
-          userId: {
-            _id: u._id,
-            username: u.username,
-            email: u.email,
-            fullName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
-            avatar: u.profilePicture,
-          },
-          roomType: room.roomType || 'general',
-          transactionCode: room.transactionCode || null,
-          transactionTitle: room.transactionTitle || null,
-          lastMessage: room.lastMessage || null,
-          lastMessageAt: room.lastMessageAt || null,
-          unreadCountAdmin: room.unreadCountAdmin || 0,
-          unreadCountUser: room.unreadCountUser || 0,
-          status: room.status || 'active',
-          createdAt: room.createdAt || u.createdAt,
-          hasRoom: true,
-        }));
-      });
-
-      // Sort by: unread messages first, then last message time, then creation time
+      // Sort by: 
+      // 1. Users with rooms first (hasRoom: true)
+      // 2. Unread messages first
+      // 3. Last message time
+      // 4. Creation time
       usersWithChatData.sort((a, b) => {
+        // Users with rooms come first
+        if (a.hasRoom !== b.hasRoom) {
+          return a.hasRoom ? -1 : 1;
+        }
+        // Then sort by unread count
         if (a.unreadCountAdmin !== b.unreadCountAdmin) {
           return b.unreadCountAdmin - a.unreadCountAdmin;
         }
+        // Then by last message time
         if (a.lastMessageAt && b.lastMessageAt) {
           return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
         }
         if (a.lastMessageAt) return -1;
         if (b.lastMessageAt) return 1;
+        // Finally by creation time
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
@@ -362,13 +361,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new chat room
+    // Default status is 'closed' - will be activated when user sends first message
     const chatRoom = await ChatRoom.create({
       userId: targetUserId,
       adminId: adminId, // Always set admin ID
       roomType: type,
       transactionCode: type === 'order' ? transactionCode : null,
       transactionTitle: type === 'order' ? finalTransactionTitle : null,
-      status: 'active',
+      status: 'closed',
     });
 
     console.log('[POST /rooms] ✅ New chat room created:', chatRoom._id);

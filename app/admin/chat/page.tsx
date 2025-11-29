@@ -28,9 +28,12 @@ interface ChatRoom {
   };
   lastMessage?: string;
   lastMessageAt?: string;
+  lastUserReplyAt?: string;
   unreadCountAdmin: number;
   unreadCountUser: number;
   status: "active" | "closed" | "archived";
+  deactivatedAt?: string;
+  deactivatedBy?: 'admin' | 'system';
   createdAt: string;
   hasRoom?: boolean;
 }
@@ -58,6 +61,7 @@ export default function AdminChatPage() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [newMessageRooms, setNewMessageRooms] = useState<Set<string>>(new Set()); // Track rooms with new messages
   const pusherRef = useRef<Pusher | null>(null);
+  const [togglingStatus, setTogglingStatus] = useState(false); // Loading state for toggle status
 
   // Protect admin route
   useEffect(() => {
@@ -137,6 +141,63 @@ export default function AdminChatPage() {
       }, 300);
     });
 
+    // Listen for room status changes (deactivation/reactivation) - only for room list update
+    // Note: System message is handled by private room channel in ChatMessages component
+    adminChannel.bind('room-status-changed', (data: {
+      roomId: string;
+      userId: string;
+      userName: string;
+      status: string;
+      changedBy: string;
+    }) => {
+      console.log('[Admin Chat] 🔄 Room status changed (notification channel):', data);
+      
+      // Only refresh room list - don't update selected room to avoid duplicate with ChatMessages
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchChatRooms();
+      }, 300);
+    });
+
+    // Listen for room deactivation (auto-deactivate by system) - only for room list update
+    // Note: System message is handled by private room channel in ChatMessages component
+    adminChannel.bind('room-deactivated', (data: {
+      roomId: string;
+      userId: string;
+      userName: string;
+      deactivatedBy: string;
+      reason: string;
+    }) => {
+      console.log('[Admin Chat] 🔴 Room deactivated (notification channel):', data);
+      
+      // Only refresh room list - don't update selected room to avoid duplicate with ChatMessages
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchChatRooms();
+      }, 300);
+    });
+
+    // Listen for room activation (when user sends first message to activate chat)
+    adminChannel.bind('room-activated', (data: {
+      roomId: string;
+      userId: string;
+      activatedBy: string;
+    }) => {
+      console.log('[Admin Chat] 🟢 Room activated (user sent message):', data);
+      
+      // Refresh room list to update status
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchChatRooms();
+      }, 300);
+    });
+
     return () => {
       console.log('[Admin Chat] 🔌 Cleaning up Pusher connection');
       adminChannel.unbind_all();
@@ -166,6 +227,7 @@ export default function AdminChatPage() {
         setChatRooms(data.data);
         
         // Group rooms by user
+        // Now includes users WITHOUT rooms (hasRoom: false)
         const userMap = new Map<string, UserWithRooms>();
         
         data.data.forEach((room: ChatRoom) => {
@@ -176,44 +238,65 @@ export default function AdminChatPage() {
               user: room.userId,
               rooms: [],
               totalUnread: 0,
-              lastActivity: room.lastMessageAt,
+              lastActivity: room.lastMessageAt || undefined,
             });
           }
           
           const userGroup = userMap.get(userId)!;
-          userGroup.rooms.push(room);
-          userGroup.totalUnread += room.unreadCountAdmin;
           
-          // Update last activity if this room has newer activity
-          if (room.lastMessageAt) {
-            if (!userGroup.lastActivity || new Date(room.lastMessageAt) > new Date(userGroup.lastActivity)) {
-              userGroup.lastActivity = room.lastMessageAt;
+          // Only add room if it actually exists (hasRoom: true)
+          if (room.hasRoom && room._id) {
+            userGroup.rooms.push(room);
+            userGroup.totalUnread += room.unreadCountAdmin;
+            
+            // Update last activity if this room has newer activity
+            if (room.lastMessageAt) {
+              if (!userGroup.lastActivity || new Date(room.lastMessageAt) > new Date(userGroup.lastActivity)) {
+                userGroup.lastActivity = room.lastMessageAt;
+              }
             }
           }
         });
         
-        // Convert map to array and sort by last activity
+        // Convert map to array and sort
+        // Users with rooms and unread messages first, then by last activity
         const grouped = Array.from(userMap.values()).sort((a, b) => {
+          // Users with rooms first
+          const aHasRooms = a.rooms.length > 0;
+          const bHasRooms = b.rooms.length > 0;
+          if (aHasRooms !== bHasRooms) {
+            return aHasRooms ? -1 : 1;
+          }
+          
+          // Then by unread count
+          if (a.totalUnread !== b.totalUnread) {
+            return b.totalUnread - a.totalUnread;
+          }
+          
+          // Then by last activity
           const dateA = a.lastActivity ? new Date(a.lastActivity).getTime() : 0;
           const dateB = b.lastActivity ? new Date(b.lastActivity).getTime() : 0;
           return dateB - dateA;
         });
         
         setGroupedUsers(grouped);
-        console.log(`[Admin Chat] ✅ Loaded ${data.data.length} chat rooms, grouped into ${grouped.length} users`);
+        console.log(`[Admin Chat] ✅ Loaded ${data.data.length} entries, grouped into ${grouped.length} users`);
         
-        // Auto-expand and select first user's general chat on first load
+        // Auto-expand and select first user's room on first load (only if has rooms)
         if (isFirstLoad && grouped.length > 0) {
-          const firstUser = grouped[0];
-          setExpandedUsers(new Set([firstUser.user._id]));
+          const firstUserWithRoom = grouped.find(g => g.rooms.length > 0);
           
-          // Find general chat room (preferred) or first room
-          const generalRoom = firstUser.rooms.find(r => r.roomType === 'general');
-          const roomToSelect = generalRoom || firstUser.rooms[0];
-          
-          if (roomToSelect && roomToSelect._id) {
-            setSelectedRoom(roomToSelect);
-            setSelectedRoomId(roomToSelect._id);
+          if (firstUserWithRoom) {
+            setExpandedUsers(new Set([firstUserWithRoom.user._id]));
+            
+            // Find general chat room (preferred) or first room
+            const generalRoom = firstUserWithRoom.rooms.find(r => r.roomType === 'general');
+            const roomToSelect = generalRoom || firstUserWithRoom.rooms[0];
+            
+            if (roomToSelect && roomToSelect._id) {
+              setSelectedRoom(roomToSelect);
+              setSelectedRoomId(roomToSelect._id);
+            }
           }
           
           setIsFirstLoad(false);
@@ -292,6 +375,54 @@ export default function AdminChatPage() {
       console.log('[Admin Chat] 🔄 Refreshing chat rooms list (debounced)');
       fetchChatRooms();
     }, 300); // 300ms debounce
+  };
+
+  // Toggle chat room status (activate/deactivate)
+  const handleToggleRoomStatus = async () => {
+    if (!selectedRoom || !selectedRoomId || togglingStatus) return;
+
+    const newStatus = selectedRoom.status === 'active' ? 'closed' : 'active';
+    const action = newStatus === 'closed' ? 'menonaktifkan' : 'mengaktifkan';
+    
+    if (!confirm(`Apakah Anda yakin ingin ${action} chat ini?`)) {
+      return;
+    }
+
+    setTogglingStatus(true);
+
+    try {
+      const response = await fetch(`/api/chat/rooms/${selectedRoomId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update selected room state
+        setSelectedRoom(prev => prev ? {
+          ...prev,
+          status: newStatus,
+          deactivatedAt: newStatus === 'closed' ? new Date().toISOString() : undefined,
+          deactivatedBy: newStatus === 'closed' ? 'admin' : undefined,
+        } : null);
+
+        // Refresh room list
+        fetchChatRooms();
+        
+        console.log(`[Admin Chat] ✅ Room status changed to '${newStatus}'`);
+      } else {
+        alert(data.error || 'Gagal mengubah status chat');
+      }
+    } catch (error) {
+      console.error('[Admin Chat] ❌ Error toggling room status:', error);
+      alert('Terjadi kesalahan saat mengubah status chat');
+    } finally {
+      setTogglingStatus(false);
+    }
   };
 
   const formatTime = (date?: string) => {
@@ -480,7 +611,10 @@ export default function AdminChatPage() {
                               )}
                             </p>
                             <p className="text-xs text-[#94a3b8] truncate">
-                              {userGroup.rooms.length} chat room{userGroup.rooms.length > 1 ? 's' : ''}
+                              {userGroup.rooms.length > 0 
+                                ? `${userGroup.rooms.length} chat room${userGroup.rooms.length > 1 ? 's' : ''}`
+                                : 'Belum ada chat'
+                              }
                             </p>
                           </div>
                         </div>
@@ -513,7 +647,39 @@ export default function AdminChatPage() {
                     {/* Expanded Room List */}
                     {expandedUsers.has(userGroup.user._id) && (
                       <div className="bg-[#0f172a] border-t border-white/20">
-                        {userGroup.rooms.map((room, index) => (
+                        {/* Show "Create Chat" button if user has no rooms */}
+                        {userGroup.rooms.length === 0 ? (
+                          <div className="p-4 pl-14">
+                            <div className="flex flex-col items-center justify-center py-4 text-center">
+                              <div className="bg-[#1e293b] rounded-full p-3 mb-3">
+                                <svg className="w-6 h-6 text-[#64748b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                              </div>
+                              <p className="text-sm text-[#94a3b8] mb-3">Belum ada percakapan dengan user ini</p>
+                              <button
+                                onClick={() => handleRoomClick({
+                                  _id: null,
+                                  userId: userGroup.user,
+                                  roomType: 'general',
+                                  unreadCountAdmin: 0,
+                                  unreadCountUser: 0,
+                                  status: 'closed',
+                                  createdAt: new Date().toISOString(),
+                                  hasRoom: false,
+                                })}
+                                className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg text-sm font-medium transition-colors border border-purple-500/30 flex items-center gap-2"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Mulai Chat
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Existing rooms list */
+                          userGroup.rooms.map((room, index) => (
                           <div key={room._id || `${userGroup.user._id}-${room.roomType}`}>
                             <button
                               onClick={() => handleRoomClick(room)}
@@ -600,7 +766,8 @@ export default function AdminChatPage() {
                               </div>
                             )}
                           </div>
-                        ))}
+                        ))
+                        )}
                       </div>
                     )}
                   </div>
@@ -648,7 +815,41 @@ export default function AdminChatPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  {/* Toggle Status Button */}
+                  <button
+                    onClick={handleToggleRoomStatus}
+                    disabled={togglingStatus}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      selectedRoom.status === 'active'
+                        ? 'bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-700/50 hover:border-red-600'
+                        : 'bg-green-900/30 hover:bg-green-900/50 text-green-300 border border-green-700/50 hover:border-green-600'
+                    } ${togglingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title={selectedRoom.status === 'active' ? 'Nonaktifkan Chat' : 'Aktifkan Kembali Chat'}
+                  >
+                    {togglingStatus ? (
+                      <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : selectedRoom.status === 'active' ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        <span>Nonaktifkan</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Aktifkan</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Status Badge */}
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${
                       selectedRoom.status === "active"
@@ -658,7 +859,7 @@ export default function AdminChatPage() {
                         : "bg-gray-700 text-gray-300 border border-gray-600"
                     }`}
                   >
-                    {selectedRoom.status}
+                    {selectedRoom.status === 'active' ? 'Aktif' : selectedRoom.status === 'closed' ? 'Nonaktif' : selectedRoom.status}
                   </span>
                 </div>
               </div>
@@ -669,6 +870,11 @@ export default function AdminChatPage() {
                   roomId={selectedRoomId}
                   currentUserId={user.id}
                   onNewMessage={handleNewMessage}
+                  roomStatus={selectedRoom.status}
+                  onStatusChange={(newStatus) => {
+                    setSelectedRoom(prev => prev ? { ...prev, status: newStatus } : null);
+                    fetchChatRooms();
+                  }}
                 />
               </div>
             </>

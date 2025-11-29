@@ -8,9 +8,12 @@ export interface IChatRoom extends Document {
   transactionTitle?: string; // Product name for order support
   lastMessage?: string;
   lastMessageAt?: Date;
+  lastUserReplyAt?: Date; // Last time user replied - for auto-deactivation
   unreadCountAdmin: number; // Unread messages for admin
   unreadCountUser: number;  // Unread messages for user
   status: 'active' | 'closed' | 'archived';
+  deactivatedAt?: Date; // When chat was deactivated
+  deactivatedBy?: 'admin' | 'system'; // Who deactivated the chat
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +49,9 @@ const ChatRoomSchema = new Schema<IChatRoom>(
     lastMessageAt: {
       type: Date,
     },
+    lastUserReplyAt: {
+      type: Date,
+    },
     unreadCountAdmin: {
       type: Number,
       default: 0,
@@ -58,6 +64,13 @@ const ChatRoomSchema = new Schema<IChatRoom>(
       type: String,
       enum: ['active', 'closed', 'archived'],
       default: 'active',
+    },
+    deactivatedAt: {
+      type: Date,
+    },
+    deactivatedBy: {
+      type: String,
+      enum: ['admin', 'system'],
     },
   },
   { timestamps: true }

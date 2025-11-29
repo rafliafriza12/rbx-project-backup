@@ -357,6 +357,22 @@ export async function POST(
       lastMessageAt: new Date(),
     };
 
+    // If user sends message and room is closed, activate it
+    // This is the primary way for users to activate their chat
+    let roomActivated = false;
+    if (senderRole === 'user') {
+      updateData.lastUserReplyAt = new Date();
+      
+      // Auto-activate room when user sends first/any message to closed room
+      if (chatRoom.status === 'closed') {
+        updateData.status = 'active';
+        updateData.deactivatedAt = null;
+        updateData.deactivatedBy = null;
+        roomActivated = true;
+        console.log(`[POST /messages] 🟢 Room ${roomId} auto-activated by user message`);
+      }
+    }
+
     // Increment unread count for receiver
     if (senderRole === 'admin') {
       updateData.$inc = { unreadCountUser: 1 };
@@ -369,6 +385,32 @@ export async function POST(
 
     await ChatRoom.findByIdAndUpdate(roomId, updateData);
     console.log(`[POST /messages] 📝 ChatRoom updated`);
+
+    // Send room activation notification via Pusher
+    if (roomActivated) {
+      try {
+        const pusher = getPusherInstance();
+        
+        // Notify the specific chat room channel
+        await pusher.trigger(`private-chat-room-${roomId}`, 'room-status-changed', {
+          roomId,
+          status: 'active',
+          activatedBy: 'user-message',
+          message: 'Chat telah diaktifkan.',
+        });
+        
+        // Notify admin channel about room activation
+        await pusher.trigger('admin-notifications', 'room-activated', {
+          roomId,
+          userId: chatRoom.userId.toString(),
+          activatedBy: 'user-message',
+        });
+        
+        console.log(`[POST /messages] 📢 Room activation notifications sent`);
+      } catch (activationPusherError) {
+        console.error(`[POST /messages] ⚠️ Room activation Pusher error:`, activationPusherError);
+      }
+    }
 
     // Store idempotency key BEFORE Pusher
     setIdempotency(idempotencyKey, newMessage._id.toString());

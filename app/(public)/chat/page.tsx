@@ -17,7 +17,9 @@ interface ChatRoom {
   lastMessage?: string;
   lastMessageAt?: string;
   unreadCountUser: number;
-  status: string;
+  status: "active" | "closed" | "archived";
+  deactivatedAt?: string;
+  deactivatedBy?: 'admin' | 'system';
   createdAt: string;
 }
 
@@ -91,6 +93,37 @@ export default function UserChatPage() {
       fetchTimeoutRef.current = setTimeout(() => {
         fetchChatRooms();
       }, 300);
+    });
+
+    // Listen for room status changes (deactivation/reactivation) - only for room list update
+    // Note: System message is handled by private room channel in UserChatInterface component
+    userChannel.bind('room-status-changed', (data: {
+      roomId: string;
+      status: string;
+    }) => {
+      console.log('[User Chat] 🔄 Room status changed (notification channel):', data);
+      
+      // Only update chat rooms list status - don't show message (handled by private channel)
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { ...room, status: data.status as "active" | "closed" | "archived" } 
+          : room
+      ));
+    });
+
+    // Listen for room deactivation (auto-deactivate by system) - only for room list update
+    // Note: System message is handled by private room channel in UserChatInterface component
+    userChannel.bind('room-deactivated', (data: {
+      roomId: string;
+    }) => {
+      console.log('[User Chat] 🔴 Room deactivated (notification channel):', data);
+      
+      // Only update chat rooms list status - don't show message (handled by private channel)
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { ...room, status: 'closed' as const } 
+          : room
+      ));
     });
 
     return () => {
@@ -267,15 +300,19 @@ export default function UserChatPage() {
                       className={`w-full text-left transition-all rounded-xl p-4 ${
                         selectedRoomId === room._id
                           ? 'bg-gradient-to-br from-neon-purple/20 to-neon-pink/20 border border-neon-pink/60 shadow-lg shadow-neon-pink/20'
-                          : 'bg-gradient-to-br from-primary-700/30 to-primary-600/30 border border-white/10 hover:border-white/20'
+                          : room.status !== 'active'
+                            ? 'bg-gradient-to-br from-gray-700/30 to-gray-600/30 border border-white/5 hover:border-white/10 opacity-60'
+                            : 'bg-gradient-to-br from-primary-700/30 to-primary-600/30 border border-white/10 hover:border-white/20'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="relative flex-shrink-0">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                            room.roomType === 'general'
-                              ? 'bg-gradient-to-br from-neon-purple to-neon-pink'
-                              : 'bg-gradient-to-br from-emerald-fresh/80 to-emerald-fresh'
+                            room.status !== 'active'
+                              ? 'bg-gradient-to-br from-gray-500/80 to-gray-600'
+                              : room.roomType === 'general'
+                                ? 'bg-gradient-to-br from-neon-purple to-neon-pink'
+                                : 'bg-gradient-to-br from-emerald-fresh/80 to-emerald-fresh'
                           }`}>
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               {room.roomType === 'general' ? (
@@ -298,7 +335,10 @@ export default function UserChatPage() {
                               <span className="text-white text-xs font-bold">{room.unreadCountUser}</span>
                             </div>
                           )}
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-fresh rounded-full border-2 border-primary-800"></div>
+                          {/* Status indicator */}
+                          <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-primary-800 ${
+                            room.status === 'active' ? 'bg-emerald-fresh' : 'bg-gray-500'
+                          }`}></div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
@@ -321,12 +361,19 @@ export default function UserChatPage() {
                           {/* Room Type Badge */}
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                              room.roomType === 'general'
-                                ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30'
-                                : 'bg-emerald-fresh/20 text-emerald-fresh border border-emerald-fresh/30'
+                              room.status !== 'active'
+                                ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                : room.roomType === 'general'
+                                  ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30'
+                                  : 'bg-emerald-fresh/20 text-emerald-fresh border border-emerald-fresh/30'
                             }`}>
                               {room.roomType === 'general' ? 'General Support' : 'Order Support'}
                             </span>
+                            {room.status !== 'active' && (
+                              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                Tidak Aktif
+                              </span>
+                            )}
                           </div>
                           
                           <p className="text-white/60 text-xs truncate">
@@ -378,6 +425,14 @@ export default function UserChatPage() {
                   roomType={selectedRoom?.roomType}
                   transactionCode={selectedRoom?.transactionCode}
                   transactionTitle={selectedRoom?.transactionTitle}
+                  roomStatus={selectedRoom?.status}
+                  onStatusChange={(newStatus) => {
+                    setChatRooms(prev => prev.map(room => 
+                      room._id === selectedRoomId 
+                        ? { ...room, status: newStatus } 
+                        : room
+                    ));
+                  }}
                 />
               </div>
             ) : (

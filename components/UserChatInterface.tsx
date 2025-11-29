@@ -31,6 +31,8 @@ interface UserChatInterfaceProps {
   roomType?: "general" | "order";
   transactionCode?: string;
   transactionTitle?: string;
+  roomStatus?: "active" | "closed" | "archived";
+  onStatusChange?: (status: "active" | "closed" | "archived") => void;
 }
 
 export default function UserChatInterface({
@@ -39,6 +41,8 @@ export default function UserChatInterface({
   roomType = "general",
   transactionCode,
   transactionTitle,
+  roomStatus = "active",
+  onStatusChange,
 }: UserChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +51,7 @@ export default function UserChatInterface({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [localRoomStatus, setLocalRoomStatus] = useState<"active" | "closed" | "archived">(roomStatus);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pusherRef = useRef<any>(null);
   const channelRef = useRef<any>(null);
@@ -54,6 +59,16 @@ export default function UserChatInterface({
   const lastSendTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const SEND_COOLDOWN = 500;
+  const onStatusChangeRef = useRef(onStatusChange);
+
+  // Update ref and sync local status
+  useEffect(() => {
+    onStatusChangeRef.current = onStatusChange;
+  }, [onStatusChange]);
+
+  useEffect(() => {
+    setLocalRoomStatus(roomStatus);
+  }, [roomStatus]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -89,10 +104,21 @@ export default function UserChatInterface({
   useEffect(() => {
     if (!roomId) return;
 
+    // Flag to prevent setup after cleanup (for async operations)
+    let isCancelled = false;
+    // Track last status change to prevent duplicates
+    let lastStatusChangeId = '';
+
     console.log(`[User Pusher] 🔐 Setting up for room ${roomId}`);
 
     import("pusher-js")
       .then((Pusher) => {
+        // Check if cleanup was called before import finished
+        if (isCancelled) {
+          console.log('[User Pusher] ⚠️ Setup cancelled - cleanup already called');
+          return;
+        }
+
         const pusherInstance = new Pusher.default(
           process.env.NEXT_PUBLIC_PUSHER_KEY || "",
           {
@@ -150,12 +176,71 @@ export default function UserChatInterface({
         };
 
         channelInstance.bind("new-message", handleNewMessage);
+        
+        // Handle room status change event
+        channelInstance.bind("room-status-changed", (data: {
+          roomId: string;
+          status: "active" | "closed" | "archived";
+          deactivatedBy?: 'admin' | 'system';
+          message?: string;
+        }) => {
+          console.log('[User Pusher] 🔄 Room status changed:', data);
+          
+          // Create a unique ID for this status change event
+          const statusChangeId = `${data.roomId}-${data.status}`;
+          
+          // Prevent duplicate handling of the same status change
+          if (statusChangeId === lastStatusChangeId) {
+            console.log('[User Pusher] ⚠️ Duplicate status change ignored:', statusChangeId);
+            return;
+          }
+          lastStatusChangeId = statusChangeId;
+          
+          // Update local room status
+          setLocalRoomStatus(data.status);
+          
+          // Notify parent component
+          if (onStatusChangeRef.current) {
+            onStatusChangeRef.current(data.status);
+          }
+          
+          // Show system message about status change
+          if (data.message) {
+            // Use consistent ID based on roomId and status to prevent duplicates
+            const systemMessageId = `system-status-${data.roomId}-${data.status}`;
+            
+            setMessages((prev) => {
+              // Check if this system message already exists
+              const exists = prev.some(msg => msg._id === systemMessageId);
+              if (exists) {
+                console.log('[User Pusher] ⚠️ System message already exists:', systemMessageId);
+                return prev;
+              }
+              
+              const systemMessage: Message = {
+                _id: systemMessageId,
+                senderId: { _id: 'system', username: 'System', fullName: 'System' },
+                senderRole: 'admin' as const,
+                message: data.message!,
+                type: 'system' as const,
+                isRead: true,
+                createdAt: new Date().toISOString(),
+              };
+              console.log('[User Pusher] ✅ Adding system message:', systemMessageId);
+              return [...prev, systemMessage];
+            });
+            scrollToBottom();
+          }
+        });
       })
       .catch((error) => {
         console.error("[User Pusher] ❌ Failed to load Pusher:", error);
       });
 
     return () => {
+      // Mark as cancelled to prevent late async operations
+      isCancelled = true;
+      
       if (channelRef.current) {
         channelRef.current.unbind_all();
         channelRef.current.unsubscribe();
@@ -595,6 +680,45 @@ export default function UserChatInterface({
 
       {/* Input Area - Enhanced design */}
       <div className="border-t border-white/10 pb-20 pt-6 px-5 md:p-5 bg-gradient-to-r from-primary-800 to-primary-900 backdrop-blur-sm ">
+        {/* Chat Archived Message - Cannot send messages */}
+        {localRoomStatus === 'archived' && (
+          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3 text-red-400">
+              <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold">Chat Diarsipkan</p>
+                <p className="text-xs text-red-400/80 mt-1">
+                  Chat ini telah diarsipkan. Silakan buat chat baru jika Anda membutuhkan bantuan lebih lanjut.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Chat Inactive Message - User can send message to activate */}
+        {localRoomStatus === 'closed' && (
+          <div className="bg-blue-900/30 border border-blue-700/50 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3 text-blue-400">
+              <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold">
+                  {messages.length > 0 ? 'Chat Tidak Aktif' : 'Chat Belum Aktif'}
+                </p>
+                <p className="text-xs text-blue-400/80 mt-1">
+                  {messages.length > 0 
+                    ? 'Chat ini telah dinonaktifkan. Kirim pesan untuk mengaktifkan kembali.'
+                    : 'Kirim pesan untuk memulai percakapan dengan admin.'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Image Preview */}
         {imagePreview && (
           <div className="mb-3 w-full relative inline-block text-center">
@@ -627,9 +751,9 @@ export default function UserChatInterface({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={sending || uploading}
+            disabled={sending || uploading || localRoomStatus === 'archived'}
             className="bg-gradient-to-r from-primary-700/50 to-primary-600/50 hover:from-primary-700 hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-4 py-3.5 rounded-xl font-semibold transition-all shadow-lg border border-white/10"
-            title="Upload Image"
+            title={localRoomStatus === 'archived' ? 'Chat diarsipkan' : 'Upload Image'}
           >
             📷
           </button>
@@ -640,9 +764,9 @@ export default function UserChatInterface({
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ketik pesan Anda..."
-              className="w-full bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner"
-              disabled={sending || uploading}
+              placeholder={localRoomStatus === 'archived' ? 'Chat diarsipkan...' : (localRoomStatus === 'closed' ? 'Kirim pesan untuk memulai chat...' : 'Ketik pesan Anda...')}
+              className="w-full bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={sending || uploading || localRoomStatus === 'archived'}
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30">
               <svg
@@ -663,7 +787,7 @@ export default function UserChatInterface({
           <button
             type="submit"
             disabled={
-              (!newMessage.trim() && !selectedImage) || sending || uploading
+              (!newMessage.trim() && !selectedImage) || sending || uploading || localRoomStatus === 'archived'
             }
             className="bg-gradient-to-r from-neon-purple to-neon-pink hover:from-neon-purple/90 hover:to-neon-pink/90 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-7 py-3.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-neon-pink/50 disabled:shadow-none transform hover:scale-105 active:scale-95 flex items-center gap-2"
           >

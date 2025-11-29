@@ -29,12 +29,16 @@ interface ChatMessagesProps {
   roomId: string;
   currentUserId: string;
   onNewMessage?: () => void;
+  roomStatus?: "active" | "closed" | "archived";
+  onStatusChange?: (status: "active" | "closed" | "archived") => void;
 }
 
 export default function ChatMessages({
   roomId,
   currentUserId,
   onNewMessage,
+  roomStatus = "active",
+  onStatusChange,
 }: ChatMessagesProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +47,7 @@ export default function ChatMessages({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [localRoomStatus, setLocalRoomStatus] = useState<"active" | "closed" | "archived">(roomStatus);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,11 +59,18 @@ export default function ChatMessages({
   const lastSendTimeRef = useRef<number>(0);
   const SEND_COOLDOWN = 500; // 500ms cooldown between messages
   const onNewMessageRef = useRef(onNewMessage); // Store callback in ref
+  const onStatusChangeRef = useRef(onStatusChange); // Store status change callback in ref
 
-  // Update ref when callback changes
+  // Update refs when callbacks change
   useEffect(() => {
     onNewMessageRef.current = onNewMessage;
-  }, [onNewMessage]);
+    onStatusChangeRef.current = onStatusChange;
+  }, [onNewMessage, onStatusChange]);
+
+  // Sync local status with prop
+  useEffect(() => {
+    setLocalRoomStatus(roomStatus);
+  }, [roomStatus]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -94,10 +106,19 @@ export default function ChatMessages({
       return;
     }
 
+    // Flag to prevent setup after cleanup (for async operations)
+    let isCancelled = false;
+
     console.log(`[Pusher Setup] 🔐 Setting up PRIVATE channel for room ${roomId}`);
 
     // Import Pusher dynamically
     import("pusher-js").then((Pusher) => {
+      // Check if cleanup was called before import finished
+      if (isCancelled) {
+        console.log('[Pusher Setup] ⚠️ Setup cancelled - cleanup already called');
+        return;
+      }
+
       console.log('[Pusher Setup] 📦 Pusher library loaded');
       console.log('[Pusher Setup] 🔧 Pusher config:', {
         key: process.env.NEXT_PUBLIC_PUSHER_KEY?.substring(0, 10) + '...',
@@ -201,6 +222,68 @@ export default function ChatMessages({
       console.log('[Pusher Setup] 🎧 Binding "new-message" event handler');
       channelInstance.bind("new-message", handleNewMessage);
       console.log('[Pusher Setup] ✅ Event handler bound successfully');
+
+      // Handle room status change event
+      // Use a ref to track last status change to prevent duplicate system messages
+      let lastStatusChangeId = '';
+      
+      const handleRoomStatusChange = (data: {
+        roomId: string;
+        status: "active" | "closed" | "archived";
+        deactivatedBy?: 'admin' | 'system';
+        message?: string;
+      }) => {
+        console.log('[Pusher Event] 🔄 Room status changed:', data);
+        
+        // Create a unique ID for this status change event
+        const statusChangeId = `${data.roomId}-${data.status}`;
+        
+        // Prevent duplicate handling of the same status change
+        if (statusChangeId === lastStatusChangeId) {
+          console.log('[Pusher Event] ⚠️ Duplicate status change ignored:', statusChangeId);
+          return;
+        }
+        lastStatusChangeId = statusChangeId;
+        
+        // Update local room status
+        setLocalRoomStatus(data.status);
+        
+        // Notify parent component
+        if (onStatusChangeRef.current) {
+          onStatusChangeRef.current(data.status);
+        }
+        
+        // Show system message about status change
+        if (data.message) {
+          // Use consistent ID based on roomId and status to prevent duplicates
+          const systemMessageId = `system-status-${data.roomId}-${data.status}`;
+          
+          setMessages((prev) => {
+            // Check if this system message already exists
+            const exists = prev.some(msg => msg._id === systemMessageId);
+            if (exists) {
+              console.log('[Pusher Event] ⚠️ System message already exists:', systemMessageId);
+              return prev;
+            }
+            
+            const systemMessage: Message = {
+              _id: systemMessageId,
+              senderId: { _id: 'system', username: 'System', fullName: 'System' },
+              senderRole: 'admin' as const,
+              message: data.message!,
+              type: 'system' as const,
+              isRead: true,
+              createdAt: new Date().toISOString(),
+            };
+            console.log('[Pusher Event] ✅ Adding system message:', systemMessageId);
+            return [...prev, systemMessage];
+          });
+          setTimeout(scrollToBottom, 100);
+        }
+      };
+
+      channelInstance.bind("room-status-changed", handleRoomStatusChange);
+      console.log('[Pusher Setup] ✅ Room status change handler bound');
       console.log('[Pusher Setup] ================================================');
     }).catch((error) => {
       console.error('[Pusher Setup] ❌ Failed to load Pusher:', error);
@@ -209,6 +292,9 @@ export default function ChatMessages({
     // Cleanup function - only runs when component unmounts or roomId changes
     return () => {
       console.log(`[Pusher Cleanup] 🧹 Cleaning up private channel for room ${roomId}`);
+      
+      // Mark as cancelled to prevent late async operations
+      isCancelled = true;
       
       if (channelRef.current) {
         console.log('[Pusher Cleanup] Unbinding all events');
@@ -536,6 +622,21 @@ export default function ChatMessages({
 
       {/* Input Area */}
       <div className="border-t border-slate-700 p-4">
+        {/* Chat Deactivated Message */}
+        {localRoomStatus !== 'active' && (
+          <div className="bg-amber-900/30 border border-amber-700/50 rounded-lg p-4 mb-3">
+            <div className="flex items-center gap-2 text-amber-400">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium">Chat Tidak Aktif</p>
+                <p className="text-xs text-amber-400/70">Chat ini telah dinonaktifkan. Aktifkan kembali untuk melanjutkan percakapan.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Image Preview */}
         {imagePreview && (
           <div className="mb-3 relative inline-block">
@@ -568,9 +669,9 @@ export default function ChatMessages({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={sending || uploading}
+            disabled={sending || uploading || localRoomStatus !== 'active'}
             className="bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            title="Upload Image"
+            title={localRoomStatus !== 'active' ? 'Chat tidak aktif' : 'Upload Image'}
           >
             📷
           </button>
@@ -579,13 +680,13 @@ export default function ChatMessages({
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Ketik pesan..."
-            className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={sending || uploading}
+            placeholder={localRoomStatus !== 'active' ? 'Chat tidak aktif...' : 'Ketik pesan...'}
+            className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={sending || uploading || localRoomStatus !== 'active'}
           />
           <button
             type="submit"
-            disabled={(!newMessage.trim() && !selectedImage) || sending || uploading}
+            disabled={(!newMessage.trim() && !selectedImage) || sending || uploading || localRoomStatus !== 'active'}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition-colors"
           >
             {uploading ? (
