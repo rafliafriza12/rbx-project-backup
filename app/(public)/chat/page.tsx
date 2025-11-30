@@ -426,10 +426,18 @@ export default function UserChatPage() {
                   transactionCode={selectedRoom?.transactionCode}
                   transactionTitle={selectedRoom?.transactionTitle}
                   roomStatus={selectedRoom?.status}
+                  unreadCountUser={selectedRoom?.unreadCountUser || 0}
                   onStatusChange={(newStatus) => {
                     setChatRooms(prev => prev.map(room => 
                       room._id === selectedRoomId 
                         ? { ...room, status: newStatus } 
+                        : room
+                    ));
+                  }}
+                  onMarkAsRead={() => {
+                    setChatRooms(prev => prev.map(room => 
+                      room._id === selectedRoomId 
+                        ? { ...room, unreadCountUser: 0 } 
                         : room
                     ));
                   }}

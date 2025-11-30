@@ -32,7 +32,9 @@ interface UserChatInterfaceProps {
   transactionCode?: string;
   transactionTitle?: string;
   roomStatus?: "active" | "closed" | "archived";
+  unreadCountUser?: number;
   onStatusChange?: (status: "active" | "closed" | "archived") => void;
+  onMarkAsRead?: () => void;
 }
 
 export default function UserChatInterface({
@@ -42,7 +44,9 @@ export default function UserChatInterface({
   transactionCode,
   transactionTitle,
   roomStatus = "active",
+  unreadCountUser = 0,
   onStatusChange,
+  onMarkAsRead,
 }: UserChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +56,8 @@ export default function UserChatInterface({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [localRoomStatus, setLocalRoomStatus] = useState<"active" | "closed" | "archived">(roomStatus);
+  const [localUnreadCount, setLocalUnreadCount] = useState(unreadCountUser);
+  const [markingAsRead, setMarkingAsRead] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pusherRef = useRef<any>(null);
   const channelRef = useRef<any>(null);
@@ -60,15 +66,21 @@ export default function UserChatInterface({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const SEND_COOLDOWN = 500;
   const onStatusChangeRef = useRef(onStatusChange);
+  const onMarkAsReadRef = useRef(onMarkAsRead);
 
   // Update ref and sync local status
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
-  }, [onStatusChange]);
+    onMarkAsReadRef.current = onMarkAsRead;
+  }, [onStatusChange, onMarkAsRead]);
 
   useEffect(() => {
     setLocalRoomStatus(roomStatus);
   }, [roomStatus]);
+
+  useEffect(() => {
+    setLocalUnreadCount(unreadCountUser);
+  }, [unreadCountUser]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -86,6 +98,30 @@ export default function UserChatInterface({
       });
     } catch (error) {
       console.error("Error marking messages as read:", error);
+    }
+  };
+
+  // Handler for manual mark as read button
+  const handleMarkAsRead = async () => {
+    if (!roomId || markingAsRead) return;
+
+    setMarkingAsRead(true);
+    try {
+      const response = await fetch(`/api/chat/rooms/${roomId}/read`, {
+        method: "PUT",
+      });
+
+      if (response.ok) {
+        setLocalUnreadCount(0);
+        // Notify parent component
+        if (onMarkAsReadRef.current) {
+          onMarkAsReadRef.current();
+        }
+      }
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    } finally {
+      setMarkingAsRead(false);
     }
   };
 
@@ -473,7 +509,8 @@ export default function UserChatInterface({
           }`}
         ></div>
 
-        <div className="relative">
+        <div className="relative flex items-center justify-between">
+          <div className="flex-1">
           {roomType === "order" ? (
             // Order Support Header - Style matching the image
             <div className="space-y-2">
@@ -540,6 +577,35 @@ export default function UserChatInterface({
                 </h3>
               </div>
             </div>
+          )}
+          </div>
+
+          {/* Mark as Read Button */}
+          {localUnreadCount > 0 && (
+            <button
+              onClick={handleMarkAsRead}
+              disabled={markingAsRead}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                roomType === "order"
+                  ? "bg-emerald-fresh/20 hover:bg-emerald-fresh/30 text-emerald-fresh border border-emerald-fresh/30 hover:border-emerald-fresh/50"
+                  : "bg-neon-purple/20 hover:bg-neon-purple/30 text-neon-purple border border-neon-purple/30 hover:border-neon-purple/50"
+              }`}
+              title="Tandai Sudah Dibaca"
+            >
+              {markingAsRead ? (
+                <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Tandai Dibaca</span>
+                </>
+              )}
+            </button>
           )}
         </div>
       </div>

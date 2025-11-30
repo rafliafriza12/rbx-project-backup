@@ -62,6 +62,7 @@ export default function AdminChatPage() {
   const [newMessageRooms, setNewMessageRooms] = useState<Set<string>>(new Set()); // Track rooms with new messages
   const pusherRef = useRef<Pusher | null>(null);
   const [togglingStatus, setTogglingStatus] = useState(false); // Loading state for toggle status
+  const [markingAsRead, setMarkingAsRead] = useState(false); // Loading state for mark as read
 
   // Protect admin route
   useEffect(() => {
@@ -204,11 +205,7 @@ export default function AdminChatPage() {
       pusher.unsubscribe('admin-notifications');
       pusher.disconnect();
     };
-  }, [user, isAdmin]); // ✅ Removed selectedRoomId dependency - connection stays persistent!
-
-  // REMOVED: Real-time room list updates via Pusher
-  // Room list will update via handleNewMessage callback from ChatMessages component
-  // This prevents duplicate Pusher subscriptions and reduces message count
+  }, [user, isAdmin]);
 
   const fetchChatRooms = async () => {
     try {
@@ -226,8 +223,6 @@ export default function AdminChatPage() {
       if (data.success) {
         setChatRooms(data.data);
         
-        // Group rooms by user
-        // Now includes users WITHOUT rooms (hasRoom: false)
         const userMap = new Map<string, UserWithRooms>();
         
         data.data.forEach((room: ChatRoom) => {
@@ -422,6 +417,45 @@ export default function AdminChatPage() {
       alert('Terjadi kesalahan saat mengubah status chat');
     } finally {
       setTogglingStatus(false);
+    }
+  };
+
+  // Mark all messages as read
+  const handleMarkAsRead = async () => {
+    if (!selectedRoomId || markingAsRead) return;
+
+    setMarkingAsRead(true);
+    try {
+      const response = await fetch(`/api/chat/rooms/${selectedRoomId}/read`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSelectedRoom(prev => prev ? { ...prev, unreadCountAdmin: 0 } : null);
+        
+        // Update room list
+        setChatRooms(prev => prev.map(room => 
+          room._id === selectedRoomId ? { ...room, unreadCountAdmin: 0 } : room
+        ));
+        
+        // Update grouped users
+        setGroupedUsers(prev => prev.map(userGroup => ({
+          ...userGroup,
+          rooms: userGroup.rooms.map(room => 
+            room._id === selectedRoomId ? { ...room, unreadCountAdmin: 0 } : room
+          ),
+          totalUnread: userGroup.rooms.reduce((sum, room) => 
+            sum + (room._id === selectedRoomId ? 0 : room.unreadCountAdmin), 0
+          )
+        })));
+
+        console.log('[Admin Chat] ✅ Messages marked as read');
+      }
+    } catch (error) {
+      console.error('[Admin Chat] ❌ Error marking as read:', error);
+    } finally {
+      setMarkingAsRead(false);
     }
   };
 
@@ -816,6 +850,30 @@ export default function AdminChatPage() {
                 </div>
 
                 <div className="flex gap-2 items-center">
+                  {/* Mark as Read Button */}
+                  {selectedRoom.unreadCountAdmin > 0 && (
+                    <button
+                      onClick={handleMarkAsRead}
+                      disabled={markingAsRead}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 border border-blue-700/50 hover:border-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Tandai Sudah Dibaca"
+                    >
+                      {markingAsRead ? (
+                        <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>Tandai Dibaca</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   {/* Toggle Status Button */}
                   <button
                     onClick={handleToggleRoomStatus}
