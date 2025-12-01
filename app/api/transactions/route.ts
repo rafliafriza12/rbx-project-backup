@@ -736,8 +736,10 @@ async function handleMultiItemDirectPurchase(body: any) {
           transaction.duitkuQrString = duitkuResult.qrString || "";
           transaction.redirectUrl = duitkuResult.paymentUrl; // For backward compatibility
 
-          // Log payment fee for first transaction
-          if (index === 0) {
+          // Explicitly set payment fee for first transaction
+          if (index === 0 && paymentFee > 0) {
+            transaction.paymentFee = paymentFee;
+            transaction.markModified("paymentFee");
             console.log(
               "First transaction paymentFee before save:",
               transaction.paymentFee
@@ -796,8 +798,10 @@ async function handleMultiItemDirectPurchase(body: any) {
           transaction.snapToken = snapResult.token;
           transaction.redirectUrl = snapResult.redirect_url;
 
-          // Log payment fee for first transaction
-          if (index === 0) {
+          // Explicitly set payment fee for first transaction
+          if (index === 0 && paymentFee > 0) {
+            transaction.paymentFee = paymentFee;
+            transaction.markModified("paymentFee");
             console.log(
               "First transaction paymentFee before save:",
               transaction.paymentFee

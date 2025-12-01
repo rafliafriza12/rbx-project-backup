@@ -7,6 +7,7 @@ import Link from "next/link";
 import {
   isMultiCheckout,
   calculateGrandTotal,
+  getPaymentFee,
   getTotalItemsCount,
 } from "@/lib/transaction-helpers";
 
@@ -394,18 +395,24 @@ export default function TransactionsPage() {
       key: "totalAmount",
       label: "Amount",
       render: (value: number, row: Transaction) => {
-        const displayAmount = isMultiCheckout(row as any)
-          ? calculateGrandTotal(row as any)
-          : row.finalAmount || value;
+        const grandTotal = calculateGrandTotal(row as any);
+        const paymentFee = getPaymentFee(row as any);
 
         return (
           <div className="text-sm">
             {isMultiCheckout(row as any) ? (
               <div className="space-y-1">
                 <span className="font-medium text-blue-400">
-                  {formatCurrency(displayAmount)}
+                  {formatCurrency(grandTotal)}
                 </span>
-                <div className="text-xs text-blue-400/70">Grand Total</div>
+                <div className="text-xs text-blue-400/70">
+                  {getTotalItemsCount(row as any)} items
+                </div>
+                {paymentFee > 0 && (
+                  <div className="text-xs text-gray-400">
+                    Fee: {formatCurrency(paymentFee)}
+                  </div>
+                )}
               </div>
             ) : row.discountPercentage && row.discountPercentage > 0 ? (
               <div className="space-y-1">
@@ -414,15 +421,29 @@ export default function TransactionsPage() {
                 </div>
                 <div className="flex items-center space-x-1">
                   <span className="font-medium text-green-400">
-                    {formatCurrency(row.finalAmount || value)}
+                    {formatCurrency(grandTotal)}
                   </span>
                   <span className="bg-green-600 text-white px-1 py-0.5 rounded text-xs">
                     -{row.discountPercentage}%
                   </span>
                 </div>
+                {paymentFee > 0 && (
+                  <div className="text-xs text-gray-400">
+                    Fee: {formatCurrency(paymentFee)}
+                  </div>
+                )}
               </div>
             ) : (
-              <span className="font-medium">{formatCurrency(value)}</span>
+              <div className="space-y-1">
+                <span className="font-medium">
+                  {formatCurrency(grandTotal)}
+                </span>
+                {paymentFee > 0 && (
+                  <div className="text-xs text-gray-400">
+                    Fee: {formatCurrency(paymentFee)}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         );
@@ -645,7 +666,7 @@ export default function TransactionsPage() {
                   (transactions || []).reduce(
                     (sum, t) =>
                       t.paymentStatus === "settlement"
-                        ? sum + (t.finalAmount || t.totalAmount)
+                        ? sum + calculateGrandTotal(t as any)
                         : sum,
                     0
                   )
@@ -840,42 +861,80 @@ export default function TransactionsPage() {
                   )}
 
                 {/* Amount with discount info */}
-                {selectedTransaction.discountPercentage &&
-                selectedTransaction.discountPercentage > 0 ? (
-                  <div className="text-sm">
-                    <div className="text-[#94a3b8]">
-                      <span className="font-medium text-[#f1f5f9]">
-                        Subtotal:
-                      </span>{" "}
-                      <span className="line-through">
-                        {formatCurrency(selectedTransaction.totalAmount)}
-                      </span>
-                    </div>
-                    <div className="text-[#94a3b8]">
-                      <span className="font-medium text-[#f1f5f9]">
-                        Discount ({selectedTransaction.discountPercentage}%):
-                      </span>{" "}
-                      <span className="text-green-400">
-                        -
-                        {formatCurrency(
-                          selectedTransaction.discountAmount || 0
-                        )}
-                      </span>
-                    </div>
-                    <div className="text-[#f1f5f9] font-semibold">
-                      <span className="font-medium">Final Amount:</span>{" "}
-                      {formatCurrency(
-                        selectedTransaction.finalAmount ||
-                          selectedTransaction.totalAmount
+                {(() => {
+                  const modalPaymentFee = getPaymentFee(
+                    selectedTransaction as any
+                  );
+                  const modalGrandTotal = calculateGrandTotal(
+                    selectedTransaction as any
+                  );
+
+                  return (
+                    <div className="text-sm space-y-1">
+                      {selectedTransaction.discountPercentage &&
+                      selectedTransaction.discountPercentage > 0 ? (
+                        <>
+                          <div className="text-[#94a3b8]">
+                            <span className="font-medium text-[#f1f5f9]">
+                              Subtotal:
+                            </span>{" "}
+                            <span className="line-through">
+                              {formatCurrency(selectedTransaction.totalAmount)}
+                            </span>
+                          </div>
+                          <div className="text-[#94a3b8]">
+                            <span className="font-medium text-[#f1f5f9]">
+                              Discount ({selectedTransaction.discountPercentage}
+                              %):
+                            </span>{" "}
+                            <span className="text-green-400">
+                              -
+                              {formatCurrency(
+                                selectedTransaction.discountAmount || 0
+                              )}
+                            </span>
+                          </div>
+                          <div className="text-[#94a3b8]">
+                            <span className="font-medium text-[#f1f5f9]">
+                              Final Amount:
+                            </span>{" "}
+                            {formatCurrency(
+                              selectedTransaction.finalAmount ||
+                                selectedTransaction.totalAmount
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-[#94a3b8]">
+                          <span className="font-medium text-[#f1f5f9]">
+                            Amount:
+                          </span>{" "}
+                          {formatCurrency(selectedTransaction.totalAmount)}
+                        </p>
                       )}
+
+                      {/* Payment Fee */}
+                      {modalPaymentFee > 0 && (
+                        <div className="text-[#94a3b8]">
+                          <span className="font-medium text-[#f1f5f9]">
+                            Payment Fee:
+                          </span>{" "}
+                          <span className="text-orange-400">
+                            {formatCurrency(modalPaymentFee)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Total Pembayaran */}
+                      <div className="text-[#f1f5f9] font-semibold pt-1 border-t border-[#334155] mt-1">
+                        <span className="font-medium">Total Pembayaran:</span>{" "}
+                        <span className="text-blue-400">
+                          {formatCurrency(modalGrandTotal)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-[#94a3b8]">
-                    <span className="font-medium text-[#f1f5f9]">Amount:</span>{" "}
-                    {formatCurrency(selectedTransaction.totalAmount)}
-                  </p>
-                )}
+                  );
+                })()}
 
                 {/* Customer Notes */}
                 {selectedTransaction.customerNotes && (

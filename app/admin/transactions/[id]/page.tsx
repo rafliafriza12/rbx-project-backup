@@ -6,6 +6,7 @@ import {
   isMultiCheckout,
   getAllTransactions,
   calculateGrandTotal,
+  getPaymentFee,
   getTotalItemsCount,
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
@@ -344,44 +345,69 @@ export default function TransactionDetailPage() {
             </div>
 
             {/* Price breakdown with discount */}
-            {transaction.discountPercentage &&
-            transaction.discountPercentage > 0 ? (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-[#94a3b8]">Subtotal:</span>
-                  <span className="font-medium text-[#f1f5f9]">
-                    {formatCurrency(transaction.totalAmount)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#94a3b8]">
-                    Discount ({transaction.discountPercentage}%):
-                  </span>
-                  <span className="font-medium text-green-400">
-                    -{formatCurrency(transaction.discountAmount || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-[#334155] pt-3">
-                  <span className="font-semibold text-[#f1f5f9]">
-                    Final Amount:
-                  </span>
-                  <span className="font-bold text-lg text-[#f1f5f9]">
-                    {formatCurrency(
-                      transaction.finalAmount || transaction.totalAmount
-                    )}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="flex justify-between border-t border-[#334155] pt-3">
-                <span className="font-semibold text-[#f1f5f9]">
-                  Total Amount:
-                </span>
-                <span className="font-bold text-lg text-[#f1f5f9]">
-                  {formatCurrency(transaction.totalAmount)}
-                </span>
-              </div>
-            )}
+            {(() => {
+              const detailPaymentFee = getPaymentFee(transaction as any);
+              const detailGrandTotal = calculateGrandTotal(transaction as any);
+
+              return (
+                <>
+                  {transaction.discountPercentage &&
+                  transaction.discountPercentage > 0 ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-[#94a3b8]">Subtotal:</span>
+                        <span className="font-medium text-[#f1f5f9]">
+                          {formatCurrency(transaction.totalAmount)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#94a3b8]">
+                          Discount ({transaction.discountPercentage}%):
+                        </span>
+                        <span className="font-medium text-green-400">
+                          -{formatCurrency(transaction.discountAmount || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#94a3b8]">Final Amount:</span>
+                        <span className="font-medium text-[#f1f5f9]">
+                          {formatCurrency(
+                            transaction.finalAmount || transaction.totalAmount
+                          )}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-[#94a3b8]">Amount:</span>
+                      <span className="font-medium text-[#f1f5f9]">
+                        {formatCurrency(transaction.totalAmount)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Payment Fee */}
+                  {detailPaymentFee > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-[#94a3b8]">Payment Fee:</span>
+                      <span className="font-medium text-orange-400">
+                        {formatCurrency(detailPaymentFee)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Total Pembayaran */}
+                  <div className="flex justify-between border-t border-[#334155] pt-3">
+                    <span className="font-semibold text-[#f1f5f9]">
+                      Total Pembayaran:
+                    </span>
+                    <span className="font-bold text-lg text-blue-400">
+                      {formatCurrency(detailGrandTotal)}
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -617,6 +643,12 @@ export default function TransactionDetailPage() {
                         Total for all{" "}
                         {transaction.relatedTransactions.length + 1} items
                       </p>
+                      {getPaymentFee(transaction as any) > 0 && (
+                        <p className="text-sm text-orange-400 mt-1">
+                          Termasuk fee:{" "}
+                          {formatCurrency(getPaymentFee(transaction as any))}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-400">
@@ -783,9 +815,7 @@ export default function TransactionDetailPage() {
                 </div>
               )}
               <div>
-                <span className="text-[#94a3b8] block mb-1">
-                  Midtrans Order ID:
-                </span>
+                <span className="text-[#94a3b8] block mb-1">Order ID:</span>
                 <span className="font-mono font-medium text-[#f1f5f9]">
                   {transaction.midtransOrderId}
                 </span>
