@@ -726,6 +726,33 @@
   .border-white\/20 {
     border-color: rgba(255, 255, 255, 0.2);
   }
+
+  /* Custom Scrollbar Styles - Purple Neon Theme */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(54, 27, 67, 0.3);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #b354c3 0%, #f63ae6 100%);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #c961d1 0%, #ff4af0 100%);
+    box-shadow: 0 0 10px rgba(246, 58, 230, 0.6);
+  }
+
+  /* Firefox custom scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #b354c3 rgba(54, 27, 67, 0.3);
+  }
 }
 
 .react-tel-input .flag-dropdown:hover {

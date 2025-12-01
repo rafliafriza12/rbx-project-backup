@@ -723,12 +723,12 @@ export default function ProfilePage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-rose-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Phone className="w-6 h-6 text-white" />
                   </div>
-                  <div>
+                  <Link href={'/chat'}>
                     <div className="font-semibold text-white">Hubungi CS</div>
                     <div className="text-sm text-white/70">
                       Butuh bantuan? Chat kami
                     </div>
-                  </div>
+                  </Link>
                 </a>
               </div>
             </div>

@@ -1928,7 +1928,7 @@ export default function HomePage() {
                 <p className="text-white/70 ">
                   Anda bisa melacak pesanan melalui halaman "Lacak Pesanan"
                   dengan memasukkan Order ID yang dikirim via email. Atau
-                  hubungi customer service kami di WhatsApp untuk update
+                  hubungi customer service kami di menu chat untuk update
                   real-time.
                 </p>
               </div>

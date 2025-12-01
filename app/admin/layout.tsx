@@ -632,6 +632,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { title: "Dashboard", icon: "📊", href: "/admin/dashboard" },
   { title: "Transaksi", icon: "📦", href: "/admin/transactions" },
+  { title: "Chat", icon: "💬", href: "/admin/chat" },
   { title: "Users", icon: "👥", href: "/admin/users" },
   { title: "Reviews", icon: "⭐", href: "/admin/reviews" },
   { title: "Reseller", icon: "🎭", href: "/admin/reseller" },

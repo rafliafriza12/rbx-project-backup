@@ -236,6 +236,37 @@ export default function TransactionDetailPage() {
     }
   };
 
+  const handleContactCS = async () => {
+    try {
+      if (!transaction) return;
+
+      // Create order support chat room
+      const response = await fetch("/api/chat/rooms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roomType: "order",
+          transactionCode: transaction.invoiceId,
+          transactionTitle: `Order Support - ${transaction.invoiceId}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Redirect to chat page
+        router.push("/chat");
+      } else {
+        toast.error(data.error || "Gagal membuat ruang chat");
+      }
+    } catch (error) {
+      console.error("Error creating chat room:", error);
+      toast.error("Gagal menghubungi CS");
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center ">
@@ -872,15 +903,13 @@ export default function TransactionDetailPage() {
                 Cetak Detail
               </button>
 
-              <a
-                href="https://wa.me/6281234567890"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={handleContactCS}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500/80 text-white rounded-xl hover:bg-emerald-600/80 transition-colors font-medium backdrop-blur-sm border border-emerald-500/30"
               >
                 <span>💬</span>
                 Hubungi CS
-              </a>
+              </button>
 
               <Link
                 href="/track-order"

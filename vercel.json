@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/deactivate-expired-resellers",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/chat/auto-deactivate",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
