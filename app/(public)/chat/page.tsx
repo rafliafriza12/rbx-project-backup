@@ -86,13 +86,18 @@ export default function UserChatPage() {
       // Add to new message rooms (will show red indicator)
       setNewMessageRooms(prev => new Set(prev).add(data.roomId));
       
-      // Refresh room list to update unread counts
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchChatRooms();
-      }, 300);
+      // Update room list locally WITHOUT fetching (no refresh)
+      // Only increment unread count and update last message
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { 
+              ...room, 
+              unreadCountUser: room.unreadCountUser + 1,
+              lastMessage: data.message,
+              lastMessageAt: data.timestamp || new Date().toISOString()
+            } 
+          : room
+      )); 
     });
 
     // Listen for room status changes (deactivation/reactivation) - only for room list update
@@ -426,10 +431,18 @@ export default function UserChatPage() {
                   transactionCode={selectedRoom?.transactionCode}
                   transactionTitle={selectedRoom?.transactionTitle}
                   roomStatus={selectedRoom?.status}
+                  unreadCountUser={selectedRoom?.unreadCountUser || 0}
                   onStatusChange={(newStatus) => {
                     setChatRooms(prev => prev.map(room => 
                       room._id === selectedRoomId 
                         ? { ...room, status: newStatus } 
+                        : room
+                    ));
+                  }}
+                  onMarkAsRead={() => {
+                    setChatRooms(prev => prev.map(room => 
+                      room._id === selectedRoomId 
+                        ? { ...room, unreadCountUser: 0 } 
                         : room
                     ));
                   }}
