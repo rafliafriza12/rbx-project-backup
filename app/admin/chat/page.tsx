@@ -133,13 +133,38 @@ export default function AdminChatPage() {
       // Add to new message rooms (will show red indicator)
       setNewMessageRooms(prev => new Set(prev).add(data.roomId));
       
-      // Refresh room list to update unread counts
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchChatRooms();
-      }, 300);
+      // Update room list locally WITHOUT fetching (no refresh)
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { 
+              ...room, 
+              unreadCountAdmin: room.unreadCountAdmin + 1,
+              lastMessage: data.message,
+              lastMessageAt: data.timestamp || new Date().toISOString()
+            } 
+          : room
+      ));
+
+      // Also update grouped users
+      setGroupedUsers(prev => prev.map(userGroup => {
+        const updatedRooms = userGroup.rooms.map(room => 
+          room._id === data.roomId 
+            ? { 
+                ...room, 
+                unreadCountAdmin: room.unreadCountAdmin + 1,
+                lastMessage: data.message,
+                lastMessageAt: data.timestamp || new Date().toISOString()
+              } 
+            : room
+        );
+        
+        return {
+          ...userGroup,
+          rooms: updatedRooms,
+          totalUnread: updatedRooms.reduce((sum, room) => sum + room.unreadCountAdmin, 0),
+          lastActivity: data.timestamp || userGroup.lastActivity
+        };
+      }));
     });
 
     // Listen for room status changes (deactivation/reactivation) - only for room list update
@@ -153,13 +178,22 @@ export default function AdminChatPage() {
     }) => {
       console.log('[Admin Chat] 🔄 Room status changed (notification channel):', data);
       
-      // Only refresh room list - don't update selected room to avoid duplicate with ChatMessages
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchChatRooms();
-      }, 300);
+      // Update room list locally WITHOUT fetching
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { ...room, status: data.status as "active" | "closed" | "archived" } 
+          : room
+      ));
+
+      // Update grouped users
+      setGroupedUsers(prev => prev.map(userGroup => ({
+        ...userGroup,
+        rooms: userGroup.rooms.map(room => 
+          room._id === data.roomId 
+            ? { ...room, status: data.status as "active" | "closed" | "archived" } 
+            : room
+        )
+      })));
     });
 
     // Listen for room deactivation (auto-deactivate by system) - only for room list update
@@ -173,13 +207,22 @@ export default function AdminChatPage() {
     }) => {
       console.log('[Admin Chat] 🔴 Room deactivated (notification channel):', data);
       
-      // Only refresh room list - don't update selected room to avoid duplicate with ChatMessages
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchChatRooms();
-      }, 300);
+      // Update room list locally WITHOUT fetching
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { ...room, status: 'closed' as const, deactivatedBy: data.deactivatedBy as 'admin' | 'system' } 
+          : room
+      ));
+
+      // Update grouped users
+      setGroupedUsers(prev => prev.map(userGroup => ({
+        ...userGroup,
+        rooms: userGroup.rooms.map(room => 
+          room._id === data.roomId 
+            ? { ...room, status: 'closed' as const, deactivatedBy: data.deactivatedBy as 'admin' | 'system' } 
+            : room
+        )
+      })));
     });
 
     // Listen for room activation (when user sends first message to activate chat)
@@ -190,13 +233,22 @@ export default function AdminChatPage() {
     }) => {
       console.log('[Admin Chat] 🟢 Room activated (user sent message):', data);
       
-      // Refresh room list to update status
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchChatRooms();
-      }, 300);
+      // Update room list locally WITHOUT fetching
+      setChatRooms(prev => prev.map(room => 
+        room._id === data.roomId 
+          ? { ...room, status: 'active' as const, deactivatedAt: undefined, deactivatedBy: undefined } 
+          : room
+      ));
+
+      // Update grouped users
+      setGroupedUsers(prev => prev.map(userGroup => ({
+        ...userGroup,
+        rooms: userGroup.rooms.map(room => 
+          room._id === data.roomId 
+            ? { ...room, status: 'active' as const, deactivatedAt: undefined, deactivatedBy: undefined } 
+            : room
+        )
+      })));
     });
 
     return () => {
@@ -335,10 +387,28 @@ export default function AdminChatPage() {
         const data = await response.json();
         
         if (data.success) {
-          const updatedRoom = { ...room, ...data.data };
-          setSelectedRoom(updatedRoom);
+          const newRoom = { ...room, ...data.data };
+          setSelectedRoom(newRoom);
           setSelectedRoomId(data.data._id);
-          fetchChatRooms();
+          
+          // Add new room to chatRooms state locally (no fetchChatRooms to avoid refresh)
+          setChatRooms(prev => [newRoom, ...prev]);
+          
+          // Update groupedUsers state locally
+          setGroupedUsers(prev => {
+            const userId = room.userId._id;
+            return prev.map(userWithRooms => {
+              if (userWithRooms.user._id === userId) {
+                return {
+                  ...userWithRooms,
+                  rooms: [newRoom, ...userWithRooms.rooms],
+                  totalUnread: userWithRooms.totalUnread,
+                  lastActivity: newRoom.createdAt,
+                };
+              }
+              return userWithRooms;
+            });
+          });
         }
       } catch (error) {
         console.error('Error creating chat room:', error);
@@ -361,15 +431,10 @@ export default function AdminChatPage() {
   };
 
   const handleNewMessage = () => {
-    // Debounce: Prevent multiple rapid calls to fetchChatRooms
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-
-    fetchTimeoutRef.current = setTimeout(() => {
-      console.log('[Admin Chat] 🔄 Refreshing chat rooms list (debounced)');
-      fetchChatRooms();
-    }, 300); // 300ms debounce
+    // NOTE: No longer calling fetchChatRooms() to avoid refresh/loading skeleton
+    // The Pusher event handler on the global channel already updates
+    // chatRooms and groupedUsers state locally when new messages arrive
+    console.log('[Admin Chat] 📝 handleNewMessage called (no fetch needed - handled by Pusher)');
   };
 
   // Toggle chat room status (activate/deactivate)
@@ -405,8 +470,32 @@ export default function AdminChatPage() {
           deactivatedBy: newStatus === 'closed' ? 'admin' : undefined,
         } : null);
 
-        // Refresh room list
-        fetchChatRooms();
+        // Update chatRooms state locally (no fetchChatRooms to avoid refresh)
+        setChatRooms(prev => prev.map(room => 
+          room._id === selectedRoomId 
+            ? { 
+                ...room, 
+                status: newStatus,
+                deactivatedAt: newStatus === 'closed' ? new Date().toISOString() : undefined,
+                deactivatedBy: newStatus === 'closed' ? 'admin' : undefined,
+              } 
+            : room
+        ));
+        
+        // Update groupedUsers state locally
+        setGroupedUsers(prev => prev.map(userWithRooms => ({
+          ...userWithRooms,
+          rooms: userWithRooms.rooms.map(room => 
+            room._id === selectedRoomId 
+              ? { 
+                  ...room, 
+                  status: newStatus,
+                  deactivatedAt: newStatus === 'closed' ? new Date().toISOString() : undefined,
+                  deactivatedBy: newStatus === 'closed' ? 'admin' : undefined,
+                } 
+              : room
+          ),
+        })));
         
         console.log(`[Admin Chat] ✅ Room status changed to '${newStatus}'`);
       } else {
@@ -931,7 +1020,21 @@ export default function AdminChatPage() {
                   roomStatus={selectedRoom.status}
                   onStatusChange={(newStatus) => {
                     setSelectedRoom(prev => prev ? { ...prev, status: newStatus } : null);
-                    fetchChatRooms();
+                    // Update chatRooms state locally (no fetchChatRooms to avoid refresh)
+                    setChatRooms(prev => prev.map(room => 
+                      room._id === selectedRoomId 
+                        ? { ...room, status: newStatus } 
+                        : room
+                    ));
+                    // Update groupedUsers state locally
+                    setGroupedUsers(prev => prev.map(userWithRooms => ({
+                      ...userWithRooms,
+                      rooms: userWithRooms.rooms.map(room => 
+                        room._id === selectedRoomId 
+                          ? { ...room, status: newStatus } 
+                          : room
+                      ),
+                    })));
                   }}
                 />
               </div>
