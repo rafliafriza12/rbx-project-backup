@@ -713,7 +713,7 @@ export default function UserChatInterface({
                     } mb-3`}
                   >
                     <div
-                      className={`max-w-[75%] group border border-white/20 rounded-2xl`}
+                      className={`max-w-[75%] group border border-white/20 rounded-2xl overflow-hidden`}
                     >
                       {/* Sender Name (for admin messages) */}
 
@@ -781,10 +781,10 @@ export default function UserChatInterface({
       </div>
 
       {/* Input Area - Enhanced design */}
-      <div className="border-t border-white/10 pb-10 pt-6 px-5 md:p-5 bg-gradient-to-r from-primary-800 to-primary-900 backdrop-blur-sm ">
+      <div className="border-t border-white/10 pb-10 pt-6 px-5 md:p-5 bg-gradient-to-r from-primary-800 to-primary-900 backdrop-blur-sm">
         {/* Chat Archived Message - Cannot send messages */}
         {localRoomStatus === 'archived' && (
-          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4 mb-4">
+          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4">
             <div className="flex items-start gap-3 text-red-400">
               <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -799,136 +799,134 @@ export default function UserChatInterface({
           </div>
         )}
         
-        {/* Chat Inactive Message - User can send message to activate */}
+        {/* Chat Closed/Deactivated Message - User cannot send messages */}
         {localRoomStatus === 'closed' && (
-          <div className="bg-blue-900/30 border border-blue-700/50 rounded-xl p-4 mb-4">
-            <div className="flex items-start gap-3 text-blue-400">
+          <div className="bg-gray-900/50 border border-gray-700/50 rounded-xl p-4">
+            <div className="flex items-start gap-3 text-gray-400">
               <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <div>
-                <p className="text-xs font-semibold">
-                  {messages.length > 0 ? 'Chat Tidak Aktif' : 'Chat Belum Aktif'}
-                </p>
-                <p className="text-xs text-blue-400/80 mt-1">
-                  {messages.length > 0 
-                    ? 'Chat ini telah dinonaktifkan. Kirim pesan untuk mengaktifkan kembali.'
-                    : 'Kirim pesan untuk memulai percakapan dengan admin.'
-                  }
+                <p className="text-sm font-semibold">Chat Dinonaktifkan</p>
+                <p className="text-xs text-gray-400/80 mt-1">
+                  Chat ini telah dinonaktifkan oleh admin. Silakan buat chat baru jika Anda membutuhkan bantuan lebih lanjut.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Image Preview */}
-        {imagePreview && (
-          <div className="mb-3 w-full relative inline-block text-center">
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="max-w-52 rounded-lg border-2 border-neon-pink mx-auto"
-            />
-            <button
-              onClick={handleRemoveImage}
-              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
-              type="button"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
-          {/* Hidden File Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
-
-          {/* Image Upload Button */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={sending || uploading || localRoomStatus === 'archived'}
-            className="bg-gradient-to-r from-primary-700/50 to-primary-600/50 hover:from-primary-700 text-xs hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-4 py-3.5 rounded-xl font-semibold transition-all shadow-lg border border-white/10"
-            title={localRoomStatus === 'archived' ? 'Chat diarsipkan' : 'Upload Image'}
-          >
-            📷
-          </button>
-
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                // Auto-resize textarea
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
-              }}
-              onKeyDown={(e) => {
-                // Submit on Enter, new line on Shift+Enter
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (newMessage.trim() || selectedImage) {
-                    handleSendMessage(e as any);
-                  }
-                }
-              }}
-              placeholder={localRoomStatus === 'archived' ? 'Chat diarsipkan...' : (localRoomStatus === 'closed' ? 'Kirim pesan untuk memulai chat...' : 'Ketik pesan Anda...')}
-              className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto"
-              style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
-              disabled={sending || uploading || localRoomStatus === 'archived'}
-            />            
-          </div>
-          <button
-            type="submit"
-            disabled={
-              (!newMessage.trim() && !selectedImage) || sending || uploading || localRoomStatus === 'archived'
-            }
-            className="bg-gradient-to-r from-neon-purple to-neon-pink hover:from-neon-purple/90 hover:to-neon-pink/90 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-7 py-3.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-neon-pink/50 disabled:shadow-none transform hover:scale-105 active:scale-95 flex items-center gap-2"
-          >
-            {uploading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
-                <span className="hidden sm:inline">Upload...</span>
-              </>
-            ) : sending ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
-                <span className="hidden sm:inline">Mengirim...</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-4 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        {/* Show input only when room is active */}
+        {localRoomStatus === 'active' && (
+          <>
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="mb-3 w-full relative inline-block text-center">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-w-52 rounded-lg border-2 border-neon-pink mx-auto"
+                />
+                <button
+                  onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                  type="button"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Kirim</span>
-              </>
+                  ×
+                </button>
+              </div>
             )}
-          </button>
-        </form>
 
-        {/* Helper text */}
-        <p className="text-white/40 text-xs mt-3 text-center">
-          Tekan Enter untuk mengirim • Admin biasanya membalas dalam beberapa
-          menit
-        </p>
+            <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
+              {/* Hidden File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"            
+              />
+
+              {/* Image Upload Button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending || uploading}
+                className="bg-gradient-to-r from-primary-700/50 to-primary-600/50 hover:from-primary-700 text-xs hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-4 py-3.5 rounded-xl font-semibold transition-all shadow-lg border border-white/10"
+                title="Upload Image"
+              >
+                📷
+              </button>
+
+              <div className="flex-1 relative">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    // Auto-resize textarea
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    // Submit on Enter, new line on Shift+Enter
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (newMessage.trim() || selectedImage) {
+                        handleSendMessage(e as any);
+                      }
+                    }
+                  }}
+                  placeholder="Ketik pesan Anda..."
+                  className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto"
+                  style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px`, scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  disabled={sending || uploading}
+                />            
+              </div>
+              <button
+                type="submit"
+                disabled={(!newMessage.trim() && !selectedImage) || sending || uploading}
+                className="bg-gradient-to-r from-neon-purple to-neon-pink hover:from-neon-purple/90 hover:to-neon-pink/90 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-7 py-3.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-neon-pink/50 disabled:shadow-none transform hover:scale-105 active:scale-95 flex items-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
+                    <span className="hidden sm:inline">Upload...</span>
+                  </>
+                ) : sending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
+                    <span className="hidden sm:inline">Mengirim...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Kirim</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Helper text */}
+            <p className="text-white/40 text-xs mt-3 text-center">
+              Tekan Enter untuk mengirim • Admin biasanya membalas dalam beberapa
+              menit
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
