@@ -33,14 +33,12 @@ export async function PATCH(
     if (status === 'closed') {
       updateData.deactivatedAt = new Date();
       updateData.deactivatedBy = 'admin';
-      updateData.lastMessage = null;
-      updateData.lastMessageAt = null;
+      // Keep messages intact - only hide input for user
+      // Reset unread counts since chat is closed
       updateData.unreadCountAdmin = 0;
       updateData.unreadCountUser = 0;
       
-      // Delete all messages for this room when deactivating
-      const deleteResult = await Message.deleteMany({ roomId });
-      console.log(`[Room Deactivation] 🗑️ Deleted ${deleteResult.deletedCount} messages from room ${roomId}`);
+      console.log(`[Room Deactivation] 🔒 Room ${roomId} closed (messages preserved)`);
     } else if (status === 'active') {
       // Reactivating - clear deactivation info
       updateData.deactivatedAt = null;
@@ -67,9 +65,9 @@ export async function PATCH(
         status,
         deactivatedBy: status === 'closed' ? 'admin' : null,
         deactivatedAt: status === 'closed' ? new Date().toISOString() : null,
-        messagesCleared: status === 'closed', // Indicate messages were deleted
+        messagesCleared: false, // Messages are preserved
         message: status === 'closed' 
-          ? 'Chat ini telah dinonaktifkan oleh admin. Semua pesan telah dihapus.'
+          ? 'Chat ini telah dinonaktifkan oleh admin.'
           : 'Chat ini telah diaktifkan kembali oleh admin.',
       });
 
@@ -79,7 +77,7 @@ export async function PATCH(
         userId: chatRoom.userId?._id?.toString(),
         userName: chatRoom.userId?.fullName || chatRoom.userId?.email,
         status,
-        messagesCleared: status === 'closed',
+        messagesCleared: false,
         changedBy: user._id.toString(),
       });
 
@@ -88,11 +86,11 @@ export async function PATCH(
         await pusher.trigger(`user-notifications-${chatRoom.userId._id}`, 'room-status-changed', {
           roomId,
           status,
-          messagesCleared: status === 'closed',
+          messagesCleared: false,
         });
       }
 
-      console.log(`[Room Status] ✅ Status changed to '${status}' for room ${roomId}${status === 'closed' ? ' (messages cleared)' : ''}`);
+      console.log(`[Room Status] ✅ Status changed to '${status}' for room ${roomId}`);
     } catch (pusherError) {
       console.error('[Room Status] ❌ Pusher error:', pusherError);
       // Continue even if Pusher fails

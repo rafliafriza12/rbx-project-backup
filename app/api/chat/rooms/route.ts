@@ -267,108 +267,17 @@ export async function POST(request: NextRequest) {
       if (!finalTransactionTitle) {
         finalTransactionTitle = `Order #${transactionCode}`;
       }
-
-      // Check if room with this transaction code already exists for this user
-      const existingOrderRoom = await ChatRoom.findOne({ 
-        userId: targetUserId,
-        transactionCode: transactionCode 
-      });
-
-      if (existingOrderRoom) {
-        // Return existing room
-        console.log('[POST /rooms] ✅ Existing order room found:', existingOrderRoom._id);
-        await existingOrderRoom.populate('userId', 'username email firstName lastName profilePicture');
-        await existingOrderRoom.populate('adminId', 'username email firstName lastName');
-
-        return NextResponse.json({
-          success: true,
-          data: {
-            _id: existingOrderRoom._id,
-            userId: {
-              _id: existingOrderRoom.userId._id,
-              username: existingOrderRoom.userId.username,
-              email: existingOrderRoom.userId.email,
-              fullName: `${existingOrderRoom.userId.firstName || ''} ${existingOrderRoom.userId.lastName || ''}`.trim() || existingOrderRoom.userId.username,
-              avatar: existingOrderRoom.userId.profilePicture,
-            },
-            adminId: {
-              _id: existingOrderRoom.adminId._id,
-              username: existingOrderRoom.adminId.username,
-              email: existingOrderRoom.adminId.email,
-              fullName: `${existingOrderRoom.adminId.firstName || ''} ${existingOrderRoom.adminId.lastName || ''}`.trim(),
-            },
-            roomType: existingOrderRoom.roomType,
-            transactionCode: existingOrderRoom.transactionCode,
-            transactionTitle: existingOrderRoom.transactionTitle,
-            lastMessage: existingOrderRoom.lastMessage,
-            lastMessageAt: existingOrderRoom.lastMessageAt,
-            unreadCountAdmin: existingOrderRoom.unreadCountAdmin,
-            unreadCountUser: existingOrderRoom.unreadCountUser,
-            status: existingOrderRoom.status,
-            createdAt: existingOrderRoom.createdAt,
-          },
-          existing: true,
-        });
-      }
-
-      // Validate transaction exists (optional - you can skip this if you want)
-      // For now, we'll just use the provided transaction title
     }
 
-    // Check if general chat room already exists
-    if (type === 'general') {
-      const existingGeneralRoom = await ChatRoom.findOne({ 
-        userId: targetUserId,
-        roomType: 'general'
-      });
-
-      if (existingGeneralRoom) {
-        // Return existing room
-        console.log('[POST /rooms] ✅ Existing general room found:', existingGeneralRoom._id);
-        await existingGeneralRoom.populate('userId', 'username email firstName lastName profilePicture');
-        await existingGeneralRoom.populate('adminId', 'username email firstName lastName');
-
-        return NextResponse.json({
-          success: true,
-          data: {
-            _id: existingGeneralRoom._id,
-            userId: {
-              _id: existingGeneralRoom.userId._id,
-              username: existingGeneralRoom.userId.username,
-              email: existingGeneralRoom.userId.email,
-              fullName: `${existingGeneralRoom.userId.firstName || ''} ${existingGeneralRoom.userId.lastName || ''}`.trim() || existingGeneralRoom.userId.username,
-              avatar: existingGeneralRoom.userId.profilePicture,
-            },
-            adminId: {
-              _id: existingGeneralRoom.adminId._id,
-              username: existingGeneralRoom.adminId.username,
-              email: existingGeneralRoom.adminId.email,
-              fullName: `${existingGeneralRoom.adminId.firstName || ''} ${existingGeneralRoom.adminId.lastName || ''}`.trim(),
-            },
-            roomType: existingGeneralRoom.roomType,
-            transactionCode: existingGeneralRoom.transactionCode,
-            transactionTitle: existingGeneralRoom.transactionTitle,
-            lastMessage: existingGeneralRoom.lastMessage,
-            lastMessageAt: existingGeneralRoom.lastMessageAt,
-            unreadCountAdmin: existingGeneralRoom.unreadCountAdmin,
-            unreadCountUser: existingGeneralRoom.unreadCountUser,
-            status: existingGeneralRoom.status,
-            createdAt: existingGeneralRoom.createdAt,
-          },
-          existing: true,
-        });
-      }
-    }
-
-    // Create new chat room
-    // Default status is 'closed' - will be activated when user sends first message
+    // Always create a new chat room (allow multiple rooms per user/transaction)
+    // Default status is 'active' - user can start chatting immediately
     const chatRoom = await ChatRoom.create({
       userId: targetUserId,
-      adminId: adminId, // Always set admin ID
+      adminId: adminId,
       roomType: type,
       transactionCode: type === 'order' ? transactionCode : null,
       transactionTitle: type === 'order' ? finalTransactionTitle : null,
-      status: 'closed',
+      status: 'active',
     });
 
     console.log('[POST /rooms] ✅ New chat room created:', chatRoom._id);
