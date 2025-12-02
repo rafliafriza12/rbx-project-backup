@@ -231,6 +231,7 @@ export default function ChatMessages({
         roomId: string;
         status: "active" | "closed" | "archived";
         deactivatedBy?: 'admin' | 'system';
+        messagesCleared?: boolean;
         message?: string;
       }) => {
         console.log('[Pusher Event] 🔄 Room status changed:', data);
@@ -251,6 +252,12 @@ export default function ChatMessages({
         // Notify parent component
         if (onStatusChangeRef.current) {
           onStatusChangeRef.current(data.status);
+        }
+        
+        // Clear messages if room was deactivated
+        if (data.messagesCleared) {
+          console.log('[Pusher Event] 🗑️ Clearing all messages (room deactivated)');
+          setMessages([]);
         }
         
         // Show system message about status change

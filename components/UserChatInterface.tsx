@@ -218,6 +218,7 @@ export default function UserChatInterface({
           roomId: string;
           status: "active" | "closed" | "archived";
           deactivatedBy?: 'admin' | 'system';
+          messagesCleared?: boolean;
           message?: string;
         }) => {
           console.log('[User Pusher] 🔄 Room status changed:', data);
@@ -238,6 +239,12 @@ export default function UserChatInterface({
           // Notify parent component
           if (onStatusChangeRef.current) {
             onStatusChangeRef.current(data.status);
+          }
+          
+          // Clear messages if room was deactivated
+          if (data.messagesCleared) {
+            console.log('[User Pusher] 🗑️ Clearing all messages (room deactivated)');
+            setMessages([]);
           }
           
           // Show system message about status change
@@ -510,25 +517,27 @@ export default function UserChatInterface({
         ></div>
 
         <div className="relative flex items-center justify-between">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
           {roomType === "order" ? (
             // Order Support Header - Style matching the image
-            <div className="space-y-2">
-              {/* Title */}
+            <div className="space-y-1.5">
+              {/* Badge */}
               <div className="flex items-center gap-2">
-                <div className="px-2.5 py-1 bg-emerald-fresh/20 border border-emerald-fresh/30 rounded-md">
+                <div className="px-2.5 py-1 bg-emerald-fresh/20 border border-emerald-fresh/30 rounded-md flex-shrink-0">
                   <span className="text-emerald-fresh text-xs font-semibold">
                     Order Support
                   </span>
                 </div>
-                <h3 className="text-white font-bold text-base truncate">
-                  Order: {transactionCode}
-                </h3>
               </div>
+              
+              {/* Order Code - Allow wrap to 2 lines */}
+              <h3 className="text-white font-bold text-sm md:text-base line-clamp-2 break-all leading-tight">
+                Order: {transactionCode}
+              </h3>
 
               {/* Subtitle with product name */}
               {transactionTitle && (
-                <p className="text-white/70 text-sm">{transactionTitle}</p>
+                <p className="text-white/70 text-xs md:text-sm truncate">{transactionTitle}</p>
               )}
             </div>
           ) : (
@@ -561,7 +570,7 @@ export default function UserChatInterface({
                     </span>
                   </div>
                 </div>
-                <h3 className="text-white font-bold text-lg flex items-center gap-2 mt-1">
+                <h3 className="text-white font-bold text-xs md:text-lg flex items-center gap-2 mt-1">
                   Chat Support - Admin
                   <svg
                     className="w-4 h-4 text-neon-pink"
@@ -585,7 +594,7 @@ export default function UserChatInterface({
             <button
               onClick={handleMarkAsRead}
               disabled={markingAsRead}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`flex items-center justify-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                 roomType === "order"
                   ? "bg-emerald-fresh/20 hover:bg-emerald-fresh/30 text-emerald-fresh border border-emerald-fresh/30 hover:border-emerald-fresh/50"
                   : "bg-neon-purple/20 hover:bg-neon-purple/30 text-neon-purple border border-neon-purple/30 hover:border-neon-purple/50"
@@ -593,16 +602,18 @@ export default function UserChatInterface({
               title="Tandai Sudah Dibaca"
             >
               {markingAsRead ? (
-                <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               ) : (
                 <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  {/* Double check icon - intuitive for "mark as read" */}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M1 13l4 4M15 7l4-4" className="opacity-60" />
                   </svg>
-                  <span>Tandai Dibaca</span>
+                  <span className="hidden md:inline">Tandai Dibaca</span>
                 </>
               )}
             </button>
@@ -619,9 +630,9 @@ export default function UserChatInterface({
           <div className="flex items-center justify-center h-full">
             <div className="text-center max-w-md">
               <div className="relative mb-6">
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-neon-purple/20 to-neon-pink/20 rounded-full flex items-center justify-center border border-white/10">
+                <div className="w-16 h-16 md:w-24 md:h-24 mx-auto bg-gradient-to-br from-neon-purple/20 to-neon-pink/20 rounded-full flex items-center justify-center border border-white/10">
                   <svg
-                    className="w-12 h-12 text-neon-purple"
+                    className="w-8 h-8 md:w-12 md:h-12 text-neon-purple"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -636,10 +647,10 @@ export default function UserChatInterface({
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-full blur-2xl animate-pulse"></div>
               </div>
-              <h4 className="text-white font-bold text-lg mb-2">
+              <h4 className="text-white font-bold text-sm md:text-base mb-2">
                 Mulai Percakapan
               </h4>
-              <p className="text-white/60 text-sm">
+              <p className="text-white/60 text-xs md:text-base">
                 Belum ada pesan. Kirim pesan pertama Anda dan admin kami akan
                 segera merespons!
               </p>
@@ -745,7 +756,7 @@ export default function UserChatInterface({
       </div>
 
       {/* Input Area - Enhanced design */}
-      <div className="border-t border-white/10 pb-20 pt-6 px-5 md:p-5 bg-gradient-to-r from-primary-800 to-primary-900 backdrop-blur-sm ">
+      <div className="border-t border-white/10 pb-10 pt-6 px-5 md:p-5 bg-gradient-to-r from-primary-800 to-primary-900 backdrop-blur-sm ">
         {/* Chat Archived Message - Cannot send messages */}
         {localRoomStatus === 'archived' && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4 mb-4">
@@ -771,7 +782,7 @@ export default function UserChatInterface({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
-                <p className="text-sm font-semibold">
+                <p className="text-xs font-semibold">
                   {messages.length > 0 ? 'Chat Tidak Aktif' : 'Chat Belum Aktif'}
                 </p>
                 <p className="text-xs text-blue-400/80 mt-1">
@@ -803,7 +814,7 @@ export default function UserChatInterface({
           </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="flex gap-3">
+        <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
           {/* Hidden File Input */}
           <input
             ref={fileInputRef}
@@ -818,7 +829,7 @@ export default function UserChatInterface({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={sending || uploading || localRoomStatus === 'archived'}
-            className="bg-gradient-to-r from-primary-700/50 to-primary-600/50 hover:from-primary-700 hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-4 py-3.5 rounded-xl font-semibold transition-all shadow-lg border border-white/10"
+            className="bg-gradient-to-r from-primary-700/50 to-primary-600/50 hover:from-primary-700 text-xs hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-4 py-3.5 rounded-xl font-semibold transition-all shadow-lg border border-white/10"
             title={localRoomStatus === 'archived' ? 'Chat diarsipkan' : 'Upload Image'}
           >
             📷
@@ -831,24 +842,9 @@ export default function UserChatInterface({
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={localRoomStatus === 'archived' ? 'Chat diarsipkan...' : (localRoomStatus === 'closed' ? 'Kirim pesan untuk memulai chat...' : 'Ketik pesan Anda...')}
-              className="w-full bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={sending || uploading || localRoomStatus === 'archived'}
-            />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
-            </div>
+            />            
           </div>
           <button
             type="submit"
@@ -859,18 +855,18 @@ export default function UserChatInterface({
           >
             {uploading ? (
               <>
-                <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
                 <span className="hidden sm:inline">Upload...</span>
               </>
             ) : sending ? (
               <>
-                <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
                 <span className="hidden sm:inline">Mengirim...</span>
               </>
             ) : (
               <>
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
