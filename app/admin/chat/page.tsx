@@ -744,17 +744,29 @@ export default function AdminChatPage() {
                                 className={`w-full p-3 pl-12 text-left transition-all ${
                                   selectedRoomId === room._id
                                     ? room.roomType === 'order' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
-                                    : 'hover:bg-[#334155]/50'
+                                    : room.status !== 'active'
+                                      ? 'bg-red-900/10 opacity-70'
+                                      : 'hover:bg-[#334155]/50'
                                 }`}
                               >
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                                       room.roomType === 'order'
                                         ? 'bg-emerald-500/20 text-emerald-400'
                                         : 'bg-purple-500/20 text-purple-400'
                                     }`}>
                                       {room.roomType === 'order' ? 'Order' : 'General'}
+                                    </span>
+                                    {/* Status Badge */}
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                      room.status === 'active'
+                                        ? 'bg-green-500/20 text-green-400'
+                                        : room.status === 'archived'
+                                          ? 'bg-gray-500/20 text-gray-400'
+                                          : 'bg-red-500/20 text-red-400'
+                                    }`}>
+                                      {room.status === 'active' ? '●' : room.status === 'archived' ? '●' : '●'}
                                     </span>
                                   </div>
                                   {room.unreadCountAdmin > 0 && (
@@ -993,7 +1005,9 @@ export default function AdminChatPage() {
                                   ? room.roomType === 'order'
                                     ? 'bg-emerald-500/20 border-l-4 border-l-emerald-500'
                                     : 'bg-purple-500/20 border-l-4 border-l-purple-500'
-                                  : 'border-l-4 border-l-transparent bg-transparent'
+                                  : room.status !== 'active'
+                                    ? 'bg-red-900/10 border-l-4 border-l-red-500/50 opacity-70'
+                                    : 'border-l-4 border-l-transparent bg-transparent'
                               }`}
                             >
                               {/* Real-time new message indicator */}
@@ -1025,13 +1039,23 @@ export default function AdminChatPage() {
                                   </div>
                                   
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                                         room.roomType === 'order'
                                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                           : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                                       }`}>
                                         {room.roomType === 'order' ? 'Order Support' : 'General Support'}
+                                      </span>
+                                      {/* Status Badge */}
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                        room.status === 'active'
+                                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                          : room.status === 'archived'
+                                            ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                      }`}>
+                                        {room.status === 'active' ? '● Aktif' : room.status === 'archived' ? '● Arsip' : '● Nonaktif'}
                                       </span>
                                     </div>
                                     
