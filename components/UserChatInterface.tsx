@@ -59,12 +59,14 @@ export default function UserChatInterface({
   const [localUnreadCount, setLocalUnreadCount] = useState(unreadCountUser);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pusherRef = useRef<any>(null);
   const channelRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastSendTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const SEND_COOLDOWN = 500;
+  const MAX_TEXTAREA_HEIGHT = 120; // Max height before scrolling
   const onStatusChangeRef = useRef(onStatusChange);
   const onMarkAsReadRef = useRef(onMarkAsRead);
 
@@ -368,6 +370,11 @@ export default function UserChatInterface({
 
     setSending(true);
     setNewMessage("");
+    
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
     try {
       const response = await fetch(`/api/chat/rooms/${roomId}/messages`, {
@@ -388,6 +395,15 @@ export default function UserChatInterface({
 
       if (!data.success) {
         setNewMessage(messageText);
+        // Restore textarea height on error
+        if (textareaRef.current && messageText) {
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.style.height = 'auto';
+              textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+            }
+          }, 0);
+        }
 
         if (response.status === 429) {
           alert("Terlalu banyak pesan. Mohon tunggu sebentar.");
@@ -403,6 +419,15 @@ export default function UserChatInterface({
     } catch (error: any) {
       if (error.name === "AbortError") return;
       setNewMessage(messageText);
+      // Restore textarea height on error
+      if (textareaRef.current && messageText) {
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+          }
+        }, 0);
+      }
     } finally {
       setSending(false);
       abortControllerRef.current = null;
@@ -836,13 +861,28 @@ export default function UserChatInterface({
           </button>
 
           <div className="flex-1 relative">
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
+              rows={1}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                // Auto-resize textarea
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+              }}
+              onKeyDown={(e) => {
+                // Submit on Enter, new line on Shift+Enter
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (newMessage.trim() || selectedImage) {
+                    handleSendMessage(e as any);
+                  }
+                }
+              }}
               placeholder={localRoomStatus === 'archived' ? 'Chat diarsipkan...' : (localRoomStatus === 'closed' ? 'Kirim pesan untuk memulai chat...' : 'Ketik pesan Anda...')}
-              className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto"
+              style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
               disabled={sending || uploading || localRoomStatus === 'archived'}
             />            
           </div>

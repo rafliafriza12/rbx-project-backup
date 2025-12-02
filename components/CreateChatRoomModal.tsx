@@ -134,13 +134,11 @@ export default function CreateChatRoomModal({
     }
   };
 
-  console.log("SELCTED TYPE: ", selectedType);
-  console.log("SELECTED TRANSACTION: ", transactionCode);
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-gradient-to-br from-primary-800 to-primary-900 rounded-2xl shadow-2xl border border-white/20 w-full max-w-md overflow-hidden animate-scaleIn">
+      <div className="bg-gradient-to-br from-primary-800 to-primary-900 rounded-2xl shadow-2xl border border-white/20 w-full max-w-md overflow-hidden animate-scaleIn max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-neon-purple/30 to-neon-pink/30 px-6 py-4 border-b border-white/10 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-neon-purple/30 to-neon-pink/30 px-6 py-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-neon-purple to-neon-pink rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,8 +158,8 @@ export default function CreateChatRoomModal({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-6">
+        {/* Body - Scrollable */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
           {/* Judul Ruang */}
           <div>
             <label className="text-white/80 text-sm font-medium mb-3 block">Judul Ruang</label>
@@ -282,10 +280,17 @@ export default function CreateChatRoomModal({
                     </svg>
                   )}
                 </div>
+              </div>
 
-                {/* Search Results Dropdown */}
-                {showDropdown && searchResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-2 bg-primary-800 border border-white/20 rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar">
+              {/* Search Results - Inline (not absolute) so modal can scroll */}
+              {showDropdown && searchResults.length > 0 && (
+                <div className="mt-3 bg-primary-800/80 border border-white/20 rounded-xl shadow-lg overflow-hidden animate-fadeIn">
+                  <div className="px-3 py-2 bg-primary-700/50 border-b border-white/10">
+                    <p className="text-white/60 text-xs font-medium">
+                      Ditemukan {searchResults.length} transaksi
+                    </p>
+                  </div>
+                  <div className="max-h-52 overflow-y-auto custom-scrollbar">
                     {searchResults.map((transaction) => (
                       <button
                         key={transaction._id}
@@ -311,19 +316,19 @@ export default function CreateChatRoomModal({
                       </button>
                     ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* No Results */}
-                {showDropdown && searchQuery.length >= 3 && searchResults.length === 0 && !isSearching && (
-                  <div className="absolute z-10 w-full mt-2 bg-primary-800 border border-white/20 rounded-xl shadow-2xl p-4 text-center">
-                    <svg className="w-12 h-12 text-white/20 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-white/60 text-sm">Transaksi tidak ditemukan</p>
-                    <p className="text-white/40 text-xs mt-1">Coba gunakan kode invoice yang berbeda</p>
-                  </div>
-                )}
-              </div>
+              {/* No Results - Also inline */}
+              {showDropdown && searchQuery.length >= 3 && searchResults.length === 0 && !isSearching && (
+                <div className="mt-3 bg-primary-800/80 border border-white/20 rounded-xl shadow-lg p-4 text-center animate-fadeIn">
+                  <svg className="w-12 h-12 text-white/20 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-white/60 text-sm">Transaksi tidak ditemukan</p>
+                  <p className="text-white/40 text-xs mt-1">Coba gunakan kode invoice yang berbeda</p>
+                </div>
+              )}
               
               {/* Selected Transaction Display */}
               {selectedTransaction && (
@@ -362,8 +367,8 @@ export default function CreateChatRoomModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-primary-900/50 border-t border-white/10 flex gap-3">
+        {/* Footer - Fixed at bottom */}
+        <div className="px-6 py-4 bg-primary-900/50 border-t border-white/10 flex gap-3 flex-shrink-0">
           <button
             onClick={handleClose}
             disabled={loading}
