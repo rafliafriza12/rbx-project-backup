@@ -8,6 +8,154 @@ import {
   getNotificationPreference 
 } from "@/lib/notifications";
 
+// Helper function to check if message is an invoice message
+function isInvoiceMessage(message: string): boolean {
+  return message.includes('### 🧾 Informasi Transaksi') && message.includes('### 📦 Detail Pesanan');
+}
+
+// Helper function to render markdown for invoice messages
+function renderMarkdownMessage(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  
+  lines.forEach((line, index) => {
+    let element: React.ReactNode;
+    
+    // Heading ### 
+    if (line.startsWith('### ')) {
+      element = (
+        <h3 key={index} className="text-base font-bold mt-3 mb-2 first:mt-0">
+          {line.replace('### ', '')}
+        </h3>
+      );
+    }
+    // Horizontal rule ---
+    else if (line.trim() === '---') {
+      element = <hr key={index} className="border-white/20 my-3" />;
+    }
+    // Bullet list - **bold:** value
+    else if (line.startsWith('- ')) {
+      const content = line.replace('- ', '');
+      element = (
+        <div key={index} className="flex items-start gap-2 ml-2 my-1">
+          <span className="text-white/60">•</span>
+          <span>{renderInlineMarkdown(content)}</span>
+        </div>
+      );
+    }
+    // Empty line
+    else if (line.trim() === '') {
+      element = <div key={index} className="h-1" />;
+    }
+    // Regular text with inline markdown
+    else {
+      element = (
+        <p key={index} className="my-1">
+          {renderInlineMarkdown(line)}
+        </p>
+      );
+    }
+    
+    elements.push(element);
+  });
+  
+  return <div className="space-y-0">{elements}</div>;
+}
+
+// Helper function to render inline markdown (bold, code, italic)
+function renderInlineMarkdown(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let keyIndex = 0;
+  
+  while (remaining.length > 0) {
+    // Match code `text`
+    const codeMatch = remaining.match(/^(.*?)`([^`]+)`(.*)$/);
+    if (codeMatch) {
+      if (codeMatch[1]) {
+        parts.push(...parseNonCode(codeMatch[1], keyIndex));
+        keyIndex += 10;
+      }
+      parts.push(
+        <code key={`code-${keyIndex++}`} className="bg-white/20 px-1.5 py-0.5 rounded text-sm font-mono">
+          {codeMatch[2]}
+        </code>
+      );
+      remaining = codeMatch[3];
+      continue;
+    }
+    
+    // No more code blocks, parse the rest
+    parts.push(...parseNonCode(remaining, keyIndex));
+    break;
+  }
+  
+  return <>{parts}</>;
+}
+
+// Helper to parse bold and italic (not inside code blocks)
+function parseNonCode(text: string, startKey: number): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let keyIndex = startKey;
+  
+  while (remaining.length > 0) {
+    // Match bold **text**
+    const boldMatch = remaining.match(/^(.*?)\*\*([^*]+)\*\*(.*)$/);
+    if (boldMatch) {
+      if (boldMatch[1]) {
+        parts.push(...parseItalic(boldMatch[1], keyIndex));
+        keyIndex += 5;
+      }
+      parts.push(
+        <strong key={`bold-${keyIndex++}`} className="font-semibold">
+          {boldMatch[2]}
+        </strong>
+      );
+      remaining = boldMatch[3];
+      continue;
+    }
+    
+    // No more bold, parse italic
+    parts.push(...parseItalic(remaining, keyIndex));
+    break;
+  }
+  
+  return parts;
+}
+
+// Helper to parse italic _text_
+function parseItalic(text: string, startKey: number): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let keyIndex = startKey;
+  
+  while (remaining.length > 0) {
+    // Match italic _text_
+    const italicMatch = remaining.match(/^(.*?)_([^_]+)_(.*)$/);
+    if (italicMatch) {
+      if (italicMatch[1]) {
+        parts.push(<span key={`text-${keyIndex++}`}>{italicMatch[1]}</span>);
+      }
+      parts.push(
+        <em key={`italic-${keyIndex++}`} className="italic text-white/80">
+          {italicMatch[2]}
+        </em>
+      );
+      remaining = italicMatch[3];
+      continue;
+    }
+    
+    // No more italic, just text
+    if (remaining) {
+      parts.push(<span key={`text-${keyIndex++}`}>{remaining}</span>);
+    }
+    break;
+  }
+  
+  return parts;
+}
+
 interface Message {
   _id: string;
   senderId: {
@@ -743,11 +891,23 @@ export default function UserChatInterface({
                           </div>
                         )}
 
-                        {/* Render text message */}
+                        {/* Render text message - with markdown support for invoice messages */}
                         {message.message && message.message !== "📷 Image" && (
-                          <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                            {message.message}
-                          </p>
+                          isInvoiceMessage(message.message) ? (
+                            <div 
+                              className="break-words text-[15px] leading-relaxed"
+                              style={{ overflowWrap: 'anywhere' }}
+                            >
+                              {renderMarkdownMessage(message.message)}
+                            </div>
+                          ) : (
+                            <p 
+                              className="whitespace-pre-wrap break-words text-[15px] leading-relaxed"
+                              style={{ overflowWrap: 'anywhere' }}
+                            >
+                              {message.message}
+                            </p>
+                          )
                         )}
 
                         <div
