@@ -4,7 +4,118 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import ChatRoom from '@/models/ChatRoom';
 import User from '@/models/User';
+import Message from '@/models/Message';
+import Transaction from '@/models/Transaction';
 import { authenticateToken } from '@/lib/auth';
+import { getPusherInstance } from '@/lib/pusher';
+
+// Helper function to format currency
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+// Helper function to format date
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(date);
+}
+
+// Helper function to generate invoice message for multiple transactions
+function generateInvoiceMessage(transactions: any[]): string {
+  const lines: string[] = [];
+  
+  // Use first transaction for main info
+  const mainTransaction = transactions[0];
+  const isMultipleItems = transactions.length > 1;
+  
+  // Calculate total amount from all transactions
+  const totalAmount = transactions.reduce((sum, t) => sum + (t.finalAmount || 0), 0);
+  
+  // Header with transaction info
+  lines.push(`### 🧾 Informasi Transaksi`);
+  lines.push('');
+  
+  if (isMultipleItems) {
+    // For multi-item checkout, show master order ID
+    lines.push(`**Kode Pesanan:** \`${mainTransaction.midtransOrderId || mainTransaction.invoiceId}\``);
+  } else {
+    lines.push(`**Kode:** \`${mainTransaction.invoiceId}\``);
+  }
+  
+  lines.push(`**Total Pembayaran:** ${formatCurrency(totalAmount)}`);
+  
+  if (mainTransaction.paidAt) {
+    lines.push(`**Waktu Pembayaran:** ${formatDate(new Date(mainTransaction.paidAt))}`);
+  }
+  
+  lines.push('');
+  lines.push(`### 📦 Detail Pesanan${isMultipleItems ? ` (${transactions.length} item)` : ''}`);
+  lines.push('');
+  
+  // Loop through all transactions/items
+  transactions.forEach((transaction, index) => {
+    if (isMultipleItems) {
+      lines.push(`**${index + 1}. ${transaction.serviceName}**`);
+    } else {
+      lines.push(`- **Produk:** ${transaction.serviceName}`);
+    }
+    
+    // Add game info based on service type
+    if (transaction.serviceType === 'gamepass' || transaction.serviceType === 'robux') {
+      lines.push(`- **Platform:** Roblox`);
+    } else if (transaction.serviceType === 'joki' && transaction.jokiDetails?.gameType) {
+      lines.push(`- **Game:** ${transaction.jokiDetails.gameType}`);
+    }
+    
+    if (transaction.robloxUsername) {
+      lines.push(`- **Username:** ${transaction.robloxUsername}`);
+    }
+    
+    lines.push(`- **Qty:** ${transaction.quantity}`);
+    lines.push(`- **Harga:** ${formatCurrency(transaction.finalAmount)}`);
+    
+    if (isMultipleItems && index < transactions.length - 1) {
+      lines.push(''); // Add spacing between items
+    }
+  });
+  
+  // Customer contact info (from main transaction)
+  lines.push('');
+  lines.push(`### 👤 Info Pelanggan`);
+  lines.push('');
+  
+  if (mainTransaction.customerInfo?.name) {
+    lines.push(`- **Nama:** ${mainTransaction.customerInfo.name}`);
+  }
+  if (mainTransaction.customerInfo?.email) {
+    lines.push(`- **Email:** ${mainTransaction.customerInfo.email}`);
+  }
+  if (mainTransaction.customerInfo?.phone) {
+    lines.push(`- **No. Telepon:** ${mainTransaction.customerInfo.phone}`);
+  }
+  
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  lines.push('Terima kasih sudah berbelanja di toko kami! 🎉');
+  lines.push('');
+  lines.push('Silakan hubungi kami di chat ini jika ada kendala atau pertanyaan seputar pesanan Anda.');
+  lines.push('');
+  lines.push('_Jangan lupa berikan ulasan untuk layanan kami ya!_ ⭐');
+  
+  return lines.join('\n');
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -281,6 +392,90 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('[POST /rooms] ✅ New chat room created:', chatRoom._id);
+
+    // For order chat, auto-send invoice message
+    if (type === 'order' && transactionCode) {
+      try {
+        // Find the main transaction by invoiceId
+        const mainTransaction = await Transaction.findOne({ invoiceId: transactionCode });
+        
+        if (mainTransaction) {
+          let allTransactions = [mainTransaction];
+          
+          // Check if this is part of a multi-item checkout (has midtransOrderId)
+          if (mainTransaction.midtransOrderId) {
+            // Find all transactions with the same midtransOrderId
+            const relatedTransactions = await Transaction.find({ 
+              midtransOrderId: mainTransaction.midtransOrderId 
+            }).sort({ createdAt: 1 });
+            
+            if (relatedTransactions.length > 1) {
+              allTransactions = relatedTransactions;
+              console.log(`[POST /rooms] 📦 Found ${relatedTransactions.length} items in this order`);
+            }
+          }
+          
+          // Generate invoice message with all transactions
+          const invoiceMessageText = generateInvoiceMessage(allTransactions);
+          
+          // Create the auto-message (sent by user, type: system for styling)
+          const autoMessage = await Message.create({
+            roomId: chatRoom._id,
+            senderId: targetUserId,
+            senderRole: 'user',
+            message: invoiceMessageText,
+            type: 'text', // Use text type so it displays normally
+            isRead: false,
+          });
+          
+          // Update chat room with last message
+          await ChatRoom.findByIdAndUpdate(chatRoom._id, {
+            lastMessage: invoiceMessageText.substring(0, 100) + '...',
+            lastMessageAt: new Date(),
+            unreadCountAdmin: 1,
+          });
+          
+          // Send Pusher notification
+          try {
+            const pusher = getPusherInstance();
+            
+            // Populate sender info for the message
+            const populatedMessage = await Message.findById(autoMessage._id)
+              .populate('senderId', 'username email firstName lastName profilePicture')
+              .lean();
+            
+            const messagePayload = {
+              ...populatedMessage,
+              senderId: {
+                _id: (populatedMessage as any).senderId._id,
+                username: (populatedMessage as any).senderId.username,
+                fullName: `${(populatedMessage as any).senderId.firstName || ''} ${(populatedMessage as any).senderId.lastName || ''}`.trim() || (populatedMessage as any).senderId.username,
+                avatar: (populatedMessage as any).senderId.profilePicture,
+              },
+            };
+            
+            await pusher.trigger(`private-chat-room-${chatRoom._id}`, 'new-message', {
+              message: messagePayload,
+              roomUpdate: {
+                lastMessage: invoiceMessageText.substring(0, 100) + '...',
+                lastMessageAt: new Date().toISOString(),
+              },
+            });
+            
+            console.log('[POST /rooms] 📨 Auto invoice message sent via Pusher');
+          } catch (pusherError) {
+            console.error('[POST /rooms] ⚠️ Pusher error (non-critical):', pusherError);
+          }
+          
+          console.log('[POST /rooms] 📝 Auto invoice message created for order chat');
+        } else {
+          console.log('[POST /rooms] ⚠️ Transaction not found for code:', transactionCode);
+        }
+      } catch (autoMsgError) {
+        console.error('[POST /rooms] ⚠️ Failed to create auto message:', autoMsgError);
+        // Don't fail the room creation if auto-message fails
+      }
+    }
 
     // Populate user and admin data
     await chatRoom.populate('userId', 'username email firstName lastName profilePicture');
