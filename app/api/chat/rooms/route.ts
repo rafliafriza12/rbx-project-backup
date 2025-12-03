@@ -393,6 +393,25 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /rooms] ✅ New chat room created:', chatRoom._id);
 
+    // Send Pusher notification for NEW ROOM to admin
+    try {
+      const pusher = getPusherInstance();
+      
+      // Notify admin channel about the new room
+      await pusher.trigger('admin-notifications', 'new-room', {
+        roomId: chatRoom._id.toString(),
+        userId: targetUserId.toString(),
+        roomType: type,
+        transactionCode: type === 'order' ? transactionCode : null,
+        transactionTitle: type === 'order' ? finalTransactionTitle : null,
+        createdAt: chatRoom.createdAt,
+      });
+      
+      console.log('[POST /rooms] 📢 Admin notification sent for new room');
+    } catch (pusherError) {
+      console.error('[POST /rooms] ⚠️ Pusher error for new room notification:', pusherError);
+    }
+
     // For order chat, auto-send invoice message
     if (type === 'order' && transactionCode) {
       try {
@@ -461,6 +480,17 @@ export async function POST(request: NextRequest) {
                 lastMessageAt: new Date().toISOString(),
               },
             });
+
+            // Also notify admin channel about the new message in the new room
+            await pusher.trigger('admin-notifications', 'new-message', {
+              roomId: chatRoom._id.toString(),
+              userId: targetUserId.toString(),
+              message: invoiceMessageText.substring(0, 100) + '...',
+              senderName: (populatedMessage as any).senderId?.fullName || (populatedMessage as any).senderId?.username,
+              roomType: type,
+              transactionCode: transactionCode,
+              timestamp: new Date().toISOString(),
+            });
             
             console.log('[POST /rooms] 📨 Auto invoice message sent via Pusher');
           } catch (pusherError) {
@@ -517,6 +547,73 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error creating chat room:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE - Delete all chat rooms and messages (admin only)
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await authenticateToken(request);
+    
+    if (!user || (user.accessRole !== 'admin' && user.accessRole !== 'superadmin')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectDB();
+
+    // Get all room IDs before deletion for Pusher notifications
+    const allRooms = await ChatRoom.find({}).populate('userId', '_id');
+    const roomIds = allRooms.map(room => room._id.toString());
+    const userIds = [...new Set(allRooms.map(room => room.userId?._id?.toString()).filter(Boolean))];
+
+    // Delete all messages first
+    const deletedMessages = await Message.deleteMany({});
+    console.log(`[Bulk Delete] 🗑️ Deleted ${deletedMessages.deletedCount} messages`);
+
+    // Delete all chat rooms
+    const deletedRooms = await ChatRoom.deleteMany({});
+    console.log(`[Bulk Delete] 🗑️ Deleted ${deletedRooms.deletedCount} chat rooms`);
+
+    // Send Pusher notifications
+    try {
+      const pusher = getPusherInstance();
+      
+      // Notify each room channel
+      for (const roomId of roomIds) {
+        await pusher.trigger(`private-chat-room-${roomId}`, 'room-deleted', {
+          roomId,
+          message: 'Semua chat telah dihapus oleh admin.',
+          bulkDelete: true,
+        });
+      }
+
+      // Notify admin channel
+      await pusher.trigger('admin-notifications', 'bulk-rooms-deleted', {
+        deletedRoomsCount: deletedRooms.deletedCount,
+        deletedMessagesCount: deletedMessages.deletedCount,
+        deletedBy: user._id.toString(),
+      });
+
+      // Notify all affected users
+      for (const userId of userIds) {
+        await pusher.trigger(`user-notifications-${userId}`, 'rooms-deleted', {
+          message: 'Chat room Anda telah dihapus.',
+          bulkDelete: true,
+        });
+      }
+    } catch (pusherError) {
+      console.error('[Bulk Delete] ❌ Pusher error:', pusherError);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'All chat rooms and messages deleted successfully',
+      deletedRoomsCount: deletedRooms.deletedCount,
+      deletedMessagesCount: deletedMessages.deletedCount,
+    });
+  } catch (error: any) {
+    console.error('Error deleting all chat rooms:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

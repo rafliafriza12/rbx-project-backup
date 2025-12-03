@@ -11,7 +11,7 @@ import {
 // Helper function to check if message is an invoice message
 function isInvoiceMessage(message: string): boolean {
   return message.includes('### 🧾 Informasi Transaksi') && message.includes('### 📦 Detail Pesanan');
-}
+} 
 
 // Helper function to render markdown for invoice messages
 function renderMarkdownMessage(text: string): React.ReactNode {

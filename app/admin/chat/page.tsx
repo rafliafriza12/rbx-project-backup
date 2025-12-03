@@ -61,9 +61,18 @@ export default function AdminChatPage() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [newMessageRooms, setNewMessageRooms] = useState<Set<string>>(new Set()); // Track rooms with new messages
   const pusherRef = useRef<Pusher | null>(null);
+  const chatRoomsRef = useRef<ChatRoom[]>([]); // Ref to access current chatRooms in event handlers
   const [togglingStatus, setTogglingStatus] = useState(false); // Loading state for toggle status
   const [markingAsRead, setMarkingAsRead] = useState(false); // Loading state for mark as read
   const [showMobileSidebar, setShowMobileSidebar] = useState(false); // Mobile sidebar visibility
+  const [deletingRoom, setDeletingRoom] = useState<string | null>(null); // Track which room is being deleted
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false); // Show delete all confirmation modal
+  const [deletingAll, setDeletingAll] = useState(false); // Loading state for delete all
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    chatRoomsRef.current = chatRooms;
+  }, [chatRooms]);
 
   // Protect admin route
   useEffect(() => {
@@ -134,7 +143,17 @@ export default function AdminChatPage() {
       // Add to new message rooms (will show red indicator)
       setNewMessageRooms(prev => new Set(prev).add(data.roomId));
       
-      // Update room list locally WITHOUT fetching (no refresh)
+      // Check if room exists using ref (synchronous access to current state)
+      const roomExists = chatRoomsRef.current.some(room => room._id === data.roomId);
+      
+      if (!roomExists) {
+        // Room doesn't exist in list - fetch to get new room data
+        console.log('[Admin Chat] 🆕 New message for unknown room, fetching rooms...');
+        fetchChatRooms();
+        return;
+      }
+      
+      // Room exists - update it locally
       setChatRooms(prev => prev.map(room => 
         room._id === data.roomId 
           ? { 
@@ -250,6 +269,22 @@ export default function AdminChatPage() {
             : room
         )
       })));
+    });
+
+    // Listen for NEW ROOM created by user
+    adminChannel.bind('new-room', (data: {
+      roomId: string;
+      userId: string;
+      roomType: 'general' | 'order';
+      transactionCode?: string;
+      transactionTitle?: string;
+      createdAt: string;
+    }) => {
+      console.log('[Admin Chat] 🆕 New room created by user:', data);
+      
+      // Fetch updated room list to get full user data
+      // This is the cleanest approach to ensure we have all necessary data
+      fetchChatRooms();
     });
 
     return () => {
@@ -556,6 +591,86 @@ export default function AdminChatPage() {
     }
   };
 
+  // Delete a single chat room
+  const handleDeleteRoom = async (roomId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent triggering room selection
+    }
+    
+    if (!roomId || deletingRoom) return;
+
+    const confirmDelete = window.confirm('Apakah Anda yakin ingin menghapus chat room ini? Semua pesan akan dihapus secara permanen.');
+    if (!confirmDelete) return;
+
+    setDeletingRoom(roomId);
+    try {
+      const response = await fetch(`/api/chat/rooms/${roomId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // If deleted room was selected, clear selection
+        if (selectedRoomId === roomId) {
+          setSelectedRoom(null);
+          setSelectedRoomId(null);
+        }
+
+        // Update chat rooms state
+        setChatRooms(prev => prev.filter(room => room._id !== roomId));
+
+        // Update grouped users - remove room and recalculate
+        setGroupedUsers(prev => prev.map(userGroup => {
+          const updatedRooms = userGroup.rooms.filter(room => room._id !== roomId);
+          return {
+            ...userGroup,
+            rooms: updatedRooms,
+            totalUnread: updatedRooms.reduce((sum, room) => sum + room.unreadCountAdmin, 0),
+          };
+        }));
+
+        console.log('[Admin Chat] ✅ Room deleted successfully');
+      } else {
+        const data = await response.json();
+        alert(`Gagal menghapus chat room: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('[Admin Chat] ❌ Error deleting room:', error);
+      alert('Terjadi kesalahan saat menghapus chat room');
+    } finally {
+      setDeletingRoom(null);
+    }
+  };
+
+  // Delete all chat rooms
+  const handleDeleteAllRooms = async () => {
+    if (deletingAll) return;
+
+    setDeletingAll(true);
+    try {
+      const response = await fetch('/api/chat/rooms', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        console.log(`[Admin Chat] ✅ Deleted ${data.deletedRoomsCount} rooms and ${data.deletedMessagesCount} messages`);
+        
+        // Refresh the page to show updated user list
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        alert(`Gagal menghapus semua chat: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('[Admin Chat] ❌ Error deleting all rooms:', error);
+      alert('Terjadi kesalahan saat menghapus semua chat');
+    } finally {
+      setDeletingAll(false);
+      setShowDeleteAllConfirm(false);
+    }
+  };
+
   const formatTime = (date?: string) => {
     if (!date) return "";
 
@@ -655,6 +770,21 @@ export default function AdminChatPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
+              {/* Mobile Delete All Button */}
+              {chatRooms.length > 0 && (
+                <button
+                  onClick={() => {
+                    setShowMobileSidebar(false);
+                    setShowDeleteAllConfirm(true);
+                  }}
+                  className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-700/50 rounded-lg text-xs font-medium transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Hapus Semua Chat</span>
+                </button>
+              )}
             </div>
 
             {/* Mobile Chat Rooms List */}
@@ -669,17 +799,36 @@ export default function AdminChatPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-[#334155]">
-                  {groupedUsers.map((userGroup) => (
-                    <div key={userGroup.user._id}>
+                  {groupedUsers.map((userGroup) => {
+                    // Check if user has any active chat rooms
+                    const hasActiveRooms = userGroup.rooms.some(room => room.status === 'active');
+                    const activeRoomsCount = userGroup.rooms.filter(room => room.status === 'active').length;
+                    
+                    return (
+                    <div key={userGroup.user._id} className={`${
+                      hasActiveRooms 
+                        ? 'border-l-4 border-l-green-500/70' 
+                        : userGroup.rooms.length > 0 
+                          ? 'border-l-4 border-l-red-500/30' 
+                          : 'border-l-4 border-l-transparent'
+                    }`}>
                       {/* User Header */}
                       <button
                         onClick={() => toggleUserExpand(userGroup.user._id)}
-                        className="w-full p-3 text-left hover:bg-[#334155] transition-all"
+                        className={`w-full p-3 text-left hover:bg-[#334155] transition-all ${
+                          hasActiveRooms ? 'bg-green-900/5' : ''
+                        }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <div className="relative">
-                              <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 transition-all ${
+                                hasActiveRooms 
+                                  ? 'bg-green-500/30 ring-2 ring-green-500/50 shadow-lg shadow-green-500/20' 
+                                  : userGroup.rooms.length > 0 && !hasActiveRooms
+                                    ? 'bg-red-500/20 ring-2 ring-red-500/30'
+                                    : 'bg-white/20'
+                              }`}>
                                 {(userGroup.user.fullName || userGroup.user.username || "U").charAt(0).toUpperCase()}
                               </div>
                               {userGroup.rooms.some(room => room._id && newMessageRooms.has(room._id)) && (
@@ -687,9 +836,21 @@ export default function AdminChatPage() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-[#f1f5f9] text-sm truncate">
-                                {userGroup.user.fullName || userGroup.user.username}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-medium text-[#f1f5f9] text-sm truncate">
+                                  {userGroup.user.fullName || userGroup.user.username}
+                                </p>
+                                {/* User-level status badge for mobile */}
+                                {userGroup.rooms.length > 0 && (
+                                  <span className={`px-1 py-0.5 rounded text-[8px] font-semibold flex-shrink-0 ${
+                                    hasActiveRooms
+                                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  }`}>
+                                    {hasActiveRooms ? `${activeRoomsCount}` : '✕'}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-[#94a3b8]">{userGroup.rooms.length} chat</p>
                             </div>
                           </div>
@@ -735,56 +896,80 @@ export default function AdminChatPage() {
                             </div>
                           ) : (
                             userGroup.rooms.map((room) => (
-                              <button
+                              <div 
                                 key={room._id || `${userGroup.user._id}-${room.roomType}`}
-                                onClick={() => {
-                                  handleRoomClick(room);
-                                  setShowMobileSidebar(false);
-                                }}
-                                className={`w-full p-3 pl-12 text-left transition-all ${
-                                  selectedRoomId === room._id
-                                    ? room.roomType === 'order' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
-                                    : room.status !== 'active'
-                                      ? 'bg-red-900/10 opacity-70'
-                                      : 'hover:bg-[#334155]/50'
-                                }`}
+                                className="relative"
                               >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                                      room.roomType === 'order'
-                                        ? 'bg-emerald-500/20 text-emerald-400'
-                                        : 'bg-purple-500/20 text-purple-400'
-                                    }`}>
-                                      {room.roomType === 'order' ? 'Order' : 'General'}
-                                    </span>
-                                    {/* Status Badge */}
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                      room.status === 'active'
-                                        ? 'bg-green-500/20 text-green-400'
-                                        : room.status === 'archived'
-                                          ? 'bg-gray-500/20 text-gray-400'
-                                          : 'bg-red-500/20 text-red-400'
-                                    }`}>
-                                      {room.status === 'active' ? '●' : room.status === 'archived' ? '●' : '●'}
-                                    </span>
+                                <button
+                                  onClick={() => {
+                                    handleRoomClick(room);
+                                    setShowMobileSidebar(false);
+                                  }}
+                                  className={`w-full p-3 pl-12 pr-10 text-left transition-all ${
+                                    selectedRoomId === room._id
+                                      ? room.roomType === 'order' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
+                                      : room.status !== 'active'
+                                        ? 'bg-red-900/10 opacity-70'
+                                        : 'hover:bg-[#334155]/50'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                        room.roomType === 'order'
+                                          ? 'bg-emerald-500/20 text-emerald-400'
+                                          : 'bg-purple-500/20 text-purple-400'
+                                      }`}>
+                                        {room.roomType === 'order' ? 'Order' : 'General'}
+                                      </span>
+                                      {/* Status Badge */}
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                        room.status === 'active'
+                                          ? 'bg-green-500/20 text-green-400'
+                                          : room.status === 'archived'
+                                            ? 'bg-gray-500/20 text-gray-400'
+                                            : 'bg-red-500/20 text-red-400'
+                                      }`}>
+                                        {room.status === 'active' ? '●' : room.status === 'archived' ? '●' : '●'}
+                                      </span>
+                                    </div>
+                                    {room.unreadCountAdmin > 0 && (
+                                      <span className="bg-[#3b82f6] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                        {room.unreadCountAdmin}
+                                      </span>
+                                    )}
                                   </div>
-                                  {room.unreadCountAdmin > 0 && (
-                                    <span className="bg-[#3b82f6] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                                      {room.unreadCountAdmin}
-                                    </span>
+                                  {room.lastMessage && (
+                                    <p className="text-xs text-[#64748b] truncate mt-1">{room.lastMessage}</p>
                                   )}
-                                </div>
-                                {room.lastMessage && (
-                                  <p className="text-xs text-[#64748b] truncate mt-1">{room.lastMessage}</p>
+                                </button>
+                                {/* Mobile Delete Button */}
+                                {room._id && (
+                                  <button
+                                    onClick={(e) => handleDeleteRoom(room._id!, e)}
+                                    disabled={deletingRoom === room._id}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-red-500/20 text-[#64748b] hover:text-red-400 transition-all"
+                                    title="Hapus chat room"
+                                  >
+                                    {deletingRoom === room._id ? (
+                                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                    ) : (
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    )}
+                                  </button>
                                 )}
-                              </button>
+                              </div>
                             ))
                           )}
                         </div>
                       )}
                     </div>
-                  ))}
+                  );})}
                 </div>
               )}
             </div>
@@ -812,7 +997,7 @@ export default function AdminChatPage() {
             </div>
           
           {/* Quick Stats */}
-          <div className="flex gap-2 lg:gap-4">
+          <div className="flex gap-2 lg:gap-4 items-center">
             <div className="bg-[#1e293b] border border-[#334155] rounded-lg px-2 lg:px-4 py-1.5 lg:py-2">
               <div className="text-[10px] lg:text-xs text-[#94a3b8]">Users</div>
               <div className="text-base lg:text-xl font-bold text-[#f1f5f9]">{groupedUsers.length}</div>
@@ -823,6 +1008,19 @@ export default function AdminChatPage() {
                 {groupedUsers.reduce((sum, u) => sum + u.totalUnread, 0)}
               </div>
             </div>
+            {/* Delete All Button */}
+            {chatRooms.length > 0 && (
+              <button
+                onClick={() => setShowDeleteAllConfirm(true)}
+                className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-700/50 hover:border-red-600 rounded-lg text-xs font-medium transition-all"
+                title="Hapus Semua Chat"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Hapus Semua</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -894,17 +1092,36 @@ export default function AdminChatPage() {
               </div>
             ) : (
               <div className="divide-y divide-[#334155]">
-                {groupedUsers.map((userGroup) => (
-                  <div key={userGroup.user._id}>
+                {groupedUsers.map((userGroup) => {
+                  // Check if user has any active chat rooms
+                  const hasActiveRooms = userGroup.rooms.some(room => room.status === 'active');
+                  const activeRoomsCount = userGroup.rooms.filter(room => room.status === 'active').length;
+                  
+                  return (
+                  <div key={userGroup.user._id} className={`${
+                    hasActiveRooms 
+                      ? 'border-l-4 border-l-green-500/70' 
+                      : userGroup.rooms.length > 0 
+                        ? 'border-l-4 border-l-red-500/30' 
+                        : 'border-l-4 border-l-transparent'
+                  }`}>
                     {/* User Header */}
                     <button
                       onClick={() => toggleUserExpand(userGroup.user._id)}
-                      className="w-full p-4 text-left hover:bg-[#334155] transition-all duration-200"
+                      className={`w-full p-4 text-left hover:bg-[#334155] transition-all duration-200 ${
+                        hasActiveRooms ? 'bg-green-900/5' : ''
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="relative">
-                            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 transition-all ${
+                              hasActiveRooms 
+                                ? 'bg-green-500/30 ring-2 ring-green-500/50 shadow-lg shadow-green-500/20' 
+                                : userGroup.rooms.length > 0 && !hasActiveRooms
+                                  ? 'bg-red-500/20 ring-2 ring-red-500/30'
+                                  : 'bg-white/20'
+                            }`}>
                               {(userGroup.user.fullName || userGroup.user.username || "U")
                                 .charAt(0)
                                 .toUpperCase()}
@@ -921,12 +1138,24 @@ export default function AdminChatPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-[#f1f5f9] truncate">
-                              {highlightText(
-                                userGroup.user.fullName || userGroup.user.username,
-                                search
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-[#f1f5f9] truncate">
+                                {highlightText(
+                                  userGroup.user.fullName || userGroup.user.username,
+                                  search
+                                )}
+                              </p>
+                              {/* User-level status badge */}
+                              {userGroup.rooms.length > 0 && (
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold flex-shrink-0 ${
+                                  hasActiveRooms
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                }`}>
+                                  {hasActiveRooms ? `${activeRoomsCount} Aktif` : 'Semua Nonaktif'}
+                                </span>
                               )}
-                            </p>
+                            </div>
                             <p className="text-xs text-[#94a3b8] truncate">
                               {userGroup.rooms.length > 0 
                                 ? `${userGroup.rooms.length} chat room${userGroup.rooms.length > 1 ? 's' : ''}`
@@ -997,7 +1226,7 @@ export default function AdminChatPage() {
                         ) : (
                           /* Existing rooms list */
                           userGroup.rooms.map((room, index) => (
-                          <div key={room._id || `${userGroup.user._id}-${room.roomType}`}>
+                          <div key={room._id || `${userGroup.user._id}-${room.roomType}`} className="group">
                             <button
                               onClick={() => handleRoomClick(room)}
                               className={`w-full p-4 pl-14 text-left transition-all duration-200 relative ${
@@ -1008,7 +1237,7 @@ export default function AdminChatPage() {
                                   : room.status !== 'active'
                                     ? 'bg-red-900/10 border-l-4 border-l-red-500/50 opacity-70'
                                     : 'border-l-4 border-l-transparent bg-transparent'
-                              }`}
+                              } hover:bg-[#334155]/50`}
                             >
                               {/* Real-time new message indicator */}
                               {room._id && newMessageRooms.has(room._id) && (
@@ -1068,11 +1297,33 @@ export default function AdminChatPage() {
                                 </div>
                                 
                                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                  {room.lastMessageAt && (
-                                    <span className="text-xs text-[#64748b] font-medium">
-                                      {formatTime(room.lastMessageAt)}
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-1">
+                                    {room.lastMessageAt && (
+                                      <span className="text-xs text-[#64748b] font-medium">
+                                        {formatTime(room.lastMessageAt)}
+                                      </span>
+                                    )}
+                                    {/* Delete Room Button */}
+                                    {room._id && (
+                                      <button
+                                        onClick={(e) => handleDeleteRoom(room._id!, e)}
+                                        disabled={deletingRoom === room._id}
+                                        className="p-1 rounded hover:bg-red-500/20 text-[#64748b] hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                                        title="Hapus chat room"
+                                      >
+                                        {deletingRoom === room._id ? (
+                                          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                        ) : (
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
                                   {room.unreadCountAdmin > 0 && (
                                     <span className="bg-[#3b82f6] text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg shadow-blue-500/50 animate-pulse">
                                       {room.unreadCountAdmin}
@@ -1100,7 +1351,7 @@ export default function AdminChatPage() {
                       </div>
                     )}
                   </div>
-                ))}
+                );})}
               </div>
             )}
           </div>
@@ -1211,6 +1462,28 @@ export default function AdminChatPage() {
                     )}
                   </button>
 
+                  {/* Delete Room Button */}
+                  <button
+                    onClick={() => selectedRoomId && handleDeleteRoom(selectedRoomId)}
+                    disabled={deletingRoom === selectedRoomId}
+                    className="flex items-center gap-1 lg:gap-1.5 px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg text-[10px] lg:text-xs font-medium transition-all duration-200 bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-700/50 hover:border-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Hapus Chat Room"
+                  >
+                    {deletingRoom === selectedRoomId ? (
+                      <svg className="animate-spin h-3 w-3 lg:h-3.5 lg:w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3 lg:w-3.5 lg:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="hidden sm:inline">Hapus</span>
+                      </>
+                    )}
+                  </button>
+
                   {/* Status Badge - Hidden on very small screens */}
                   <span
                     className={`hidden sm:inline-flex px-2 lg:px-3 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium ${
@@ -1289,6 +1562,64 @@ export default function AdminChatPage() {
         </div>
       </div>
     </div>
+
+    {/* Delete All Confirmation Modal */}
+    {showDeleteAllConfirm && (
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div className="bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl max-w-md w-full p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-red-500/20 rounded-full">
+              <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-[#f1f5f9]">Hapus Semua Chat</h3>
+              <p className="text-sm text-[#94a3b8]">Tindakan ini tidak dapat dibatalkan</p>
+            </div>
+          </div>
+          
+          <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4 mb-6">
+            <p className="text-sm text-red-300">
+              Anda akan menghapus <span className="font-bold">{chatRooms.length} chat room</span> dan semua pesan di dalamnya secara permanen. 
+              User tidak akan dapat melihat riwayat chat mereka lagi.
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDeleteAllConfirm(false)}
+              disabled={deletingAll}
+              className="flex-1 px-4 py-2.5 bg-[#334155] hover:bg-[#475569] text-[#f1f5f9] rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDeleteAllRooms}
+              disabled={deletingAll}
+              className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {deletingAll ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Menghapus...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Ya, Hapus Semua</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

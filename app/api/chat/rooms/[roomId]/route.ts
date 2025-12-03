@@ -6,6 +6,77 @@ import Message from '@/models/Message';
 import { authenticateToken } from '@/lib/auth';
 import { getPusherInstance } from '@/lib/pusher';
 
+// DELETE - Delete a single chat room and its messages
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { roomId: string } }
+) {
+  try {
+    const user = await authenticateToken(request);
+    
+    if (!user || (user.accessRole !== 'admin' && user.accessRole !== 'superadmin')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectDB();
+
+    const { roomId } = await params;
+
+    // Find the room first to get user info for notifications
+    const chatRoom = await ChatRoom.findById(roomId).populate('userId', 'username email fullName');
+
+    if (!chatRoom) {
+      return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
+    }
+
+    // Delete all messages in this room
+    const deletedMessages = await Message.deleteMany({ roomId });
+    console.log(`[Room Delete] 🗑️ Deleted ${deletedMessages.deletedCount} messages from room ${roomId}`);
+
+    // Delete the room itself
+    await ChatRoom.findByIdAndDelete(roomId);
+    console.log(`[Room Delete] 🗑️ Deleted room ${roomId}`);
+
+    // Send Pusher notification for room deletion
+    try {
+      const pusher = getPusherInstance();
+      
+      // Notify the specific chat room channel
+      await pusher.trigger(`private-chat-room-${roomId}`, 'room-deleted', {
+        roomId,
+        message: 'Chat room ini telah dihapus oleh admin.',
+      });
+
+      // Notify admin channel
+      await pusher.trigger('admin-notifications', 'room-deleted', {
+        roomId,
+        userId: chatRoom.userId?._id?.toString(),
+        userName: chatRoom.userId?.fullName || chatRoom.userId?.email,
+        deletedBy: user._id.toString(),
+      });
+
+      // Notify user channel
+      if (chatRoom.userId?._id) {
+        await pusher.trigger(`user-notifications-${chatRoom.userId._id}`, 'room-deleted', {
+          roomId,
+          message: 'Chat room telah dihapus.',
+        });
+      }
+    } catch (pusherError) {
+      console.error('[Room Delete] ❌ Pusher error:', pusherError);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Chat room and messages deleted successfully',
+      deletedMessagesCount: deletedMessages.deletedCount,
+    });
+  } catch (error: any) {
+    console.error('Error deleting chat room:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { roomId: string } }
