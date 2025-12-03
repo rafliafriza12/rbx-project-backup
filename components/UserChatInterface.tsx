@@ -206,6 +206,7 @@ export default function UserChatInterface({
   const [localRoomStatus, setLocalRoomStatus] = useState<"active" | "closed" | "archived">(roomStatus);
   const [localUnreadCount, setLocalUnreadCount] = useState(unreadCountUser);
   const [markingAsRead, setMarkingAsRead] = useState(false);
+  const [isRoomDeleted, setIsRoomDeleted] = useState(false); // Track if room has been deleted
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pusherRef = useRef<any>(null);
@@ -425,6 +426,12 @@ export default function UserChatInterface({
             scrollToBottom();
           }
         });
+
+        // Handle room deleted event
+        channelInstance.bind("room-deleted", (data: { roomId: string; message?: string }) => {
+          console.log('[User Pusher] 🗑️ Room deleted:', data);
+          setIsRoomDeleted(true);
+        });
       })
       .catch((error) => {
         console.error("[User Pusher] ❌ Failed to load Pusher:", error);
@@ -553,6 +560,12 @@ export default function UserChatInterface({
           }, 0);
         }
 
+        // Handle room deleted (404 Not Found)
+        if (response.status === 404) {
+          setIsRoomDeleted(true);
+          return;
+        }
+
         if (response.status === 429) {
           alert("Terlalu banyak pesan. Mohon tunggu sebentar.");
         }
@@ -667,6 +680,56 @@ export default function UserChatInterface({
             <div className="absolute top-2 left-1/2 transform -translate-x-1/2 animate-spin rounded-full h-12 w-12 border-4 border-neon-pink border-t-transparent"></div>
           </div>
           <p className="text-white/80 font-medium">Memuat percakapan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show deleted room message
+  if (isRoomDeleted) {
+    return (
+      <div className="flex items-center justify-center h-[700px] bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900 rounded-br-2xl border border-white/10 shadow-2xl">
+        <div className="text-center p-8">
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mx-auto border border-red-500/30">
+              <svg
+                className="w-10 h-10 text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </div>
+          </div>
+          <h3 className="text-white font-bold text-lg mb-2">Chat Telah Dihapus</h3>
+          <p className="text-white/60 text-sm mb-6 max-w-sm">
+            Percakapan ini telah dihapus oleh admin. Silakan refresh halaman untuk memulai chat baru jika diperlukan.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 bg-gray-500 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-neon-pink/30 transition-all duration-300 flex items-center gap-2 mx-auto"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh Halaman
+          </button>
         </div>
       </div>
     );

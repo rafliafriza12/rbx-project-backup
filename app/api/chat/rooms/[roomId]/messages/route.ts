@@ -461,7 +461,7 @@ export async function POST(
           senderName: populatedMessage.senderId?.fullName || populatedMessage.senderId?.username,
           roomType: chatRoom.roomType,
           transactionCode: chatRoom.transactionCode,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         });
         pusherEventCount = 2;
         console.log(`[POST /messages] ✅ Admin notification sent successfully`);
@@ -477,7 +477,7 @@ export async function POST(
           senderName: populatedMessage.senderId?.fullName || populatedMessage.senderId?.username,
           roomType: chatRoom.roomType,
           transactionCode: chatRoom.transactionCode,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         });
         pusherEventCount = 2;
         console.log(`[POST /messages] ✅ User notification sent successfully`);
