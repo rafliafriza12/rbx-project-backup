@@ -155,7 +155,7 @@ const PublicAppFooter: React.FC = () => {
                     Gamepass
                   </Link>
                 </li>
-                <li>
+                {/* <li>
                   <Link
                     href="/joki"
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
@@ -163,7 +163,7 @@ const PublicAppFooter: React.FC = () => {
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Jasa Joki
                   </Link>
-                </li>
+                </li> */}
               </ul>
             </div>
 
