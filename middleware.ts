@@ -31,15 +31,25 @@ export async function middleware(request: NextRequest) {
 
   // Check maintenance mode for all other routes (public, auth, etc)
   try {
-    const baseUrl = request.nextUrl.origin;
+    // Use absolute URL for production environments
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      request.nextUrl.origin;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
     const maintenanceResponse = await fetch(`${baseUrl}/api/maintenance`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
-      // Use cache: no-store to always get fresh data
       cache: "no-store",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (maintenanceResponse.ok) {
       const data = await maintenanceResponse.json();
@@ -50,8 +60,11 @@ export async function middleware(request: NextRequest) {
       }
     }
   } catch (error) {
-    console.error("Error checking maintenance mode:", error);
-    // If there's an error checking maintenance mode, allow access
+    // Silently fail - if maintenance check fails, allow access
+    // This prevents the site from being blocked if there's a network issue
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error checking maintenance mode:", error);
+    }
   }
 
   return NextResponse.next();

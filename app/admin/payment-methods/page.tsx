@@ -133,6 +133,7 @@ export default function PaymentMethodsPage() {
     { code: "SP", name: "ShopeePay QRIS", category: "qris" },
     { code: "LQ", name: "LinkAja QRIS", category: "qris" },
     { code: "NQ", name: "Nobu QRIS", category: "qris" },
+    { code: "SQ", name: "Nusapay QRIS", category: "qris" },
     { code: "DQ", name: "DANA QRIS", category: "qris" },
     {
       code: "VC",
