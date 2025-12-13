@@ -30,37 +30,51 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
-// Duitku Payment Method Codes
+// Duitku Payment Method Codes (Updated from official docs: https://docs.duitku.com/api/id/#metode-pembayaran)
 export const DUITKU_PAYMENT_METHODS = {
+  // Credit Card
+  VC: { name: "Credit Card (Visa/Master/JCB)", category: "credit_card" },
+
   // Virtual Account
   BC: { name: "BCA Virtual Account", category: "bank_transfer" },
   M2: { name: "Mandiri Virtual Account", category: "bank_transfer" },
   VA: { name: "Maybank Virtual Account", category: "bank_transfer" },
   I1: { name: "BNI Virtual Account", category: "bank_transfer" },
   B1: { name: "CIMB Niaga Virtual Account", category: "bank_transfer" },
-  BT: { name: "Permata Virtual Account", category: "bank_transfer" },
+  BT: { name: "Permata Bank Virtual Account", category: "bank_transfer" },
   A1: { name: "ATM Bersama", category: "bank_transfer" },
+  AG: { name: "Bank Artha Graha", category: "bank_transfer" },
+  NC: { name: "Bank Neo Commerce/BNC", category: "bank_transfer" },
+  BR: { name: "BRIVA", category: "bank_transfer" },
+  S1: { name: "Bank Sahabat Sampoerna", category: "bank_transfer" },
+  DM: { name: "Danamon Virtual Account", category: "bank_transfer" },
+  BV: { name: "BSI Virtual Account", category: "bank_transfer" },
+
+  // Retail
+  FT: { name: "Pegadaian/ALFA/Pos", category: "retail" },
+  IR: { name: "Indomaret", category: "retail" },
 
   // E-Wallet
   OV: { name: "OVO", category: "ewallet" },
-  SA: { name: "ShopeePay", category: "ewallet" },
-  LA: { name: "LinkAja", category: "ewallet" },
+  SA: { name: "ShopeePay Apps", category: "ewallet" },
+  LF: { name: "LinkAja Apps (Fixed Fee)", category: "ewallet" },
+  LA: { name: "LinkAja Apps (Percentage Fee)", category: "ewallet" },
   DA: { name: "DANA", category: "ewallet" },
+  SL: { name: "ShopeePay Account Link", category: "ewallet" },
+  OL: { name: "OVO Account Link", category: "ewallet" },
 
   // QRIS
   SP: { name: "ShopeePay QRIS", category: "qris" },
-  LQ: { name: "LinkAja QRIS", category: "qris" },
   NQ: { name: "Nobu QRIS", category: "qris" },
-  DQ: { name: "DANA QRIS", category: "qris" },
-  SQ: { name: "ShopeePay QRIS", category: "qris" },
+  GQ: { name: "Gudang Voucher QRIS", category: "qris" },
+  SQ: { name: "Nusapay QRIS", category: "qris" },
 
-  // Credit Card
-  VC: { name: "Credit Card (Visa/Master)", category: "credit_card" },
+  // Paylater/Kredit
+  DN: { name: "Indodana Paylater", category: "paylater" },
+  AT: { name: "ATOME", category: "paylater" },
 
-  // Retail
-  FT: { name: "Pegadaian", category: "retail" },
-  IR: { name: "Indomaret", category: "retail" },
-  AG: { name: "Alfamart/Alfamidi", category: "retail" },
+  // E-Banking
+  JP: { name: "Jenius Pay", category: "ebanking" },
 } as const;
 
 export type DuitkuPaymentCode = keyof typeof DUITKU_PAYMENT_METHODS;
@@ -283,9 +297,19 @@ class DuitkuService {
 
       console.log("Duitku Response:", JSON.stringify(data, null, 2));
 
-      if (data.statusCode !== "00") {
-        // Provide more helpful error messages for common sandbox issues
-        let errorMessage = data.statusMessage || "Unknown error";
+      // Check for error response (no statusCode means error)
+      if (data.Message || data.statusCode !== "00") {
+        // Provide more helpful error messages
+        let errorMessage =
+          data.Message || data.statusMessage || "Unknown error";
+
+        // Specific error handling for QRIS methods
+        const qrisMethods = ["NQ", "SP", "LQ", "DQ", "SQ"];
+        if (qrisMethods.includes(params.paymentMethod)) {
+          if (errorMessage.toLowerCase().includes("failed to generate qr")) {
+            errorMessage = `${errorMessage}. QRIS ${params.paymentMethod} mungkin sedang tidak tersedia atau ada gangguan di provider. Silakan coba metode pembayaran lain.`;
+          }
+        }
 
         // Check if this is a sandbox limitation for e-wallet payments
         if (!this.isProduction && data.statusCode === "-100") {
@@ -469,9 +493,13 @@ class DuitkuService {
 
   /**
    * Map internal payment method ID to Duitku payment code
+   * Based on official docs: https://docs.duitku.com/api/id/#metode-pembayaran
    */
   static mapPaymentMethodToDuitku(paymentMethodCode: string): string {
     const mapping: { [key: string]: string } = {
+      // Credit Card
+      credit_card: "VC",
+
       // Virtual Account
       bca_va: "BC",
       mandiri_va: "M2",
@@ -480,27 +508,41 @@ class DuitkuService {
       cimb_va: "B1",
       permata_va: "BT",
       atm_bersama: "A1",
+      artha_graha_va: "AG",
+      neo_commerce_va: "NC",
+      briva: "BR",
+      sahabat_sampoerna_va: "S1",
+      danamon_va: "DM",
+      bsi_va: "BV",
+
+      // Retail
+      pegadaian: "FT",
+      alfamart: "FT", // FT includes ALFA
+      pos_indonesia: "FT",
+      indomaret: "IR",
 
       // E-Wallet
       ovo: "OV",
       shopeepay: "SA",
+      linkaja_fixed: "LF",
       linkaja: "LA",
       dana: "DA",
+      shopeepay_link: "SL",
+      ovo_link: "OL",
 
       // QRIS
       qris: "SP", // Default to ShopeePay QRIS
       qris_shopeepay: "SP",
-      qris_linkaja: "LQ",
       qris_nobu: "NQ",
-      qris_dana: "DQ",
+      qris_gudang_voucher: "GQ",
+      qris_nusapay: "SQ",
 
-      // Credit Card
-      credit_card: "VC",
+      // Paylater
+      indodana: "DN",
+      atome: "AT",
 
-      // Retail
-      indomaret: "IR",
-      alfamart: "AG",
-      pegadaian: "FT",
+      // E-Banking
+      jenius: "JP",
     };
 
     return mapping[paymentMethodCode] || paymentMethodCode.toUpperCase();

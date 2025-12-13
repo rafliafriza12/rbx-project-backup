@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // API routes should pass through
+  // API routes should pass through (needed for maintenance check API)
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
@@ -29,42 +29,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check maintenance mode for all other routes (public, auth, etc)
-  try {
-    // Use absolute URL for production environments
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      request.nextUrl.origin;
+  // Check maintenance mode from cookie
+  // Cookie is set by MaintenanceChecker component after fetching from database
+  const maintenanceCookie = request.cookies.get("maintenance_mode");
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-    const maintenanceResponse = await fetch(`${baseUrl}/api/maintenance`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (maintenanceResponse.ok) {
-      const data = await maintenanceResponse.json();
-
-      if (data.maintenanceMode === true) {
-        // Redirect to maintenance page
-        return NextResponse.redirect(new URL("/maintenance", request.url));
-      }
-    }
-  } catch (error) {
-    // Silently fail - if maintenance check fails, allow access
-    // This prevents the site from being blocked if there's a network issue
-    if (process.env.NODE_ENV === "development") {
-      console.error("Error checking maintenance mode:", error);
-    }
+  if (maintenanceCookie?.value === "true") {
+    // Redirect to maintenance page
+    return NextResponse.redirect(new URL("/maintenance", request.url));
   }
 
   return NextResponse.next();
@@ -74,11 +45,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - /api/maintenance (the endpoint itself)
+     * - /api (API routes)
      * - /_next/static (static files)
      * - /_next/image (image optimization files)
      * - /favicon.ico, /sitemap.xml, /robots.txt (metadata files)
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };

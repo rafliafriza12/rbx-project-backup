@@ -110,7 +110,17 @@ export default function PaymentMethodsPage() {
   ];
 
   // Duitku Payment Codes - https://docs.duitku.com/api/id/#payment-method
+  // Duitku Payment Codes (Updated from official docs: https://docs.duitku.com/api/id/#metode-pembayaran)
+  // Note: LQ (LinkAja QRIS) removed Jan 2025, DQ (DANA QRIS) removed Aug 2025
   const duitkuPaymentCodes = [
+    // Credit Card
+    {
+      code: "VC",
+      name: "Credit Card (Visa/Master/JCB)",
+      category: "credit_card",
+    },
+
+    // Virtual Account
     { code: "BC", name: "BCA Virtual Account", category: "bank_transfer" },
     { code: "M2", name: "Mandiri Virtual Account", category: "bank_transfer" },
     { code: "VA", name: "Maybank Virtual Account", category: "bank_transfer" },
@@ -126,23 +136,38 @@ export default function PaymentMethodsPage() {
       category: "bank_transfer",
     },
     { code: "A1", name: "ATM Bersama", category: "bank_transfer" },
+    { code: "AG", name: "Bank Artha Graha", category: "bank_transfer" },
+    { code: "NC", name: "Bank Neo Commerce/BNC", category: "bank_transfer" },
+    { code: "BR", name: "BRIVA", category: "bank_transfer" },
+    { code: "S1", name: "Bank Sahabat Sampoerna", category: "bank_transfer" },
+    { code: "DM", name: "Danamon Virtual Account", category: "bank_transfer" },
+    { code: "BV", name: "BSI Virtual Account", category: "bank_transfer" },
+
+    // Retail
+    { code: "FT", name: "Pegadaian/ALFA/Pos", category: "retail" },
+    { code: "IR", name: "Indomaret", category: "retail" },
+
+    // E-Wallet
     { code: "OV", name: "OVO", category: "ewallet" },
     { code: "SA", name: "ShopeePay Apps", category: "ewallet" },
-    { code: "LQ", name: "LinkAja Apps (QRIS)", category: "ewallet" },
+    { code: "LF", name: "LinkAja Apps (Fixed Fee)", category: "ewallet" },
+    { code: "LA", name: "LinkAja Apps (Percentage Fee)", category: "ewallet" },
     { code: "DA", name: "DANA", category: "ewallet" },
+    { code: "SL", name: "ShopeePay Account Link", category: "ewallet" },
+    { code: "OL", name: "OVO Account Link", category: "ewallet" },
+
+    // QRIS
     { code: "SP", name: "ShopeePay QRIS", category: "qris" },
-    { code: "LQ", name: "LinkAja QRIS", category: "qris" },
     { code: "NQ", name: "Nobu QRIS", category: "qris" },
+    { code: "GQ", name: "Gudang Voucher QRIS", category: "qris" },
     { code: "SQ", name: "Nusapay QRIS", category: "qris" },
-    { code: "DQ", name: "DANA QRIS", category: "qris" },
-    {
-      code: "VC",
-      name: "Credit Card (Visa/Master/JCB)",
-      category: "credit_card",
-    },
-    { code: "IR", name: "Indomaret", category: "retail" },
-    { code: "AG", name: "Alfamart/Alfamidi/Dan+Dan", category: "retail" },
-    { code: "FT", name: "Pegadaian/Pos Indonesia", category: "retail" },
+
+    // Paylater/Kredit
+    { code: "DN", name: "Indodana Paylater", category: "paylater" },
+    { code: "AT", name: "ATOME", category: "paylater" },
+
+    // E-Banking
+    { code: "JP", name: "Jenius Pay", category: "ebanking" },
   ];
 
   useEffect(() => {
@@ -851,6 +876,24 @@ export default function PaymentMethodsPage() {
                       <optgroup label="Credit Card">
                         {duitkuPaymentCodes
                           .filter((pm) => pm.category === "credit_card")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Paylater">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "paylater")
+                          .map((pm) => (
+                            <option key={pm.code} value={pm.code}>
+                              {pm.code} - {pm.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="E-Banking">
+                        {duitkuPaymentCodes
+                          .filter((pm) => pm.category === "ebanking")
                           .map((pm) => (
                             <option key={pm.code} value={pm.code}>
                               {pm.code} - {pm.name}

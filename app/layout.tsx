@@ -8,6 +8,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
+import MaintenanceChecker from "@/components/MaintenanceChecker";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -73,7 +74,10 @@ export default function RootLayout({
         />
         <GoogleAuthProvider>
           <AuthProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              <MaintenanceChecker />
+              {children}
+            </CartProvider>
           </AuthProvider>
         </GoogleAuthProvider>
         <ToastContainer

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Wrench, Clock, Mail, MessageCircle } from "lucide-react";
 
 interface MaintenancePageProps {
@@ -8,6 +9,7 @@ interface MaintenancePageProps {
 
 export default function MaintenancePage({ message }: MaintenancePageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -16,6 +18,41 @@ export default function MaintenancePage({ message }: MaintenancePageProps) {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Check if maintenance mode is still active, if not redirect to home
+  useEffect(() => {
+    const checkMaintenanceStatus = async () => {
+      try {
+        const response = await fetch("/api/maintenance", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.maintenanceMode === false) {
+            // Clear the maintenance cookie
+            document.cookie = `maintenance_mode=; path=/; max-age=0; SameSite=Lax`;
+            // Redirect to home page
+            router.replace("/");
+          }
+        }
+      } catch (error) {
+        // On error, try to redirect to home anyway
+        document.cookie = `maintenance_mode=; path=/; max-age=0; SameSite=Lax`;
+      }
+    };
+
+    // Check immediately
+    checkMaintenanceStatus();
+
+    // Check every 5 seconds for faster response when maintenance is turned off
+    const interval = setInterval(checkMaintenanceStatus, 5000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   const defaultMessage =
     message || "Situs sedang dalam pemeliharaan. Silakan coba lagi nanti.";
@@ -68,38 +105,6 @@ export default function MaintenancePage({ message }: MaintenancePageProps) {
             </p>
 
             {/* Time */}
-
-            {/* Divider */}
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-8"></div>
-
-            {/* Contact Info */}
-            <div className="space-y-4">
-              <p className="text-white/70 text-sm">
-                Untuk informasi lebih lanjut, hubungi kami:
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                {/* Email */}
-                <a
-                  href="mailto:support@rbxnet.com"
-                  className="flex items-center gap-2 px-6 py-3 bg-white/5 backdrop-blur-sm border border-white/20 hover:border-neon-pink/50 text-white rounded-xl hover:bg-white/10 transition-all duration-300"
-                >
-                  <Mail className="w-5 h-5 text-neon-pink" />
-                  <span className="text-sm font-medium">Email Support</span>
-                </a>
-
-                {/* WhatsApp */}
-                <a
-                  href="https://wa.me/628123456789"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-6 py-3 bg-white/5 backdrop-blur-sm border border-white/20 hover:border-neon-pink/50 text-white rounded-xl hover:bg-white/10 transition-all duration-300"
-                >
-                  <MessageCircle className="w-5 h-5 text-neon-pink" />
-                  <span className="text-sm font-medium">WhatsApp</span>
-                </a>
-              </div>
-            </div>
 
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-white/10">
