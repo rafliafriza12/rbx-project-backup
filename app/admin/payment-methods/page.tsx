@@ -479,7 +479,7 @@ export default function PaymentMethodsPage() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#f1f5f9]">Payment Methods</h1>
+        <h1 className="text-2xl font-bold text-[#f1f5f9]">Payment Method</h1>
         <button
           onClick={openCreateModal}
           className="bg-green-600 text-[#f1f5f9] px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-500"
