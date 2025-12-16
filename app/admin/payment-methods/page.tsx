@@ -347,11 +347,15 @@ export default function PaymentMethodsPage() {
         instructions: formData.instructions,
       };
 
+      console.log("Submitting payment method:", submitData);
+
       const url = selectedMethod
         ? `/api/payment-methods/${selectedMethod._id}`
         : "/api/payment-methods";
 
       const method = selectedMethod ? "PUT" : "POST";
+
+      console.log(`Sending ${method} request to ${url}`);
 
       const response = await fetch(url, {
         method,
@@ -361,7 +365,34 @@ export default function PaymentMethodsPage() {
         body: JSON.stringify(submitData),
       });
 
-      const result = await response.json();
+      console.log("Response status:", response.status, response.statusText);
+
+      // Check if response is OK
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = `Server error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Parse JSON response
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log("Response text:", responseText);
+        result = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error("JSON Parse Error:", jsonError);
+        throw new Error("Server mengembalikan response yang tidak valid");
+      }
+
+      console.log("Result:", result);
 
       if (result.success) {
         toast.success(

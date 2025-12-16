@@ -56,7 +56,19 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error("JSON Parse Error:", jsonError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid JSON body",
+        },
+        { status: 400 }
+      );
+    }
 
     // Validation
     if (!body.code || !body.name || !body.category) {
