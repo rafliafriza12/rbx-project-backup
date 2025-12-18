@@ -4,13 +4,13 @@ import Gamepass from "@/models/Gamepass";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
+    const { id: gamepassId } = await params;
     const { showOnHomepage } = await request.json();
-    const gamepassId = params.id;
 
     // Check if we can add to homepage
     if (showOnHomepage) {

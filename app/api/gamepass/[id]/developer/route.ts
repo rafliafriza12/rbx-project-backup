@@ -4,13 +4,13 @@ import Gamepass from "@/models/Gamepass";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
+    const { id: gamepassId } = await params;
     const { items } = await request.json();
-    const gamepassId = params.id;
 
     // Update gamepass dengan items yang memiliki developer
     const updatedGamepass = await Gamepass.findByIdAndUpdate(

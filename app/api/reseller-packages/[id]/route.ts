@@ -7,12 +7,12 @@ import { verifyToken } from "@/lib/auth";
 // GET - Ambil reseller package berdasarkan ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
@@ -49,10 +49,12 @@ export async function GET(
 // PUT - Update reseller package by ID (Admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+
+    const { id } = await params;
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
@@ -93,11 +95,11 @@ export async function PUT(
     }
 
     // Check if tier is being changed and if new tier already exists
-    const currentPackage = await ResellerPackage.findById(params.id);
+    const currentPackage = await ResellerPackage.findById(id);
     if (currentPackage && currentPackage.tier !== packageData.tier) {
       const existingPackage = await ResellerPackage.findOne({
         tier: packageData.tier,
-        _id: { $ne: params.id },
+        _id: { $ne: id },
       });
       if (existingPackage) {
         return NextResponse.json(
@@ -109,7 +111,7 @@ export async function PUT(
 
     // Update package
     const updatedPackage = await ResellerPackage.findByIdAndUpdate(
-      params.id,
+      id,
       packageData,
       { new: true, runValidators: true }
     );
@@ -158,10 +160,12 @@ export async function PUT(
 // DELETE - Hapus reseller package by ID (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+
+    const { id } = await params;
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
@@ -185,7 +189,7 @@ export async function DELETE(
       );
     }
 
-    const deletedPackage = await ResellerPackage.findByIdAndDelete(params.id);
+    const deletedPackage = await ResellerPackage.findByIdAndDelete(id);
 
     if (!deletedPackage) {
       return NextResponse.json(

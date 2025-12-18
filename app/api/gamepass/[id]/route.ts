@@ -7,12 +7,12 @@ import { verifyToken } from "@/lib/auth";
 // GET - Ambil gamepass berdasarkan ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
@@ -50,10 +50,12 @@ export async function GET(
 // PUT - Update gamepass by ID (Admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+
+    const { id } = await params;
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
@@ -95,7 +97,7 @@ export async function PUT(
 
     // Check homepage limit if trying to set showOnHomepage to true
     if (gamepassData.showOnHomepage) {
-      const canAdd = await (Gamepass as any).canAddToHomepage(params.id);
+      const canAdd = await (Gamepass as any).canAddToHomepage(id);
       if (!canAdd) {
         return NextResponse.json(
           {
@@ -108,11 +110,10 @@ export async function PUT(
     }
 
     // Update gamepass
-    const updatedGamepass = await Gamepass.findByIdAndUpdate(
-      params.id,
-      gamepassData,
-      { new: true, runValidators: true }
-    );
+    const updatedGamepass = await Gamepass.findByIdAndUpdate(id, gamepassData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!updatedGamepass) {
       return NextResponse.json(
@@ -158,10 +159,12 @@ export async function PUT(
 // DELETE - Delete gamepass by ID (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+
+    const { id } = await params;
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
@@ -186,7 +189,7 @@ export async function DELETE(
     }
 
     // Delete gamepass
-    const deletedGamepass = await Gamepass.findByIdAndDelete(params.id);
+    const deletedGamepass = await Gamepass.findByIdAndDelete(id);
 
     if (!deletedGamepass) {
       return NextResponse.json(

@@ -182,12 +182,12 @@ async function processGamepassPurchase(transaction: any) {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const transactionId = params.id;
+    const { id: transactionId } = await params;
 
     // Get transaction
     const transaction = await Transaction.findById(transactionId);

@@ -7,12 +7,12 @@ import { verifyToken } from "@/lib/auth";
 // GET - Ambil produk berdasarkan ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
@@ -46,10 +46,12 @@ export async function GET(
 // PUT - Update produk (Admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+
+    const { id } = await params;
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
@@ -72,8 +74,6 @@ export async function PUT(
         { status: 403 }
       );
     }
-
-    const { id } = params;
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
@@ -130,10 +130,12 @@ export async function PUT(
 // DELETE - Hapus produk (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+
+    const { id } = await params;
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
@@ -156,8 +158,6 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const { id } = params;
 
     if (!id || id.length !== 24) {
       return NextResponse.json(

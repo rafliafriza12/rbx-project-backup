@@ -1,21 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose'; // ✅ Import mongoose for ObjectId conversion
-import connectDB from '@/lib/mongodb';
-import ChatRoom from '@/models/ChatRoom';
-import Message from '@/models/Message';
-import User from '@/models/User'; // ✅ Import User model explicitly
-import { authenticateToken } from '@/lib/auth';
-import { getPusherInstance } from '@/lib/pusher';
-import PushSubscription from '@/models/PushSubscription';
-import { sendPushNotificationToMany } from '@/lib/webpush';
+import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose"; // ✅ Import mongoose for ObjectId conversion
+import connectDB from "@/lib/mongodb";
+import ChatRoom from "@/models/ChatRoom";
+import Message from "@/models/Message";
+import User from "@/models/User"; // ✅ Import User model explicitly
+import { authenticateToken } from "@/lib/auth";
+import { getPusherInstance } from "@/lib/pusher";
+import PushSubscription from "@/models/PushSubscription";
+import { sendPushNotificationToMany } from "@/lib/webpush";
 
 // Simple in-memory rate limiter (for production, use Redis)
-const messageRateLimiter = new Map<string, { count: number; resetAt: number }>();
+const messageRateLimiter = new Map<
+  string,
+  { count: number; resetAt: number }
+>();
 const MAX_MESSAGES_PER_MINUTE = 10;
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 
 // Idempotency cache to prevent duplicate messages
-const idempotencyCache = new Map<string, { messageId: string; expiresAt: number }>();
+const idempotencyCache = new Map<
+  string,
+  { messageId: string; expiresAt: number }
+>();
 const IDEMPOTENCY_WINDOW = 5000; // 5 seconds
 
 // Global request counter for debugging
@@ -26,7 +32,10 @@ function checkRateLimit(userId: string): boolean {
   const userLimit = messageRateLimiter.get(userId);
 
   if (!userLimit || now > userLimit.resetAt) {
-    messageRateLimiter.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    messageRateLimiter.set(userId, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW,
+    });
     return true;
   }
 
@@ -41,18 +50,18 @@ function checkRateLimit(userId: string): boolean {
 function checkIdempotency(key: string): string | null {
   const now = Date.now();
   const cached = idempotencyCache.get(key);
-  
+
   if (cached && now < cached.expiresAt) {
     return cached.messageId; // Return existing message ID
   }
-  
+
   // Clean up expired entries
   for (const [k, v] of idempotencyCache.entries()) {
     if (now >= v.expiresAt) {
       idempotencyCache.delete(k);
     }
   }
-  
+
   return null;
 }
 
@@ -65,36 +74,40 @@ function setIdempotency(key: string, messageId: string): void {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { roomId: string } }
+  { params }: { params: Promise<{ roomId: string }> }
 ) {
   try {
     const user = await authenticateToken(request);
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
     const { roomId } = await params;
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
 
     // Verify chat room exists and user has access
     const chatRoom = await ChatRoom.findById(roomId);
-    
+
     if (!chatRoom) {
-      return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Chat room not found" },
+        { status: 404 }
+      );
     }
 
     // Check access rights
-    const isAdmin = user.accessRole === 'admin' || user.accessRole === 'superadmin';
+    const isAdmin =
+      user.accessRole === "admin" || user.accessRole === "superadmin";
     const isOwner = chatRoom.userId.toString() === user._id.toString();
 
     if (!isAdmin && !isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get messages using aggregation for reliable population
@@ -105,17 +118,17 @@ export async function GET(
       { $limit: limit },
       {
         $lookup: {
-          from: 'users',
-          localField: 'senderId',
-          foreignField: '_id',
-          as: 'senderData'
-        }
+          from: "users",
+          localField: "senderId",
+          foreignField: "_id",
+          as: "senderData",
+        },
       },
       {
         $unwind: {
-          path: '$senderData',
-          preserveNullAndEmptyArrays: true
-        }
+          path: "$senderData",
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $project: {
@@ -131,29 +144,31 @@ export async function GET(
           createdAt: 1,
           updatedAt: 1,
           senderId: {
-            _id: '$senderData._id',
-            username: { 
+            _id: "$senderData._id",
+            username: {
               $cond: {
-                if: { $ne: ['$senderData.email', null] },
-                then: { $arrayElemAt: [{ $split: ['$senderData.email', '@'] }, 0] },
-                else: '$senderData.firstName'
-              }
+                if: { $ne: ["$senderData.email", null] },
+                then: {
+                  $arrayElemAt: [{ $split: ["$senderData.email", "@"] }, 0],
+                },
+                else: "$senderData.firstName",
+              },
             },
-            fullName: { 
+            fullName: {
               $trim: {
                 input: {
                   $concat: [
-                    { $ifNull: ['$senderData.firstName', ''] },
-                    ' ',
-                    { $ifNull: ['$senderData.lastName', ''] }
-                  ]
-                }
-              }
+                    { $ifNull: ["$senderData.firstName", ""] },
+                    " ",
+                    { $ifNull: ["$senderData.lastName", ""] },
+                  ],
+                },
+              },
             },
-            avatar: '$senderData.profilePicture'
-          }
-        }
-      }
+            avatar: "$senderData.profilePicture",
+          },
+        },
+      },
     ]);
 
     // Reverse to show oldest first
@@ -164,13 +179,13 @@ export async function GET(
     // Mark messages as read
     if (isAdmin) {
       await Message.updateMany(
-        { roomId, senderRole: 'user', isRead: false },
+        { roomId, senderRole: "user", isRead: false },
         { isRead: true, readAt: new Date() }
       );
       await ChatRoom.findByIdAndUpdate(roomId, { unreadCountAdmin: 0 });
     } else {
       await Message.updateMany(
-        { roomId, senderRole: 'admin', isRead: false },
+        { roomId, senderRole: "admin", isRead: false },
         { isRead: true, readAt: new Date() }
       );
       await ChatRoom.findByIdAndUpdate(roomId, { unreadCountUser: 0 });
@@ -187,35 +202,39 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error('Error fetching messages:', error);
+    console.error("Error fetching messages:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { roomId: string } }
+  { params }: { params: Promise<{ roomId: string }> }
 ) {
   try {
     postRequestCount++;
-    console.log('');
-    console.log('========================================================');
-    console.log(`[POST /messages] 🔵 REQUEST #${postRequestCount} - New message request`);
-    console.log('========================================================');
-    
+    console.log("");
+    console.log("========================================================");
+    console.log(
+      `[POST /messages] 🔵 REQUEST #${postRequestCount} - New message request`
+    );
+    console.log("========================================================");
+
     const user = await authenticateToken(request);
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     console.log(`[POST /messages] � User: ${user._id}`);
 
     // Rate limiting check
     if (!checkRateLimit(user._id.toString())) {
-      console.log(`[POST /messages] ⚠️ Rate limit exceeded for user ${user._id}`);
+      console.log(
+        `[POST /messages] ⚠️ Rate limit exceeded for user ${user._id}`
+      );
       return NextResponse.json(
-        { error: 'Too many messages. Please wait a moment.' },
+        { error: "Too many messages. Please wait a moment." },
         { status: 429 }
       );
     }
@@ -223,24 +242,34 @@ export async function POST(
     await connectDB();
 
     const { roomId } = await params;
-    const { message, type = 'text', fileUrl, fileName } = await request.json();
+    const { message, type = "text", fileUrl, fileName } = await request.json();
 
-    if (!message || message.trim() === '') {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    if (!message || message.trim() === "") {
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 }
+      );
     }
 
     // Check for duplicate message using idempotency key
-    const idempotencyKey = `${user._id}-${roomId}-${message.trim().substring(0, 50)}`;
+    const idempotencyKey = `${user._id}-${roomId}-${message
+      .trim()
+      .substring(0, 50)}`;
     const existingMessageId = checkIdempotency(idempotencyKey);
-    
+
     if (existingMessageId) {
       // Return existing message instead of creating duplicate
-      const existingMessage = await Message.findById(existingMessageId)
-        .populate('senderId', 'username fullName avatar');
-      
+      const existingMessage = await Message.findById(
+        existingMessageId
+      ).populate("senderId", "username fullName avatar");
+
       if (existingMessage) {
-        console.log(`[POST /messages] 🔁 DUPLICATE DETECTED! Returning existing message: ${existingMessageId}`);
-        console.log(`[POST /messages] 📊 Pusher events triggered: 0 (duplicate prevented)`);
+        console.log(
+          `[POST /messages] 🔁 DUPLICATE DETECTED! Returning existing message: ${existingMessageId}`
+        );
+        console.log(
+          `[POST /messages] 📊 Pusher events triggered: 0 (duplicate prevented)`
+        );
         return NextResponse.json({
           success: true,
           data: existingMessage,
@@ -251,21 +280,25 @@ export async function POST(
 
     // Verify chat room exists
     const chatRoom = await ChatRoom.findById(roomId);
-    
+
     if (!chatRoom) {
-      return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Chat room not found" },
+        { status: 404 }
+      );
     }
 
     // Check access rights
-    const isAdmin = user.accessRole === 'admin' || user.accessRole === 'superadmin';
+    const isAdmin =
+      user.accessRole === "admin" || user.accessRole === "superadmin";
     const isOwner = chatRoom.userId.toString() === user._id.toString();
 
     if (!isAdmin && !isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Determine sender role
-    const senderRole = isAdmin ? 'admin' : 'user';
+    const senderRole = isAdmin ? "admin" : "user";
 
     // Create message
     const newMessage = await Message.create({
@@ -286,17 +319,17 @@ export async function POST(
       { $match: { _id: newMessage._id } },
       {
         $lookup: {
-          from: 'users', // MongoDB collection name (lowercase + plural)
-          localField: 'senderId',
-          foreignField: '_id',
-          as: 'senderData'
-        }
+          from: "users", // MongoDB collection name (lowercase + plural)
+          localField: "senderId",
+          foreignField: "_id",
+          as: "senderData",
+        },
       },
       {
         $unwind: {
-          path: '$senderData',
-          preserveNullAndEmptyArrays: false
-        }
+          path: "$senderData",
+          preserveNullAndEmptyArrays: false,
+        },
       },
       {
         $project: {
@@ -312,37 +345,39 @@ export async function POST(
           createdAt: 1,
           updatedAt: 1,
           senderId: {
-            _id: '$senderData._id',
-            username: { 
+            _id: "$senderData._id",
+            username: {
               $cond: {
-                if: { $ne: ['$senderData.email', null] },
-                then: { $arrayElemAt: [{ $split: ['$senderData.email', '@'] }, 0] },
-                else: '$senderData.firstName'
-              }
+                if: { $ne: ["$senderData.email", null] },
+                then: {
+                  $arrayElemAt: [{ $split: ["$senderData.email", "@"] }, 0],
+                },
+                else: "$senderData.firstName",
+              },
             }, // Extract username from email (before @)
-            fullName: { 
+            fullName: {
               $trim: {
                 input: {
                   $concat: [
-                    { $ifNull: ['$senderData.firstName', ''] },
-                    ' ',
-                    { $ifNull: ['$senderData.lastName', ''] }
-                  ]
-                }
-              }
+                    { $ifNull: ["$senderData.firstName", ""] },
+                    " ",
+                    { $ifNull: ["$senderData.lastName", ""] },
+                  ],
+                },
+              },
             },
-            avatar: '$senderData.profilePicture'
-          }
-        }
-      }
+            avatar: "$senderData.profilePicture",
+          },
+        },
+      },
     ]);
-    
+
     const populatedMessage = populatedMessages[0];
-    
+
     if (!populatedMessage) {
-      throw new Error('Failed to fetch created message');
+      throw new Error("Failed to fetch created message");
     }
-    
+
     console.log(`[POST /messages] 👤 Message populated successfully`);
     console.log(`[POST /messages] 🔍 Sender data:`, {
       hasUsername: !!populatedMessage.senderId?.username,
@@ -360,21 +395,23 @@ export async function POST(
     // If user sends message and room is closed, activate it
     // This is the primary way for users to activate their chat
     let roomActivated = false;
-    if (senderRole === 'user') {
+    if (senderRole === "user") {
       updateData.lastUserReplyAt = new Date();
-      
+
       // Auto-activate room when user sends first/any message to closed room
-      if (chatRoom.status === 'closed') {
-        updateData.status = 'active';
+      if (chatRoom.status === "closed") {
+        updateData.status = "active";
         updateData.deactivatedAt = null;
         updateData.deactivatedBy = null;
         roomActivated = true;
-        console.log(`[POST /messages] 🟢 Room ${roomId} auto-activated by user message`);
+        console.log(
+          `[POST /messages] 🟢 Room ${roomId} auto-activated by user message`
+        );
       }
     }
 
     // Increment unread count for receiver
-    if (senderRole === 'admin') {
+    if (senderRole === "admin") {
       updateData.$inc = { unreadCountUser: 1 };
       if (!chatRoom.adminId) {
         updateData.adminId = user._id;
@@ -390,25 +427,32 @@ export async function POST(
     if (roomActivated) {
       try {
         const pusher = getPusherInstance();
-        
+
         // Notify the specific chat room channel
-        await pusher.trigger(`private-chat-room-${roomId}`, 'room-status-changed', {
-          roomId,
-          status: 'active',
-          activatedBy: 'user-message',
-          message: 'Chat telah diaktifkan.',
-        });
-        
+        await pusher.trigger(
+          `private-chat-room-${roomId}`,
+          "room-status-changed",
+          {
+            roomId,
+            status: "active",
+            activatedBy: "user-message",
+            message: "Chat telah diaktifkan.",
+          }
+        );
+
         // Notify admin channel about room activation
-        await pusher.trigger('admin-notifications', 'room-activated', {
+        await pusher.trigger("admin-notifications", "room-activated", {
           roomId,
           userId: chatRoom.userId.toString(),
-          activatedBy: 'user-message',
+          activatedBy: "user-message",
         });
-        
+
         console.log(`[POST /messages] 📢 Room activation notifications sent`);
       } catch (activationPusherError) {
-        console.error(`[POST /messages] ⚠️ Room activation Pusher error:`, activationPusherError);
+        console.error(
+          `[POST /messages] ⚠️ Room activation Pusher error:`,
+          activationPusherError
+        );
       }
     }
 
@@ -421,44 +465,51 @@ export async function POST(
     let pusherEventCount = 0;
     try {
       const pusher = getPusherInstance();
-      
+
       console.log(`[POST /messages] 🚀 Triggering Pusher event...`);
-      console.log(`[POST /messages] 🔐 Channel: private-chat-room-${roomId} (PRIVATE CHANNEL)`);
+      console.log(
+        `[POST /messages] 🔐 Channel: private-chat-room-${roomId} (PRIVATE CHANNEL)`
+      );
       console.log(`[POST /messages] 📡 Event: new-message`);
       console.log(`[POST /messages] 📦 Pusher payload:`, {
         message: {
           _id: populatedMessage._id,
-          username: populatedMessage.senderId?.username || 'NO_USERNAME',
-          fullName: populatedMessage.senderId?.fullName || 'NO_NAME',
+          username: populatedMessage.senderId?.username || "NO_USERNAME",
+          fullName: populatedMessage.senderId?.fullName || "NO_NAME",
           message: message.trim().substring(0, 50),
-        }
+        },
       });
-      
+
       // Single event with all data needed - PRIVATE CHANNEL
       // Use populatedMessage (not newMessage!) for real-time updates
-      await pusher.trigger(`private-chat-room-${roomId}`, 'new-message', {
+      await pusher.trigger(`private-chat-room-${roomId}`, "new-message", {
         message: populatedMessage, // ✅ Use populated message!
         roomUpdate: {
           roomId,
           lastMessage: message.trim(),
           lastMessageAt: new Date(),
-          unreadCount: senderRole === 'admin' ? 
-            (chatRoom.unreadCountUser || 0) + 1 : 
-            (chatRoom.unreadCountAdmin || 0) + 1,
+          unreadCount:
+            senderRole === "admin"
+              ? (chatRoom.unreadCountUser || 0) + 1
+              : (chatRoom.unreadCountAdmin || 0) + 1,
         },
       });
 
       pusherEventCount = 1;
-      console.log(`[POST /messages] ✅ Pusher event sent successfully to private channel`);
-      
+      console.log(
+        `[POST /messages] ✅ Pusher event sent successfully to private channel`
+      );
+
       // If message from USER, notify all ADMINS via admin-notifications channel
-      if (senderRole === 'user') {
+      if (senderRole === "user") {
         console.log(`[POST /messages] 📢 Sending admin notification...`);
-        await pusher.trigger('admin-notifications', 'new-message', {
+        await pusher.trigger("admin-notifications", "new-message", {
           roomId,
           userId: chatRoom.userId.toString(),
           message: message.trim(),
-          senderName: populatedMessage.senderId?.fullName || populatedMessage.senderId?.username,
+          senderName:
+            populatedMessage.senderId?.fullName ||
+            populatedMessage.senderId?.username,
           roomType: chatRoom.roomType,
           transactionCode: chatRoom.transactionCode,
           timestamp: new Date().toISOString(),
@@ -466,38 +517,51 @@ export async function POST(
         pusherEventCount = 2;
         console.log(`[POST /messages] ✅ Admin notification sent successfully`);
       }
-      
+
       // If message from ADMIN, notify the USER via user-specific channel
-      if (senderRole === 'admin') {
+      if (senderRole === "admin") {
         console.log(`[POST /messages] 📢 Sending user notification...`);
-        await pusher.trigger(`user-notifications-${chatRoom.userId.toString()}`, 'new-message', {
-          roomId,
-          adminId: user._id.toString(),
-          message: message.trim(),
-          senderName: populatedMessage.senderId?.fullName || populatedMessage.senderId?.username,
-          roomType: chatRoom.roomType,
-          transactionCode: chatRoom.transactionCode,
-          timestamp: new Date().toISOString(),
-        });
+        await pusher.trigger(
+          `user-notifications-${chatRoom.userId.toString()}`,
+          "new-message",
+          {
+            roomId,
+            adminId: user._id.toString(),
+            message: message.trim(),
+            senderName:
+              populatedMessage.senderId?.fullName ||
+              populatedMessage.senderId?.username,
+            roomType: chatRoom.roomType,
+            transactionCode: chatRoom.transactionCode,
+            timestamp: new Date().toISOString(),
+          }
+        );
         pusherEventCount = 2;
         console.log(`[POST /messages] ✅ User notification sent successfully`);
       }
-      
-      console.log(`[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount}`);
-      console.log(`[POST /messages] ================================================`);
+
+      console.log(
+        `[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount}`
+      );
+      console.log(
+        `[POST /messages] ================================================`
+      );
     } catch (pusherError) {
       console.error(`[POST /messages] ❌ Pusher error:`, pusherError);
-      console.log(`[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount} (failed)`);
+      console.log(
+        `[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount} (failed)`
+      );
       // Continue even if Pusher fails - message already saved
     }
 
     // Send web push notifications (background notifications)
     try {
       console.log(`[POST /messages] 🔔 Sending web push notifications...`);
-      
+
       // Determine receiver ID based on sender role
-      const receiverId = senderRole === 'admin' ? chatRoom.userId : chatRoom.adminId;
-      
+      const receiverId =
+        senderRole === "admin" ? chatRoom.userId : chatRoom.adminId;
+
       if (receiverId) {
         // Get all active push subscriptions for receiver
         const subscriptions = await PushSubscription.find({
@@ -506,39 +570,47 @@ export async function POST(
         });
 
         if (subscriptions.length > 0) {
-          console.log(`[POST /messages] 📱 Found ${subscriptions.length} active subscription(s) for receiver`);
-          
+          console.log(
+            `[POST /messages] 📱 Found ${subscriptions.length} active subscription(s) for receiver`
+          );
+
           // Prepare push notification payload
-          const senderName = populatedMessage.senderId?.fullName || 
-                            populatedMessage.senderId?.username || 
-                            (senderRole === 'admin' ? 'Admin' : 'User');
-          
-          const messagePreview = type === 'image' 
-            ? '📷 Mengirim gambar'
-            : message.trim().substring(0, 100);
+          const senderName =
+            populatedMessage.senderId?.fullName ||
+            populatedMessage.senderId?.username ||
+            (senderRole === "admin" ? "Admin" : "User");
+
+          const messagePreview =
+            type === "image"
+              ? "📷 Mengirim gambar"
+              : message.trim().substring(0, 100);
 
           const pushPayload = {
             title: `💬 Pesan baru dari ${senderName}`,
             body: messagePreview,
-            icon: '/icon-192x192.png',
-            badge: '/badge-72x72.png',
+            icon: "/icon-192x192.png",
+            badge: "/badge-72x72.png",
             tag: `chat-${roomId}`,
             data: {
               roomId,
-              url: senderRole === 'admin' ? '/chat' : '/admin/chat',
+              url: senderRole === "admin" ? "/chat" : "/admin/chat",
               messageId: populatedMessage._id.toString(),
             },
           };
 
           // Send to all devices
           const result = await sendPushNotificationToMany(
-            subscriptions.map(s => s.subscription),
+            subscriptions.map((s) => s.subscription),
             pushPayload
           );
 
-          console.log(`[POST /messages] ✅ Web push sent: ${result.success} succeeded, ${result.failed} failed`);
+          console.log(
+            `[POST /messages] ✅ Web push sent: ${result.success} succeeded, ${result.failed} failed`
+          );
         } else {
-          console.log(`[POST /messages] ℹ️ No active push subscriptions found for receiver`);
+          console.log(
+            `[POST /messages] ℹ️ No active push subscriptions found for receiver`
+          );
         }
       }
     } catch (pushError) {
@@ -551,7 +623,7 @@ export async function POST(
       data: populatedMessage, // Return populated message to frontend
     });
   } catch (error: any) {
-    console.error('Error sending message:', error);
+    console.error("Error sending message:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

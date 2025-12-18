@@ -5,12 +5,13 @@ import MidtransService from "@/lib/midtrans";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const transaction = await Transaction.findById(params.id);
+    const { id } = await params;
+    const transaction = await Transaction.findById(id);
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaksi tidak ditemukan" },

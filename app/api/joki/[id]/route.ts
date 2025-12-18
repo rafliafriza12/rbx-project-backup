@@ -6,12 +6,13 @@ import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
 // GET - Fetch single joki service
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const joki = await Joki.findById(params.id);
+    const { id } = await params;
+    const joki = await Joki.findById(id);
 
     if (!joki) {
       return NextResponse.json(
@@ -36,12 +37,13 @@ export async function GET(
 // PUT - Update joki service
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const existingJoki = await Joki.findById(params.id);
+    const { id } = await params;
+    const existingJoki = await Joki.findById(id);
     if (!existingJoki) {
       return NextResponse.json(
         { error: "Joki service tidak ditemukan" },
@@ -143,7 +145,7 @@ export async function PUT(
 
     // Update joki service
     const updatedJoki = await Joki.findByIdAndUpdate(
-      params.id,
+      id,
       {
         gameName,
         imgUrl: gameImageUrl,
@@ -177,12 +179,13 @@ export async function PUT(
 // DELETE - Delete joki service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const joki = await Joki.findById(params.id);
+    const { id } = await params;
+    const joki = await Joki.findById(id);
 
     if (!joki) {
       return NextResponse.json(
@@ -209,7 +212,7 @@ export async function DELETE(
       }
     }
 
-    await Joki.findByIdAndDelete(params.id);
+    await Joki.findByIdAndDelete(id);
 
     return NextResponse.json({
       message: "Joki service berhasil dihapus",

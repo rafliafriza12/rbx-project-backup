@@ -5,12 +5,13 @@ import PaymentMethod from "@/models/PaymentMethod";
 // GET - Fetch single payment method
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const paymentMethod = await PaymentMethod.findById(params.id);
+    const { id } = await params;
+    const paymentMethod = await PaymentMethod.findById(id);
 
     if (!paymentMethod) {
       return NextResponse.json(
@@ -42,14 +43,15 @@ export async function GET(
 // PUT - Update payment method
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
+    const { id } = await params;
     const body = await request.json();
 
-    const paymentMethod = await PaymentMethod.findById(params.id);
+    const paymentMethod = await PaymentMethod.findById(id);
 
     if (!paymentMethod) {
       return NextResponse.json(
@@ -65,7 +67,7 @@ export async function PUT(
     if (body.code && body.code.toUpperCase() !== paymentMethod.code) {
       const existingMethod = await PaymentMethod.findOne({
         code: body.code.toUpperCase(),
-        _id: { $ne: params.id },
+        _id: { $ne: id },
       });
       if (existingMethod) {
         return NextResponse.json(
@@ -136,12 +138,13 @@ export async function PUT(
 // DELETE - Delete payment method
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const paymentMethod = await PaymentMethod.findById(params.id);
+    const { id } = await params;
+    const paymentMethod = await PaymentMethod.findById(id);
 
     if (!paymentMethod) {
       return NextResponse.json(
@@ -153,7 +156,7 @@ export async function DELETE(
       );
     }
 
-    await PaymentMethod.findByIdAndDelete(params.id);
+    await PaymentMethod.findByIdAndDelete(id);
 
     return NextResponse.json({
       success: true,
