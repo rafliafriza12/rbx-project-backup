@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -13,12 +10,6 @@ const nextConfig: NextConfig = {
   // skipTrailingSlashRedirect: true,
   allowedDevOrigins: ["local-origin.dev", "*.local-origin.dev"],
   images: {
-    domains: [
-      "images.unsplash.com",
-      "res.cloudinary.com",
-      "cloudinary.com",
-      "localhost",
-    ],
     remotePatterns: [
       {
         protocol: "https",
@@ -35,6 +26,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "*.cloudinary.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
         port: "",
         pathname: "/**",
       },

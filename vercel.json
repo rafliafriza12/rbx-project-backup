@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "app/api/buy-pass/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/deactivate-expired-resellers",

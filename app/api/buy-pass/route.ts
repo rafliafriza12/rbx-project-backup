@@ -1,5 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
+
+// Vercel serverless function config
+export const maxDuration = 60; // Max 60 seconds for Pro plan, 10 for Hobby
+export const dynamic = "force-dynamic";
+
+// Check if running in Vercel/serverless environment
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+// Get browser executable path
+async function getBrowser() {
+  if (isServerless) {
+    // Vercel/Serverless: use @sparticuz/chromium
+    chromium.setHeadlessMode = true;
+    chromium.setGraphicsMode = false;
+
+    return puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  } else {
+    // Local development: use system Chrome/Chromium
+    const possiblePaths = [
+      process.env.PUPPETEER_EXECUTABLE_PATH,
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/chromium",
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    ].filter(Boolean);
+
+    let executablePath = possiblePaths[0];
+
+    // Find first existing path
+    for (const path of possiblePaths) {
+      if (path) {
+        try {
+          const fs = await import("fs");
+          if (fs.existsSync(path)) {
+            executablePath = path;
+            break;
+          }
+        } catch {
+          // Continue to next path
+        }
+      }
+    }
+
+    return puppeteer.launch({
+      headless: true,
+      executablePath,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--single-process",
+      ],
+    });
+  }
+}
 
 export async function POST(req: NextRequest) {
   let browser;
@@ -20,6 +84,7 @@ export async function POST(req: NextRequest) {
       productId,
       productName,
       cookie: robloxCookie ? "[PRESENT]" : "[MISSING]",
+      isServerless,
     });
 
     // Format product name: replace spaces with hyphens
@@ -28,16 +93,9 @@ export async function POST(req: NextRequest) {
 
     console.log("🌐 Gamepass URL:", gamepassUrl);
 
-    // Launch browser in headless mode (background)
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
+    // Launch browser using helper function
+    browser = await getBrowser();
+    console.log("🚀 Browser launched successfully");
 
     const page = await browser.newPage();
 
@@ -51,7 +109,7 @@ export async function POST(req: NextRequest) {
       secure: true,
     });
 
-    console.log("🔐 Cookie set successfully");
+    console.log("🔐 Cookie seadmin/dashboardt successfully");
 
     // Navigate to gamepass page
     await page.goto(gamepassUrl, {
@@ -68,7 +126,7 @@ export async function POST(req: NextRequest) {
     try {
       // Wait for button to appear
       await page.waitForFunction(
-        (xpath) => {
+        (xpath: string) => {
           const result = document.evaluate(
             xpath,
             document,
@@ -83,7 +141,7 @@ export async function POST(req: NextRequest) {
       );
 
       // Click using evaluate
-      await page.evaluate((xpath) => {
+      await page.evaluate((xpath: string) => {
         const result = document.evaluate(
           xpath,
           document,
@@ -107,7 +165,7 @@ export async function POST(req: NextRequest) {
         "/html/body/div[13]/div/div/div/div/div[2]/div[2]/a[1]";
 
       await page.waitForFunction(
-        (xpath) => {
+        (xpath: string) => {
           const result = document.evaluate(
             xpath,
             document,
@@ -121,7 +179,7 @@ export async function POST(req: NextRequest) {
         buyNowButtonXPath
       );
 
-      await page.evaluate((xpath) => {
+      await page.evaluate((xpath: string) => {
         const result = document.evaluate(
           xpath,
           document,
@@ -147,17 +205,10 @@ export async function POST(req: NextRequest) {
     } catch (clickError: any) {
       console.error("❌ Error during click operation:", clickError.message);
 
-      // Take screenshot for debugging
-      const screenshotPath =
-        `/tmp/roblox-purchase-error-${Date.now()}.png` as const;
-      await page.screenshot({ path: screenshotPath as `${string}.png` });
-      console.log("📸 Screenshot saved to:", screenshotPath);
-
       return NextResponse.json(
         {
           success: false,
           message: `Failed to click buttons: ${clickError.message}`,
-          screenshot: screenshotPath,
         },
         { status: 500 }
       );
