@@ -723,7 +723,7 @@ export default function ProfilePage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-rose-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Phone className="w-6 h-6 text-white" />
                   </div>
-                  <Link href={'/chat'}>
+                  <Link href={"/chat"}>
                     <div className="font-semibold text-white">Hubungi CS</div>
                     <div className="text-sm text-white/70">
                       Butuh bantuan? Chat kami
@@ -864,32 +864,6 @@ export default function ProfilePage() {
                       </div>
                       <span className="text-sm font-semibold text-white min-w-[2rem] text-right">
                         {stats.serviceBreakdown.gamepass}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="font-medium text-white">Joki</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-full sm:w-24 md:w-32 bg-white/20 rounded-full h-2 flex-1 sm:flex-initial">
-                        <div
-                          className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full"
-                          style={{
-                            width: `${
-                              (stats.serviceBreakdown.joki /
-                                stats.totalOrders) *
-                              100
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-semibold text-white min-w-[2rem] text-right">
-                        {stats.serviceBreakdown.joki}
                       </span>
                     </div>
                   </div>
