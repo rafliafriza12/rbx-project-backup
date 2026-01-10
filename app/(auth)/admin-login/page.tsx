@@ -224,10 +224,10 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-300 shadow-lg ${
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-300 shadow-lg border-2 outline-none focus:outline-none focus:ring-2 focus:ring-primary-200 focus:ring-offset-2 focus:ring-offset-[#22102A] ${
                 isLoading
-                  ? "bg-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-100/80 hover:to-primary-200/80 hover:scale-[1.02] active:scale-95 shadow-primary-100/25"
+                  ? "bg-gray-500 cursor-not-allowed border-gray-400"
+                  : "bg-gradient-to-r from-primary-100 to-primary-200 border-primary-100/50 hover:border-primary-100 hover:from-primary-100/80 hover:to-primary-200/80 hover:scale-[1.02] active:scale-95 shadow-primary-100/25"
               }`}
             >
               {isLoading ? (

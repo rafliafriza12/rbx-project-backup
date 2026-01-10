@@ -201,14 +201,14 @@ const PublicAppHeader: React.FC = () => {
                 <Link
                   href="/profile"
                   onClick={handleLinkClick}
-                  className="block px-4 py-2 text-sm text-white hover:bg-neon-purple/20 hover:text-neon-purple rounded-lg mx-2 transition-all duration-300"
+                  className="block px-4 py-2.5 text-sm text-white hover:bg-neon-purple/20 hover:text-neon-purple hover:pl-6 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(168,85,247,0.3)]"
                 >
                   Profil Saya
                 </Link>
                 <Link
                   href="/riwayat"
                   onClick={handleLinkClick}
-                  className="block px-4 py-2 text-sm text-white hover:bg-neon-pink/20 hover:text-neon-pink rounded-lg mx-2 transition-all duration-300"
+                  className="block px-4 py-2.5 text-sm text-white hover:bg-neon-pink/20 hover:text-neon-pink hover:pl-6 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(246,58,230,0.3)]"
                 >
                   Riwayat Pesanan
                 </Link>
@@ -218,14 +218,14 @@ const PublicAppHeader: React.FC = () => {
                     <Link
                       href="/admin/dashboard"
                       onClick={handleLinkClick}
-                      className="block px-4 py-2 text-sm text-emerald-400 hover:bg-emerald-400/20 hover:text-emerald-300 rounded-lg mx-2 transition-all duration-300"
+                      className="block px-4 py-2.5 text-sm text-emerald-400 hover:bg-emerald-400/20 hover:text-emerald-300 hover:pl-6 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(52,211,153,0.3)]"
                     >
                       Admin Dashboard
                     </Link>
                     <Link
                       href="/admin/users"
                       onClick={handleLinkClick}
-                      className="block px-4 py-2 text-sm text-emerald-400 hover:bg-emerald-400/20 hover:text-emerald-300 rounded-lg mx-2 transition-all duration-300"
+                      className="block px-4 py-2.5 text-sm text-emerald-400 hover:bg-emerald-400/20 hover:text-emerald-300 hover:pl-6 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(52,211,153,0.3)]"
                     >
                       Kelola Pengguna
                     </Link>
@@ -234,7 +234,7 @@ const PublicAppHeader: React.FC = () => {
                 <hr className="my-1 border-neon-purple/30 mx-2" />
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-400/20 hover:text-rose-300 rounded-lg mx-2 transition-all duration-300"
+                  className="w-[calc(100%-30px)] text-left px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-400/20 hover:text-rose-300 hover:translate-x-2 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(251,113,133,0.3)]"
                 >
                   Logout
                 </button>

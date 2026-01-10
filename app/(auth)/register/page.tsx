@@ -320,13 +320,13 @@ export default function RegisterPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
             <button
               onClick={() => router.push("/login")}
-              className="px-8 py-3 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-105"
+              className="px-8 py-3 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-105 border-2 border-neon-pink/50 outline-none focus:outline-none focus:ring-2 focus:ring-neon-purple focus:ring-offset-2 focus:ring-offset-primary-800"
             >
               MASUK
             </button>
             <button
               onClick={() => router.push("/register")}
-              className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/20 hover:border-neon-pink/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300"
+              className="px-8 py-3 bg-white/5 backdrop-blur-sm border-2 border-white/30 hover:border-neon-pink text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 outline-none focus:outline-none focus:ring-2 focus:ring-neon-pink focus:ring-offset-2 focus:ring-offset-primary-800"
             >
               DAFTAR
             </button>
@@ -418,7 +418,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={handleVerifyOTP}
                     disabled={isVerifyingOTP || otpCode.some((d) => !d)}
-                    className="w-full py-3.5 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 border-2 border-neon-pink/50 outline-none focus:outline-none focus:ring-2 focus:ring-neon-purple focus:ring-offset-2 focus:ring-offset-primary-800"
                   >
                     {isVerifyingOTP ? (
                       <>
@@ -443,7 +443,7 @@ export default function RegisterPage() {
                         type="button"
                         onClick={handleResendOTP}
                         disabled={isLoading}
-                        className="text-neon-pink hover:text-neon-purple font-semibold text-sm transition-colors duration-300 disabled:opacity-50"
+                        className="text-neon-pink hover:text-neon-purple font-semibold text-sm transition-colors duration-300 disabled:opacity-50 outline-none focus:outline-none focus:ring-2 focus:ring-neon-pink focus:ring-offset-2 focus:ring-offset-primary-800 rounded-lg px-2 py-1"
                       >
                         Kirim Ulang Kode OTP
                       </button>
@@ -458,7 +458,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={handleBackToForm}
-                    className="w-full py-2.5 text-white/60 hover:text-white text-sm font-medium transition-colors duration-300"
+                    className="w-full py-2.5 text-white/60 hover:text-white text-sm font-medium transition-colors duration-300 border-2 border-white/20 hover:border-white/40 rounded-xl outline-none focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-primary-800"
                   >
                     ← Kembali ke Form
                   </button>
@@ -756,10 +756,10 @@ export default function RegisterPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className={`w-full py-3.5 px-4 rounded-xl font-bold text-white transition-all duration-300 ${
+                    className={`w-full py-3.5 px-4 rounded-xl font-bold text-white transition-all duration-300 border-2 outline-none focus:outline-none focus:ring-2 focus:ring-neon-purple focus:ring-offset-2 focus:ring-offset-primary-800 ${
                       isLoading
-                        ? "bg-gray-600 cursor-not-allowed"
-                        : "bg-gradient-to-r from-neon-pink to-neon-purple hover:shadow-xl hover:shadow-neon-pink/50 hover:scale-[1.02] active:scale-95"
+                        ? "bg-gray-600 cursor-not-allowed border-gray-500"
+                        : "bg-gradient-to-r from-neon-pink to-neon-purple border-neon-pink/50 hover:border-neon-pink hover:shadow-xl hover:shadow-neon-pink/50 hover:scale-[1.02] active:scale-95"
                     }`}
                   >
                     {isLoading ? (

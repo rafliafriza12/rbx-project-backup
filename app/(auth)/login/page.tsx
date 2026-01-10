@@ -140,13 +140,13 @@ function LoginForm() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
             <button
               onClick={() => router.push("/")}
-              className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/20 hover:border-neon-pink/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300"
+              className="px-8 py-3 bg-white/5 backdrop-blur-sm border-2 border-white/30 hover:border-neon-pink text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 outline-none focus:outline-none focus:ring-2 focus:ring-neon-pink focus:ring-offset-2 focus:ring-offset-primary-800"
             >
               MASUK
             </button>
             <button
               onClick={() => router.push("/register")}
-              className="px-8 py-3 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-105"
+              className="px-8 py-3 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold rounded-xl hover:shadow-xl hover:shadow-neon-pink/50 transition-all duration-300 hover:scale-105 border-2 border-neon-pink/50 outline-none focus:outline-none focus:ring-2 focus:ring-neon-purple focus:ring-offset-2 focus:ring-offset-primary-800"
             >
               DAFTAR
             </button>
@@ -308,15 +308,15 @@ function LoginForm() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full py-3.5 px-4 rounded-xl font-bold text-white transition-all duration-300 ${
+                  className={`w-full py-3.5 px-4 rounded-xl font-bold text-white transition-all duration-300 border-2 outline-none focus:outline-none focus:ring-2 focus:ring-neon-pink focus:ring-offset-2 focus:ring-offset-primary-800 ${
                     isLoading
-                      ? "bg-gray-600 cursor-not-allowed"
-                      : "bg-primary-100/80 hover:shadow-xl hover:shadow-neon-pink/50 hover:scale-[1.02] active:scale-95"
+                      ? "bg-gray-600 cursor-not-allowed border-gray-500"
+                      : "bg-primary-100/80 hover:shadow-xl hover:shadow-neon-pink/50 hover:scale-[1.02] active:scale-95 border-neon-pink/50 hover:border-neon-pink"
                   }`}
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5  mr-2"></div>
                       MASUK...
                     </div>
                   ) : (
