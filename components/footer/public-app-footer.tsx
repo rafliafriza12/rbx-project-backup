@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Sparkles, Zap, Shield, HeartHandshake } from "lucide-react";
+import { Sparkles, Zap, Shield, HeartHandshake, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -15,11 +15,77 @@ interface SiteSettings {
   youtubeUrl?: string;
 }
 
+interface DocumentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  pdfUrl: string;
+}
+
+const DocumentModal: React.FC<DocumentModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  pdfUrl,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      ></div>
+
+      {/* Modal */}
+      <div className="relative w-full max-w-4xl h-[90vh] bg-primary-800 rounded-2xl border border-neon-purple/30 shadow-2xl shadow-neon-purple/20 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neon-purple/20 bg-primary-900/50">
+          <h2 className="text-xl font-bold text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all duration-300"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* PDF Viewer */}
+        <div className="flex-1 bg-white/5">
+          <iframe src={pdfUrl} className="w-full h-full" title={title} />
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-neon-purple/20 bg-primary-900/50 flex justify-between items-center">
+          <a
+            href={pdfUrl}
+            download
+            className="px-4 py-2 text-sm text-neon-pink hover:text-neon-pink/80 transition-colors duration-300"
+          >
+            Download PDF
+          </a>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-neon-pink/30 transition-all duration-300"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PublicAppFooter: React.FC = () => {
   const [settings, setSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Modal states
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Smooth scroll with top offset to avoid navbar overlap
   const scrollToSection = (id: string) => {
@@ -225,22 +291,22 @@ const PublicAppFooter: React.FC = () => {
               </h3>
               <ul className="space-y-3 mb-6">
                 <li>
-                  <Link
-                    href="#"
+                  <button
+                    onClick={() => setShowPrivacyModal(true)}
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Kebijakan Privasi
-                  </Link>
+                  </button>
                 </li>
                 <li>
-                  <Link
-                    href="#"
+                  <button
+                    onClick={() => setShowTermsModal(true)}
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     Syarat & Ketentuan
-                  </Link>
+                  </button>
                 </li>
               </ul>
 
@@ -390,6 +456,20 @@ const PublicAppFooter: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Document Modals */}
+      <DocumentModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="Kebijakan Privasi"
+        pdfUrl="/docs/Kebijakan-Privasi.pdf"
+      />
+      <DocumentModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Syarat dan Ketentuan"
+        pdfUrl="/docs/Syarat-dan-Ketentuan.pdf"
+      />
     </footer>
   );
 };

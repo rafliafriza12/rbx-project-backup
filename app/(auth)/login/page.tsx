@@ -286,22 +286,30 @@ function LoginForm() {
                   </div>
                 </div>
 
-                {/* Remember me */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="rememberMe"
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-neon-pink bg-white/5 border-white/20 rounded focus:ring-neon-pink focus:ring-2"
-                  />
-                  <label
-                    htmlFor="rememberMe"
-                    className="ml-2 text-sm text-white/70"
+                {/* Remember me & Forgot Password */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="rememberMe"
+                      id="rememberMe"
+                      checked={formData.rememberMe}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-neon-pink bg-white/5 border-white/20 rounded focus:ring-neon-pink focus:ring-2"
+                    />
+                    <label
+                      htmlFor="rememberMe"
+                      className="ml-2 text-sm text-white/70"
+                    >
+                      Ingat saya
+                    </label>
+                  </div>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-white/80 hover:text-white/70 transition-colors duration-300"
                   >
-                    Ingat saya
-                  </label>
+                    Lupa Password?
+                  </Link>
                 </div>
 
                 {/* Login button */}
