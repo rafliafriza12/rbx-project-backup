@@ -1823,7 +1823,7 @@ export default function Rbx5Page() {
                   <iframe
                     width="100%"
                     height="160"
-                    src="https://www.youtube.com/embed/0N-1478Qki0"
+                    src="https://youtu.be/MGG2oGEYF3Y"
                     title="Tutorial Cara Membuat GamePass"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
