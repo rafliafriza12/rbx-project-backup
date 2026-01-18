@@ -29,12 +29,12 @@ interface ResellerPackage {
 
 const tierColors = {
   3: {
-    bg: "from-emerald-900/60 via-emerald-800/40 to-emerald-700/50",
-    border: "border-emerald-500/40",
-    glow: "shadow-emerald-500/20",
-    badge: "from-emerald-500 to-emerald-600",
-    text: "text-emerald-400",
-    icon: "text-emerald-400",
+    bg: "from-yellow-900/60 via-yellow-800/40 to-yellow-700/50",
+    border: "border-yellow-500/40",
+    glow: "shadow-yellow-500/20",
+    badge: "from-yellow-500 to-yellow-600",
+    text: "text-yellow-400",
+    icon: "text-yellow-400",
   },
   2: {
     bg: "from-slate-900/60 via-slate-800/40 to-slate-700/50",
@@ -45,19 +45,19 @@ const tierColors = {
     icon: "text-slate-400",
   },
   1: {
-    bg: "from-yellow-900/60 via-yellow-800/40 to-yellow-700/50",
-    border: "border-yellow-500/40",
-    glow: "shadow-yellow-500/20",
-    badge: "from-yellow-500 to-yellow-600",
-    text: "text-yellow-400",
-    icon: "text-yellow-400",
+    bg: "from-emerald-900/60 via-emerald-800/40 to-emerald-700/50",
+    border: "border-emerald-500/40",
+    glow: "shadow-emerald-500/20",
+    badge: "from-emerald-500 to-emerald-600",
+    text: "text-emerald-400",
+    icon: "text-emerald-400",
   },
 };
 
 const tierIcons = {
-  3: Award,
+  3: Crown,
   2: Shield,
-  1: Crown,
+  1: Award,
 };
 
 export default function ResellerPage() {
