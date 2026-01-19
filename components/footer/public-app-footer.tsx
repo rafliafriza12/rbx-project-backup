@@ -19,15 +19,326 @@ interface DocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  pdfUrl: string;
+  type: "privacy" | "terms";
 }
+
+const PrivacyContent = () => (
+  <div className="space-y-6 text-white/80">
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">1. Pendahuluan</h3>
+      <p className="leading-relaxed">
+        Selamat datang di RBXNET. Kami menghargai privasi Anda dan berkomitmen
+        untuk melindungi data pribadi Anda. Kebijakan Privasi ini menjelaskan
+        bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi
+        informasi Anda saat menggunakan layanan kami.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        2. Informasi yang Kami Kumpulkan
+      </h3>
+      <p className="leading-relaxed mb-3">
+        Kami mengumpulkan informasi berikut:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>
+          <span className="text-neon-purple font-medium">Data Identitas:</span>{" "}
+          Nama, alamat email, nomor telepon
+        </li>
+        <li>
+          <span className="text-neon-purple font-medium">
+            Data Akun Roblox:
+          </span>{" "}
+          Username Roblox, User ID (untuk keperluan transaksi)
+        </li>
+        <li>
+          <span className="text-neon-purple font-medium">Data Transaksi:</span>{" "}
+          Riwayat pembelian, metode pembayaran yang digunakan
+        </li>
+        <li>
+          <span className="text-neon-purple font-medium">Data Teknis:</span>{" "}
+          Alamat IP, jenis browser, informasi perangkat
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        3. Penggunaan Informasi
+      </h3>
+      <p className="leading-relaxed mb-3">Informasi Anda digunakan untuk:</p>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>Memproses dan menyelesaikan transaksi</li>
+        <li>Mengirimkan notifikasi terkait pesanan dan layanan</li>
+        <li>Memberikan dukungan pelanggan</li>
+        <li>Meningkatkan layanan dan pengalaman pengguna</li>
+        <li>Mencegah penipuan dan aktivitas ilegal</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        4. Keamanan Data
+      </h3>
+      <p className="leading-relaxed">
+        Kami menerapkan langkah-langkah keamanan teknis dan organisasi yang
+        sesuai untuk melindungi data pribadi Anda dari akses tidak sah,
+        pengungkapan, perubahan, atau penghancuran. Data sensitif dienkripsi dan
+        disimpan dengan aman di server yang terlindungi.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        5. Berbagi Informasi
+      </h3>
+      <p className="leading-relaxed">
+        Kami tidak menjual atau menyewakan data pribadi Anda kepada pihak
+        ketiga. Informasi hanya dibagikan dengan:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4 mt-3">
+        <li>Penyedia layanan pembayaran untuk memproses transaksi</li>
+        <li>Pihak berwenang jika diwajibkan oleh hukum</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">6. Hak Pengguna</h3>
+      <p className="leading-relaxed mb-3">Anda memiliki hak untuk:</p>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>Mengakses data pribadi yang kami simpan</li>
+        <li>Meminta koreksi data yang tidak akurat</li>
+        <li>Meminta penghapusan data Anda</li>
+        <li>Menarik persetujuan penggunaan data</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">7. Cookie</h3>
+      <p className="leading-relaxed">
+        Website kami menggunakan cookie untuk meningkatkan pengalaman browsing
+        Anda. Cookie membantu kami mengingat preferensi Anda dan menyediakan
+        layanan yang lebih personal.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        8. Perubahan Kebijakan
+      </h3>
+      <p className="leading-relaxed">
+        Kami dapat memperbarui Kebijakan Privasi ini dari waktu ke waktu.
+        Perubahan akan diumumkan melalui website kami dan berlaku sejak tanggal
+        publikasi.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">9. Kontak</h3>
+      <p className="leading-relaxed">
+        Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan
+        hubungi kami melalui:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4 mt-3">
+        <li>Email: support@rbxnet.com</li>
+        <li>WhatsApp: Tersedia di halaman kontak</li>
+      </ul>
+    </section>
+
+    <div className="pt-4 border-t border-neon-purple/20">
+      <p className="text-sm text-white/50 italic">
+        Terakhir diperbarui: Januari 2026
+      </p>
+    </div>
+  </div>
+);
+
+const TermsContent = () => (
+  <div className="space-y-6 text-white/80">
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        1. Ketentuan Umum
+      </h3>
+      <p className="leading-relaxed">
+        Dengan menggunakan layanan RBXNET, Anda menyetujui untuk terikat dengan
+        Syarat dan Ketentuan ini. Jika Anda tidak setuju dengan ketentuan ini,
+        mohon untuk tidak menggunakan layanan kami. RBXNET adalah platform
+        independen dan tidak berafiliasi dengan Roblox Corporation.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        2. Layanan yang Disediakan
+      </h3>
+      <p className="leading-relaxed mb-3">
+        RBXNET menyediakan layanan berikut:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>
+          <span className="text-neon-purple font-medium">RBX 5 Hari:</span>{" "}
+          Pembelian Robux dengan pengiriman dalam 5 hari kerja
+        </li>
+        <li>
+          <span className="text-neon-purple font-medium">RBX Instant:</span>{" "}
+          Pembelian Robux dengan pengiriman instan via Gamepass
+        </li>
+        <li>
+          <span className="text-neon-purple font-medium">Gamepass:</span> Jasa
+          pembelian Gamepass Roblox
+        </li>
+        <li>
+          <span className="text-neon-purple font-medium">Reseller:</span>{" "}
+          Program kemitraan untuk reseller
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        3. Persyaratan Pengguna
+      </h3>
+      <p className="leading-relaxed mb-3">
+        Untuk menggunakan layanan kami, Anda harus:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>Berusia minimal 13 tahun atau memiliki izin dari orang tua/wali</li>
+        <li>Memiliki akun Roblox yang aktif dan valid</li>
+        <li>Memberikan informasi yang akurat dan lengkap saat registrasi</li>
+        <li>Menjaga kerahasiaan akun dan password Anda</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        4. Proses Transaksi
+      </h3>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>Semua transaksi harus dilakukan melalui platform RBXNET</li>
+        <li>Pembayaran harus diselesaikan sebelum layanan diproses</li>
+        <li>
+          Pastikan User ID dan informasi Roblox yang diberikan sudah benar
+        </li>
+        <li>
+          Kami tidak bertanggung jawab atas kesalahan informasi yang diberikan
+          pengguna
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        5. Kebijakan Pembatalan & Refund
+      </h3>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>Pembatalan dapat dilakukan sebelum pesanan diproses</li>
+        <li>Refund akan diproses dalam 1-3 hari kerja setelah persetujuan</li>
+        <li>Biaya administrasi mungkin dikenakan untuk pembatalan tertentu</li>
+        <li>Pesanan yang sudah diproses tidak dapat dibatalkan</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">6. Larangan</h3>
+      <p className="leading-relaxed mb-3">Pengguna dilarang untuk:</p>
+      <ul className="list-disc list-inside space-y-2 ml-4">
+        <li>Melakukan penipuan atau memberikan informasi palsu</li>
+        <li>Menggunakan layanan untuk aktivitas ilegal</li>
+        <li>Menyalahgunakan sistem atau mencoba meretas platform</li>
+        <li>
+          Melakukan chargeback atau sengketa pembayaran tanpa alasan yang sah
+        </li>
+        <li>Menjual kembali layanan tanpa izin reseller</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        7. Batasan Tanggung Jawab
+      </h3>
+      <p className="leading-relaxed">
+        RBXNET tidak bertanggung jawab atas kerugian yang timbul akibat:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4 mt-3">
+        <li>Pelanggaran Terms of Service Roblox oleh pengguna</li>
+        <li>Pembekuan atau ban akun Roblox pengguna</li>
+        <li>Kesalahan informasi yang diberikan oleh pengguna</li>
+        <li>Force majeure atau keadaan di luar kendali kami</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        8. Hak Kekayaan Intelektual
+      </h3>
+      <p className="leading-relaxed">
+        Seluruh konten di platform RBXNET, termasuk logo, desain, dan teks,
+        adalah milik RBXNET dan dilindungi oleh hukum hak cipta. Roblox dan
+        Robux adalah merek dagang milik Roblox Corporation.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        9. Penyelesaian Sengketa
+      </h3>
+      <p className="leading-relaxed">
+        Setiap sengketa yang timbul akan diselesaikan secara musyawarah. Jika
+        tidak tercapai kesepakatan, sengketa akan diselesaikan sesuai dengan
+        hukum yang berlaku di Indonesia.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">
+        10. Perubahan Ketentuan
+      </h3>
+      <p className="leading-relaxed">
+        RBXNET berhak mengubah Syarat dan Ketentuan ini kapan saja. Pengguna
+        akan diberitahu tentang perubahan signifikan melalui email atau
+        notifikasi di platform.
+      </p>
+    </section>
+
+    <section>
+      <h3 className="text-lg font-bold text-neon-pink mb-3">11. Kontak</h3>
+      <p className="leading-relaxed">
+        Untuk pertanyaan atau keluhan, silakan hubungi kami melalui:
+      </p>
+      <ul className="list-disc list-inside space-y-2 ml-4 mt-3">
+        <li>Email: support@rbxnet.com</li>
+        <li>WhatsApp: Tersedia di halaman kontak</li>
+        <li>Live Chat: Tersedia di platform</li>
+      </ul>
+    </section>
+
+    <div className="pt-4 border-t border-neon-purple/20">
+      <p className="text-sm text-white/50 italic">
+        Terakhir diperbarui: Januari 2026
+      </p>
+    </div>
+  </div>
+);
 
 const DocumentModal: React.FC<DocumentModalProps> = ({
   isOpen,
   onClose,
   title,
-  pdfUrl,
+  type,
 }) => {
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -39,10 +350,15 @@ const DocumentModal: React.FC<DocumentModalProps> = ({
       ></div>
 
       {/* Modal */}
-      <div className="relative w-full max-w-4xl h-[90vh] bg-primary-800 rounded-2xl border border-neon-purple/30 shadow-2xl shadow-neon-purple/20 overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-3xl max-h-[90vh] bg-gradient-to-br from-primary-800 to-primary-900 rounded-2xl border border-neon-purple/30 shadow-2xl shadow-neon-purple/20 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neon-purple/20 bg-primary-900/50">
-          <h2 className="text-xl font-bold text-white">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neon-purple/20 bg-primary-900/80 sticky top-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-neon-pink to-neon-purple flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-white">{title}</h2>
+          </div>
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all duration-300"
@@ -51,25 +367,18 @@ const DocumentModal: React.FC<DocumentModalProps> = ({
           </button>
         </div>
 
-        {/* PDF Viewer */}
-        <div className="flex-1 bg-white/5">
-          <iframe src={pdfUrl} className="w-full h-full" title={title} />
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {type === "privacy" ? <PrivacyContent /> : <TermsContent />}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-neon-purple/20 bg-primary-900/50 flex justify-between items-center">
-          <a
-            href={pdfUrl}
-            download
-            className="px-4 py-2 text-sm text-neon-pink hover:text-neon-pink/80 transition-colors duration-300"
-          >
-            Download PDF
-          </a>
+        <div className="px-6 py-4 border-t border-neon-purple/20 bg-primary-900/80 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-neon-pink/30 transition-all duration-300"
+            className="px-6 py-2.5 bg-gradient-to-r from-neon-pink to-neon-purple text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-neon-pink/30 transition-all duration-300 hover:scale-105"
           >
-            Tutup
+            Saya Mengerti
           </button>
         </div>
       </div>
@@ -334,7 +643,7 @@ const PublicAppFooter: React.FC = () => {
                         <Link
                           href={`https://wa.me/${settings?.whatsappNumber?.replace(
                             /\D/g,
-                            ""
+                            "",
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -462,13 +771,13 @@ const PublicAppFooter: React.FC = () => {
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
         title="Kebijakan Privasi"
-        pdfUrl="/docs/Kebijakan-Privasi.pdf"
+        type="privacy"
       />
       <DocumentModal
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
         title="Syarat dan Ketentuan"
-        pdfUrl="/docs/Syarat-dan-Ketentuan.pdf"
+        type="terms"
       />
     </footer>
   );

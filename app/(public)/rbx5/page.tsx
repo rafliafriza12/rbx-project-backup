@@ -118,7 +118,7 @@ export default function Rbx5Page() {
   const [showMinimarketOptions, setShowMinimarketOptions] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null
+    null,
   );
 
   const router = useRouter();
@@ -161,7 +161,7 @@ export default function Rbx5Page() {
 
     try {
       const response = await fetch(
-        `/api/user-info?username=${encodeURIComponent(username.trim())}`
+        `/api/user-info?username=${encodeURIComponent(username.trim())}`,
       );
       const data = await response.json();
 
@@ -301,7 +301,7 @@ export default function Rbx5Page() {
           const data = await response.json();
           // Sort products by robuxAmount ascending
           const sortedProducts = (data.products || []).sort(
-            (a: Product, b: Product) => a.robuxAmount - b.robuxAmount
+            (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
           );
           setProducts(sortedProducts);
 
@@ -403,7 +403,7 @@ export default function Rbx5Page() {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-        }
+        },
       );
     }
   }, [robux, lastCheckedRobuxAmount]);
@@ -412,7 +412,7 @@ export default function Rbx5Page() {
   useEffect(() => {
     if (robux > 0 && products.length > 0) {
       const matchingProduct = products.find(
-        (product) => product.robuxAmount === robux
+        (product) => product.robuxAmount === robux,
       );
       if (matchingProduct) {
         setSelectedPackage(matchingProduct);
@@ -481,20 +481,20 @@ export default function Rbx5Page() {
 
       if (!userId) {
         toast.error(
-          "User ID tidak ditemukan. Mohon cari username Roblox terlebih dahulu."
+          "User ID tidak ditemukan. Mohon cari username Roblox terlebih dahulu.",
         );
         setIsCheckingGamepass(false);
         return;
       }
 
       console.log(
-        `🔍 Checking gamepass for User ID: ${userId}, expected price: ${expectedRobux} Robux`
+        `🔍 Checking gamepass for User ID: ${userId}, expected price: ${expectedRobux} Robux`,
       );
 
       // Use NEW stable API endpoint (User-based GamePass API)
       // This endpoint is reliable and returns all gamepasses owned by the user
       const response = await fetch(
-        `/api/check-gamepass?userId=${userId}&expectedRobux=${expectedRobux}`
+        `/api/check-gamepass?userId=${userId}&expectedRobux=${expectedRobux}`,
       );
 
       if (!response.ok) {
@@ -506,13 +506,13 @@ export default function Rbx5Page() {
       // Log result
       if (data.success) {
         console.log(
-          `✅ GamePass found! Name: ${data.gamepass?.name}, Price: ${data.gamepass?.price} Robux`
+          `✅ GamePass found! Name: ${data.gamepass?.name}, Price: ${data.gamepass?.price} Robux`,
         );
       } else {
         console.log(
           `❌ GamePass not found. Total gamepasses: ${
             data.allGamepasses?.length || 0
-          }`
+          }`,
         );
       }
 
@@ -534,7 +534,7 @@ export default function Rbx5Page() {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-          }
+          },
         );
       } else {
         // GamePass not found, show error with existing gamepasses
@@ -564,7 +564,7 @@ export default function Rbx5Page() {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-        }
+        },
       );
     } finally {
       setIsCheckingGamepass(false);
@@ -1288,8 +1288,8 @@ export default function Rbx5Page() {
                       userInfo
                         ? "bg-gradient-to-r from-emerald-500/30 to-emerald-600/20 border-2 border-emerald-400/60"
                         : username && userSearchError
-                        ? "bg-gradient-to-r from-red-500/30 to-red-600/20 border-2 border-red-400/60"
-                        : "bg-gradient-to-r from-primary-600/30 to-primary-700/20 border-2 border-primary-200/50 focus:border-primary-100/80"
+                          ? "bg-gradient-to-r from-red-500/30 to-red-600/20 border-2 border-red-400/60"
+                          : "bg-gradient-to-r from-primary-600/30 to-primary-700/20 border-2 border-primary-200/50 focus:border-primary-100/80"
                     } placeholder:text-white/50`}
                   />
                   {isSearchingUser ? (
@@ -1492,10 +1492,10 @@ export default function Rbx5Page() {
                       {!selectedPlace
                         ? "Pilih game/place tempat RBX akan dikirim."
                         : robux <= 0
-                        ? "Pilih jumlah RBX yang ingin dibeli."
-                        : !gamepassInstructionShown
-                        ? "Buat gamepass sesuai instruksi untuk melanjutkan."
-                        : "Semua data sudah lengkap. Klik tombol di bawah untuk melanjutkan ke pembayaran."}
+                          ? "Pilih jumlah RBX yang ingin dibeli."
+                          : !gamepassInstructionShown
+                            ? "Buat gamepass sesuai instruksi untuk melanjutkan."
+                            : "Semua data sudah lengkap. Klik tombol di bawah untuk melanjutkan ke pembayaran."}
                     </p>
                   </div>
 
@@ -1823,7 +1823,7 @@ export default function Rbx5Page() {
                   <iframe
                     width="100%"
                     height="160"
-                    src="https://www.youtube.com/embed/0N-1478Qki0"
+                    src="https://www.youtube.com/embed/MGG2oGEYF3Y?si=SDo3Yow64Dpbz9co"
                     title="Tutorial Cara Membuat GamePass"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
