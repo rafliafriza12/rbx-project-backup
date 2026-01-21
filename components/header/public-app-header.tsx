@@ -248,7 +248,7 @@ const PublicAppHeader: React.FC = () => {
               href={"/register"}
               className="relative px-6 py-2.5 btn-neon-primary text-white font-bold rounded-xl border border-neon-purple/50 hover:border-neon-pink/50 transition-all duration-300  group overflow-hidden"
             >
-              <span className="relative z-10">Sign up</span>
+              <span className="relative z-10">Daftar</span>
               <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-purple opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
             </Link>
 
@@ -256,7 +256,7 @@ const PublicAppHeader: React.FC = () => {
               href={"/login"}
               className="relative px-6 py-2.5 border-2 border-neon-purple text-neon-purple font-bold rounded-xl hover:bg-neon-purple hover:text-white transition-all duration-300 group overflow-hidden backdrop-blur-sm"
             >
-              <span className="relative z-10">Login</span>
+              <span className="relative z-10">Masuk</span>
               <div className="absolute inset-0 bg-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </Link>
           </>
@@ -442,7 +442,7 @@ const PublicAppHeader: React.FC = () => {
                                     transition-all duration-300 shadow-[0_0_20px_rgba(179,84,195,0.4)] hover:shadow-[0_0_30px_rgba(246,58,230,0.6)] 
                                     border border-neon-purple/50 hover:border-neon-pink/50 group overflow-hidden"
               >
-                <span className="relative z-10">Sign up</span>
+                <span className="relative z-10">Daftar</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-purple opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
               </Link>
 
@@ -452,7 +452,7 @@ const PublicAppHeader: React.FC = () => {
                 className="relative border-2 border-neon-purple text-neon-purple py-3 px-4 rounded-xl font-bold text-center
                                     hover:bg-neon-purple hover:text-white transition-all duration-300 group overflow-hidden backdrop-blur-sm"
               >
-                <span className="relative z-10">Login</span>
+                <span className="relative z-10">Masuk</span>
                 <div className="absolute inset-0 bg-neon-purple opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
             </>
