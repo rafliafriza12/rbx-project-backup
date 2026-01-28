@@ -24,7 +24,7 @@ async function activateResellerPackage(transaction: any) {
     }
 
     const resellerPackage = await ResellerPackage.findById(
-      transaction.serviceId
+      transaction.serviceId,
     );
     if (!resellerPackage) {
       console.log("Reseller package not found:", transaction.serviceId);
@@ -46,8 +46,8 @@ async function activateResellerPackage(transaction: any) {
       `✅ Reseller activated for user ${user.email}: Tier ${
         resellerPackage.tier
       } (${resellerPackage.name}), Expires: ${expiryDate.toLocaleDateString(
-        "id-ID"
-      )}`
+        "id-ID",
+      )}`,
     );
 
     return {
@@ -70,7 +70,7 @@ async function processGamepassPurchase(transaction: any) {
 
     console.log(
       "Processing gamepass purchase for transaction:",
-      transaction.invoiceId
+      transaction.invoiceId,
     );
     console.log("Gamepass data:", transaction.gamepass);
 
@@ -88,7 +88,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -105,12 +105,12 @@ async function processGamepassPurchase(transaction: any) {
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
-      }
+      },
     );
 
     const updateAccountResponse = await updateStockAccountHandler(
       updateRequest,
-      { params: Promise.resolve({ id: suitableAccount._id.toString() }) }
+      { params: Promise.resolve({ id: suitableAccount._id.toString() }) },
     );
 
     if (!updateAccountResponse.ok) {
@@ -119,7 +119,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         "Pesanan sedang diproses",
-        null
+        null,
       );
       return;
     }
@@ -132,7 +132,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -144,7 +144,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -174,7 +174,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "completed",
         `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
-        null
+        null,
       );
 
       // Update account data setelah purchase
@@ -187,7 +187,7 @@ async function processGamepassPurchase(transaction: any) {
           body: JSON.stringify({
             robloxCookie: suitableAccount.robloxCookie,
           }),
-        }
+        },
       );
 
       await updateStockAccountHandler(postUpdateRequest, {
@@ -199,7 +199,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
     }
   } catch (error) {
@@ -208,7 +208,7 @@ async function processGamepassPurchase(transaction: any) {
       "order",
       "failed",
       `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      null
+      null,
     );
   }
 }
@@ -250,12 +250,63 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Parse callback data
-    const callbackData = await request.json();
+    // Parse callback data - Duitku sends as application/x-www-form-urlencoded
+    let callbackData: Record<string, any> = {};
+
+    const contentType = request.headers.get("content-type") || "";
+    console.log("📥 Duitku Webhook Content-Type:", contentType);
+
+    try {
+      if (contentType.includes("application/json")) {
+        // JSON format
+        callbackData = await request.json();
+      } else if (contentType.includes("application/x-www-form-urlencoded")) {
+        // URL-encoded form data
+        const formData = await request.formData();
+        formData.forEach((value, key) => {
+          callbackData[key] = value;
+        });
+      } else {
+        // Try to parse as text and determine format
+        const bodyText = await request.text();
+        console.log("📥 Duitku Webhook Raw Body:", bodyText);
+
+        // Try JSON first
+        try {
+          callbackData = JSON.parse(bodyText);
+        } catch {
+          // Try URL-encoded format
+          const params = new URLSearchParams(bodyText);
+          params.forEach((value, key) => {
+            callbackData[key] = value;
+          });
+        }
+      }
+    } catch (parseError) {
+      console.error("Error parsing Duitku webhook data:", parseError);
+
+      // Last resort: try to get raw body and parse as URL-encoded
+      try {
+        const clonedRequest = request.clone();
+        const bodyText = await clonedRequest.text();
+        console.log("📥 Duitku Webhook Raw Body (fallback):", bodyText);
+
+        const params = new URLSearchParams(bodyText);
+        params.forEach((value, key) => {
+          callbackData[key] = value;
+        });
+      } catch (fallbackError) {
+        console.error("Fallback parsing also failed:", fallbackError);
+        return NextResponse.json(
+          { error: "Failed to parse webhook data" },
+          { status: 400 },
+        );
+      }
+    }
 
     console.log(
       "📥 Duitku Webhook received:",
-      JSON.stringify(callbackData, null, 2)
+      JSON.stringify(callbackData, null, 2),
     );
 
     const {
@@ -275,7 +326,7 @@ export async function POST(request: NextRequest) {
       console.error("Missing required fields in Duitku callback");
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -286,7 +337,7 @@ export async function POST(request: NextRequest) {
       merchantCode,
       amount,
       merchantOrderId,
-      signature
+      signature,
     );
 
     if (!isValidSignature) {
@@ -311,7 +362,7 @@ export async function POST(request: NextRequest) {
         console.error("Transaction not found for order_id:", merchantOrderId);
         return NextResponse.json(
           { error: "Transaction not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
@@ -322,7 +373,7 @@ export async function POST(request: NextRequest) {
         : await Transaction.find({ midtransOrderId: merchantOrderId });
 
     console.log(
-      `Found ${targetTransactions.length} transaction(s) with order_id: ${merchantOrderId}`
+      `Found ${targetTransactions.length} transaction(s) with order_id: ${merchantOrderId}`,
     );
 
     // Update Duitku reference for all transactions
@@ -356,7 +407,7 @@ export async function POST(request: NextRequest) {
           "payment",
           statusMapping.paymentStatus,
           statusMessage,
-          null
+          null,
         );
 
         // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
@@ -369,7 +420,7 @@ export async function POST(request: NextRequest) {
             // Update spendedMoney user (hanya sekali per user per order)
             const isFirstTransaction =
               targetTransactions.findIndex((t) =>
-                t._id.equals(transaction._id)
+                t._id.equals(transaction._id),
               ) === 0;
 
             if (isFirstTransaction) {
@@ -377,14 +428,14 @@ export async function POST(request: NextRequest) {
               if (user) {
                 const totalOrderAmount = targetTransactions.reduce(
                   (sum, t) => sum + (t.finalAmount || t.totalAmount),
-                  0
+                  0,
                 );
 
                 user.spendedMoney += totalOrderAmount;
                 await user.save();
 
                 console.log(
-                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`
+                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`,
                 );
               }
             }
@@ -428,7 +479,7 @@ export async function POST(request: NextRequest) {
           "order",
           statusMapping.orderStatus,
           `Order status updated from Duitku callback`,
-          null
+          null,
         );
       }
 
@@ -443,7 +494,7 @@ export async function POST(request: NextRequest) {
     // Process robux_5_hari transactions sequentially
     for (const transaction of rbx5TransactionsToProcess) {
       console.log(
-        `Processing robux_5_hari transaction: ${transaction.invoiceId}`
+        `Processing robux_5_hari transaction: ${transaction.invoiceId}`,
       );
       await processGamepassPurchase(transaction);
     }
@@ -473,7 +524,7 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
