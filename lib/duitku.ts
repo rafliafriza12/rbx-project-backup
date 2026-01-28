@@ -170,7 +170,7 @@ class DuitkuService {
       console.log("=== DUITKU CONFIG DEBUG ===");
       console.log(
         "Merchant Code:",
-        this.merchantCode ? "[PRESENT]" : "[MISSING]"
+        this.merchantCode ? "[PRESENT]" : "[MISSING]",
       );
       console.log("API Key:", this.apiKey ? "[PRESENT]" : "[MISSING]");
       console.log("Is Production:", this.isProduction);
@@ -193,7 +193,7 @@ class DuitkuService {
   private generateSignature(
     merchantCode: string,
     merchantOrderId: string,
-    paymentAmount: number
+    paymentAmount: number,
   ): string {
     const signatureString = `${merchantCode}${merchantOrderId}${paymentAmount}${this.apiKey}`;
     return crypto.createHash("md5").update(signatureString).digest("hex");
@@ -205,7 +205,7 @@ class DuitkuService {
   generateCallbackSignature(
     merchantCode: string,
     amount: string,
-    merchantOrderId: string
+    merchantOrderId: string,
   ): string {
     const signatureString = `${merchantCode}${amount}${merchantOrderId}${this.apiKey}`;
     return crypto.createHash("md5").update(signatureString).digest("hex");
@@ -218,12 +218,12 @@ class DuitkuService {
     merchantCode: string,
     amount: string,
     merchantOrderId: string,
-    receivedSignature: string
+    receivedSignature: string,
   ): boolean {
     const expectedSignature = this.generateCallbackSignature(
       merchantCode,
       amount,
-      merchantOrderId
+      merchantOrderId,
     );
     return expectedSignature === receivedSignature;
   }
@@ -251,7 +251,7 @@ class DuitkuService {
     const signature = this.generateSignature(
       this.merchantCode,
       params.orderId,
-      params.amount
+      params.amount,
     );
 
     const requestBody = {
@@ -289,11 +289,25 @@ class DuitkuService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      // Get raw response text first
+      const responseText = await response.text();
+      console.log("Duitku Raw Response:", responseText);
+
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse Duitku response as JSON:", responseText);
+        throw new Error(
+          `Duitku API returned invalid response: ${responseText.substring(0, 200)}`,
+        );
+      }
 
       console.log("Duitku Response:", JSON.stringify(data, null, 2));
 
@@ -354,7 +368,7 @@ class DuitkuService {
     const signature = this.generateSignature(
       this.merchantCode,
       merchantOrderId,
-      0 // Amount not needed for check status
+      0, // Amount not needed for check status
     );
 
     // For check status, signature is different: MD5(merchantCode + merchantOrderId + apiKey)
@@ -378,7 +392,23 @@ class DuitkuService {
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      // Get raw response text first
+      const responseText = await response.text();
+      console.log("Duitku Check Status Raw Response:", responseText);
+
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(
+          "Failed to parse Duitku check status response as JSON:",
+          responseText,
+        );
+        throw new Error(
+          `Duitku API returned invalid response: ${responseText.substring(0, 200)}`,
+        );
+      }
 
       console.log("Duitku Check Status Response:", data);
 
@@ -436,10 +466,26 @@ class DuitkuService {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(requestBody),
-        }
+        },
       );
 
-      const data = await response.json();
+      // Get raw response text first
+      const responseText = await response.text();
+      console.log("Duitku Get Payment Methods Raw Response:", responseText);
+
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(
+          "Failed to parse Duitku payment methods response as JSON:",
+          responseText,
+        );
+        throw new Error(
+          `Duitku API returned invalid response: ${responseText.substring(0, 200)}`,
+        );
+      }
 
       console.log("Duitku Get Payment Methods Response:", data);
 
@@ -447,7 +493,7 @@ class DuitkuService {
         throw new Error(
           `Duitku Get Payment Methods Error: ${
             data.responseMessage || "Unknown error"
-          }`
+          }`,
         );
       }
 
