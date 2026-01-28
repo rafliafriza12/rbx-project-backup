@@ -48,9 +48,9 @@ const PrivacyContent = () => (
         </li>
         <li>
           <span className="text-neon-purple font-medium">
-            Data Akun Roblox:
+            Data Akun Rbx:
           </span>{" "}
-          Username Roblox, User ID (untuk keperluan transaksi)
+          Username Rbx, User ID (untuk keperluan transaksi)
         </li>
         <li>
           <span className="text-neon-purple font-medium">Data Transaksi:</span>{" "}
