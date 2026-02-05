@@ -582,7 +582,7 @@ const PublicAppFooter: React.FC = () => {
                 <li>
                   <Link
                     href="/https://youtu.be/MGG2oGEYF3Y"
-                    onClick={(e) => handleAnchorClick(e, "#contact")}
+                    onClick={(e) => handleAnchorClick(e, "/https://youtu.be/MGG2oGEYF3Y")}
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
