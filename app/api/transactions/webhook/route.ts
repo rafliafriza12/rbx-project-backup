@@ -24,7 +24,7 @@ async function activateResellerPackage(transaction: any) {
     }
 
     const resellerPackage = await ResellerPackage.findById(
-      transaction.serviceId
+      transaction.serviceId,
     );
     if (!resellerPackage) {
       console.log("Reseller package not found:", transaction.serviceId);
@@ -46,8 +46,8 @@ async function activateResellerPackage(transaction: any) {
       `✅ Reseller activated for user ${user.email}: Tier ${
         resellerPackage.tier
       } (${resellerPackage.name}), Expires: ${expiryDate.toLocaleDateString(
-        "id-ID"
-      )}`
+        "id-ID",
+      )}`,
     );
 
     return {
@@ -70,7 +70,7 @@ async function processGamepassPurchase(transaction: any) {
 
     console.log(
       "Processing gamepass purchase for transaction:",
-      transaction.invoiceId
+      transaction.invoiceId,
     );
     console.log("Gamepass data:", transaction.gamepass);
 
@@ -89,7 +89,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -106,12 +106,12 @@ async function processGamepassPurchase(transaction: any) {
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
-      }
+      },
     );
 
     const updateAccountResponse = await updateStockAccountHandler(
       updateRequest,
-      { params: Promise.resolve({ id: suitableAccount._id.toString() }) }
+      { params: Promise.resolve({ id: suitableAccount._id.toString() }) },
     );
 
     if (!updateAccountResponse.ok) {
@@ -120,7 +120,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         "Pesanan sedang diproses",
-        null
+        null,
       );
       return;
     }
@@ -133,7 +133,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -145,7 +145,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -175,7 +175,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "completed",
         `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
-        null
+        null,
       );
 
       // Update account data setelah purchase (using direct import)
@@ -188,7 +188,7 @@ async function processGamepassPurchase(transaction: any) {
           body: JSON.stringify({
             robloxCookie: suitableAccount.robloxCookie,
           }),
-        }
+        },
       );
 
       await updateStockAccountHandler(postUpdateRequest, {
@@ -196,12 +196,29 @@ async function processGamepassPurchase(transaction: any) {
       });
     } else {
       console.error("Gamepass purchase failed:", purchaseResult.message);
-      await transaction.updateStatus(
-        "order",
-        "pending",
-        `Pesanan sedang diproses`,
-        null
-      );
+
+      // Check if it's a price mismatch error
+      const isPriceMismatch =
+        purchaseResult.message?.includes("Harga gamepass tidak sesuai") ||
+        purchaseResult.expectedPrice !== undefined;
+
+      if (isPriceMismatch) {
+        // Price mismatch - set to pending with detailed message
+        await transaction.updateStatus(
+          "order",
+          "pending",
+          `Pembelian ditunda: ${purchaseResult.message || "Harga gamepass berubah"}. Harga database: ${purchaseResult.expectedPrice || transaction.gamepass?.price} Robux, Harga di Roblox: ${purchaseResult.actualPrice || "tidak diketahui"} Robux. Silakan hubungi admin.`,
+          null,
+        );
+      } else {
+        // Other errors - set to pending with generic message
+        await transaction.updateStatus(
+          "order",
+          "pending",
+          `Pesanan sedang diproses. ${purchaseResult.message || ""}`,
+          null,
+        );
+      }
     }
   } catch (error) {
     console.error("Error processing gamepass purchase:", error);
@@ -209,7 +226,7 @@ async function processGamepassPurchase(transaction: any) {
       "order",
       "pending",
       `Pesanan sedang diproses`,
-      null
+      null,
     );
   }
 }
@@ -230,14 +247,25 @@ export async function POST(request: NextRequest) {
       fraud_status,
       payment_type,
       transaction_id,
+      acquirer, // For QRIS - which acquirer processed it (gopay, etc.)
+      issuer, // For QRIS - which app was used to pay
+      shopeepay_reference_number, // For ShopeePay
+      settlement_time, // When payment was settled
     } = body;
 
-    console.log("Midtrans Webhook received:", {
+    console.log("📥 Midtrans Webhook received:", {
       order_id,
       transaction_status,
       status_code,
       payment_type,
+      transaction_id,
+      acquirer,
+      issuer,
+      settlement_time,
     });
+
+    // Log full body for debugging (remove in production)
+    console.log("Full webhook body:", JSON.stringify(body, null, 2));
 
     // Verifikasi signature
     const midtransService = new MidtransService();
@@ -263,16 +291,16 @@ export async function POST(request: NextRequest) {
       console.error("Transaction not found for order_id:", order_id);
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     console.log(
-      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`
+      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`,
     );
 
     console.log(
-      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`
+      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`,
     );
 
     // Update transaction ID dari Midtrans untuk semua transactions
@@ -288,7 +316,7 @@ export async function POST(request: NextRequest) {
     // Map status Midtrans ke status aplikasi
     const statusMapping = midtransService.mapMidtransStatus(
       transaction_status,
-      payment_type
+      payment_type,
     );
 
     // Process each transaction
@@ -305,7 +333,7 @@ export async function POST(request: NextRequest) {
           "payment",
           statusMapping.paymentStatus,
           `Payment ${transaction_status} via ${payment_type}. Midtrans Transaction ID: ${transaction_id}`,
-          null
+          null,
         );
 
         // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
@@ -327,14 +355,14 @@ export async function POST(request: NextRequest) {
                 // Sum total dari SEMUA transactions dalam order ini
                 const totalOrderAmount = transactions.reduce(
                   (sum, t) => sum + (t.finalAmount || t.totalAmount),
-                  0
+                  0,
                 );
 
                 user.spendedMoney += totalOrderAmount;
                 await user.save();
 
                 console.log(
-                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`
+                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`,
                 );
               }
             }
@@ -353,7 +381,7 @@ export async function POST(request: NextRequest) {
           try {
             console.log(
               "Processing reseller package activation for transaction:",
-              transaction.invoiceId
+              transaction.invoiceId,
             );
             const activationResult = await activateResellerPackage(transaction);
 
@@ -364,8 +392,8 @@ export async function POST(request: NextRequest) {
                 } (${activationResult.packageName}), Discount: ${
                   activationResult.discount
                 }%, Expires: ${activationResult.expiryDate.toLocaleDateString(
-                  "id-ID"
-                )}`
+                  "id-ID",
+                )}`,
               );
 
               // Update order status to completed on successful activation
@@ -375,14 +403,14 @@ export async function POST(request: NextRequest) {
                 `Reseller Tier ${
                   activationResult.newTier
                 } berhasil diaktifkan hingga ${activationResult.expiryDate.toLocaleDateString(
-                  "id-ID"
+                  "id-ID",
                 )}`,
-                null
+                null,
               );
             } else {
               console.log(
                 "❌ Reseller package activation failed for transaction:",
-                transaction.invoiceId
+                transaction.invoiceId,
               );
 
               // Update order status to pending if activation fails
@@ -390,7 +418,7 @@ export async function POST(request: NextRequest) {
                 "order",
                 "pending",
                 "Gagal mengaktifkan reseller package. Silakan hubungi admin.",
-                null
+                null,
               );
             }
           } catch (resellerError) {
@@ -405,7 +433,7 @@ export async function POST(request: NextRequest) {
                   ? resellerError.message
                   : "Unknown error"
               }`,
-              null
+              null,
             );
           }
         }
@@ -428,13 +456,13 @@ export async function POST(request: NextRequest) {
         statusMapping.paymentStatus === "expired"
       ) {
         console.log(
-          `⏰ Payment expired for transaction ${transaction.invoiceId}, cancelling order...`
+          `⏰ Payment expired for transaction ${transaction.invoiceId}, cancelling order...`,
         );
         await transaction.updateStatus(
           "order",
           "cancelled",
           `Pesanan dibatalkan karena pembayaran sudah kadaluarsa (expired)`,
-          null
+          null,
         );
       }
       // Handle payment cancelled or denied - force order status to cancelled
@@ -443,7 +471,7 @@ export async function POST(request: NextRequest) {
         statusMapping.paymentStatus === "cancelled"
       ) {
         console.log(
-          `❌ Payment ${transaction_status} for transaction ${transaction.invoiceId}, cancelling order...`
+          `❌ Payment ${transaction_status} for transaction ${transaction.invoiceId}, cancelling order...`,
         );
         await transaction.updateStatus(
           "order",
@@ -451,7 +479,7 @@ export async function POST(request: NextRequest) {
           `Pesanan dibatalkan karena pembayaran ${
             transaction_status === "cancel" ? "dibatalkan" : "ditolak"
           }`,
-          null
+          null,
         );
       }
       // Update order status jika berubah dan sesuai kondisi (untuk status lainnya)
@@ -472,7 +500,7 @@ export async function POST(request: NextRequest) {
             "order",
             statusMapping.orderStatus,
             `Order status updated based on payment ${transaction_status}`,
-            null
+            null,
           );
         }
       }
@@ -491,7 +519,7 @@ export async function POST(request: NextRequest) {
     // Tapi tetap handle sebagai array untuk robustness
     if (rbx5TransactionsToProcess.length > 0) {
       console.log(
-        `Processing ${rbx5TransactionsToProcess.length} Rbx5 gamepass transaction(s)`
+        `Processing ${rbx5TransactionsToProcess.length} Rbx5 gamepass transaction(s)`,
       );
 
       for (const rbx5Transaction of rbx5TransactionsToProcess) {
@@ -500,7 +528,7 @@ export async function POST(request: NextRequest) {
         } catch (gamepassError) {
           console.error(
             `Error processing gamepass for ${rbx5Transaction.invoiceId}:`,
-            gamepassError
+            gamepassError,
           );
           // Continue with other transactions even if one fails
         }
@@ -517,7 +545,7 @@ export async function POST(request: NextRequest) {
       if (firstTransaction.customerInfo?.email) {
         try {
           console.log(
-            `Sending invoice email to ${firstTransaction.customerInfo.email} for ${transactions.length} transaction(s)`
+            `Sending invoice email to ${firstTransaction.customerInfo.email} for ${transactions.length} transaction(s)`,
           );
           await EmailService.sendInvoiceEmail(firstTransaction);
           console.log("Invoice email sent successfully");
@@ -553,7 +581,7 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 200 }
+      { status: 200 },
     );
   }
 }
@@ -569,7 +597,7 @@ export async function GET(request: NextRequest) {
     if (!orderId) {
       return NextResponse.json(
         { error: "order_id parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -585,14 +613,14 @@ export async function GET(request: NextRequest) {
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Map dan update status jika perlu
     const statusMapping = midtransService.mapMidtransStatus(
       midtransStatus.transaction_status,
-      midtransStatus.fraud_status
+      midtransStatus.fraud_status,
     );
 
     let updated = false;
@@ -605,7 +633,7 @@ export async function GET(request: NextRequest) {
         "payment",
         statusMapping.paymentStatus,
         `Manual status check: ${midtransStatus.transaction_status}`,
-        null
+        null,
       );
       updated = true;
 
@@ -626,7 +654,7 @@ export async function GET(request: NextRequest) {
             await user.save();
 
             console.log(
-              `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`
+              `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`,
             );
           }
         } catch (userUpdateError) {
@@ -648,7 +676,7 @@ export async function GET(request: NextRequest) {
     console.error("Error checking transaction status:", error);
     return NextResponse.json(
       { error: "Failed to check transaction status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -113,7 +113,7 @@ export default function HomePage() {
 
   // Live Transactions state
   const [liveTransactions, setLiveTransactions] = useState<LiveTransaction[]>(
-    []
+    [],
   );
   const [loadingTransactions, setLoadingTransactions] = useState(true);
 
@@ -178,7 +178,7 @@ export default function HomePage() {
         "🎯 Attempting scroll to:",
         hashTarget,
         "Element found:",
-        !!element
+        !!element,
       );
 
       if (element) {
@@ -258,7 +258,7 @@ export default function HomePage() {
         if (data.success && data.data) {
           // Filter only gamepasses that should be shown on homepage
           const homepageGamepasses = data.data.filter(
-            (gamepass: Gamepass) => gamepass.showOnHomepage
+            (gamepass: Gamepass) => gamepass.showOnHomepage,
           );
           setGamepasses(homepageGamepasses);
         }
@@ -456,7 +456,7 @@ export default function HomePage() {
     if (banners.length > 0) {
       const interval = setInterval(() => {
         setCurrentBannerIndex((prevIndex) =>
-          prevIndex === banners.length - 1 ? 0 : prevIndex + 1
+          prevIndex === banners.length - 1 ? 0 : prevIndex + 1,
         );
       }, 4000); // Change banner every 4 seconds
 
@@ -540,7 +540,7 @@ export default function HomePage() {
                   <div
                     key={banner.id}
                     className={`absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer ${getPositionClasses(
-                      position
+                      position,
                     )}`}
                     style={{
                       transform: cardStyle.transform,
@@ -1212,7 +1212,7 @@ export default function HomePage() {
                           <span className="hidden sm:inline">Mulai dari </span>
                           Rp{" "}
                           {Math.min(
-                            ...gamepass.item.map((item) => item.price)
+                            ...gamepass.item.map((item) => item.price),
                           ).toLocaleString()}
                         </div>
                       </div>
@@ -1525,7 +1525,7 @@ export default function HomePage() {
                 <Link
                   href={`https://wa.me/${settings?.whatsappNumber?.replace(
                     /\D/g,
-                    ""
+                    "",
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1646,7 +1646,7 @@ export default function HomePage() {
                 <Link
                   href={`https://wa.me/${settings?.whatsappNumber?.replace(
                     /\D/g,
-                    ""
+                    "",
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1987,7 +1987,7 @@ export default function HomePage() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <a
-                    href="https://wa.me/6285753305598"
+                    href={`https://wa.me/${settings.whatsappNumber}`}
                     target="_blank"
                     className="group relative inline-flex justify-center items-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-400/30"
                   >

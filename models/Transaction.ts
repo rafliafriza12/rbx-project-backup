@@ -178,6 +178,13 @@ const transactionSchema = new mongoose.Schema(
     redirectUrl: {
       type: String,
     },
+    // Midtrans GoPay/QRIS Core API fields
+    qrCodeUrl: {
+      type: String,
+    },
+    qrString: {
+      type: String,
+    },
 
     // Data Pembayaran Duitku
     duitkuOrderId: {
@@ -296,7 +303,7 @@ const transactionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes untuk performa (menghapus index yang sudah unique di schema)
@@ -344,7 +351,7 @@ transactionSchema.methods.updateStatus = function (
   statusType: "payment" | "order",
   newStatus: string,
   notes?: string,
-  updatedBy?: any
+  updatedBy?: any,
 ) {
   // Sanitize: Convert "canceled" to "cancelled"
   const sanitizedStatus = newStatus === "canceled" ? "cancelled" : newStatus;

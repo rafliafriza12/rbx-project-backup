@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     console.log("isAdmin:", isAdmin);
     console.log(
       "All search params:",
-      Object.fromEntries(searchParams.entries())
+      Object.fromEntries(searchParams.entries()),
     );
 
     // Build query
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
             paymentFee: transactions[0].paymentFee,
             midtransOrderId: transactions[0].midtransOrderId,
           }
-        : "No transactions found"
+        : "No transactions found",
     );
 
     // Group multi-checkout transactions
@@ -192,18 +192,18 @@ export async function GET(request: NextRequest) {
           if (relatedTransactions.length > 0) {
             transactionObj.isMultiCheckout = true;
             transactionObj.relatedTransactions = relatedTransactions.map((t) =>
-              t.toObject()
+              t.toObject(),
             );
           }
         }
 
         return transactionObj;
-      })
+      }),
     );
 
     console.log(
       "Processed transactions with multi-checkout grouping:",
-      processedTransactions.length
+      processedTransactions.length,
     );
     if (processedTransactions.length > 0) {
       console.log("First processed transaction:", {
@@ -276,7 +276,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching transactions:", error);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
 
     console.log(
       "Transaction type:",
-      hasItemsArray ? "MULTI-ITEM (Direct Purchase)" : "SINGLE-ITEM"
+      hasItemsArray ? "MULTI-ITEM (Direct Purchase)" : "SINGLE-ITEM",
     );
 
     // If has items array, handle as multi-item transaction
@@ -311,7 +311,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating transaction:", error);
     return NextResponse.json(
       { error: "Failed to create transaction" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -380,7 +380,7 @@ async function handleMultiItemDirectPurchase(body: any) {
           validPaymentMethodId = paymentMethodDoc._id;
           paymentMethodName = paymentMethodDoc.name;
           console.log(
-            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`
+            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`,
           );
         } else {
           console.warn(`Payment method not found for code: ${paymentMethodId}`);
@@ -396,7 +396,7 @@ async function handleMultiItemDirectPurchase(body: any) {
   const rbx5Items = items.filter(
     (item: any) =>
       item.serviceCategory === "robux_5_hari" ||
-      (item.serviceType === "robux" && item.rbx5Details)
+      (item.serviceType === "robux" && item.rbx5Details),
   );
 
   if (rbx5Items.length > 1) {
@@ -405,7 +405,7 @@ async function handleMultiItemDirectPurchase(body: any) {
         error:
           "Rbx 5 Hari: Hanya dapat checkout 1 item per transaksi karena ada automasi gamepass creation. Silakan checkout item Rbx 5 Hari secara terpisah.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -413,7 +413,7 @@ async function handleMultiItemDirectPurchase(body: any) {
   if (!customerInfo || !customerInfo.name || !customerInfo.email) {
     return NextResponse.json(
       { error: "Customer information is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -437,7 +437,7 @@ async function handleMultiItemDirectPurchase(body: any) {
       console.error(`Invalid item at index ${i}:`, item);
       return NextResponse.json(
         { error: `Invalid item data at position ${i + 1}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -446,7 +446,7 @@ async function handleMultiItemDirectPurchase(body: any) {
       console.error(`Missing robloxUsername for item ${i}:`, item);
       return NextResponse.json(
         { error: `Roblox username is required for: ${item.serviceName}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -464,7 +464,7 @@ async function handleMultiItemDirectPurchase(body: any) {
     if (passwordRequired) {
       return NextResponse.json(
         { error: `Password is required for: ${item.serviceName}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -540,7 +540,7 @@ async function handleMultiItemDirectPurchase(body: any) {
   if (createdTransactions.length === 0) {
     return NextResponse.json(
       { error: "No transactions were created" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -612,7 +612,7 @@ async function handleMultiItemDirectPurchase(body: any) {
       }
 
       console.log(
-        `Item: ${item.name}, Original: ${originalPrice}, Discounted: ${item.price}`
+        `Item: ${item.name}, Original: ${originalPrice}, Discounted: ${item.price}`,
       );
     });
   }
@@ -620,7 +620,7 @@ async function handleMultiItemDirectPurchase(body: any) {
   // Calculate sum of items AFTER applying discount (BEFORE payment fee)
   const itemsTotal = midtransItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   console.log("Items total after discount (before payment fee):", itemsTotal);
@@ -666,7 +666,7 @@ async function handleMultiItemDirectPurchase(body: any) {
     // Calculate total items amount
     const totalItemsAmount = midtransItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
 
     console.log("=== MULTI-ITEM PAYMENT DEBUG ===");
@@ -683,6 +683,8 @@ async function handleMultiItemDirectPurchase(body: any) {
       reference?: string;
       vaNumber?: string;
       qrString?: string;
+      qrCodeUrl?: string;
+      transactionId?: string;
     };
 
     if (activeGateway === "duitku") {
@@ -742,18 +744,18 @@ async function handleMultiItemDirectPurchase(body: any) {
             transaction.markModified("paymentFee");
             console.log(
               "First transaction paymentFee before save:",
-              transaction.paymentFee
+              transaction.paymentFee,
             );
           }
 
           await transaction.save();
-        }
+        },
       );
 
       await Promise.all(updatePromises);
 
       console.log(
-        `All ${createdTransactions.length} transactions updated with Duitku data`
+        `All ${createdTransactions.length} transactions updated with Duitku data`,
       );
     } else {
       // ===== MIDTRANS PAYMENT GATEWAY =====
@@ -761,12 +763,57 @@ async function handleMultiItemDirectPurchase(body: any) {
 
       const midtransService = new MidtransService();
 
+      // Get the payment method code from the document (if found)
+      // paymentMethodDoc was fetched earlier when validating paymentMethodId
+      const paymentMethodCode =
+        paymentMethodDoc?.code?.toLowerCase() || paymentMethod?.toLowerCase();
+
+      console.log("Payment method code:", paymentMethodCode);
+      console.log(
+        "Payment method doc:",
+        paymentMethodDoc
+          ? { code: paymentMethodDoc.code, name: paymentMethodDoc.name }
+          : "not found",
+      );
+
       // Map payment method to Midtrans enabled_payments
-      const enabledPayments = paymentMethod
-        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
+      const enabledPayments = paymentMethodCode
+        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethodCode)
         : undefined;
 
       console.log("Enabled payments for Midtrans:", enabledPayments);
+
+      // Initialize paymentResult with default values
+      paymentResult = {
+        token: undefined,
+        redirect_url: undefined,
+        qrCodeUrl: undefined,
+        qrString: undefined,
+        transactionId: undefined,
+      };
+
+      // Check if payment method is GoPay or QRIS - try Core API for direct QR
+      // Use paymentMethodCode which is the actual code like "gopay", "qris", etc.
+      const isGopayDirect = paymentMethodCode === "gopay";
+      const isQrisDirect = paymentMethodCode === "qris";
+
+      console.log(
+        `isGopayDirect: ${isGopayDirect}, isQrisDirect: ${isQrisDirect}`,
+      );
+
+      // TEMPORARY FIX: Skip Core API and go straight to Snap with ALL payment methods
+      // This is to test if the issue is with Core API or Snap API configuration
+      let usedCoreApi = false;
+
+      // Use Snap API with ALL payment methods when QRIS is selected
+      // Don't limit payment methods - show all available
+      const snapEnabledPayments =
+        isGopayDirect || isQrisDirect ? undefined : enabledPayments;
+
+      console.log(
+        "Using Snap API with enabled_payments:",
+        snapEnabledPayments || "ALL (no restriction)",
+      );
 
       const snapResult = await midtransService.createSnapTransaction({
         orderId: masterOrderId,
@@ -777,7 +824,7 @@ async function handleMultiItemDirectPurchase(body: any) {
           email: customerInfo.email,
           phone: customerInfo.phone || "",
         },
-        enabledPayments,
+        enabledPayments: snapEnabledPayments,
         expiryHours: 24,
         callbackUrls: {
           finish: `${baseUrl}/transaction/?order_id=${masterOrderId}`,
@@ -804,18 +851,18 @@ async function handleMultiItemDirectPurchase(body: any) {
             transaction.markModified("paymentFee");
             console.log(
               "First transaction paymentFee before save:",
-              transaction.paymentFee
+              transaction.paymentFee,
             );
           }
 
           await transaction.save();
-        }
+        },
       );
 
       await Promise.all(updatePromises);
 
       console.log(
-        `All ${createdTransactions.length} transactions updated with Midtrans data`
+        `All ${createdTransactions.length} transactions updated with Midtrans data`,
       );
     }
 
@@ -824,7 +871,7 @@ async function handleMultiItemDirectPurchase(body: any) {
       if (customerInfo.email) {
         console.log("Sending invoice email to:", customerInfo.email);
         const emailSent = await EmailService.sendInvoiceEmail(
-          createdTransactions[0]
+          createdTransactions[0],
         );
         if (emailSent) {
           console.log("Invoice email sent successfully");
@@ -850,6 +897,10 @@ async function handleMultiItemDirectPurchase(body: any) {
         duitkuReference: paymentResult.reference || null,
         duitkuVaNumber: paymentResult.vaNumber || null,
         duitkuQrString: paymentResult.qrString || null,
+        // Midtrans GoPay/QRIS specific (Core API)
+        qrCodeUrl: paymentResult.qrCodeUrl || null,
+        qrString: paymentResult.qrString || null,
+        midtransTransactionId: paymentResult.transactionId || null,
         // Transaction info
         totalTransactions: createdTransactions.length,
         totalAmount: subtotal,
@@ -862,13 +913,13 @@ async function handleMultiItemDirectPurchase(body: any) {
 
     // Delete created transactions if payment gateway fails
     const deletePromises = createdTransactions.map((t) =>
-      Transaction.findByIdAndDelete(t._id)
+      Transaction.findByIdAndDelete(t._id),
     );
     await Promise.all(deletePromises);
 
     return NextResponse.json(
       { error: "Failed to create payment gateway. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -977,7 +1028,7 @@ async function handleSingleItemTransaction(body: any) {
     });
     return NextResponse.json(
       { error: "Missing required fields" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -986,7 +1037,7 @@ async function handleSingleItemTransaction(body: any) {
     console.error("Guest checkout requires customer info:", customerInfo);
     return NextResponse.json(
       { error: "Customer information required for guest checkout" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -1030,7 +1081,7 @@ async function handleSingleItemTransaction(body: any) {
           validPaymentMethodId = paymentMethodDoc._id;
           paymentMethodName = paymentMethodDoc.name;
           console.log(
-            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`
+            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`,
           );
         } else {
           console.warn(`Payment method not found for code: ${paymentMethodId}`);
@@ -1094,7 +1145,7 @@ async function handleSingleItemTransaction(body: any) {
   });
   console.log(
     "Final transactionData.customerInfo:",
-    transactionData.customerInfo
+    transactionData.customerInfo,
   );
 
   // Add serviceCategory for robux and reseller services
@@ -1109,7 +1160,7 @@ async function handleSingleItemTransaction(body: any) {
 
   console.log(
     "Transaction created with password:",
-    robloxPassword ? "[PRESENT]" : "[EMPTY]"
+    robloxPassword ? "[PRESENT]" : "[EMPTY]",
   );
 
   // Generate Midtrans order ID
@@ -1166,7 +1217,7 @@ async function handleSingleItemTransaction(body: any) {
     // Calculate sum of items
     const itemsTotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
 
     // Use payment fee from frontend (already calculated correctly)
@@ -1184,7 +1235,7 @@ async function handleSingleItemTransaction(body: any) {
     // Calculate total items amount
     const totalItemsAmount = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
 
     console.log("=== SINGLE-ITEM PAYMENT DEBUG ===");
@@ -1217,9 +1268,8 @@ async function handleSingleItemTransaction(body: any) {
         try {
           const PaymentMethod = (await import("@/models/PaymentMethod"))
             .default;
-          const paymentMethodDoc = await PaymentMethod.findById(
-            validPaymentMethodId
-          );
+          const paymentMethodDoc =
+            await PaymentMethod.findById(validPaymentMethodId);
           if (paymentMethodDoc && paymentMethodDoc.duitkuCode) {
             duitkuPaymentCode = paymentMethodDoc.duitkuCode;
           }
@@ -1315,7 +1365,7 @@ async function handleSingleItemTransaction(body: any) {
           console.log("Invoice email sent successfully");
         } else {
           console.warn(
-            "Failed to send invoice email, but transaction was created"
+            "Failed to send invoice email, but transaction was created",
           );
         }
       } else {
@@ -1346,7 +1396,7 @@ async function handleSingleItemTransaction(body: any) {
     console.error("Payment Gateway Error:", paymentError);
     return NextResponse.json(
       { error: "Failed to create payment gateway. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

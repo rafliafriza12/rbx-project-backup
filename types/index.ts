@@ -107,6 +107,9 @@ export interface Transaction {
   midtransTransactionId?: string;
   snapToken?: string;
   redirectUrl?: string;
+  // Midtrans GoPay/QRIS Core API fields
+  qrCodeUrl?: string;
+  qrString?: string;
   // Duitku Payment Data
   duitkuOrderId?: string;
   duitkuReference?: string;

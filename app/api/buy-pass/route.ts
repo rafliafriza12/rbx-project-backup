@@ -68,7 +68,7 @@ async function getBrowser() {
 export async function POST(req: NextRequest) {
   let browser;
   try {
-    const { robloxCookie, productId, productName } = await req.json();
+    const { robloxCookie, productId, productName, price } = await req.json();
 
     if (!robloxCookie || !productId || !productName) {
       return NextResponse.json(
@@ -76,13 +76,36 @@ export async function POST(req: NextRequest) {
           success: false,
           message: "robloxCookie, productId, productName wajib diisi",
         },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    // Price validation - harus ada untuk memastikan tidak beli dengan harga berbeda
+    if (price === undefined || price === null) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "price wajib diisi untuk validasi harga gamepass",
+        },
+        { status: 400 },
+      );
+    }
+
+    const expectedPrice = Number(price);
+    if (isNaN(expectedPrice) || expectedPrice <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "price harus berupa angka positif",
+        },
+        { status: 400 },
       );
     }
 
     console.log("🎯 Attempting to purchase gamepass with Puppeteer:", {
       productId,
       productName,
+      expectedPrice,
       cookie: robloxCookie ? "[PRESENT]" : "[MISSING]",
       isServerless,
     });
@@ -117,7 +140,96 @@ export async function POST(req: NextRequest) {
       timeout: 30000,
     });
 
-    console.log("📄 Page loaded, looking for Buy button...");
+    console.log("📄 Page loaded, validating price before purchase...");
+
+    // ============ PRICE VALIDATION ============
+    // XPath untuk elemen yang menampilkan harga Robux di halaman gamepass
+    const priceXPath =
+      "/html/body/div[3]/main/div[2]/div[1]/div[2]/div[3]/div[1]/div[1]/div[3]/div/span[2]";
+
+    try {
+      // Wait for price element to appear
+      await page.waitForFunction(
+        (xpath: string) => {
+          const result = document.evaluate(
+            xpath,
+            document,
+            null,
+            XPathResult.FIRST_ORDERED_NODE_TYPE,
+            null,
+          );
+          return result.singleNodeValue !== null;
+        },
+        { timeout: 10000 },
+        priceXPath,
+      );
+
+      // Get the price text from the page
+      const actualPriceText = await page.evaluate((xpath: string) => {
+        const result = document.evaluate(
+          xpath,
+          document,
+          null,
+          XPathResult.FIRST_ORDERED_NODE_TYPE,
+          null,
+        );
+        const element = result.singleNodeValue as HTMLElement;
+        return element ? element.textContent?.trim() : null;
+      }, priceXPath);
+
+      console.log("💰 Price on page:", actualPriceText);
+
+      if (!actualPriceText) {
+        console.error("❌ Could not find price element on page");
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Tidak dapat menemukan harga gamepass di halaman",
+          },
+          { status: 400 },
+        );
+      }
+
+      // Parse the price from text (remove commas, currency symbols, etc.)
+      // Examples: "1,000", "500", "10,000"
+      const actualPrice = parseInt(actualPriceText.replace(/[^0-9]/g, ""), 10);
+
+      console.log("💰 Parsed actual price:", actualPrice);
+      console.log("💰 Expected price from database:", expectedPrice);
+
+      // Validate price matches
+      if (actualPrice !== expectedPrice) {
+        console.error(
+          `❌ Price mismatch! Expected: ${expectedPrice}, Actual: ${actualPrice}`,
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Harga gamepass tidak sesuai! Harga di database: ${expectedPrice} Robux, Harga di Roblox: ${actualPrice} Robux. Pembelian dibatalkan untuk keamanan.`,
+            expectedPrice,
+            actualPrice,
+          },
+          { status: 400 },
+        );
+      }
+
+      console.log(
+        "✅ Price validated successfully! Proceeding with purchase...",
+      );
+    } catch (priceError: any) {
+      console.error("❌ Error validating price:", priceError.message);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Gagal memvalidasi harga gamepass: ${priceError.message}`,
+        },
+        { status: 500 },
+      );
+    }
+
+    // ============ END PRICE VALIDATION ============
+
+    console.log("📄 Looking for Buy button...");
 
     // Wait for and click the main Buy button using XPath
     const buyButtonXPath =
@@ -132,12 +244,12 @@ export async function POST(req: NextRequest) {
             document,
             null,
             XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null
+            null,
           );
           return result.singleNodeValue !== null;
         },
         { timeout: 10000 },
-        buyButtonXPath
+        buyButtonXPath,
       );
 
       // Click using evaluate
@@ -147,7 +259,7 @@ export async function POST(req: NextRequest) {
           document,
           null,
           XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
+          null,
         );
         const button = result.singleNodeValue as HTMLElement;
         if (button) button.click();
@@ -171,12 +283,12 @@ export async function POST(req: NextRequest) {
             document,
             null,
             XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null
+            null,
           );
           return result.singleNodeValue !== null;
         },
         { timeout: 10000 },
-        buyNowButtonXPath
+        buyNowButtonXPath,
       );
 
       await page.evaluate((xpath: string) => {
@@ -185,7 +297,7 @@ export async function POST(req: NextRequest) {
           document,
           null,
           XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
+          null,
         );
         const button = result.singleNodeValue as HTMLElement;
         if (button) button.click();
@@ -210,14 +322,14 @@ export async function POST(req: NextRequest) {
           success: false,
           message: `Failed to click buttons: ${clickError.message}`,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error: any) {
     console.error("❌ Error in buy-pass API:", error);
     return NextResponse.json(
       { success: false, message: error.message || "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     // Always close browser

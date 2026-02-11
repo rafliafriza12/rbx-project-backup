@@ -141,7 +141,7 @@ function CheckoutContent() {
     // Check Roblox credentials (jika bukan multi-checkout dan bukan reseller)
     if (!isMultiCheckoutFromCart && checkoutData) {
       const isResellerPurchase = checkoutData.items.some(
-        (item) => item.serviceType === "reseller"
+        (item) => item.serviceType === "reseller",
       );
 
       if (!isResellerPurchase && !robloxUsername.trim()) return false;
@@ -162,7 +162,7 @@ function CheckoutContent() {
 
   // Payment methods state - fetch from database
   const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>(
-    []
+    [],
   );
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
 
@@ -173,7 +173,7 @@ function CheckoutContent() {
   // Fungsi untuk mengecek apakah payment method tersedia berdasarkan amount
   const isPaymentMethodAvailable = (
     method: PaymentMethod,
-    amount: number
+    amount: number,
   ): boolean => {
     // Check minimum amount
     if (method.minimumAmount && method.minimumAmount > 0) {
@@ -195,7 +195,7 @@ function CheckoutContent() {
   // Fungsi untuk mendapatkan pesan error transaksi limit
   const getTransactionLimitMessage = (
     method: PaymentMethod,
-    amount: number
+    amount: number,
   ): string | null => {
     if (method.minimumAmount && method.minimumAmount > 0) {
       if (amount < method.minimumAmount) {
@@ -233,7 +233,7 @@ function CheckoutContent() {
 
     const allMethods = getAllMethods();
     const paymentMethod = allMethods.find(
-      (pm) => pm.id === selectedPaymentMethod
+      (pm) => pm.id === selectedPaymentMethod,
     );
     if (!paymentMethod) return baseAmount;
 
@@ -378,7 +378,7 @@ function CheckoutContent() {
     ];
 
     const isValidFormat = validPatterns.some((pattern) =>
-      pattern.test(phone.replace(/[\s-]/g, ""))
+      pattern.test(phone.replace(/[\s-]/g, "")),
     );
 
     if (!isValidFormat) {
@@ -419,7 +419,7 @@ function CheckoutContent() {
       // Format phone with auto-detection
       const formattedPhone = formatPhoneNumber(
         user.phone || "",
-        user.countryCode
+        user.countryCode,
       );
 
       console.log("📊 Phone formatting details:");
@@ -442,7 +442,7 @@ function CheckoutContent() {
       // Check if user doesn't have phone number - will show editable field
       if (!user.phone || user.phone.trim() === "") {
         console.log(
-          "⚠️ User doesn't have phone number - field will be editable"
+          "⚠️ User doesn't have phone number - field will be editable",
         );
       }
 
@@ -474,7 +474,7 @@ function CheckoutContent() {
         // Check if this is multi-checkout from cart with different credentials
         // Multi-checkout from cart: items already have robloxUsername/Password
         const hasItemCredentials = itemsArray.some(
-          (item: any) => item.robloxUsername || item.robloxPassword
+          (item: any) => item.robloxUsername || item.robloxPassword,
         );
         const isMultiCheckout = itemsArray.length > 1 && hasItemCredentials;
 
@@ -528,7 +528,7 @@ function CheckoutContent() {
           if (firstItem.robloxUsername) {
             console.log(
               "10. Pre-filling roblox username:",
-              firstItem.robloxUsername
+              firstItem.robloxUsername,
             );
             setRobloxUsername(firstItem.robloxUsername);
           }
@@ -545,13 +545,13 @@ function CheckoutContent() {
             }
           } else {
             console.log(
-              "11. Gamepass, Reseller, or Robux 5 Hari detected - clearing password field"
+              "11. Gamepass, Reseller, or Robux 5 Hari detected - clearing password field",
             );
             setRobloxPassword("");
           }
         } else {
           console.log(
-            "10-11. Multi-checkout from cart detected - using individual item credentials"
+            "10-11. Multi-checkout from cart detected - using individual item credentials",
           );
         }
 
@@ -560,7 +560,7 @@ function CheckoutContent() {
         // Additional notes field is separate and universal for all services
 
         console.log(
-          "14. Data loaded successfully, sessionStorage will be cleared on successful payment"
+          "14. Data loaded successfully, sessionStorage will be cleared on successful payment",
         );
       } catch (error) {
         console.error("Error parsing sessionStorage data:", error);
@@ -570,7 +570,7 @@ function CheckoutContent() {
     } else {
       // Fallback ke URL params
       console.log(
-        "13. No session data found, checking URL params as fallback..."
+        "13. No session data found, checking URL params as fallback...",
       );
       const serviceType = searchParams.get("serviceType");
       const serviceId = searchParams.get("serviceId");
@@ -614,7 +614,7 @@ function CheckoutContent() {
         console.log("16. No valid data found in sessionStorage or URL params");
         console.log("17. Missing required data - redirecting to home page");
         toast.error(
-          "Data checkout tidak ditemukan. Silakan pilih produk terlebih dahulu."
+          "Data checkout tidak ditemukan. Silakan pilih produk terlebih dahulu.",
         );
         router.push("/");
       }
@@ -633,7 +633,7 @@ function CheckoutContent() {
 
         if (result.success && result.data) {
           setActivePaymentGateway(
-            result.data.activePaymentGateway || "midtrans"
+            result.data.activePaymentGateway || "midtrans",
           );
         }
       } catch (error) {
@@ -656,7 +656,7 @@ function CheckoutContent() {
       try {
         // Fetch payment methods filtered by active gateway
         const response = await fetch(
-          `/api/payment-methods?active=true&gateway=${activePaymentGateway}`
+          `/api/payment-methods?active=true&gateway=${activePaymentGateway}`,
         );
         const result = await response.json();
 
@@ -695,10 +695,10 @@ function CheckoutContent() {
           Object.values(groupedMethods).forEach((category: any) => {
             category.methods.sort((a: any, b: any) => {
               const methodA = result.data.find(
-                (m: any) => m.code.toLowerCase() === a.id
+                (m: any) => m.code.toLowerCase() === a.id,
               );
               const methodB = result.data.find(
-                (m: any) => m.code.toLowerCase() === b.id
+                (m: any) => m.code.toLowerCase() === b.id,
               );
               return (
                 (methodA?.displayOrder || 0) - (methodB?.displayOrder || 0)
@@ -769,7 +769,7 @@ function CheckoutContent() {
     if (!isMultiCheckoutFromCart) {
       // Reseller packages don't need Roblox credentials
       const isResellerPurchase = checkoutData.items.some(
-        (item) => item.serviceType === "reseller"
+        (item) => item.serviceType === "reseller",
       );
 
       if (!isResellerPurchase && !robloxUsername.trim()) {
@@ -792,12 +792,12 @@ function CheckoutContent() {
     } else {
       // Multi-checkout: validasi setiap item punya credentials (kecuali reseller)
       const missingCredentials = checkoutData.items.some(
-        (item) => item.serviceType !== "reseller" && !item.robloxUsername
+        (item) => item.serviceType !== "reseller" && !item.robloxUsername,
       );
 
       if (missingCredentials) {
         toast.error(
-          "Ada item yang belum memiliki data Roblox. Silakan lengkapi di halaman cart."
+          "Ada item yang belum memiliki data Roblox. Silakan lengkapi di halaman cart.",
         );
         return;
       }
@@ -864,7 +864,7 @@ function CheckoutContent() {
     ];
 
     const isValidFormat = validPatterns.some((pattern) =>
-      pattern.test(customerInfo.phone.replace(/[\s-]/g, ""))
+      pattern.test(customerInfo.phone.replace(/[\s-]/g, "")),
     );
 
     if (!isValidFormat) {
@@ -894,7 +894,7 @@ function CheckoutContent() {
     // Validate payment method availability based on amount
     const allMethods = getAllMethods();
     const selectedPayment = allMethods.find(
-      (pm) => pm.id === selectedPaymentMethod
+      (pm) => pm.id === selectedPaymentMethod,
     );
 
     if (!selectedPayment) {
@@ -908,12 +908,12 @@ function CheckoutContent() {
     if (!isPaymentMethodAvailable(selectedPayment, baseAmountAfterDiscount)) {
       const limitMessage = getTransactionLimitMessage(
         selectedPayment,
-        baseAmountAfterDiscount
+        baseAmountAfterDiscount,
       );
       toast.error(
         `Metode pembayaran ${selectedPayment.name} tidak tersedia. ${
           limitMessage || ""
-        }`
+        }`,
       );
       return;
     }
@@ -927,7 +927,7 @@ function CheckoutContent() {
 
     const paymentFee = calculatePaymentFee(
       baseAmountAfterDiscount,
-      selectedPayment
+      selectedPayment,
     );
 
     // Calculate final amount (after discount + payment fee)
@@ -938,7 +938,7 @@ function CheckoutContent() {
     console.log(
       "Discount Percentage:",
       checkoutData.discountPercentage || 0,
-      "%"
+      "%",
     );
     console.log("Discount Amount:", checkoutData.discountAmount || 0);
     console.log("After Discount (Base):", baseAmountAfterDiscount);
@@ -973,8 +973,8 @@ function CheckoutContent() {
       const itemPassword = isMultiCheckoutFromCart
         ? item.robloxPassword
         : item.serviceType === "gamepass" || item.rbx5Details
-        ? ""
-        : robloxPassword;
+          ? ""
+          : robloxPassword;
 
       return {
         ...item,
@@ -1066,21 +1066,21 @@ function CheckoutContent() {
         if (item.jokiDetails) {
           console.log(
             `Item ${index} - Joki backup code (notes):`,
-            item.jokiDetails.notes
+            item.jokiDetails.notes,
           );
           console.log(
             `Item ${index} - Joki backup code (additionalInfo):`,
-            item.jokiDetails.additionalInfo
+            item.jokiDetails.additionalInfo,
           );
         }
         if (item.robuxInstantDetails) {
           console.log(
             `Item ${index} - Robux Instant backup code (notes):`,
-            item.robuxInstantDetails.notes
+            item.robuxInstantDetails.notes,
           );
           console.log(
             `Item ${index} - Robux Instant backup code (additionalInfo):`,
-            item.robuxInstantDetails.additionalInfo
+            item.robuxInstantDetails.additionalInfo,
           );
         }
       });
@@ -1178,7 +1178,7 @@ function CheckoutContent() {
 
             if (clearResult.success) {
               console.log(
-                `✅ ${clearResult.removedCount} items removed from cart`
+                `✅ ${clearResult.removedCount} items removed from cart`,
               );
             } else {
               console.error("Failed to clear cart items:", clearResult.error);
@@ -1195,8 +1195,18 @@ function CheckoutContent() {
         toast.success("Transaksi berhasil dibuat!");
 
         // Redirect to payment page based on response from API
-        // API transaction already provides the correct redirect URL from libs
-        if (result.data?.redirectUrl) {
+        // Check if QR code is available (GoPay/QRIS Core API)
+        if (result.data?.qrCodeUrl) {
+          // Redirect to transaction detail page to show QR code
+          console.log("QR Code URL available:", result.data.qrCodeUrl);
+          if (result.data?.transactions?.[0]?._id) {
+            router.push(`/riwayat/${result.data.transactions[0]._id}`);
+          } else if (result.data?.transaction?._id) {
+            router.push(`/riwayat/${result.data.transaction._id}`);
+          } else {
+            router.push("/riwayat");
+          }
+        } else if (result.data?.redirectUrl) {
           // Use redirect URL from API (works for both Midtrans and Duitku)
           window.location.href = result.data.redirectUrl;
         } else if (result.data?.duitkuPaymentUrl) {
@@ -1215,7 +1225,7 @@ function CheckoutContent() {
         toast.error(
           result.error ||
             result.message ||
-            "Terjadi kesalahan saat membuat transaksi"
+            "Terjadi kesalahan saat membuat transaksi",
         );
       }
     } catch (error) {
@@ -1385,7 +1395,7 @@ function CheckoutContent() {
                       <span className="text-green-400">
                         - Rp{" "}
                         {(checkoutData.discountAmount || 0).toLocaleString(
-                          "id-ID"
+                          "id-ID",
                         )}
                       </span>
                     </div>
@@ -1399,13 +1409,13 @@ function CheckoutContent() {
                         {(() => {
                           const allMethods = getAllMethods();
                           const method = allMethods.find(
-                            (pm) => pm.id === selectedPaymentMethod
+                            (pm) => pm.id === selectedPaymentMethod,
                           );
                           return method
                             ? calculatePaymentFee(
                                 checkoutData.finalAmount ||
                                   checkoutData.totalAmount,
-                                method
+                                method,
                               ).toLocaleString("id-ID")
                             : "0";
                         })()}
@@ -1473,7 +1483,7 @@ function CheckoutContent() {
                     const baseAmount =
                       checkoutData.finalAmount || checkoutData.totalAmount;
                     const availableMethodsCount = category.methods.filter(
-                      (method) => isPaymentMethodAvailable(method, baseAmount)
+                      (method) => isPaymentMethodAvailable(method, baseAmount),
                     ).length;
                     const totalMethodsCount = category.methods.length;
 
@@ -1489,7 +1499,7 @@ function CheckoutContent() {
                             setExpandedCategory(
                               expandedCategory === category.id
                                 ? ""
-                                : category.id
+                                : category.id,
                             )
                           }
                           className="w-full p-4 flex items-center justify-between text-left hover:bg-primary-600/20 transition-colors"
@@ -1532,15 +1542,15 @@ function CheckoutContent() {
                                   checkoutData.totalAmount;
                                 const fee = calculatePaymentFee(
                                   baseAmount,
-                                  method
+                                  method,
                                 );
                                 const isAvailable = isPaymentMethodAvailable(
                                   method,
-                                  baseAmount
+                                  baseAmount,
                                 );
                                 const limitMessage = getTransactionLimitMessage(
                                   method,
-                                  baseAmount
+                                  baseAmount,
                                 );
 
                                 return (
@@ -1554,8 +1564,8 @@ function CheckoutContent() {
                                       !isAvailable
                                         ? "border-primary-600/30 bg-primary-800/30 cursor-not-allowed opacity-60"
                                         : selectedPaymentMethod === method.id
-                                        ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink cursor-pointer"
-                                        : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20 cursor-pointer"
+                                          ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink cursor-pointer"
+                                          : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20 cursor-pointer"
                                     }`}
                                   >
                                     <div className="flex items-center justify-between mb-1">
@@ -1599,7 +1609,7 @@ function CheckoutContent() {
                                             {method.feeType === "percentage"
                                               ? `${method.fee}%`
                                               : `Rp ${fee.toLocaleString(
-                                                  "id-ID"
+                                                  "id-ID",
                                                 )}`}
                                           </div>
                                         )}
@@ -1777,7 +1787,7 @@ function CheckoutContent() {
 
               {/* Roblox Account - Hide for Reseller packages */}
               {!checkoutData.items.some(
-                (item) => item.serviceType === "reseller"
+                (item) => item.serviceType === "reseller",
               ) && (
                 <div className="neon-card rounded-2xl p-5">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center">
@@ -1896,7 +1906,7 @@ function CheckoutContent() {
                         (item) =>
                           item.serviceType === "joki" ||
                           (item.serviceType === "robux" &&
-                            item.robuxInstantDetails)
+                            item.robuxInstantDetails),
                       ) && (
                         <div>
                           <label className="block text-sm font-medium text-primary-200 mb-2">
@@ -1962,7 +1972,7 @@ function CheckoutContent() {
                                   item.robuxInstantDetails?.notes ||
                                   item.robuxInstantDetails?.additionalInfo;
                                 return backupCode && backupCode.trim() !== "";
-                              }
+                              },
                             );
 
                             if (!itemWithBackup) return null;
@@ -2013,7 +2023,7 @@ function CheckoutContent() {
                         </p>
                         <ul className="text-white/70 space-y-1 text-xs">
                           {checkoutData.items.some(
-                            (item) => item.serviceType === "joki"
+                            (item) => item.serviceType === "joki",
                           ) && (
                             <>
                               <li>• Target rank atau level yang diinginkan</li>
@@ -2022,7 +2032,7 @@ function CheckoutContent() {
                             </>
                           )}
                           {checkoutData.items.some(
-                            (item) => item.serviceType === "gamepass"
+                            (item) => item.serviceType === "gamepass",
                           ) && (
                             <>
                               <li>• Request untuk proses lebih cepat</li>
@@ -2031,7 +2041,7 @@ function CheckoutContent() {
                           )}
                           {checkoutData.items.some(
                             (item) =>
-                              item.serviceType === "robux" && item.rbx5Details
+                              item.serviceType === "robux" && item.rbx5Details,
                           ) && (
                             <>
                               <li>• Informasi tentang gamepass yang dibuat</li>
@@ -2041,7 +2051,7 @@ function CheckoutContent() {
                           {checkoutData.items.some(
                             (item) =>
                               item.serviceType === "robux" &&
-                              item.robuxInstantDetails
+                              item.robuxInstantDetails,
                           ) && (
                             <>
                               <li>• Informasi akun tambahan</li>
@@ -2066,19 +2076,20 @@ function CheckoutContent() {
                     className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
                     placeholder={
                       checkoutData.items.some(
-                        (item) => item.serviceType === "joki"
+                        (item) => item.serviceType === "joki",
                       )
                         ? "Contoh: Tolong dikerjakan malam hari, target Mythic dalam 3 hari, jangan gunakan voice chat..."
                         : checkoutData.items.some(
-                            (item) => item.serviceType === "gamepass"
-                          )
-                        ? "Contoh: Mohon diproses secepatnya, saya akan online jam 8 malam..."
-                        : checkoutData.items.some(
-                            (item) =>
-                              item.serviceType === "robux" && item.rbx5Details
-                          )
-                        ? "Contoh: Gamepass sudah dibuat dengan harga yang sesuai, mohon segera diproses..."
-                        : "Tambahkan catatan atau instruksi khusus untuk pesanan Anda..."
+                              (item) => item.serviceType === "gamepass",
+                            )
+                          ? "Contoh: Mohon diproses secepatnya, saya akan online jam 8 malam..."
+                          : checkoutData.items.some(
+                                (item) =>
+                                  item.serviceType === "robux" &&
+                                  item.rbx5Details,
+                              )
+                            ? "Contoh: Gamepass sudah dibuat dengan harga yang sesuai, mohon segera diproses..."
+                            : "Tambahkan catatan atau instruksi khusus untuk pesanan Anda..."
                     }
                   />
                   <p className="text-xs text-white/60 mt-2">
@@ -2158,23 +2169,26 @@ function CheckoutContent() {
                         {!acceptTerms
                           ? "Harap setujui syarat dan ketentuan"
                           : !selectedPaymentMethod
-                          ? "Pilih metode pembayaran terlebih dahulu"
-                          : phoneError
-                          ? "Perbaiki format nomor WhatsApp"
-                          : !customerInfo.phone || !customerInfo.phone.trim()
-                          ? "Nomor WhatsApp wajib diisi"
-                          : isGuestCheckout && !customerInfo.name.trim()
-                          ? "Nama lengkap wajib diisi"
-                          : isGuestCheckout && !customerInfo.email.trim()
-                          ? "Email wajib diisi"
-                          : !isMultiCheckoutFromCart &&
-                            checkoutData &&
-                            !checkoutData.items.some(
-                              (item) => item.serviceType === "reseller"
-                            ) &&
-                            !robloxUsername.trim()
-                          ? "Username Roblox wajib diisi"
-                          : "Lengkapi semua field yang diperlukan"}
+                            ? "Pilih metode pembayaran terlebih dahulu"
+                            : phoneError
+                              ? "Perbaiki format nomor WhatsApp"
+                              : !customerInfo.phone ||
+                                  !customerInfo.phone.trim()
+                                ? "Nomor WhatsApp wajib diisi"
+                                : isGuestCheckout && !customerInfo.name.trim()
+                                  ? "Nama lengkap wajib diisi"
+                                  : isGuestCheckout &&
+                                      !customerInfo.email.trim()
+                                    ? "Email wajib diisi"
+                                    : !isMultiCheckoutFromCart &&
+                                        checkoutData &&
+                                        !checkoutData.items.some(
+                                          (item) =>
+                                            item.serviceType === "reseller",
+                                        ) &&
+                                        !robloxUsername.trim()
+                                      ? "Username Roblox wajib diisi"
+                                      : "Lengkapi semua field yang diperlukan"}
                       </span>
                     </p>
                   </div>

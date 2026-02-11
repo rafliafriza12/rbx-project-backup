@@ -195,12 +195,29 @@ async function processGamepassPurchase(transaction: any) {
       });
     } else {
       console.error("Gamepass purchase failed:", purchaseResult.message);
-      await transaction.updateStatus(
-        "order",
-        "pending",
-        `Pesanan sedang diproses`,
-        null,
-      );
+
+      // Check if it's a price mismatch error
+      const isPriceMismatch =
+        purchaseResult.message?.includes("Harga gamepass tidak sesuai") ||
+        purchaseResult.expectedPrice !== undefined;
+
+      if (isPriceMismatch) {
+        // Price mismatch - set to pending with detailed message
+        await transaction.updateStatus(
+          "order",
+          "pending",
+          `Pembelian ditunda: ${purchaseResult.message || "Harga gamepass berubah"}. Harga database: ${purchaseResult.expectedPrice || transaction.gamepass?.price} Robux, Harga di Roblox: ${purchaseResult.actualPrice || "tidak diketahui"} Robux. Silakan hubungi admin.`,
+          null,
+        );
+      } else {
+        // Other errors - set to pending with generic message
+        await transaction.updateStatus(
+          "order",
+          "pending",
+          `Pesanan sedang diproses. ${purchaseResult.message || ""}`,
+          null,
+        );
+      }
     }
   } catch (error) {
     console.error("Error in processGamepassPurchase:", error);

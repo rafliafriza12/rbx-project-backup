@@ -117,7 +117,7 @@ class MidtransService {
 
       if (!this.serverKey || !this.clientKey) {
         throw new Error(
-          "Midtrans configuration not found in database or environment variables"
+          "Midtrans configuration not found in database or environment variables",
         );
       }
     }
@@ -173,21 +173,11 @@ class MidtransService {
       },
       item_details: params.items,
       customer_details: params.customer,
-      // ✅ Use provided enabled_payments or fallback to all methods
-      enabled_payments: params.enabledPayments || [
-        "credit_card",
-        "bca_va",
-        "bni_va",
-        "bri_va",
-        "echannel",
-        "permata_va",
-        "other_va",
-        "gopay",
-        "qris",
-        "shopeepay",
-        "indomaret",
-        "alfamart",
-      ],
+      // Only include enabled_payments if specifically provided
+      // If undefined, Midtrans will show ALL ACTIVE payment methods automatically
+      ...(params.enabledPayments && params.enabledPayments.length > 0
+        ? { enabled_payments: params.enabledPayments }
+        : {}),
       expiry: {
         start_time: this.formatExpiryTime(0),
         unit: "hours",
@@ -226,7 +216,7 @@ class MidtransService {
         throw new Error(
           `Midtrans API Error: ${
             errorData.error_messages?.join(", ") || response.statusText
-          }`
+          }`,
         );
       }
 
@@ -243,27 +233,44 @@ class MidtransService {
   }
 
   // Map payment method ID to Midtrans enabled_payments codes
-  static mapPaymentMethodToMidtrans(paymentMethodId: string): string[] {
+  static mapPaymentMethodToMidtrans(
+    paymentMethodId: string,
+  ): string[] | undefined {
+    // Convert to lowercase for case-insensitive matching
+    const normalizedId = paymentMethodId?.toLowerCase() || "";
+
     // Mapping berdasarkan payment method ID dari database
+    // Keys are lowercase for matching, values are Midtrans API codes
     const mapping: { [key: string]: string[] } = {
       // E-Wallets
-      gopay: ["gopay"],
+      gopay: ["gopay", "qris"],
       shopeepay: ["shopeepay"],
-      dana: ["shopeepay"], // Dana menggunakan ShopeePay di Midtrans
-      ovo: ["credit_card"], // OVO via credit card
-      linkaja: ["credit_card"], // LinkAja via credit card
+      dana: ["shopeepay"],
+      ovo: ["credit_card"],
+      linkaja: ["credit_card"],
 
-      // Virtual Account
+      // Virtual Account - support both formats (with and without _va suffix)
       bca_va: ["bca_va"],
+      bca: ["bca_va"],
       bni_va: ["bni_va"],
+      bni: ["bni_va"],
       bri_va: ["bri_va"],
-      mandiri_va: ["echannel"], // Mandiri = echannel di Midtrans
+      bri: ["bri_va"],
+      mandiri_va: ["echannel"],
+      mandiri: ["echannel"],
+      echannel: ["echannel"],
       permata_va: ["permata_va"],
+      permata: ["permata_va"],
       cimb_va: ["other_va"],
+      cimb: ["other_va"],
+      cimb_niaga: ["other_va"],
       danamon_va: ["other_va"],
+      danamon: ["other_va"],
+      bsi: ["other_va"],
+      bsi_va: ["other_va"],
 
-      // QRIS
-      qris: ["qris"],
+      // QRIS - include both qris and gopay for maximum compatibility
+      qris: ["qris", "gopay"],
 
       // Retail
       indomaret: ["indomaret"],
@@ -271,26 +278,10 @@ class MidtransService {
 
       // Credit Card
       credit_card: ["credit_card"],
-
-      // Fallback: jika tidak match, return semua
-      all: [
-        "credit_card",
-        "bca_va",
-        "bni_va",
-        "bri_va",
-        "echannel",
-        "permata_va",
-        "other_va",
-        "gopay",
-        "qris",
-        "shopeepay",
-        "indomaret",
-        "alfamart",
-      ],
     };
 
-    // Return mapped payment method or all if not found
-    return mapping[paymentMethodId] || mapping["all"];
+    // Return mapped payment method or undefined if not found (let Midtrans show all active methods)
+    return mapping[normalizedId] || undefined;
   }
 
   async getTransactionStatus(orderId: string): Promise<{
@@ -318,7 +309,7 @@ class MidtransService {
         throw new Error(
           `Midtrans Status API Error: ${
             errorData.error_messages?.join(", ") || response.statusText
-          }`
+          }`,
         );
       }
 
@@ -349,7 +340,7 @@ class MidtransService {
         throw new Error(
           `Midtrans Cancel API Error: ${
             errorData.error_messages?.join(", ") || response.statusText
-          }`
+          }`,
         );
       }
 
@@ -363,7 +354,7 @@ class MidtransService {
   // Utility method untuk mapping status Midtrans ke status internal
   mapMidtransStatus(
     midtransStatus: string,
-    fraudStatus?: string
+    fraudStatus?: string,
   ): {
     paymentStatus: string;
     orderStatus: string;
@@ -402,7 +393,7 @@ class MidtransService {
     orderId: string,
     statusCode: string,
     grossAmount: string,
-    signature: string
+    signature: string,
   ): boolean {
     const crypto = require("crypto");
     const hash = crypto
@@ -440,6 +431,193 @@ class MidtransService {
   async isConfigured(): Promise<boolean> {
     await this.initializeConfig();
     return !!(this.serverKey && this.clientKey);
+  }
+
+  /**
+   * Create GoPay/QRIS transaction using Core API
+   * This returns the QR code directly instead of redirecting to Midtrans page
+   */
+  async createGopayTransaction(params: {
+    orderId: string;
+    amount: number;
+    items: MidtransItem[];
+    customer: MidtransCustomerDetails;
+    callbackUrl?: string;
+  }): Promise<{
+    transaction_id: string;
+    order_id: string;
+    gross_amount: string;
+    payment_type: string;
+    transaction_status: string;
+    actions: Array<{
+      name: string;
+      method: string;
+      url: string;
+    }>;
+    qr_string?: string;
+  }> {
+    await this.initializeConfig();
+
+    const requestBody = {
+      payment_type: "gopay",
+      transaction_details: {
+        order_id: params.orderId,
+        gross_amount: params.amount,
+      },
+      item_details: params.items,
+      customer_details: params.customer,
+      gopay: {
+        enable_callback: true,
+        callback_url:
+          params.callbackUrl ||
+          `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/transaction`,
+      },
+    };
+
+    console.log("=== MIDTRANS GOPAY CORE API REQUEST ===");
+    console.log("Request body:", JSON.stringify(requestBody, null, 2));
+
+    try {
+      const response = await fetch(`${this.coreApiUrl}/charge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: this.getAuthHeader(),
+          Accept: "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      console.log("=== MIDTRANS GOPAY CORE API RESPONSE ===");
+      console.log("Response:", JSON.stringify(data, null, 2));
+
+      if (!response.ok || data.status_code !== "201") {
+        throw new Error(
+          `Midtrans GoPay API Error: ${
+            data.status_message ||
+            data.error_messages?.join(", ") ||
+            response.statusText
+          }`,
+        );
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Midtrans GoPay Core API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create QRIS transaction using Core API
+   * This returns the QR code string directly
+   */
+  async createQrisTransaction(params: {
+    orderId: string;
+    amount: number;
+    items: MidtransItem[];
+    customer: MidtransCustomerDetails;
+  }): Promise<{
+    transaction_id: string;
+    order_id: string;
+    gross_amount: string;
+    payment_type: string;
+    transaction_status: string;
+    actions: Array<{
+      name: string;
+      method: string;
+      url: string;
+    }>;
+    qr_string?: string;
+    acquirer?: string;
+  }> {
+    await this.initializeConfig();
+
+    const requestBody = {
+      payment_type: "qris",
+      transaction_details: {
+        order_id: params.orderId,
+        gross_amount: params.amount,
+      },
+      item_details: params.items,
+      customer_details: params.customer,
+      qris: {
+        acquirer: "gopay", // Use GoPay as QRIS acquirer for dynamic QR
+      },
+    };
+
+    console.log("=== MIDTRANS QRIS CORE API REQUEST ===");
+    console.log("Request body:", JSON.stringify(requestBody, null, 2));
+
+    try {
+      const response = await fetch(`${this.coreApiUrl}/charge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: this.getAuthHeader(),
+          Accept: "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      console.log("=== MIDTRANS QRIS CORE API RESPONSE ===");
+      console.log("Response:", JSON.stringify(data, null, 2));
+
+      if (
+        !response.ok ||
+        (data.status_code !== "201" && data.status_code !== "200")
+      ) {
+        throw new Error(
+          `Midtrans QRIS API Error: ${
+            data.status_message ||
+            data.error_messages?.join(", ") ||
+            response.statusText
+          }`,
+        );
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Midtrans QRIS Core API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract QR code URL from GoPay/QRIS response actions
+   */
+  extractQrCodeUrl(
+    actions: Array<{ name: string; method: string; url: string }>,
+  ): string | null {
+    // Look for generate-qr-code action first (for QR image URL)
+    const qrAction = actions.find(
+      (action) => action.name === "generate-qr-code" && action.method === "GET",
+    );
+    if (qrAction) return qrAction.url;
+
+    // Fallback to deeplink-redirect for mobile
+    const deeplinkAction = actions.find(
+      (action) =>
+        action.name === "deeplink-redirect" && action.method === "GET",
+    );
+    if (deeplinkAction) return deeplinkAction.url;
+
+    return null;
+  }
+
+  /**
+   * Extract deeplink URL for mobile app redirect
+   */
+  extractDeeplinkUrl(
+    actions: Array<{ name: string; method: string; url: string }>,
+  ): string | null {
+    const deeplinkAction = actions.find(
+      (action) =>
+        action.name === "deeplink-redirect" && action.method === "GET",
+    );
+    return deeplinkAction?.url || null;
   }
 }
 

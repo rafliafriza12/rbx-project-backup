@@ -100,22 +100,22 @@ export default function RiwayatPage() {
           console.log("Is Multi Checkout:", firstTx.isMultiCheckout);
           console.log(
             "Related Transactions Count:",
-            firstTx.relatedTransactions?.length || 0
+            firstTx.relatedTransactions?.length || 0,
           );
 
           // Test helper functions
           console.log("=== HELPER FUNCTIONS TEST ===");
           console.log(
             "calculateOriginalTotal:",
-            calculateOriginalTotal(firstTx)
+            calculateOriginalTotal(firstTx),
           );
           console.log(
             "calculateTotalDiscount:",
-            calculateTotalDiscount(firstTx)
+            calculateTotalDiscount(firstTx),
           );
           console.log(
             "calculateSubtotalAfterDiscount:",
-            calculateSubtotalAfterDiscount(firstTx)
+            calculateSubtotalAfterDiscount(firstTx),
           );
           console.log("getPaymentFee:", getPaymentFee(firstTx));
           console.log("calculateGrandTotal:", calculateGrandTotal(firstTx));
@@ -142,7 +142,7 @@ export default function RiwayatPage() {
 
   const getStatusBadge = (
     status: string,
-    type: "payment" | "order" = "payment"
+    type: "payment" | "order" = "payment",
   ) => {
     const baseClass =
       "px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-sm border transition-all duration-300";
@@ -698,7 +698,7 @@ export default function RiwayatPage() {
                             <div className="text-xs text-primary-200/60 line-through mb-1">
                               Rp{" "}
                               {calculateOriginalTotal(
-                                transaction
+                                transaction,
                               ).toLocaleString("id-ID")}
                             </div>
                           )}
@@ -711,7 +711,7 @@ export default function RiwayatPage() {
                               <div className="text-xs text-primary-200/70">
                                 Subtotal: Rp{" "}
                                 {calculateSubtotalAfterDiscount(
-                                  transaction
+                                  transaction,
                                 ).toLocaleString("id-ID")}
                               </div>
                             )}
@@ -721,7 +721,7 @@ export default function RiwayatPage() {
                               <div className="text-xs text-primary-200/70">
                                 Biaya Admin: Rp{" "}
                                 {getPaymentFee(transaction).toLocaleString(
-                                  "id-ID"
+                                  "id-ID",
                                 )}
                               </div>
                             )}
@@ -732,7 +732,7 @@ export default function RiwayatPage() {
                             <span className="text-white">
                               Rp{" "}
                               {calculateGrandTotal(transaction).toLocaleString(
-                                "id-ID"
+                                "id-ID",
                               )}
                             </span>
                           </div>
@@ -744,7 +744,7 @@ export default function RiwayatPage() {
                               <span>
                                 Hemat Rp{" "}
                                 {calculateTotalDiscount(
-                                  transaction
+                                  transaction,
                                 ).toLocaleString("id-ID")}
                               </span>
                             </div>
@@ -770,6 +770,7 @@ export default function RiwayatPage() {
                           </Link>
                           {(transaction.paymentStatus === "pending" ||
                             transaction.orderStatus === "waiting_payment") &&
+                            !transaction.qrCodeUrl &&
                             (transaction.snapToken ||
                               transaction.duitkuPaymentUrl) && (
                               <a
@@ -792,6 +793,21 @@ export default function RiwayatPage() {
                                 {/* Urgent indicator */}
                                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
                               </a>
+                            )}
+                          {/* QR Code indicator for GoPay/QRIS */}
+                          {(transaction.paymentStatus === "pending" ||
+                            transaction.orderStatus === "waiting_payment") &&
+                            transaction.qrCodeUrl && (
+                              <Link
+                                href={`/riwayat/${transaction._id}`}
+                                className="relative overflow-hidden flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg transition-all duration-300 hover:scale-105 font-medium text-sm shadow-lg group/qr"
+                              >
+                                <span className="relative z-10">
+                                  📱 Scan QR
+                                </span>
+                                {/* Urgent indicator */}
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                              </Link>
                             )}
                         </div>
                       </div>

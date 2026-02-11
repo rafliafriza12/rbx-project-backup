@@ -422,7 +422,7 @@ export default function TransactionDetailPage() {
                       <span>
                         Hemat Rp{" "}
                         {calculateTotalDiscount(transaction).toLocaleString(
-                          "id-ID"
+                          "id-ID",
                         )}
                       </span>
                     </div>
@@ -518,7 +518,7 @@ export default function TransactionDetailPage() {
                         <span className="font-semibold text-white">
                           Rp{" "}
                           {calculateOriginalTotal(transaction).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </span>
                       </div>
@@ -542,7 +542,7 @@ export default function TransactionDetailPage() {
                           <span className="font-semibold">
                             -Rp{" "}
                             {calculateTotalDiscount(transaction).toLocaleString(
-                              "id-ID"
+                              "id-ID",
                             )}
                           </span>
                         </div>
@@ -555,7 +555,7 @@ export default function TransactionDetailPage() {
                           <span className="font-semibold text-white">
                             Rp{" "}
                             {calculateSubtotalAfterDiscount(
-                              transaction
+                              transaction,
                             ).toLocaleString("id-ID")}
                           </span>
                         </div>
@@ -589,7 +589,7 @@ export default function TransactionDetailPage() {
                         <span className="text-lg font-bold text-neon-pink">
                           Rp{" "}
                           {calculateGrandTotal(transaction).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </span>
                       </div>
@@ -643,7 +643,7 @@ export default function TransactionDetailPage() {
                         <span className="font-semibold text-emerald-400">
                           -Rp{" "}
                           {(transaction.discountAmount || 0).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </span>
                       </div>
@@ -696,7 +696,7 @@ export default function TransactionDetailPage() {
                       <span className="text-lg font-bold text-neon-pink">
                         Rp{" "}
                         {calculateGrandTotal(transaction).toLocaleString(
-                          "id-ID"
+                          "id-ID",
                         )}
                       </span>
                     </div>
@@ -861,9 +861,56 @@ export default function TransactionDetailPage() {
               </div>
             </div>
 
+            {/* QR Code Display for GoPay/QRIS */}
+            {(transaction.paymentStatus === "pending" ||
+              transaction.orderStatus === "waiting_payment") &&
+              transaction.qrCodeUrl && (
+                <div className="mt-6 p-6 bg-white rounded-xl text-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Scan QR Code untuk Bayar
+                  </h3>
+                  <div className="bg-white p-4 rounded-lg inline-block mb-4 shadow-lg">
+                    <img
+                      src={transaction.qrCodeUrl}
+                      alt="QR Code Pembayaran"
+                      className="w-64 h-64 mx-auto"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        target.parentElement?.insertAdjacentHTML(
+                          "beforeend",
+                          `<div class="w-64 h-64 flex items-center justify-center bg-gray-100 rounded-lg">
+                            <p class="text-gray-500 text-sm">QR Code tidak tersedia</p>
+                          </div>`,
+                        );
+                      }}
+                    />
+                  </div>
+                  <p className="text-gray-600 text-sm mb-2">
+                    Scan dengan aplikasi GoPay, OVO, Dana, atau e-wallet lainnya
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    QR Code berlaku sampai transaksi kedaluwarsa
+                  </p>
+                  {transaction.redirectUrl && (
+                    <a
+                      href={transaction.redirectUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium"
+                    >
+                      <span>📱</span>
+                      Buka di Aplikasi GoPay
+                    </a>
+                  )}
+                </div>
+              )}
+
             {/* Payment Action */}
             {(transaction.paymentStatus === "pending" ||
               transaction.orderStatus === "waiting_payment") &&
+              !transaction.qrCodeUrl &&
               (transaction.snapToken || transaction.duitkuPaymentUrl) && (
                 <div className="mt-6">
                   <a

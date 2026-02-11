@@ -47,9 +47,7 @@ const PrivacyContent = () => (
           Nama, alamat email, nomor telepon
         </li>
         <li>
-          <span className="text-neon-purple font-medium">
-            Data Akun Rbx:
-          </span>{" "}
+          <span className="text-neon-purple font-medium">Data Akun Rbx:</span>{" "}
           Username Rbx, User ID (untuk keperluan transaksi)
         </li>
         <li>
@@ -581,8 +579,8 @@ const PublicAppFooter: React.FC = () => {
                 </li>
                 <li>
                   <Link
-                    href="/#contact"
-                    onClick={(e) => handleAnchorClick(e, "#contact")}
+                    href="https://youtu.be/MGG2oGEYF3Y"
+                    target="_blank"
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-purple rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>

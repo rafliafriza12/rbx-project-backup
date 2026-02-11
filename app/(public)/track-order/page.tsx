@@ -39,7 +39,7 @@ export default function TrackOrderPage() {
 
     try {
       const response = await fetch(
-        `/api/transactions/${encodeURIComponent(invoiceId)}`
+        `/api/transactions/${encodeURIComponent(invoiceId)}`,
       );
 
       const data = await response.json();
@@ -50,7 +50,7 @@ export default function TrackOrderPage() {
         console.log("Is Multi Checkout:", data.data.isMultiCheckout);
         console.log(
           "Related Transactions:",
-          data.data.relatedTransactions?.length || 0
+          data.data.relatedTransactions?.length || 0,
         );
 
         // Debug each item
@@ -396,7 +396,7 @@ export default function TrackOrderPage() {
                         <div className="text-xl sm:text-2xl font-bold text-primary-100">
                           Rp{" "}
                           {calculateGrandTotal(transaction).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </div>
                         <div className="text-sm text-white/60">
@@ -482,7 +482,7 @@ export default function TrackOrderPage() {
                         <span className="font-medium text-white">
                           Rp{" "}
                           {calculateOriginalTotal(transaction).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </span>
                       </div>
@@ -506,7 +506,7 @@ export default function TrackOrderPage() {
                           <span className="font-medium">
                             -Rp{" "}
                             {calculateTotalDiscount(transaction).toLocaleString(
-                              "id-ID"
+                              "id-ID",
                             )}
                           </span>
                         </div>
@@ -553,7 +553,7 @@ export default function TrackOrderPage() {
                         <span className="text-primary-100">
                           Rp{" "}
                           {calculateGrandTotal(transaction).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </span>
                       </div>
@@ -794,8 +794,8 @@ export default function TrackOrderPage() {
                                     isPaymentStatus
                                       ? "bg-blue-500/20 border-blue-400/30"
                                       : isOrderStatus
-                                      ? "bg-green-500/20 border-green-400/30"
-                                      : "bg-primary-100/20 border-primary-100/30"
+                                        ? "bg-green-500/20 border-green-400/30"
+                                        : "bg-primary-100/20 border-primary-100/30"
                                   }`}
                                 >
                                   {isPaymentStatus ? (
@@ -842,7 +842,7 @@ export default function TrackOrderPage() {
                               </div>
                             </div>
                           );
-                        }
+                        },
                       )
                     ) : (
                       <div className="text-center py-8 sm:py-12">
@@ -947,7 +947,7 @@ export default function TrackOrderPage() {
                         <span className="line-through">
                           Rp{" "}
                           {calculateOriginalTotal(transaction).toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}
                         </span>
                         <span className="ml-2 text-green-400 font-medium">
@@ -973,9 +973,42 @@ export default function TrackOrderPage() {
                     Tindakan
                   </h3>
 
+                  {/* QR Code Display for GoPay/QRIS */}
+                  {(transaction.paymentStatus === "pending" ||
+                    transaction.orderStatus === "waiting_payment") &&
+                    transaction.qrCodeUrl && (
+                      <div className="mb-6 p-6 bg-white rounded-xl text-center">
+                        <h4 className="text-lg font-bold text-gray-900 mb-4">
+                          Scan QR Code untuk Bayar
+                        </h4>
+                        <div className="bg-white p-4 rounded-lg inline-block mb-4 shadow-lg">
+                          <img
+                            src={transaction.qrCodeUrl}
+                            alt="QR Code Pembayaran"
+                            className="w-48 h-48 mx-auto"
+                          />
+                        </div>
+                        <p className="text-gray-600 text-sm mb-2">
+                          Scan dengan aplikasi GoPay, OVO, Dana, atau e-wallet
+                          lainnya
+                        </p>
+                        {transaction.redirectUrl && (
+                          <a
+                            href={transaction.redirectUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-sm"
+                          >
+                            📱 Buka di Aplikasi GoPay
+                          </a>
+                        )}
+                      </div>
+                    )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {(transaction.paymentStatus === "pending" ||
                       transaction.orderStatus === "waiting_payment") &&
+                      !transaction.qrCodeUrl &&
                       (transaction.snapToken ||
                         transaction.duitkuPaymentUrl) && (
                         <a
