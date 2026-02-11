@@ -181,7 +181,7 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-white transition-colors">
+                <Link href="https://youtu.be/SemqFE2fcKY" className="hover:text-white transition-colors">
                   Cara Beli
                 </Link>
               </li>
