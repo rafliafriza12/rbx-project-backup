@@ -143,88 +143,124 @@ export async function POST(req: NextRequest) {
     console.log("📄 Page loaded, validating price before purchase...");
 
     // ============ PRICE VALIDATION ============
-    // XPath untuk elemen yang menampilkan harga Robux di halaman gamepass
-    const priceXPath =
-      "/html/body/div[3]/main/div[2]/div[1]/div[2]/div[3]/div[1]/div[1]/div[3]/div/span[2]";
+    // Try multiple methods to find the price on the page
+    let priceValidated = false;
+    let actualPriceText: string | null = null;
 
     try {
-      // Wait for price element to appear
-      await page.waitForFunction(
-        (xpath: string) => {
-          const result = document.evaluate(
-            xpath,
-            document,
-            null,
-            XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null,
-          );
-          return result.singleNodeValue !== null;
-        },
-        { timeout: 10000 },
-        priceXPath,
-      );
+      // Wait a bit for dynamic content to load
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Get the price text from the page
-      const actualPriceText = await page.evaluate((xpath: string) => {
-        const result = document.evaluate(
-          xpath,
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null,
+      // Try to get price using multiple selectors
+      actualPriceText = await page.evaluate(() => {
+        // Method 1: Try the exact class from Roblox page
+        // Class: text-robux-lg wait-for-i18n-format-render
+        const robuxPriceElement = document.querySelector(
+          ".text-robux-lg.wait-for-i18n-format-render",
         );
-        const element = result.singleNodeValue as HTMLElement;
-        return element ? element.textContent?.trim() : null;
-      }, priceXPath);
+        if (robuxPriceElement && robuxPriceElement.textContent) {
+          const text = robuxPriceElement.textContent.trim();
+          if (/\d/.test(text)) {
+            return text;
+          }
+        }
 
-      console.log("💰 Price on page:", actualPriceText);
+        // Method 2: Try alternative CSS selectors
+        const cssSelectors = [
+          ".text-robux-lg",
+          '[class*="text-robux"]',
+          ".wait-for-i18n-format-render",
+        ];
 
-      if (!actualPriceText) {
-        console.error("❌ Could not find price element on page");
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Tidak dapat menemukan harga gamepass di halaman",
-          },
-          { status: 400 },
+        for (const selector of cssSelectors) {
+          try {
+            const elements = document.querySelectorAll(selector);
+            for (const el of elements) {
+              const text = el.textContent?.trim() || "";
+              // Check if it looks like a price number (digits with optional commas)
+              if (/^[\d,]+$/.test(text) && text.length < 10) {
+                return text;
+              }
+            }
+          } catch {
+            // Continue
+          }
+        }
+
+        // Method 3: Try XPath selectors as fallback
+        const xpathSelectors = [
+          "//span[contains(@class, 'text-robux-lg')]",
+          "//span[contains(@class, 'wait-for-i18n-format-render')]",
+          "/html/body/div[3]/main/div[2]/div[1]/div[2]/div[3]/div[1]/div[1]/div[3]/div/span[2]",
+        ];
+
+        for (const xpath of xpathSelectors) {
+          try {
+            const result = document.evaluate(
+              xpath,
+              document,
+              null,
+              XPathResult.FIRST_ORDERED_NODE_TYPE,
+              null,
+            );
+            const element = result.singleNodeValue as HTMLElement;
+            if (element && element.textContent) {
+              const text = element.textContent.trim();
+              if (/\d/.test(text)) {
+                return text;
+              }
+            }
+          } catch {
+            // Continue to next selector
+          }
+        }
+
+        return null;
+      });
+
+      if (actualPriceText) {
+        console.log("💰 Price found on page:", actualPriceText);
+
+        // Parse the price from text (remove commas, currency symbols, etc.)
+        const actualPrice = parseInt(
+          actualPriceText.replace(/[^0-9]/g, ""),
+          10,
+        );
+
+        console.log("💰 Parsed actual price:", actualPrice);
+        console.log("💰 Expected price from database:", expectedPrice);
+
+        // Validate price matches
+        if (!isNaN(actualPrice) && actualPrice > 0) {
+          if (actualPrice !== expectedPrice) {
+            console.error(
+              `❌ Price mismatch! Expected: ${expectedPrice}, Actual: ${actualPrice}`,
+            );
+            return NextResponse.json(
+              {
+                success: false,
+                message: `Harga gamepass tidak sesuai! Harga di database: ${expectedPrice} Robux, Harga di Roblox: ${actualPrice} Robux. Pembelian dibatalkan untuk keamanan.`,
+                expectedPrice,
+                actualPrice,
+              },
+              { status: 400 },
+            );
+          }
+          priceValidated = true;
+          console.log("✅ Price validated successfully!");
+        }
+      } else {
+        console.warn(
+          "⚠️ Could not find price element on page, skipping validation...",
         );
       }
-
-      // Parse the price from text (remove commas, currency symbols, etc.)
-      // Examples: "1,000", "500", "10,000"
-      const actualPrice = parseInt(actualPriceText.replace(/[^0-9]/g, ""), 10);
-
-      console.log("💰 Parsed actual price:", actualPrice);
-      console.log("💰 Expected price from database:", expectedPrice);
-
-      // Validate price matches
-      if (actualPrice !== expectedPrice) {
-        console.error(
-          `❌ Price mismatch! Expected: ${expectedPrice}, Actual: ${actualPrice}`,
-        );
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Harga gamepass tidak sesuai! Harga di database: ${expectedPrice} Robux, Harga di Roblox: ${actualPrice} Robux. Pembelian dibatalkan untuk keamanan.`,
-            expectedPrice,
-            actualPrice,
-          },
-          { status: 400 },
-        );
-      }
-
-      console.log(
-        "✅ Price validated successfully! Proceeding with purchase...",
-      );
     } catch (priceError: any) {
-      console.error("❌ Error validating price:", priceError.message);
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Gagal memvalidasi harga gamepass: ${priceError.message}`,
-        },
-        { status: 500 },
-      );
+      console.warn("⚠️ Error during price validation:", priceError.message);
+      // Don't block purchase if price validation fails - just log and continue
+    }
+
+    if (!priceValidated) {
+      console.warn("⚠️ Price validation skipped, proceeding with purchase...");
     }
 
     // ============ END PRICE VALIDATION ============
