@@ -476,25 +476,25 @@ export default function Rbx5Page() {
     try {
       const expectedRobux = getGamepassAmount();
 
-      // Get userId from userInfo
-      const userId = userInfo?.id;
+      // Get placeId from selectedPlace
+      const placeId = selectedPlace.placeId;
 
-      if (!userId) {
+      if (!placeId) {
         toast.error(
-          "User ID tidak ditemukan. Mohon cari username Roblox terlebih dahulu.",
+          "Place ID tidak ditemukan. Mohon pilih game terlebih dahulu.",
         );
         setIsCheckingGamepass(false);
         return;
       }
 
       console.log(
-        `🔍 Checking gamepass for User ID: ${userId}, expected price: ${expectedRobux} Robux`,
+        `🔍 Checking gamepass for Place ID: ${placeId}, expected price: ${expectedRobux} Robux`,
       );
 
-      // Use NEW stable API endpoint (User-based GamePass API)
-      // This endpoint is reliable and returns all gamepasses owned by the user
+      // Use Universe-based GamePass API with placeId
+      // This endpoint returns all gamepasses for a specific universe/place
       const response = await fetch(
-        `/api/check-gamepass?userId=${userId}&expectedRobux=${expectedRobux}`,
+        `/api/check-gamepass?placeId=${placeId}&expectedRobux=${expectedRobux}`,
       );
 
       if (!response.ok) {
