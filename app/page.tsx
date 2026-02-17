@@ -1611,7 +1611,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Address */}
-                <div className="neon-card-secondary rounded-xl p-4 flex items-center gap-3 hover:border-neon-pink/40 transition-all duration-300">
+                {/* <div className="neon-card-secondary rounded-xl p-4 flex items-center gap-3 hover:border-neon-pink/40 transition-all duration-300">
                   <svg
                     className="w-5 h-5 text-neon-pink flex-shrink-0"
                     fill="none"
@@ -1638,7 +1638,7 @@ export default function HomePage() {
                       Utara
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* CTA Button */}

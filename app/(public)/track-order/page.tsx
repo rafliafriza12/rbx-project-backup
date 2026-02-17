@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Search,
   Package,
@@ -24,11 +24,42 @@ import {
 import { Transaction } from "@/types";
 import Link from "next/link";
 
+interface SiteSettings {
+  whatsappNumber?: string;
+  instagramUrl?: string;
+  discordInvite?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+}
+
 export default function TrackOrderPage() {
   const [invoiceId, setInvoiceId] = useState("");
   const [loading, setLoading] = useState(false);
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [searched, setSearched] = useState(false);
+  const [settings, setSettings] = useState<SiteSettings>({});
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch("/api/settings");
+      const data = await response.json();
+      if (response.ok) {
+        setSettings({
+          whatsappNumber: data.settings.whatsappNumber,
+          instagramUrl: data.settings.instagramUrl,
+          discordInvite: data.settings.discordInvite,
+          facebookUrl: data.settings.facebookUrl,
+          twitterUrl: data.settings.twitterUrl,
+          youtubeUrl: data.settings.youtubeUrl,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +109,10 @@ export default function TrackOrderPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   // Status badge generator with purple theme
   const getStatusBadge = (status: string) => {
@@ -1036,7 +1071,10 @@ export default function TrackOrderPage() {
                     </button>
 
                     <Link
-                      href="/chat"
+                      href={`https://wa.me/${settings?.whatsappNumber?.replace(
+                        /\D/g,
+                        "",
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 text-green-300 rounded-xl hover:from-green-500/30 hover:to-green-600/30 backdrop-blur-sm transition-all duration-300 font-medium text-sm sm:text-base"
@@ -1102,19 +1140,22 @@ export default function TrackOrderPage() {
                     </h4>
                     <div className="space-y-3">
                       <a
-                        href="https://wa.me/6281234567890"
+                        href={`https://wa.me/${settings?.whatsappNumber?.replace(
+                          /\D/g,
+                          "",
+                        )}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full text-center px-4 py-3 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/40 text-green-300 rounded-xl hover:from-green-500/30 hover:to-green-600/30 backdrop-blur-sm transition-all duration-300 text-sm font-medium"
                       >
                         💬 Hubungi Customer Service
                       </a>
-                      <a
-                        href="mailto:support@rbxstore.com"
+                      {/* <a
+                        href={`mailto:${settings.}`}
                         className="block w-full text-center px-4 py-3 bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-500/40 text-blue-300 rounded-xl hover:from-blue-500/30 hover:to-blue-600/30 backdrop-blur-sm transition-all duration-300 text-sm font-medium"
                       >
                         📧 Kirim Email
-                      </a>
+                      </a> */}
                     </div>
                   </div>
                 </div>

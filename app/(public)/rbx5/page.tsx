@@ -67,6 +67,14 @@ interface StockAccountsInfo {
   averageRobuxPerAccount: number;
 }
 
+interface SiteSettings {
+  whatsappNumber?: string;
+  instagramUrl?: string;
+  discordInvite?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+}
 export default function Rbx5Page() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +129,30 @@ export default function Rbx5Page() {
     null,
   );
 
+  const [settings, setSettings] = useState<SiteSettings>({});
+
   const router = useRouter();
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch("/api/settings");
+      const data = await response.json();
+      if (response.ok) {
+        setSettings({
+          whatsappNumber: data.settings.whatsappNumber,
+          instagramUrl: data.settings.instagramUrl,
+          discordInvite: data.settings.discordInvite,
+          facebookUrl: data.settings.facebookUrl,
+          twitterUrl: data.settings.twitterUrl,
+          youtubeUrl: data.settings.youtubeUrl,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Function to fetch user places
   const fetchUserPlaces = async (userId: number) => {
@@ -287,6 +318,7 @@ export default function Rbx5Page() {
     };
 
     checkHomepageData();
+    // fetchSettings();
   }, []);
 
   // Fetch products from database
