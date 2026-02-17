@@ -19,7 +19,7 @@ interface EmailOptions {
 }
 
 class EmailService {
-  private static transporter: nodemailer.Transporter | null = null;
+  // Tidak perlu cache transporter, selalu buat baru dengan config terbaru
 
   private static async getEmailConfig(): Promise<EmailConfig> {
     const settings = await Settings.getSiteSettings();
@@ -36,21 +36,18 @@ class EmailService {
   }
 
   private static async createTransporter(): Promise<nodemailer.Transporter> {
-    if (!this.transporter) {
-      const config = await this.getEmailConfig();
+    // Selalu buat transporter baru dengan config terbaru dari database
+    const config = await this.getEmailConfig();
 
-      this.transporter = nodemailer.createTransport({
-        host: config.host,
-        port: config.port,
-        secure: config.secure,
-        auth: config.auth,
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
-    }
-
-    return this.transporter!;
+    return nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: config.auth,
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
   }
 
   static async sendEmail(options: EmailOptions): Promise<boolean> {
@@ -107,7 +104,7 @@ class EmailService {
       const invoiceHtml = this.generateInvoiceTemplate(
         transactions,
         settings,
-        isMultiTransaction
+        isMultiTransaction,
       );
 
       const emailOptions: EmailOptions = {
@@ -128,7 +125,7 @@ class EmailService {
   private static generateInvoiceTemplate(
     transactions: any[],
     settings: any,
-    isMultiTransaction: boolean = false
+    isMultiTransaction: boolean = false,
   ): string {
     // Use first transaction for common info (they share same invoice ID, customer, etc)
     const firstTransaction = transactions[0];
@@ -136,7 +133,7 @@ class EmailService {
     // Calculate grand total from all transactions
     const grandTotal = transactions.reduce(
       (sum, txn) => sum + (txn.totalAmount || 0),
-      0
+      0,
     );
 
     const formatCurrency = (amount: number) => {
@@ -198,7 +195,7 @@ class EmailService {
         <td>${formatCurrency(txn.unitPrice)}</td>
         <td>${formatCurrency(txn.unitPrice * txn.quantity)}</td>
       </tr>
-    `
+    `,
       )
       .join("");
 
@@ -710,14 +707,14 @@ class EmailService {
                 <div>
                     <div class="info-label">Tanggal Dibuat</div>
                     <div class="info-value">${formatDate(
-                      firstTransaction.createdAt
+                      firstTransaction.createdAt,
                     )}</div>
                 </div>
                 <div>
                     <div class="info-label">Status Pembayaran</div>
                     <div class="info-value">
                         <span class="status-badge" style="background-color: ${getStatusColor(
-                          firstTransaction.paymentStatus
+                          firstTransaction.paymentStatus,
                         )}">
                             ${getStatusLabel(firstTransaction.paymentStatus)}
                         </span>
@@ -764,7 +761,7 @@ class EmailService {
                         : ""
                     }
                 </div>
-                `
+                `,
                   )
                   .join("")}
                 <p style="margin-top: 15px; color: #0f766e;"><em>Data akun Anda aman dan tidak akan disalahgunakan.</em></p>
@@ -807,7 +804,7 @@ class EmailService {
                         <tr class="total-row">
                             <td colspan="4"><strong>TOTAL PEMBAYARAN</strong></td>
                             <td><strong>${formatCurrency(
-                              grandTotal
+                              grandTotal,
                             )}</strong></td>
                         </tr>
                     </tbody>
@@ -857,7 +854,7 @@ class EmailService {
                     ${
                       firstTransaction.expiresAt
                         ? `<li>Invoice ini berlaku hingga ${formatDate(
-                            firstTransaction.expiresAt
+                            firstTransaction.expiresAt,
                           )}</li>`
                         : ""
                     }
@@ -908,8 +905,8 @@ class EmailService {
             
             <p style="margin-top: 20px; opacity: 0.8; font-size: 0.9em;">
                 © ${new Date().getFullYear()} ${
-      settings.siteName || "RBXNET"
-    }. Semua hak dilindungi.
+                  settings.siteName || "RBXNET"
+                }. Semua hak dilindungi.
             </p>
         </div>
     </div>
