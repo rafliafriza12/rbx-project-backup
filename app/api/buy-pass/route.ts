@@ -6,62 +6,29 @@ import chromium from "@sparticuz/chromium";
 export const maxDuration = 60; // Max 60 seconds for Pro plan, 10 for Hobby
 export const dynamic = "force-dynamic";
 
-// Check if running in Vercel/serverless environment
-const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
-
-// Get browser executable path
+// Get browser using @sparticuz/chromium
 async function getBrowser() {
-  // Local development: use system Chrome/Chromium
-  const possiblePaths = [
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium-browser",
-    "/usr/bin/chromium",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  ].filter(Boolean);
-
-  let executablePath = possiblePaths[0];
-
-  // Find first existing path
-  for (const path of possiblePaths) {
-    if (path) {
-      try {
-        const fs = await import("fs");
-        if (fs.existsSync(path)) {
-          executablePath = path;
-          break;
-        }
-      } catch {
-        // Continue to next path
-      }
-    }
-  }
+  chromium.setHeadlessMode = true;
+  chromium.setGraphicsMode = false;
 
   return puppeteer.launch({
-    headless: true,
-    executablePath,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--single-process",
-    ],
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
 }
 
 export async function POST(req: NextRequest) {
   let browser;
   try {
-    const { robloxCookie, gamepassId, gamepassName, price } = await req.json();
+    const { robloxCookie, productId, productName, price } = await req.json();
 
-    if (!robloxCookie || !gamepassId || !gamepassName) {
+    if (!robloxCookie || !productId || !productName) {
       return NextResponse.json(
         {
           success: false,
-          message: "robloxCookie, gamepassId, gamepassName wajib diisi",
+          message: "robloxCookie, productId, productName wajib diisi",
         },
         { status: 400 },
       );
@@ -90,16 +57,15 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("🎯 Attempting to purchase gamepass with Puppeteer:", {
-      gamepassId,
-      gamepassName,
+      productId,
+      productName,
       expectedPrice,
       cookie: robloxCookie ? "[PRESENT]" : "[MISSING]",
-      isServerless,
     });
 
-    // Format gamepass name: replace spaces with hyphens
-    const formattedGamepassName = gamepassName.replace(/\s+/g, "-");
-    const gamepassUrl = `https://www.roblox.com/game-pass/${gamepassId}/${formattedGamepassName}`;
+    // Format product name: replace spaces with hyphens
+    const formattedProductName = productName.replace(/\s+/g, "-");
+    const gamepassUrl = `https://www.roblox.com/game-pass/${productId}/${formattedProductName}`;
 
     console.log("🌐 Gamepass URL:", gamepassUrl);
 
