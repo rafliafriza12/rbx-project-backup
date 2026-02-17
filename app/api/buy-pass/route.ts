@@ -22,13 +22,13 @@ async function getBrowser() {
 export async function POST(req: NextRequest) {
   let browser;
   try {
-    const { robloxCookie, productId, productName, price } = await req.json();
+    const { robloxCookie, gamepassId, gamepassName, price } = await req.json();
 
-    if (!robloxCookie || !productId || !productName) {
+    if (!robloxCookie || !gamepassId || !gamepassName) {
       return NextResponse.json(
         {
           success: false,
-          message: "robloxCookie, productId, productName wajib diisi",
+          message: "robloxCookie, gamepassId, gamepassName wajib diisi",
         },
         { status: 400 },
       );
@@ -57,15 +57,15 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("🎯 Attempting to purchase gamepass with Puppeteer:", {
-      productId,
-      productName,
+      gamepassId,
+      gamepassName,
       expectedPrice,
       cookie: robloxCookie ? "[PRESENT]" : "[MISSING]",
     });
 
-    // Format product name: replace spaces with hyphens
-    const formattedProductName = productName.replace(/\s+/g, "-");
-    const gamepassUrl = `https://www.roblox.com/game-pass/${productId}/${formattedProductName}`;
+    // Format gamepass name: replace spaces with hyphens
+    const formattedGamepassName = gamepassName.replace(/\s+/g, "-");
+    const gamepassUrl = `https://www.roblox.com/game-pass/${gamepassId}/${formattedGamepassName}`;
 
     console.log("🌐 Gamepass URL:", gamepassUrl);
 
