@@ -39,7 +39,7 @@ async function getBrowser() {
   }
 
   return puppeteer.launch({
-    headless: false,
+    headless: true,
     executablePath,
     args: [
       "--no-sandbox",
