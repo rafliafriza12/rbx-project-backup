@@ -13,7 +13,7 @@ async function processGamepassPurchase(transaction: any) {
   try {
     console.log(
       "Processing gamepass purchase for transaction:",
-      transaction.invoiceId
+      transaction.invoiceId,
     );
     console.log("Gamepass data:", transaction.gamepass);
 
@@ -32,7 +32,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -52,7 +52,7 @@ async function processGamepassPurchase(transaction: any) {
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
-      }
+      },
     );
 
     if (!updateAccountResponse.ok) {
@@ -61,7 +61,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         "Pesanan sedang diproses",
-        null
+        null,
       );
       return;
     }
@@ -74,7 +74,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -86,7 +86,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return;
     }
@@ -99,8 +99,8 @@ async function processGamepassPurchase(transaction: any) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         robloxCookie: suitableAccount.robloxCookie,
-        productId: transaction.gamepass.productId,
-        productName: transaction.gamepass.name,
+        gamepassId: transaction.gamepass.id,
+        gamepassName: transaction.gamepass.name,
         price: transaction.gamepass.price,
         sellerId: transaction.gamepass.sellerId,
       }),
@@ -117,7 +117,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "completed",
         `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
-        null
+        null,
       );
 
       // Update account data setelah purchase
@@ -133,7 +133,7 @@ async function processGamepassPurchase(transaction: any) {
           body: JSON.stringify({
             robloxCookie: suitableAccount.robloxCookie,
           }),
-        }
+        },
       );
     } else {
       console.error("Gamepass purchase failed:", purchaseResult.message);
@@ -141,7 +141,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
     }
   } catch (error) {
@@ -150,7 +150,7 @@ async function processGamepassPurchase(transaction: any) {
       "order",
       "pending",
       `Pesanan sedang diproses`,
-      null
+      null,
     );
   }
 }
@@ -158,7 +158,7 @@ async function processGamepassPurchase(transaction: any) {
 // GET - Get transaction by ID atau invoice ID (with related transactions for multi-checkout)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -184,7 +184,7 @@ export async function GET(
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -217,7 +217,7 @@ export async function GET(
     console.error("Error fetching transaction:", error);
     return NextResponse.json(
       { error: "Failed to fetch transaction" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -225,7 +225,7 @@ export async function GET(
 // PUT - Update transaction status (untuk admin)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -239,14 +239,14 @@ export async function PUT(
     if (!statusType || !newStatus) {
       return NextResponse.json(
         { error: "Status type and new status are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!["payment", "order"].includes(statusType)) {
       return NextResponse.json(
         { error: "Invalid status type. Must be 'payment' or 'order'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -262,7 +262,7 @@ export async function PUT(
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -288,17 +288,17 @@ export async function PUT(
     console.log("oldPaymentStatus:", oldPaymentStatus);
     console.log(
       "transaction.customerInfo?.userId:",
-      transaction.customerInfo?.userId
+      transaction.customerInfo?.userId,
     );
     console.log("statusType === 'payment':", statusType === "payment");
     console.log("newStatus === 'settlement':", newStatus === "settlement");
     console.log(
       "oldPaymentStatus !== 'settlement':",
-      oldPaymentStatus !== "settlement"
+      oldPaymentStatus !== "settlement",
     );
     console.log(
       "!!transaction.customerInfo?.userId:",
-      !!transaction.customerInfo?.userId
+      !!transaction.customerInfo?.userId,
     );
 
     // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
@@ -324,12 +324,12 @@ export async function PUT(
           await user.save();
 
           console.log(
-            `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`
+            `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`,
           );
         } else {
           console.log(
             "User not found with ID:",
-            transaction.customerInfo.userId
+            transaction.customerInfo.userId,
           );
         }
       } catch (userUpdateError) {
@@ -348,7 +348,7 @@ export async function PUT(
       transaction.gamepass
     ) {
       console.log(
-        "Admin changed payment to settlement - processing gamepass purchase"
+        "Admin changed payment to settlement - processing gamepass purchase",
       );
       await processGamepassPurchase(transaction);
     }
@@ -356,7 +356,7 @@ export async function PUT(
     if (statusType === "payment" && newStatus === "settlement") {
       try {
         console.log(
-          `Sending invoice email to ${transaction.customerInfo.email} (admin changed order to completed)`
+          `Sending invoice email to ${transaction.customerInfo.email} (admin changed order to completed)`,
         );
         await EmailService.sendInvoiceEmail(transaction);
         console.log("Invoice email sent successfully");
@@ -375,7 +375,7 @@ export async function PUT(
     ) {
       try {
         console.log(
-          `Sending invoice email to ${transaction.customerInfo.email} (admin changed order to completed)`
+          `Sending invoice email to ${transaction.customerInfo.email} (admin changed order to completed)`,
         );
         await EmailService.sendInvoiceEmail(transaction);
         console.log("Invoice email sent successfully");
@@ -394,7 +394,7 @@ export async function PUT(
     console.error("Error updating transaction:", error);
     return NextResponse.json(
       { error: "Failed to update transaction" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -403,7 +403,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -423,7 +423,7 @@ export async function DELETE(
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -431,7 +431,7 @@ export async function DELETE(
     if (transaction.paymentStatus === "settlement") {
       return NextResponse.json(
         { error: "Cannot cancel settlement transaction" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -450,12 +450,12 @@ export async function DELETE(
     await transaction.updateStatus(
       "payment",
       "cancelled",
-      "Transaction cancelled by user"
+      "Transaction cancelled by user",
     );
     await transaction.updateStatus(
       "order",
       "cancelled",
-      "Transaction cancelled by user"
+      "Transaction cancelled by user",
     );
 
     return NextResponse.json({
@@ -467,7 +467,7 @@ export async function DELETE(
     console.error("Error cancelling transaction:", error);
     return NextResponse.json(
       { error: "Failed to cancel transaction" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

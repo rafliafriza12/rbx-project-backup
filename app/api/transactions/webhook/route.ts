@@ -157,8 +157,8 @@ async function processGamepassPurchase(transaction: any) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         robloxCookie: suitableAccount.robloxCookie,
-        productId: transaction.gamepass.productId,
-        productName: transaction.gamepass.name,
+        gamepassId: transaction.gamepass.id,
+        gamepassName: transaction.gamepass.name,
         price: transaction.gamepass.price,
         sellerId: transaction.gamepass.sellerId,
       }),

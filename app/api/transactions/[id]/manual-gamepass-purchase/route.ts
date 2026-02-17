@@ -12,7 +12,7 @@ async function processGamepassPurchase(transaction: any) {
 
     console.log(
       "Manual gamepass purchase for transaction:",
-      transaction.invoiceId
+      transaction.invoiceId,
     );
     console.log("Gamepass data:", transaction.gamepass);
 
@@ -31,7 +31,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return {
         success: false,
@@ -51,12 +51,12 @@ async function processGamepassPurchase(transaction: any) {
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
-      }
+      },
     );
 
     const updateAccountResponse = await updateStockAccountHandler(
       updateRequest,
-      { params: Promise.resolve({ id: suitableAccount._id.toString() }) }
+      { params: Promise.resolve({ id: suitableAccount._id.toString() }) },
     );
 
     if (!updateAccountResponse.ok) {
@@ -65,7 +65,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         "Pesanan sedang diproses",
-        null
+        null,
       );
       return { success: false, message: "Gagal memvalidasi akun stock" };
     }
@@ -78,7 +78,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return {
         success: false,
@@ -93,7 +93,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return {
         success: false,
@@ -108,8 +108,8 @@ async function processGamepassPurchase(transaction: any) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         robloxCookie: suitableAccount.robloxCookie,
-        productId: transaction.gamepass.productId,
-        productName: transaction.gamepass.name,
+        gamepassId: transaction.gamepass.id,
+        gamepassName: transaction.gamepass.name,
         price: transaction.gamepass.price,
         sellerId: transaction.gamepass.sellerId,
       }),
@@ -126,7 +126,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "completed",
         `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username} (Manual)`,
-        null
+        null,
       );
 
       // Update account data setelah purchase (using direct import)
@@ -139,7 +139,7 @@ async function processGamepassPurchase(transaction: any) {
           body: JSON.stringify({
             robloxCookie: suitableAccount.robloxCookie,
           }),
-        }
+        },
       );
 
       await updateStockAccountHandler(updateAfterRequest, {
@@ -156,7 +156,7 @@ async function processGamepassPurchase(transaction: any) {
         "order",
         "pending",
         `Pesanan sedang diproses`,
-        null
+        null,
       );
       return {
         success: false,
@@ -169,7 +169,7 @@ async function processGamepassPurchase(transaction: any) {
       "order",
       "pending",
       `Pesanan sedang diproses`,
-      null
+      null,
     );
     return {
       success: false,
@@ -182,7 +182,7 @@ async function processGamepassPurchase(transaction: any) {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -195,7 +195,7 @@ export async function POST(
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -206,7 +206,7 @@ export async function POST(
     ) {
       return NextResponse.json(
         { error: "Invalid service type for gamepass purchase" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -215,14 +215,14 @@ export async function POST(
         {
           error: "Payment must be settled before processing gamepass purchase",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!transaction.gamepass) {
       return NextResponse.json(
         { error: "No gamepass data found for this transaction" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -241,7 +241,7 @@ export async function POST(
     console.error("Error in manual gamepass purchase:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

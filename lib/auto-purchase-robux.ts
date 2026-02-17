@@ -19,7 +19,7 @@ import { NextRequest } from "next/server";
  * 5. If not found: stop processing, remaining transactions stay pending until next stock update
  */
 export async function autoPurchasePendingRobux(
-  triggeredByStockAccountId?: string
+  triggeredByStockAccountId?: string,
 ) {
   // Generate unique session ID for tracking
   const sessionId = `auto-purchase-${Date.now()}-${Math.random()
@@ -28,7 +28,7 @@ export async function autoPurchasePendingRobux(
 
   try {
     console.log(
-      "🤖 Starting auto-purchase for pending robux_5_hari transactions..."
+      "🤖 Starting auto-purchase for pending robux_5_hari transactions...",
     );
     console.log(`📊 Session ID: ${sessionId}`);
 
@@ -51,7 +51,7 @@ export async function autoPurchasePendingRobux(
       triggerAccount = await StockAccount.findById(triggeredByStockAccountId);
       if (triggerAccount) {
         console.log(
-          `🎯 Triggered by stock account update: ${triggerAccount.username} (Robux: ${triggerAccount.robux})`
+          `🎯 Triggered by stock account update: ${triggerAccount.username} (Robux: ${triggerAccount.robux})`,
         );
         progressDoc.triggeredBy = {
           stockAccountId: triggerAccount._id.toString(),
@@ -91,7 +91,7 @@ export async function autoPurchasePendingRobux(
     }).sort({ createdAt: 1 }); // Oldest first
 
     console.log(
-      `📋 Found ${pendingTransactions.length} pending robux_5_hari transactions`
+      `📋 Found ${pendingTransactions.length} pending robux_5_hari transactions`,
     );
 
     // Update progress with transaction list
@@ -107,7 +107,7 @@ export async function autoPurchasePendingRobux(
 
     if (pendingTransactions.length === 0) {
       console.log(
-        "📭 No pending transactions found. Updating stock account cookies..."
+        "📭 No pending transactions found. Updating stock account cookies...",
       );
 
       // Update: Refresh all stock accounts
@@ -122,7 +122,7 @@ export async function autoPurchasePendingRobux(
             "https://economy.roblox.com/v1/user/currency",
             {
               headers: { Cookie: `.ROBLOSECURITY=${account.robloxCookie};` },
-            }
+            },
           );
 
           if (robuxRes.ok) {
@@ -139,20 +139,20 @@ export async function autoPurchasePendingRobux(
                 username: string;
                 robux: number;
                 status: string;
-              }) => s.id === account._id.toString()
+              }) => s.id === account._id.toString(),
             );
             if (stockIdx !== -1) {
               progressDoc.stockAccounts[stockIdx].robux = account.robux;
             }
 
             console.log(
-              `✅ Updated ${account.username}: ${account.robux} robux`
+              `✅ Updated ${account.username}: ${account.robux} robux`,
             );
           }
         } catch (error) {
           console.error(
             `❌ Failed to update account ${account.username}:`,
-            error
+            error,
           );
         }
       }
@@ -163,7 +163,7 @@ export async function autoPurchasePendingRobux(
       await progressDoc.save();
 
       console.log(
-        `✅ Stock accounts updated. ${updatedCount}/${allStockAccounts.length} accounts refreshed.`
+        `✅ Stock accounts updated. ${updatedCount}/${allStockAccounts.length} accounts refreshed.`,
       );
 
       return {
@@ -191,7 +191,7 @@ export async function autoPurchasePendingRobux(
 
       if (!transaction.gamepass || !transaction.gamepass.productId) {
         console.log(
-          `⚠️ Transaction ${transaction.invoiceId} missing gamepass data, skipping...`
+          `⚠️ Transaction ${transaction.invoiceId} missing gamepass data, skipping...`,
         );
 
         // Update progress
@@ -205,7 +205,7 @@ export async function autoPurchasePendingRobux(
       }
 
       console.log(
-        `🔄 Processing transaction ${transaction.invoiceId} - Gamepass: ${transaction.gamepass.name} (${gamepassPrice} robux)`
+        `🔄 Processing transaction ${transaction.invoiceId} - Gamepass: ${transaction.gamepass.name} (${gamepassPrice} robux)`,
       );
 
       // Update progress: processing this transaction
@@ -224,19 +224,18 @@ export async function autoPurchasePendingRobux(
 
       if (!suitableAccount) {
         console.log(
-          `⚠️ No suitable stock account found for transaction ${transaction.invoiceId}. Need: ${gamepassPrice} robux`
+          `⚠️ No suitable stock account found for transaction ${transaction.invoiceId}. Need: ${gamepassPrice} robux`,
         );
         console.log(
           `🛑 Stopping auto-purchase. Remaining ${
             pendingTransactions.length - processedCount - skippedCount
-          } transactions will be processed when stock is updated again.`
+          } transactions will be processed when stock is updated again.`,
         );
 
         // Update progress: insufficient robux
         progressDoc.transactions[i].status = "failed";
-        progressDoc.transactions[
-          i
-        ].error = `No account with ${gamepassPrice} robux available`;
+        progressDoc.transactions[i].error =
+          `No account with ${gamepassPrice} robux available`;
         progressDoc.currentStep = "Stopped: Insufficient robux in all accounts";
         await progressDoc.save();
 
@@ -244,7 +243,7 @@ export async function autoPurchasePendingRobux(
       }
 
       console.log(
-        `✅ Found suitable account: ${suitableAccount.username} (${suitableAccount.robux} robux)`
+        `✅ Found suitable account: ${suitableAccount.username} (${suitableAccount.robux} robux)`,
       );
 
       // Update progress: found account
@@ -255,10 +254,10 @@ export async function autoPurchasePendingRobux(
         // Purchase gamepass using the buy-pass API logic
         const purchaseResult = await purchaseGamepass(
           suitableAccount.robloxCookie,
-          transaction.gamepass.productId,
+          transaction.gamepass.id,
           transaction.gamepass.name,
           transaction.gamepass.price,
-          transaction.gamepass.sellerId
+          transaction.gamepass.sellerId,
         );
 
         if (purchaseResult.success) {
@@ -267,7 +266,7 @@ export async function autoPurchasePendingRobux(
             "order",
             "completed",
             `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
-            null
+            null,
           );
 
           // Deduct robux from stock account
@@ -278,7 +277,7 @@ export async function autoPurchasePendingRobux(
           processedCount++;
 
           console.log(
-            `✅ Transaction ${transaction.invoiceId} completed successfully. Account ${suitableAccount.username} remaining robux: ${suitableAccount.robux}`
+            `✅ Transaction ${transaction.invoiceId} completed successfully. Account ${suitableAccount.username} remaining robux: ${suitableAccount.robux}`,
           );
 
           // Update progress: completed
@@ -292,7 +291,7 @@ export async function autoPurchasePendingRobux(
               username: string;
               robux: number;
               status: string;
-            }) => s.id === suitableAccount._id.toString()
+            }) => s.id === suitableAccount._id.toString(),
           );
           if (stockIdx !== -1) {
             progressDoc.stockAccounts[stockIdx].robux = suitableAccount.robux;
@@ -314,7 +313,7 @@ export async function autoPurchasePendingRobux(
           }
         } else {
           console.log(
-            `❌ Failed to purchase gamepass for transaction ${transaction.invoiceId}: ${purchaseResult.error}`
+            `❌ Failed to purchase gamepass for transaction ${transaction.invoiceId}: ${purchaseResult.error}`,
           );
 
           // Update progress: failed
@@ -330,7 +329,7 @@ export async function autoPurchasePendingRobux(
       } catch (error) {
         console.error(
           `❌ Error processing transaction ${transaction.invoiceId}:`,
-          error
+          error,
         );
 
         // Update progress: error
@@ -346,7 +345,7 @@ export async function autoPurchasePendingRobux(
     }
 
     console.log(
-      `🎉 Auto-purchase completed! Processed: ${processedCount}, Skipped: ${skippedCount}, Failed: ${failedCount}`
+      `🎉 Auto-purchase completed! Processed: ${processedCount}, Skipped: ${skippedCount}, Failed: ${failedCount}`,
     );
 
     // Update progress: completed
@@ -400,15 +399,15 @@ export async function autoPurchasePendingRobux(
  */
 async function purchaseGamepass(
   robloxCookie: string,
-  productId: number,
-  productName: string,
+  gamepassId: number,
+  gamepassName: string,
   price: number,
-  sellerId: number
+  sellerId: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("🎯 Attempting to purchase gamepass via Puppeteer:", {
-      productId,
-      productName,
+      gamepassId,
+      gamepassName,
       price,
       sellerId,
     });
@@ -417,8 +416,8 @@ async function purchaseGamepass(
     // This is faster and more reliable than HTTP fetch
     const requestBody = JSON.stringify({
       robloxCookie,
-      productId,
-      productName,
+      gamepassId,
+      gamepassName,
       price,
       sellerId,
     });
@@ -439,7 +438,7 @@ async function purchaseGamepass(
       const errorText = await purchaseResponse.text();
       console.error(
         `❌ API returned ${purchaseResponse.status}:`,
-        errorText.substring(0, 200)
+        errorText.substring(0, 200),
       );
       return {
         success: false,
@@ -453,7 +452,7 @@ async function purchaseGamepass(
       const htmlText = await purchaseResponse.text();
       console.error(
         "❌ API returned HTML instead of JSON:",
-        htmlText.substring(0, 300)
+        htmlText.substring(0, 300),
       );
       return {
         success: false,

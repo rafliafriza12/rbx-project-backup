@@ -51,7 +51,7 @@ interface StockAccount {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [resellerPackages, setResellerPackages] = useState<ResellerPackage[]>(
-    []
+    [],
   );
   const [stockAccounts, setStockAccounts] = useState<StockAccount[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
@@ -104,11 +104,11 @@ export default function UsersPage() {
           // Filter based on active tab
           if (activeTab === "users") {
             filteredUsers = data.users.filter(
-              (user: User) => user.accessRole === "user"
+              (user: User) => user.accessRole === "user",
             );
           } else if (activeTab === "admins") {
             filteredUsers = data.users.filter(
-              (user: User) => user.accessRole === "admin"
+              (user: User) => user.accessRole === "admin",
             );
           }
 
@@ -257,7 +257,7 @@ export default function UsersPage() {
           body: JSON.stringify({
             stockAccountId: pendingStockAccountId,
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -267,7 +267,7 @@ export default function UsersPage() {
         if (data.autoPurchase?.sessionId) {
           localStorage.setItem(
             "autoPurchaseSessionId",
-            data.autoPurchase.sessionId
+            data.autoPurchase.sessionId,
           );
         }
 
@@ -344,7 +344,7 @@ export default function UsersPage() {
           toast.success(
             selectedStockAccount
               ? "Stock account updated successfully"
-              : "Stock account created successfully"
+              : "Stock account created successfully",
           );
           setShowModal(false);
           setSelectedStockAccount(null);
@@ -402,7 +402,7 @@ export default function UsersPage() {
           toast.success(
             selectedUser
               ? "User updated successfully"
-              : "User created successfully"
+              : "User created successfully",
           );
           setShowModal(false);
           setSelectedUser(null);
@@ -435,9 +435,9 @@ export default function UsersPage() {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user?.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const userColumns = [
@@ -527,8 +527,8 @@ export default function UsersPage() {
           {activeTab === "users"
             ? "User"
             : activeTab === "stock"
-            ? "Stock Account"
-            : "Admin"}
+              ? "Stock Account"
+              : "Admin"}
         </button>
       </div>
 
@@ -598,7 +598,7 @@ export default function UsersPage() {
                         (u) =>
                           u.resellerTier &&
                           u.resellerExpiry &&
-                          new Date(u.resellerExpiry) > new Date()
+                          new Date(u.resellerExpiry) > new Date(),
                       ).length
                     }
                   </p>
@@ -643,8 +643,8 @@ export default function UsersPage() {
                       ? Math.round(
                           stockAccounts.reduce(
                             (sum, acc) => sum + (acc.robux || 0),
-                            0
-                          ) / stockAccounts.length
+                            0,
+                          ) / stockAccounts.length,
                         ).toLocaleString("id-ID")
                       : "0"}
                   </p>
@@ -712,7 +712,7 @@ export default function UsersPage() {
                         .includes(searchTerm.toLowerCase()) ||
                       account.displayName
                         .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
+                        .includes(searchTerm.toLowerCase()),
                   )
                   .map((account) => (
                     <tr key={account._id} className="hover:bg-[#334155]">
@@ -755,12 +755,12 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-[#94a3b8]">
                         {new Date(account.lastChecked).toLocaleDateString(
-                          "id-ID"
+                          "id-ID",
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {new Date(account.createdAt).toLocaleDateString(
-                          "id-ID"
+                          "id-ID",
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -790,8 +790,8 @@ export default function UsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-[#f1f5f9] font-semibold">
-                              {user.firstName.charAt(0)}
-                              {user.lastName.charAt(0)}
+                              {user?.firstName?.charAt(0)}
+                              {user?.lastName?.charAt(0)}
                             </div>
                             <div className="ml-3">
                               <p className="text-sm font-medium text-[#f1f5f9]">
@@ -826,7 +826,7 @@ export default function UsersPage() {
                             <span className="bg-[#1e40af] text-[#93c5fd] px-2 py-1 rounded text-xs">
                               Tier {user.resellerTier} - Exp:{" "}
                               {new Date(user.resellerExpiry).toLocaleDateString(
-                                "id-ID"
+                                "id-ID",
                               )}
                             </span>
                           ) : user.resellerTier ? (
@@ -920,8 +920,8 @@ export default function UsersPage() {
                     activeTab === "stock"
                       ? "Stock Account"
                       : activeTab === "admins"
-                      ? "Admin"
-                      : "User"
+                        ? "Admin"
+                        : "User"
                   }`}
             </h3>
             <form onSubmit={handleSubmit}>
@@ -1074,17 +1074,17 @@ export default function UsersPage() {
                         onChange={(e) => {
                           const selectedPackageId = e.target.value;
                           const selectedPackage = resellerPackages.find(
-                            (pkg) => pkg._id === selectedPackageId
+                            (pkg) => pkg._id === selectedPackageId,
                           );
 
                           console.log(
                             "Selected Package ID:",
-                            selectedPackageId
+                            selectedPackageId,
                           );
                           console.log("Selected Package:", selectedPackage);
                           console.log(
                             "All Reseller Packages:",
-                            resellerPackages
+                            resellerPackages,
                           );
 
                           if (selectedPackageId === "") {
@@ -1198,8 +1198,8 @@ export default function UsersPage() {
                   {submitLoading
                     ? "Processing..."
                     : selectedUser || selectedStockAccount
-                    ? "Update"
-                    : "Create"}
+                      ? "Update"
+                      : "Create"}
                 </button>
               </div>
             </form>
