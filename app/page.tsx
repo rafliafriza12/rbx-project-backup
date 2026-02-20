@@ -958,10 +958,16 @@ export default function HomePage() {
                     type="number"
                     placeholder="Masukkan jumlah RBX"
                     value={robuxAmount === 0 ? "" : robuxAmount.toString()}
+                    min={25}
                     onChange={(e) => handleRobuxChange(e.target.value)}
+                    onBlur={() => {
+                      if (!robuxAmount || robuxAmount < 25) {
+                        setRobuxAmount(25);
+                      }
+                    }}
                     className="w-full px-6 py-5 border-2 border-white/20 rounded-2xl bg-white/5 backdrop-blur-md text-white text-xl placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300 pr-16 group-hover:border-neon-purple/40"
-                    min="1"
                   />
+
                   <div className="absolute right-6 top-1/2 transform -translate-y-1/2 text-neon-pink font-bold text-lg">
                     R$
                   </div>
