@@ -1602,10 +1602,10 @@ export default function HomePage() {
                   <div className="flex-1 text-left">
                     <div className="text-xs text-white/50 mb-0.5">Email</div>
                     <a
-                      href="mailto:robuxids@gmail.com"
+                      href="mailto:support@rbxnet.com"
                       className="text-sm font-semibold text-white hover:text-neon-purple transition-colors"
                     >
-                      robuxids@gmail.com
+                      support@rbxnet.com
                     </a>
                   </div>
                 </div>
