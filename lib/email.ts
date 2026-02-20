@@ -24,10 +24,15 @@ class EmailService {
   private static async getEmailConfig(): Promise<EmailConfig> {
     const settings = await Settings.getSiteSettings();
 
+    const port = settings.emailPort || 587;
+    // Port 465 = SSL (secure: true), Port 587 = STARTTLS (secure: false)
+    const secure =
+      settings.emailSecure !== undefined ? settings.emailSecure : port === 465;
+
     return {
       host: settings.emailHost || "smtp.gmail.com",
-      port: settings.emailPort || 587,
-      secure: settings.emailSecure || false,
+      port: port,
+      secure: secure,
       auth: {
         user: settings.emailUser || "",
         pass: settings.emailPassword || "",
@@ -39,6 +44,13 @@ class EmailService {
     // Selalu buat transporter baru dengan config terbaru dari database
     const config = await this.getEmailConfig();
 
+    console.log("📧 Email config:", {
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      user: config.auth.user,
+    });
+
     return nodemailer.createTransport({
       host: config.host,
       port: config.port,
@@ -47,6 +59,8 @@ class EmailService {
       tls: {
         rejectUnauthorized: false,
       },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
     });
   }
 

@@ -1201,18 +1201,27 @@ export default function Rbx5Page() {
                     <input
                       type="number"
                       value={robux || ""}
+                      min={25}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === "" || value === "0") {
+
+                        // Biarkan user ketik bebas
+                        if (value === "") {
                           setRobux(0);
-                        } else {
-                          const numValue = parseInt(value);
-                          if (!isNaN(numValue) && numValue > 0) {
-                            setRobux(numValue);
-                          }
+                          return;
+                        }
+
+                        const numValue = parseInt(value);
+                        if (!isNaN(numValue)) {
+                          setRobux(numValue);
                         }
                       }}
-                      min="1"
+                      onBlur={() => {
+                        // Ketika keluar dari input
+                        if (robux < 25) {
+                          setRobux(25);
+                        }
+                      }}
                       placeholder="Contoh: 500"
                       className="flex-1 bg-gradient-to-r from-primary-600/20 to-primary-700/10 text-white text-lg font-bold outline-none px-4 py-4 placeholder:text-white/50 focus:bg-primary-600/30 transition-all duration-300"
                     />

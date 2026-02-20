@@ -243,7 +243,7 @@ class MidtransService {
     // Keys are lowercase for matching, values are Midtrans API codes
     const mapping: { [key: string]: string[] } = {
       // E-Wallets
-      gopay: ["gopay", "qris"],
+      gopay: ["gopay"],
       shopeepay: ["shopeepay"],
       dana: ["shopeepay"],
       ovo: ["credit_card"],
