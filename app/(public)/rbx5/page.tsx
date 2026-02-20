@@ -1231,7 +1231,7 @@ export default function Rbx5Page() {
                 <div className="flex items-center gap-2 mt-3">
                   <div className="w-1 h-1 bg-primary-200 rounded-full animate-pulse"></div>
                   <p className="text-xs text-white/70">
-                    Masukan jumlah RBX yang diinginkan (minimum 1 R$)
+                    Masukan jumlah RBX yang diinginkan (minimum 25 R$)
                   </p>
                 </div>
               </div>
