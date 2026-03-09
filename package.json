@@ -27,6 +27,7 @@
     "next": "^16.0.10",
     "next-auth": "^4.24.11",
     "nextjs-toploader": "^3.9.16",
+    "noblox.js": "^6.2.0",
     "nodemailer": "^7.0.6",
     "postprocessing": "^6.37.8",
     "puppeteer-core": "^22.15.0",

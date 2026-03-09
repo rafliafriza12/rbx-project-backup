@@ -1,34 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+const noblox = require("noblox.js");
 
 // Vercel serverless function config
-export const maxDuration = 60; // Max 60 seconds for Pro plan, 10 for Hobby
-export const dynamic = "force-dynamic";
+// export const maxDuration = 60;
+// export const dynamic = "force-dynamic";
 
-// Get browser using @sparticuz/chromium
-async function getBrowser() {
-  chromium.setHeadlessMode = true;
-  chromium.setGraphicsMode = false;
+// Helper: sleep
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  return puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-  });
+// Helper: retry with exponential backoff untuk handle rate limit
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  maxRetries = 3,
+  baseDelay = 2000,
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit =
+        error?.statusCode === 429 ||
+        error?.status === 429 ||
+        error?.message?.includes("429") ||
+        error?.message?.toLowerCase()?.includes("too many request") ||
+        error?.message?.toLowerCase()?.includes("rate limit") ||
+        error?.message?.toLowerCase()?.includes("throttle");
+
+      if (isRateLimit && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1); // 2s, 4s, 8s
+        console.warn(
+          `⏳ [${label}] Rate limited (429). Retry ${attempt}/${maxRetries} setelah ${delay}ms...`,
+        );
+        await sleep(delay);
+        continue;
+      }
+
+      // Not rate limit or last attempt, throw
+      throw error;
+    }
+  }
+  throw new Error(`[${label}] Max retries exceeded`);
 }
 
 export async function POST(req: NextRequest) {
-  let browser;
   try {
-    const { robloxCookie, gamepassId, gamepassName, price } = await req.json();
+    const { robloxCookie, gamepassId, gamepassName, price, sellerId } =
+      await req.json();
 
-    if (!robloxCookie || !gamepassId || !gamepassName) {
+    if (!robloxCookie || !gamepassId) {
       return NextResponse.json(
         {
           success: false,
-          message: "robloxCookie, gamepassId, gamepassName wajib diisi",
+          message: "robloxCookie dan gamepassId wajib diisi",
         },
         { status: 400 },
       );
@@ -56,263 +82,258 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("🎯 Attempting to purchase gamepass with Puppeteer:", {
+    console.log("🎯 Attempting to purchase gamepass via noblox.js API:", {
       gamepassId,
       gamepassName,
       expectedPrice,
+      sellerId,
       cookie: robloxCookie ? "[PRESENT]" : "[MISSING]",
     });
 
-    // Format gamepass name: replace spaces with hyphens
-    const formattedGamepassName = gamepassName.replace(/\s+/g, "-");
-    const gamepassUrl = `https://www.roblox.com/game-pass/${gamepassId}/${formattedGamepassName}`;
-
-    console.log("🌐 Gamepass URL:", gamepassUrl);
-
-    // Launch browser using helper function
-    browser = await getBrowser();
-    console.log("🚀 Browser launched successfully");
-
-    const page = await browser.newPage();
-
-    // Set cookie before navigation
-    await page.setCookie({
-      name: ".ROBLOSECURITY",
-      value: robloxCookie,
-      domain: ".roblox.com",
-      path: "/",
-      httpOnly: true,
-      secure: true,
-    });
-
-    console.log("🔐 Cookie seadmin/dashboardt successfully");
-
-    // Navigate to gamepass page
-    await page.goto(gamepassUrl, {
-      waitUntil: "networkidle2",
-      timeout: 30000,
-    });
-
-    console.log("📄 Page loaded, validating price before purchase...");
-
-    // ============ PRICE VALIDATION ============
-    // Try multiple methods to find the price on the page
-    let priceValidated = false;
-    let actualPriceText: string | null = null;
-
+    // ============ STEP 1: Login dengan cookie ============
+    let currentUser: any;
     try {
-      // Wait a bit for dynamic content to load
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Try to get price using multiple selectors
-      actualPriceText = await page.evaluate(() => {
-        // Method 1: Try the exact class from Roblox page
-        // Class: text-robux-lg wait-for-i18n-format-render
-        const robuxPriceElement = document.querySelector(
-          ".text-robux-lg.wait-for-i18n-format-render",
-        );
-        if (robuxPriceElement && robuxPriceElement.textContent) {
-          const text = robuxPriceElement.textContent.trim();
-          if (/\d/.test(text)) {
-            return text;
-          }
-        }
-
-        // Method 2: Try alternative CSS selectors
-        const cssSelectors = [
-          ".text-robux-lg",
-          '[class*="text-robux"]',
-          ".wait-for-i18n-format-render",
-        ];
-
-        for (const selector of cssSelectors) {
-          try {
-            const elements = document.querySelectorAll(selector);
-            for (const el of elements) {
-              const text = el.textContent?.trim() || "";
-              // Check if it looks like a price number (digits with optional commas)
-              if (/^[\d,]+$/.test(text) && text.length < 10) {
-                return text;
-              }
-            }
-          } catch {
-            // Continue
-          }
-        }
-
-        // Method 3: Try XPath selectors as fallback
-        const xpathSelectors = [
-          "//span[contains(@class, 'text-robux-lg')]",
-          "//span[contains(@class, 'wait-for-i18n-format-render')]",
-          "/html/body/div[3]/main/div[2]/div[1]/div[2]/div[3]/div[1]/div[1]/div[3]/div/span[2]",
-        ];
-
-        for (const xpath of xpathSelectors) {
-          try {
-            const result = document.evaluate(
-              xpath,
-              document,
-              null,
-              XPathResult.FIRST_ORDERED_NODE_TYPE,
-              null,
-            );
-            const element = result.singleNodeValue as HTMLElement;
-            if (element && element.textContent) {
-              const text = element.textContent.trim();
-              if (/\d/.test(text)) {
-                return text;
-              }
-            }
-          } catch {
-            // Continue to next selector
-          }
-        }
-
-        return null;
-      });
-
-      if (actualPriceText) {
-        console.log("💰 Price found on page:", actualPriceText);
-
-        // Parse the price from text (remove commas, currency symbols, etc.)
-        const actualPrice = parseInt(
-          actualPriceText.replace(/[^0-9]/g, ""),
-          10,
-        );
-
-        console.log("💰 Parsed actual price:", actualPrice);
-        console.log("💰 Expected price from database:", expectedPrice);
-
-        // Validate price matches
-        if (!isNaN(actualPrice) && actualPrice > 0) {
-          if (actualPrice !== expectedPrice) {
-            console.error(
-              `❌ Price mismatch! Expected: ${expectedPrice}, Actual: ${actualPrice}`,
-            );
-            return NextResponse.json(
-              {
-                success: false,
-                message: `Harga gamepass tidak sesuai! Harga di database: ${expectedPrice} Robux, Harga di Roblox: ${actualPrice} Robux. Pembelian dibatalkan untuk keamanan.`,
-                expectedPrice,
-                actualPrice,
-              },
-              { status: 400 },
-            );
-          }
-          priceValidated = true;
-          console.log("✅ Price validated successfully!");
-        }
-      } else {
-        console.warn(
-          "⚠️ Could not find price element on page, skipping validation...",
-        );
-      }
-    } catch (priceError: any) {
-      console.warn("⚠️ Error during price validation:", priceError.message);
-      // Don't block purchase if price validation fails - just log and continue
-    }
-
-    if (!priceValidated) {
-      console.warn("⚠️ Price validation skipped, proceeding with purchase...");
-    }
-
-    // ============ END PRICE VALIDATION ============
-
-    console.log("📄 Looking for Buy button...");
-
-    // Wait for and click the main Buy button using XPath
-    const buyButtonXPath =
-      "/html/body/div[3]/main/div[2]/div[1]/div[2]/div[3]/div[1]/div[2]/button";
-
-    try {
-      // Wait for button to appear
-      await page.waitForFunction(
-        (xpath: string) => {
-          const result = document.evaluate(
-            xpath,
-            document,
-            null,
-            XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null,
-          );
-          return result.singleNodeValue !== null;
-        },
-        { timeout: 10000 },
-        buyButtonXPath,
+      currentUser = await withRetry(
+        () => noblox.setCookie(robloxCookie),
+        "setCookie",
       );
-
-      // Click using evaluate
-      await page.evaluate((xpath: string) => {
-        const result = document.evaluate(
-          xpath,
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null,
-        );
-        const button = result.singleNodeValue as HTMLElement;
-        if (button) button.click();
-      }, buyButtonXPath);
-
-      console.log("🖱️ Clicked Buy button...");
-
-      // Wait for confirmation modal
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("⏳ Waiting for confirmation modal...");
-
-      // Click Buy Now button in modal
-      const buyNowButtonXPath =
-        "/html/body/div[13]/div/div/div/div/div[2]/div[2]/a[1]";
-
-      await page.waitForFunction(
-        (xpath: string) => {
-          const result = document.evaluate(
-            xpath,
-            document,
-            null,
-            XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null,
-          );
-          return result.singleNodeValue !== null;
-        },
-        { timeout: 10000 },
-        buyNowButtonXPath,
+      console.log(
+        `🔐 Login sebagai: ${currentUser.UserName} (ID: ${currentUser.UserID})`,
       );
-
-      await page.evaluate((xpath: string) => {
-        const result = document.evaluate(
-          xpath,
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null,
-        );
-        const button = result.singleNodeValue as HTMLElement;
-        if (button) button.click();
-      }, buyNowButtonXPath);
-
-      console.log("✅ Clicked Buy Now button...");
-
-      // Wait for purchase to complete
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      console.log("🎉 Purchase completed successfully!");
-
-      return NextResponse.json({
-        success: true,
-        message: "Gamepass purchased successfully using Puppeteer",
-      });
-    } catch (clickError: any) {
-      console.error("❌ Error during click operation:", clickError.message);
-
+    } catch (loginError: any) {
+      console.error("❌ Failed to login with cookie:", loginError.message);
       return NextResponse.json(
         {
           success: false,
-          message: `Failed to click buttons: ${clickError.message}`,
+          message: `Gagal login ke Roblox: ${loginError.message}. Cookie mungkin expired.`,
+        },
+        { status: 401 },
+      );
+    }
+
+    // ============ STEP 2: Get Product Info untuk validasi ============
+    let productInfo: any;
+    try {
+      productInfo = await withRetry(
+        () => noblox.getGamePassProductInfo(gamepassId),
+        "getGamePassProductInfo",
+      );
+      console.log("📦 Product Info:", {
+        Name: productInfo.Name,
+        ProductId: productInfo.ProductId,
+        PriceInRobux: productInfo.PriceInRobux,
+        IsForSale: productInfo.IsForSale,
+        Creator: productInfo.Creator?.Name,
+        CreatorTargetId: productInfo.Creator?.CreatorTargetId,
+      });
+    } catch (infoError: any) {
+      console.error("❌ Failed to get gamepass info:", infoError.message);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Gagal mendapatkan info gamepass: ${infoError.message}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // ============ STEP 3: Validasi gamepass IsForSale ============
+    if (!productInfo.IsForSale) {
+      console.error("❌ Gamepass is not for sale!");
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Gamepass "${productInfo.Name}" tidak dijual (IsForSale: false).`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // ============ STEP 4: Validasi harga ============
+    const actualPrice = productInfo.PriceInRobux;
+    if (actualPrice !== expectedPrice) {
+      console.error(
+        `❌ Price mismatch! Expected: ${expectedPrice}, Actual: ${actualPrice}`,
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Harga gamepass tidak sesuai! Harga di database: ${expectedPrice} Robux, Harga di Roblox: ${actualPrice} Robux. Pembelian dibatalkan untuk keamanan.`,
+          expectedPrice,
+          actualPrice,
+        },
+        { status: 400 },
+      );
+    }
+    console.log(`✅ Price validated: ${actualPrice} Robux`);
+
+    // ============ STEP 5: Get CSRF Token ============
+    let csrfToken: string;
+    try {
+      csrfToken = await withRetry(
+        () => noblox.getGeneralToken(),
+        "getGeneralToken",
+      );
+      console.log("🔑 CSRF Token obtained");
+    } catch (csrfError: any) {
+      console.error("❌ Failed to get CSRF token:", csrfError.message);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Gagal mendapatkan CSRF token: ${csrfError.message}`,
         },
         { status: 500 },
       );
+    }
+
+    // ============ STEP 6: Purchase via Economy API (with retry for rate limit) ============
+    console.log(
+      `🛒 Purchasing gamepass "${productInfo.Name}" (ProductId: ${productInfo.ProductId}) for ${actualPrice} Robux...`,
+    );
+
+    const maxPurchaseRetries = 5;
+    let result: any = null;
+
+    for (let attempt = 1; attempt <= maxPurchaseRetries; attempt++) {
+      // Re-fetch CSRF token setiap retry karena bisa expired
+      if (attempt > 1) {
+        try {
+          csrfToken = await withRetry(
+            () => noblox.getGeneralToken(),
+            "getGeneralToken-retry",
+          );
+        } catch {
+          // Pakai token lama jika gagal
+        }
+      }
+
+      const purchaseResponse = await fetch(
+        `https://economy.roblox.com/v1/purchases/products/${productInfo.ProductId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+            "X-CSRF-TOKEN": csrfToken,
+          },
+          body: JSON.stringify({
+            expectedCurrency: 1,
+            expectedPrice: actualPrice,
+            expectedSellerId: productInfo.Creator.CreatorTargetId,
+          }),
+        },
+      );
+
+      // Handle 429 rate limit
+      if (purchaseResponse.status === 429) {
+        if (attempt < maxPurchaseRetries) {
+          const retryAfter = purchaseResponse.headers.get("retry-after");
+          const delay = retryAfter
+            ? parseInt(retryAfter) * 1000
+            : 2000 * Math.pow(2, attempt - 1); // 2s, 4s, 8s, 16s
+          console.warn(
+            `⏳ [Purchase] Rate limited (429). Retry ${attempt}/${maxPurchaseRetries} setelah ${delay}ms...`,
+          );
+          await sleep(delay);
+          continue;
+        }
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Roblox rate limit (429). Terlalu banyak request, coba lagi nanti.`,
+            reason: "TooManyRequests",
+          },
+          { status: 429 },
+        );
+      }
+
+      // Handle 403 (CSRF token expired) - ambil token baru dari header
+      if (purchaseResponse.status === 403) {
+        const newCsrf = purchaseResponse.headers.get("x-csrf-token");
+        if (newCsrf && attempt < maxPurchaseRetries) {
+          console.warn(
+            `🔄 [Purchase] CSRF token expired, got new token. Retry ${attempt}/${maxPurchaseRetries}...`,
+          );
+          csrfToken = newCsrf;
+          await sleep(500);
+          continue;
+        }
+      }
+
+      result = await purchaseResponse.json();
+      console.log("📋 Purchase result:", result);
+      break; // Berhasil dapat response, keluar dari loop
+    }
+
+    if (!result) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Gagal melakukan purchase setelah beberapa percobaan.",
+        },
+        { status: 500 },
+      );
+    }
+
+    // ============ STEP 7: Handle response ============
+    if (result.purchased) {
+      console.log(
+        `�� Pembelian berhasil! "${result.assetName}" - ${result.price} Robux dari ${result.sellerName}`,
+      );
+      return NextResponse.json({
+        success: true,
+        message: `Gamepass "${result.assetName}" berhasil dibeli seharga ${result.price} Robux`,
+        data: {
+          productId: result.productId,
+          assetName: result.assetName,
+          price: result.price,
+          sellerName: result.sellerName,
+          transactionVerb: result.transactionVerb,
+        },
+      });
+    }
+
+    // Handle specific failure reasons
+    switch (result.reason) {
+      case "InsufficientFunds":
+        console.error(
+          `❌ Robux tidak cukup! Kekurangan: ${result.shortfallPrice} Robux`,
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Robux tidak cukup! ${result.errorMsg}. Kekurangan: ${result.shortfallPrice} Robux.`,
+            reason: "InsufficientFunds",
+            shortfallPrice: result.shortfallPrice,
+            expectedPrice: result.expectedPrice,
+          },
+          { status: 400 },
+        );
+
+      case "AlreadyOwned":
+        console.error("❌ Gamepass sudah dimiliki!");
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Gamepass sudah dimiliki oleh akun ini. ${result.errorMsg}`,
+            reason: "AlreadyOwned",
+          },
+          { status: 400 },
+        );
+
+      default:
+        console.error(
+          `❌ Pembelian gagal: ${result.reason} - ${result.errorMsg}`,
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Pembelian gagal: ${result.errorMsg || result.reason || "Unknown error"}`,
+            reason: result.reason,
+            statusCode: result.statusCode,
+          },
+          { status: 400 },
+        );
     }
   } catch (error: any) {
     console.error("❌ Error in buy-pass API:", error);
@@ -320,11 +341,5 @@ export async function POST(req: NextRequest) {
       { success: false, message: error.message || "Server error" },
       { status: 500 },
     );
-  } finally {
-    // Always close browser
-    if (browser) {
-      await browser.close();
-      console.log("🔒 Browser closed");
-    }
   }
 }

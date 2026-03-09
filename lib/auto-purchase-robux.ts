@@ -394,7 +394,7 @@ export async function autoPurchasePendingRobux(
 }
 
 /**
- * Purchase gamepass using the /api/buy-pass endpoint with Puppeteer
+ * Purchase gamepass using the /api/buy-pass endpoint with noblox.js API
  * Same approach as webhook automation
  */
 async function purchaseGamepass(
@@ -405,7 +405,7 @@ async function purchaseGamepass(
   sellerId: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("🎯 Attempting to purchase gamepass via Puppeteer:", {
+    console.log("🎯 Attempting to purchase gamepass via noblox.js API:", {
       gamepassId,
       gamepassName,
       price,
