@@ -3,9 +3,47 @@ import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
 
+/**
+ * Fetch with retry & timeout - handles Roblox socket errors
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+      return res;
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `⚠️ Fetch attempt ${attempt}/${maxRetries} failed for ${url}: ${errMsg}`,
+      );
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Wait before retry: 2s, 4s, 6s
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    }
+  }
+
+  throw new Error("Max retries exceeded");
+}
+
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -14,35 +52,35 @@ export async function PUT(
     if (!robloxCookie) {
       return NextResponse.json(
         { success: false, message: "Cookie tidak ada" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     await connectDB();
 
     // Validate cookie and get updated user info
-    const userRes = await fetch(
+    const userRes = await fetchWithRetry(
       "https://users.roblox.com/v1/users/authenticated",
       {
         headers: { Cookie: `.ROBLOSECURITY=${robloxCookie};` },
-      }
+      },
     );
 
     if (!userRes.ok) {
       return NextResponse.json(
         { success: false, message: "Cookie invalid / expired" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const user = await userRes.json();
 
     // Get updated Robux amount
-    const robuxRes = await fetch(
+    const robuxRes = await fetchWithRetry(
       "https://economy.roblox.com/v1/user/currency",
       {
         headers: { Cookie: `.ROBLOSECURITY=${robloxCookie};` },
-      }
+      },
     );
 
     const robuxData = await robuxRes.json();
@@ -58,13 +96,13 @@ export async function PUT(
         robux: robuxData.robux ?? 0,
         lastChecked: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedAccount) {
       return NextResponse.json(
         { success: false, message: "Stock account tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -89,14 +127,14 @@ export async function PUT(
     console.error("Error updating stock account:", error);
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -107,7 +145,7 @@ export async function DELETE(
     if (!deletedAccount) {
       return NextResponse.json(
         { success: false, message: "Stock account tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -119,7 +157,7 @@ export async function DELETE(
     console.error("Error deleting stock account:", error);
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

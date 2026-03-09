@@ -6,6 +6,44 @@ import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 import { NextRequest } from "next/server";
 
 /**
+ * Fetch with retry & timeout - handles Roblox socket errors ("other side closed")
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+      return res;
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `⚠️ Fetch attempt ${attempt}/${maxRetries} failed for ${url}: ${errMsg}`,
+      );
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Wait before retry: 2s, 4s, 6s
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    }
+  }
+
+  throw new Error("Max retries exceeded");
+}
+
+/**
  * Auto-purchase pending robux 5 hari transactions using available stock accounts
  * Called after adding/updating stock account
  *
@@ -118,7 +156,7 @@ export async function autoPurchasePendingRobux(
       for (const account of allStockAccounts) {
         try {
           // Get updated Robux amount
-          const robuxRes = await fetch(
+          const robuxRes = await fetchWithRetry(
             "https://economy.roblox.com/v1/user/currency",
             {
               headers: { Cookie: `.ROBLOSECURITY=${account.robloxCookie};` },

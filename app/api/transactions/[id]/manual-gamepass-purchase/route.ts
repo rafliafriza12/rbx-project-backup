@@ -129,22 +129,19 @@ async function processGamepassPurchase(transaction: any) {
         null,
       );
 
-      // Update account data setelah purchase (using direct import)
-      console.log("🔄 Updating stock account after purchase...");
-      const updateAfterRequest = new NextRequest(
-        `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            robloxCookie: suitableAccount.robloxCookie,
-          }),
-        },
+      // Update account data setelah purchase - langsung kurangi robux di database
+      // Tidak perlu fetch ke Roblox lagi (menghindari socket error / rate limit)
+      console.log("🔄 Updating stock account robux in database...");
+      const gamepassPrice = transaction.gamepass?.price || 0;
+      suitableAccount.robux = Math.max(
+        0,
+        suitableAccount.robux - gamepassPrice,
       );
-
-      await updateStockAccountHandler(updateAfterRequest, {
-        params: Promise.resolve({ id: suitableAccount._id.toString() }),
-      });
+      suitableAccount.lastChecked = new Date();
+      await suitableAccount.save();
+      console.log(
+        `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${gamepassPrice})`,
+      );
 
       return {
         success: true,
