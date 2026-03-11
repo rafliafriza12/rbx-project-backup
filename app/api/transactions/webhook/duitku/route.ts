@@ -4,6 +4,7 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import StockAccount from "@/models/StockAccount";
 import ResellerPackage from "@/models/ResellerPackage";
+import Rbx5Stats from "@/models/Rbx5Stats";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
@@ -190,6 +191,14 @@ async function processGamepassPurchase(transaction: any) {
       console.log(
         `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${gamepassPrice})`,
       );
+
+      // Record purchase di stats (untuk mode manual & tracking)
+      try {
+        await Rbx5Stats.recordPurchase(gamepassPrice, 1);
+        console.log("📊 Rbx5Stats updated after purchase");
+      } catch (statsError) {
+        console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+      }
     } else {
       console.error("Gamepass purchase failed:", purchaseResult.message);
 

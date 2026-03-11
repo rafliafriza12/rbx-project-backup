@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import StockAccount from "@/models/StockAccount";
+import Rbx5Stats from "@/models/Rbx5Stats";
 import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 import mongoose from "mongoose";
@@ -120,21 +121,27 @@ async function processGamepassPurchase(transaction: any) {
         null,
       );
 
-      // Update account data setelah purchase
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        }/api/admin/stock-accounts/${suitableAccount._id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            robloxCookie: suitableAccount.robloxCookie,
-          }),
-        },
+      // Update account data setelah purchase - langsung kurangi robux di database
+      // Tidak perlu fetch ke Roblox lagi (menghindari socket error / rate limit)
+      console.log("🔄 Updating stock account robux in database...");
+      const gamepassPrice = transaction.gamepass?.price || 0;
+      suitableAccount.robux = Math.max(
+        0,
+        suitableAccount.robux - gamepassPrice,
       );
+      suitableAccount.lastChecked = new Date();
+      await suitableAccount.save();
+      console.log(
+        `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${gamepassPrice})`,
+      );
+
+      // Record purchase di stats (untuk mode manual & tracking)
+      try {
+        await Rbx5Stats.recordPurchase(gamepassPrice, 1);
+        console.log("📊 Rbx5Stats updated after purchase");
+      } catch (statsError) {
+        console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+      }
     } else {
       console.error("Gamepass purchase failed:", purchaseResult.message);
       await transaction.updateStatus(

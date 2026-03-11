@@ -638,6 +638,7 @@ const menuItems: MenuItem[] = [
   { title: "Reseller", icon: "🎭", href: "/admin/reseller" },
   { title: "Produk Robux", icon: "🎮", href: "/admin/products" },
   { title: "Harga Robux", icon: "💰", href: "/admin/robux-pricing" },
+  { title: "Statistik RBX5", icon: "📈", href: "/admin/rbx5-stats" },
   { title: "Gamepass", icon: "🎯", href: "/admin/gamepass" },
   // { title: "Jasa Joki", icon: "🚀", href: "/admin/joki" },
   { title: "Banner", icon: "🎨", href: "/admin/banners" },
@@ -675,7 +676,7 @@ export default function AdminLayout({
     // Get user name from cookie
     const cookies = document.cookie.split(";");
     const userNameCookie = cookies.find((c) =>
-      c.trim().startsWith("user_name=")
+      c.trim().startsWith("user_name="),
     );
     if (userNameCookie) {
       setUserName(decodeURIComponent(userNameCookie.split("=")[1]));
@@ -690,7 +691,7 @@ export default function AdminLayout({
         // Get active session from localStorage
         const activeSession = localStorage.getItem("autoPurchaseSessionId");
         const notifiedSessions = JSON.parse(
-          localStorage.getItem("autoPurchaseNotified") || "[]"
+          localStorage.getItem("autoPurchaseNotified") || "[]",
         );
 
         if (!activeSession) {
@@ -707,7 +708,7 @@ export default function AdminLayout({
 
         // Poll the progress API
         const response = await fetch(
-          `/api/auto-purchase/progress/${activeSession}`
+          `/api/auto-purchase/progress/${activeSession}`,
         );
 
         if (response.ok) {
@@ -740,14 +741,14 @@ export default function AdminLayout({
                   color: "#f1f5f9",
                   border: "1px solid #22c55e",
                 },
-              }
+              },
             );
 
             // Mark as notified
             notifiedSessions.push(activeSession);
             localStorage.setItem(
               "autoPurchaseNotified",
-              JSON.stringify(notifiedSessions)
+              JSON.stringify(notifiedSessions),
             );
             localStorage.removeItem("autoPurchaseSessionId");
           } else if (data.status === "failed") {
@@ -765,14 +766,14 @@ export default function AdminLayout({
                   color: "#f1f5f9",
                   border: "1px solid #ef4444",
                 },
-              }
+              },
             );
 
             // Mark as notified
             notifiedSessions.push(activeSession);
             localStorage.setItem(
               "autoPurchaseNotified",
-              JSON.stringify(notifiedSessions)
+              JSON.stringify(notifiedSessions),
             );
             localStorage.removeItem("autoPurchaseSessionId");
           }

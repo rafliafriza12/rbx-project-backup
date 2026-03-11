@@ -2,6 +2,7 @@
 import Transaction from "@/models/Transaction";
 import StockAccount from "@/models/StockAccount";
 import AutoPurchaseProgress from "@/models/AutoPurchaseProgress";
+import Rbx5Stats from "@/models/Rbx5Stats";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 import { NextRequest } from "next/server";
 
@@ -317,6 +318,14 @@ export async function autoPurchasePendingRobux(
           console.log(
             `✅ Transaction ${transaction.invoiceId} completed successfully. Account ${suitableAccount.username} remaining robux: ${suitableAccount.robux}`,
           );
+
+          // Record purchase di stats (untuk mode manual & tracking)
+          try {
+            await Rbx5Stats.recordPurchase(gamepassPrice, 1);
+            console.log("📊 Rbx5Stats updated after purchase");
+          } catch (statsError) {
+            console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+          }
 
           // Update progress: completed
           progressDoc.transactions[i].status = "completed";

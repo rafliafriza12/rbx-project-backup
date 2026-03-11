@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import StockAccount from "@/models/StockAccount";
+import Rbx5Stats from "@/models/Rbx5Stats";
 import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 
@@ -142,6 +143,14 @@ async function processGamepassPurchase(transaction: any) {
       console.log(
         `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${gamepassPrice})`,
       );
+
+      // Record purchase di stats (untuk mode manual & tracking)
+      try {
+        await Rbx5Stats.recordPurchase(gamepassPrice, 1);
+        console.log("📊 Rbx5Stats updated after purchase");
+      } catch (statsError) {
+        console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+      }
 
       return {
         success: true,
