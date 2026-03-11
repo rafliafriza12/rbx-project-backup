@@ -168,13 +168,22 @@ export async function POST(req: NextRequest) {
     console.log(`✅ Price validated: ${actualPrice} Robux`);
 
     // ============ STEP 5: Get CSRF Token ============
+    // Ambil CSRF token langsung menggunakan cookie yang sama (bukan via noblox.js internal session)
+    // Caranya: kirim POST ke auth logout endpoint, Roblox akan return 403 + x-csrf-token header
     let csrfToken: string;
     try {
-      csrfToken = await withRetry(
-        () => noblox.getGeneralToken(),
-        "getGeneralToken",
-      );
-      console.log("🔑 CSRF Token obtained");
+      const csrfRes = await fetch("https://auth.roblox.com/v2/logout", {
+        method: "POST",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+        },
+      });
+      const token = csrfRes.headers.get("x-csrf-token");
+      if (!token) {
+        throw new Error("CSRF token not found in response headers");
+      }
+      csrfToken = token;
+      console.log("🔑 CSRF Token obtained via auth endpoint");
     } catch (csrfError: any) {
       console.error("❌ Failed to get CSRF token:", csrfError.message);
       return NextResponse.json(
@@ -195,13 +204,22 @@ export async function POST(req: NextRequest) {
     let result: any = null;
 
     for (let attempt = 1; attempt <= maxPurchaseRetries; attempt++) {
-      // Re-fetch CSRF token setiap retry karena bisa expired
+      // Re-fetch CSRF token setiap retry via auth endpoint (same cookie session)
       if (attempt > 1) {
         try {
-          csrfToken = await withRetry(
-            () => noblox.getGeneralToken(),
-            "getGeneralToken-retry",
-          );
+          const csrfRes = await fetch("https://auth.roblox.com/v2/logout", {
+            method: "POST",
+            headers: {
+              Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+            },
+          });
+          const newToken = csrfRes.headers.get("x-csrf-token");
+          if (newToken) {
+            csrfToken = newToken;
+            console.log(
+              `🔑 [Retry ${attempt}] Fresh CSRF token obtained via auth endpoint`,
+            );
+          }
         } catch {
           // Pakai token lama jika gagal
         }
@@ -247,17 +265,46 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Handle 403 (CSRF token expired) - ambil token baru dari header
+      // Handle 403 (CSRF token expired) - ambil token baru dari response header atau via auth endpoint
       if (purchaseResponse.status === 403) {
-        const newCsrf = purchaseResponse.headers.get("x-csrf-token");
-        if (newCsrf && attempt < maxPurchaseRetries) {
-          console.warn(
-            `🔄 [Purchase] CSRF token expired, got new token. Retry ${attempt}/${maxPurchaseRetries}...`,
-          );
-          csrfToken = newCsrf;
-          await sleep(500);
+        if (attempt < maxPurchaseRetries) {
+          // Coba ambil dari response header dulu
+          const headerCsrf = purchaseResponse.headers.get("x-csrf-token");
+          if (headerCsrf) {
+            csrfToken = headerCsrf;
+            console.warn(
+              `🔄 [Purchase] CSRF expired, got new token from response header. Retry ${attempt}/${maxPurchaseRetries}...`,
+            );
+          } else {
+            // Jika tidak ada di header, ambil ulang via auth endpoint
+            try {
+              const csrfRes = await fetch("https://auth.roblox.com/v2/logout", {
+                method: "POST",
+                headers: {
+                  Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+                },
+              });
+              const freshToken = csrfRes.headers.get("x-csrf-token");
+              if (freshToken) {
+                csrfToken = freshToken;
+                console.warn(
+                  `🔄 [Purchase] CSRF expired, fetched fresh token via auth. Retry ${attempt}/${maxPurchaseRetries}...`,
+                );
+              }
+            } catch {
+              console.warn(
+                `🔄 [Purchase] CSRF expired, failed to get fresh token. Retry ${attempt}/${maxPurchaseRetries}...`,
+              );
+            }
+          }
+          await sleep(1000);
           continue;
         }
+
+        // Last attempt, read the error response
+        result = await purchaseResponse.json();
+        console.log("📋 Purchase result (final 403):", result);
+        break;
       }
 
       result = await purchaseResponse.json();
@@ -276,6 +323,22 @@ export async function POST(req: NextRequest) {
     }
 
     // ============ STEP 7: Handle response ============
+    // Handle Roblox API error format: { errors: [{code, message}] }
+    if (result.errors && Array.isArray(result.errors)) {
+      const errorMsg = result.errors
+        .map((e: any) => e.message || e.code)
+        .join(", ");
+      console.error(`❌ Roblox API error: ${errorMsg}`);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Roblox API error: ${errorMsg}`,
+          errors: result.errors,
+        },
+        { status: 400 },
+      );
+    }
+
     if (result.purchased) {
       console.log(
         `�� Pembelian berhasil! "${result.assetName}" - ${result.price} Robux dari ${result.sellerName}`,
