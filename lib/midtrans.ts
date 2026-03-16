@@ -245,9 +245,9 @@ class MidtransService {
       // E-Wallets
       gopay: ["gopay"],
       shopeepay: ["shopeepay"],
-      dana: ["shopeepay"],
-      ovo: ["credit_card"],
-      linkaja: ["credit_card"],
+      dana: ["other_qris"],
+      ovo: ["other_qris"],
+      linkaja: ["other_qris"],
 
       // Virtual Account - support both formats (with and without _va suffix)
       bca_va: ["bca_va"],
@@ -268,6 +268,8 @@ class MidtransService {
       danamon: ["other_va"],
       bsi: ["other_va"],
       bsi_va: ["other_va"],
+      seabank: ["other_va"],
+      seabank_va: ["other_va"],
 
       // QRIS - include both qris and gopay for maximum compatibility
       qris: ["qris", "gopay"],

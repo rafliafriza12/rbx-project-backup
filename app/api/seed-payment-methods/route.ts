@@ -37,6 +37,22 @@ const samplePaymentMethods = [
     instructions:
       "1. Pilih ShopeePay sebagai metode pembayaran\n2. Buka aplikasi Shopee di HP Anda\n3. Pilih menu ShopeePay\n4. Scan QR Code atau masukkan nomor VA\n5. Confirm pembayaran",
   },
+  {
+    code: "DANA",
+    name: "DANA",
+    category: "ewallet",
+    icon: "💙",
+    fee: 2500,
+    feeType: "fixed",
+    description: "Bayar langsung menggunakan saldo DANA melalui QRIS",
+    isActive: true,
+    displayOrder: 15,
+    midtransEnabled: true,
+    minimumAmount: 10000,
+    maximumAmount: 2000000,
+    instructions:
+      "1. Pilih DANA sebagai metode pembayaran\n2. QR Code akan muncul di layar\n3. Buka aplikasi DANA di HP Anda\n4. Pilih menu Scan / Pay\n5. Scan QR Code yang muncul\n6. Confirm pembayaran di aplikasi DANA",
+  },
 
   // QRIS
   {
@@ -142,6 +158,22 @@ const samplePaymentMethods = [
     instructions:
       "1. Pilih Mandiri Bill Payment\n2. Kode perusahaan dan kode bayar akan muncul\n3. Di ATM Mandiri: Pilih Bayar/Beli > Multipayment\n4. Masukkan kode perusahaan: 70012 (Midtrans)\n5. Masukkan kode bayar\n6. Confirm pembayaran",
   },
+  {
+    code: "SEABANK_VA",
+    name: "SeaBank Virtual Account",
+    category: "bank_transfer",
+    icon: "🏦",
+    fee: 4000,
+    feeType: "fixed",
+    description: "Transfer melalui aplikasi SeaBank",
+    isActive: true,
+    displayOrder: 50,
+    midtransEnabled: true,
+    minimumAmount: 10000,
+    maximumAmount: 50000000,
+    instructions:
+      "1. Pilih SeaBank Virtual Account\n2. Nomor VA SeaBank akan muncul\n3. Buka aplikasi SeaBank di HP Anda\n4. Pilih menu Transfer > Virtual Account\n5. Masukkan nomor VA dan nominal yang tepat\n6. Confirm pembayaran\n7. Pembayaran akan otomatis terverifikasi",
+  },
 
   // Retail / Minimarket
   {
@@ -203,7 +235,7 @@ export async function POST() {
     // Clear existing payment methods
     const deleteResult = await PaymentMethod.deleteMany({});
     console.log(
-      `Deleted ${deleteResult.deletedCount} existing payment methods`
+      `Deleted ${deleteResult.deletedCount} existing payment methods`,
     );
 
     // Insert sample payment methods
@@ -264,7 +296,7 @@ export async function POST() {
         success: false,
         error: error.message || "Failed to seed payment methods",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
