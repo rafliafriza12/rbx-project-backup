@@ -629,7 +629,7 @@ export default function HomePage() {
 
             {/* Enhanced Main Heading */}
             <h1 className="text-5xl sm:text-6xl lg:text-8xl font-extrabold text-white mb-8 leading-[0.9] tracking-tight">
-              Jual Beli <span className="text-primary-100">RBX</span>
+              Top Up <span className="text-primary-100">RBX</span>
               <br />
               <span className="text-neon-purple">Terpercaya</span> &{" "}
               <span className="text-neon-pink">Termurah</span>
