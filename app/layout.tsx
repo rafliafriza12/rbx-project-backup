@@ -42,7 +42,7 @@ export default function RootLayout({
       <head>
         <meta
           property="og:title"
-          content="rbxnet | Jual Beli RBX Aman, Cepat, & Terpercaya"
+          content="rbxnet | Top Up RBX Aman, Cepat, & Terpercaya"
         />
         <meta
           property="og:description"

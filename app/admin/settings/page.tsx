@@ -422,7 +422,7 @@ export default function SettingsPage() {
                 }
                 rows={3}
                 className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
-                placeholder="Platform jual beli Robux, Gamepass, dan Jasa Joki terpercaya"
+                placeholder="Platform Top Up Robux, Gamepass, dan Jasa Joki terpercaya"
               />
             </div>
 
