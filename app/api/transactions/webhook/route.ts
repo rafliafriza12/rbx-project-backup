@@ -333,6 +333,23 @@ export async function POST(request: NextRequest) {
       const previousPaymentStatus = transaction.paymentStatus;
       const previousOrderStatus = transaction.orderStatus;
 
+      // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan webhook mengubah status lagi
+      if (transaction.paymentStatus === "settlement") {
+        console.log(
+          `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update dari webhook (incoming: ${statusMapping.paymentStatus})`,
+        );
+        updatedTransactions.push({
+          invoiceId: transaction.invoiceId,
+          previousPaymentStatus,
+          newPaymentStatus: transaction.paymentStatus,
+          previousOrderStatus,
+          newOrderStatus: transaction.orderStatus,
+          skipped: true,
+          reason: "Already settled",
+        });
+        continue;
+      }
+
       // Update payment status jika berubah
       if (transaction.paymentStatus !== statusMapping.paymentStatus) {
         await transaction.updateStatus(
@@ -630,6 +647,23 @@ export async function GET(request: NextRequest) {
     );
 
     let updated = false;
+
+    // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan perubahan status
+    if (transaction.paymentStatus === "settlement") {
+      console.log(
+        `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update (incoming: ${statusMapping.paymentStatus})`,
+      );
+      return NextResponse.json({
+        success: true,
+        data: {
+          transaction,
+          midtransStatus,
+          updated: false,
+          skipped: true,
+          reason: "Already settled - status cannot be changed",
+        },
+      });
+    }
 
     // Update jika status berbeda
     if (transaction.paymentStatus !== statusMapping.paymentStatus) {

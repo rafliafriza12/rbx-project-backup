@@ -420,6 +420,22 @@ export async function POST(request: NextRequest) {
       const previousPaymentStatus = transaction.paymentStatus;
       const previousOrderStatus = transaction.orderStatus;
 
+      // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan webhook mengubah status lagi
+      if (transaction.paymentStatus === "settlement") {
+        console.log(
+          `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update dari webhook Duitku (incoming: ${statusMapping.paymentStatus})`,
+        );
+        updatedTransactions.push({
+          invoiceId: transaction.invoiceId,
+          previousStatus: previousPaymentStatus,
+          newStatus: transaction.paymentStatus,
+          orderStatus: transaction.orderStatus,
+          skipped: true,
+          reason: "Already settled",
+        });
+        continue;
+      }
+
       // Update payment status jika berubah
       if (transaction.paymentStatus !== statusMapping.paymentStatus) {
         const statusMessage = settlementDate
