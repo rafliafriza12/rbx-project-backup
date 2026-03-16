@@ -51,7 +51,7 @@ export default function PaymentMethodsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
-    null
+    null,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -89,6 +89,9 @@ export default function PaymentMethodsPage() {
   const midtransPaymentCodes = [
     { code: "GOPAY", name: "GoPay", category: "ewallet" },
     { code: "SHOPEEPAY", name: "ShopeePay", category: "ewallet" },
+    { code: "DANA", name: "DANA", category: "ewallet" },
+    { code: "OVO", name: "OVO", category: "ewallet" },
+    { code: "LINKAJA", name: "LinkAja", category: "ewallet" },
     { code: "QRIS", name: "QRIS", category: "qris" },
     { code: "BCA_VA", name: "BCA Virtual Account", category: "bank_transfer" },
     { code: "BNI_VA", name: "BNI Virtual Account", category: "bank_transfer" },
@@ -101,6 +104,11 @@ export default function PaymentMethodsPage() {
     {
       code: "ECHANNEL",
       name: "Mandiri Bill Payment",
+      category: "bank_transfer",
+    },
+    {
+      code: "SEABANK_VA",
+      name: "SeaBank Virtual Account",
       category: "bank_transfer",
     },
     { code: "OTHER_VA", name: "Other VA", category: "bank_transfer" },
@@ -398,7 +406,7 @@ export default function PaymentMethodsPage() {
         toast.success(
           selectedMethod
             ? "Payment method berhasil diupdate!"
-            : "Payment method berhasil ditambahkan!"
+            : "Payment method berhasil ditambahkan!",
         );
         setShowModal(false);
         resetForm();
@@ -455,7 +463,7 @@ export default function PaymentMethodsPage() {
 
       if (result.success) {
         toast.success(
-          `Payment method ${!method.isActive ? "diaktifkan" : "dinonaktifkan"}!`
+          `Payment method ${!method.isActive ? "diaktifkan" : "dinonaktifkan"}!`,
         );
         fetchPaymentMethods();
       } else {
@@ -849,7 +857,7 @@ export default function PaymentMethodsPage() {
                       value={formData.duitkuCode}
                       onChange={(e) => {
                         const selected = duitkuPaymentCodes.find(
-                          (pm) => pm.code === e.target.value
+                          (pm) => pm.code === e.target.value,
                         );
                         if (selected) {
                           setFormData({
@@ -1215,10 +1223,10 @@ export default function PaymentMethodsPage() {
                   {uploadingIcon
                     ? "Uploading icon..."
                     : isSubmitting
-                    ? "Menyimpan..."
-                    : selectedMethod
-                    ? "Update"
-                    : "Simpan"}
+                      ? "Menyimpan..."
+                      : selectedMethod
+                        ? "Update"
+                        : "Simpan"}
                 </button>
               </div>
             </form>
