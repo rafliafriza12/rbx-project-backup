@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Banner from "@/models/Banner";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Fetch all banners
 export async function GET(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: error.message || "Gagal mengambil data banner",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -37,6 +38,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const body = await request.json();
     const { imageUrl, link, alt, isActive, order } = body;
@@ -48,7 +57,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Image URL, link, dan alt text wajib diisi",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error.message || "Gagal menambahkan banner",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

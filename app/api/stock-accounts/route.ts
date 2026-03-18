@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status"); // active, inactive, atau all
@@ -26,10 +35,10 @@ export async function GET(request: NextRequest) {
     // Calculate statistics
     const totalAccounts = stockAccounts.length;
     const activeAccounts = stockAccounts.filter(
-      (acc) => acc.status === "active"
+      (acc) => acc.status === "active",
     ).length;
     const inactiveAccounts = stockAccounts.filter(
-      (acc) => acc.status === "inactive"
+      (acc) => acc.status === "inactive",
     ).length;
     const totalRobux = stockAccounts
       .filter((acc) => acc.status === "active")
@@ -57,7 +66,7 @@ export async function GET(request: NextRequest) {
         error: "Failed to fetch stock accounts",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

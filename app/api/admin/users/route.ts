@@ -2,37 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
-import { verifyToken, hashPassword } from "@/lib/auth";
+import { requireAdmin, hashPassword } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    // Get admin user
-    const adminUser = await User.findById(decoded.userId);
-
-    if (!adminUser || adminUser.accessRole !== "admin") {
-      return NextResponse.json(
-        {
-          error: "Akses ditolak. Hanya admin yang dapat melihat data pengguna.",
-        },
-        { status: 403 }
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     // Get URL params for pagination and search
@@ -102,14 +83,14 @@ export async function GET(request: NextRequest) {
           hasPrevPage: page > 1,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Get users error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -118,31 +99,12 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    // Get admin user
-    const adminUser = await User.findById(decoded.userId);
-
-    if (!adminUser || adminUser.accessRole !== "admin") {
-      return NextResponse.json(
-        {
-          error: "Akses ditolak. Hanya admin yang dapat membuat pengguna.",
-        },
-        { status: 403 }
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     const {
@@ -162,7 +124,7 @@ export async function POST(request: NextRequest) {
     if (!firstName || !lastName || !email || !password) {
       return NextResponse.json(
         { error: "Semua field wajib harus diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -171,7 +133,7 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { error: "Email sudah terdaftar" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -220,7 +182,7 @@ export async function POST(request: NextRequest) {
         message: "Pengguna berhasil dibuat",
         user: userResponse,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create user error:", error);
@@ -232,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import PaymentMethod from "@/models/PaymentMethod";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Fetch all payment methods atau active payment methods
 export async function GET(request: NextRequest) {
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: error.message || "Gagal mengambil data payment methods",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -55,6 +56,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     let body;
     try {
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Invalid JSON body",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -77,7 +86,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Code, name, dan category wajib diisi",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -91,7 +100,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Kode payment method sudah digunakan",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +111,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Fee percentage tidak boleh lebih dari 100%",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -135,7 +144,7 @@ export async function POST(request: NextRequest) {
         message: "Payment method berhasil dibuat",
         data: paymentMethod,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error creating payment method:", error);
@@ -144,7 +153,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error.message || "Gagal membuat payment method",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

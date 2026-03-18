@@ -1,37 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import { verifyToken } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 
 export async function PUT(request: NextRequest) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    // Get admin user
-    const adminUser = await User.findById(decoded.userId);
-
-    if (!adminUser || adminUser.accessRole !== "admin") {
-      return NextResponse.json(
-        {
-          error: "Akses ditolak. Hanya admin yang dapat mengubah role member.",
-        },
-        { status: 403 }
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     const body = await request.json();
@@ -41,7 +22,7 @@ export async function PUT(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "User ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -51,7 +32,7 @@ export async function PUT(request: NextRequest) {
     if (!targetUser) {
       return NextResponse.json(
         { error: "User tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -77,14 +58,14 @@ export async function PUT(request: NextRequest) {
         message: "Role member berhasil diperbarui",
         user: userResponse,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Update member role error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

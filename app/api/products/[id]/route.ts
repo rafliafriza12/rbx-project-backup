@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
-import User from "@/models/User";
-import { verifyToken } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Ambil produk berdasarkan ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -17,7 +16,7 @@ export async function GET(
     if (!id || id.length !== 24) {
       return NextResponse.json(
         { error: "ID produk tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,7 +25,7 @@ export async function GET(
     if (!product) {
       return NextResponse.json(
         { error: "Produk tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -38,7 +37,7 @@ export async function GET(
     console.error("Get product error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -46,39 +45,25 @@ export async function GET(
 // PUT - Update produk (Admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
 
     const { id } = await params;
 
-    // Verify admin token
-    const token = request.cookies.get("token")?.value;
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    const user = await User.findById(decoded.userId);
-    if (!user || user.accessRole !== "admin") {
-      return NextResponse.json(
-        { error: "Akses ditolak. Admin diperlukan" },
-        { status: 403 }
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
         { error: "ID produk tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,13 +81,13 @@ export async function PUT(
         isActive,
         category,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedProduct) {
       return NextResponse.json(
         { error: "Produk tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -115,14 +100,14 @@ export async function PUT(
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(
-        (err: any) => err.message
+        (err: any) => err.message,
       );
       return NextResponse.json({ error: messages.join(", ") }, { status: 400 });
     }
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -130,39 +115,25 @@ export async function PUT(
 // DELETE - Hapus produk (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
 
     const { id } = await params;
 
-    // Verify admin token
-    const token = request.cookies.get("token")?.value;
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    const user = await User.findById(decoded.userId);
-    if (!user || user.accessRole !== "admin") {
-      return NextResponse.json(
-        { error: "Akses ditolak. Admin diperlukan" },
-        { status: 403 }
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     if (!id || id.length !== 24) {
       return NextResponse.json(
         { error: "ID produk tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -171,7 +142,7 @@ export async function DELETE(
     if (!deletedProduct) {
       return NextResponse.json(
         { error: "Produk tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -183,7 +154,7 @@ export async function DELETE(
     console.error("Delete product error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

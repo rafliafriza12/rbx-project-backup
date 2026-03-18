@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import PaymentMethod from "@/models/PaymentMethod";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Fetch single payment method
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
@@ -19,7 +20,7 @@ export async function GET(
           success: false,
           error: "Payment method tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -35,7 +36,7 @@ export async function GET(
         success: false,
         error: error.message || "Gagal mengambil data payment method",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -43,10 +44,18 @@ export async function GET(
 // PUT - Update payment method
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
     const body = await request.json();
@@ -59,7 +68,7 @@ export async function PUT(
           success: false,
           error: "Payment method tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -75,7 +84,7 @@ export async function PUT(
             success: false,
             error: "Kode payment method sudah digunakan",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -87,7 +96,7 @@ export async function PUT(
           success: false,
           error: "Fee percentage tidak boleh lebih dari 100%",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -130,7 +139,7 @@ export async function PUT(
         success: false,
         error: error.message || "Gagal mengupdate payment method",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -138,10 +147,18 @@ export async function PUT(
 // DELETE - Delete payment method
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
     const paymentMethod = await PaymentMethod.findById(id);
@@ -152,7 +169,7 @@ export async function DELETE(
           success: false,
           error: "Payment method tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -169,7 +186,7 @@ export async function DELETE(
         success: false,
         error: error.message || "Gagal menghapus payment method",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

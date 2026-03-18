@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import RobuxSetting from "@/models/RobuxSetting";
 import Gamepass from "@/models/Gamepass";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Ambil setting harga Robux
 export async function GET() {
@@ -29,7 +30,7 @@ export async function GET() {
         success: false,
         error: error.message || "Gagal mengambil setting Robux",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -38,6 +39,14 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const body = await request.json();
     const { pricePerRobux, updatedBy } = body;
@@ -48,7 +57,7 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: "Harga per Robux harus lebih dari 0",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -95,7 +104,7 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: error.message || "Gagal memperbarui setting Robux",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

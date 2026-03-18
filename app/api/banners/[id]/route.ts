@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Banner from "@/models/Banner";
 import mongoose from "mongoose";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Fetch single banner
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -19,7 +20,7 @@ export async function GET(
           success: false,
           error: "ID banner tidak valid",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,7 +32,7 @@ export async function GET(
           success: false,
           error: "Banner tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -46,7 +47,7 @@ export async function GET(
         success: false,
         error: error.message || "Gagal mengambil data banner",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -54,10 +55,18 @@ export async function GET(
 // PUT - Update banner
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
 
@@ -67,7 +76,7 @@ export async function PUT(
           success: false,
           error: "ID banner tidak valid",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,7 +90,7 @@ export async function PUT(
           success: false,
           error: "Image URL, link, dan alt text wajib diisi",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,7 +103,7 @@ export async function PUT(
         isActive,
         order,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedBanner) {
@@ -103,7 +112,7 @@ export async function PUT(
           success: false,
           error: "Banner tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -119,7 +128,7 @@ export async function PUT(
         success: false,
         error: error.message || "Gagal mengupdate banner",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -127,10 +136,18 @@ export async function PUT(
 // DELETE - Delete banner
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
 
@@ -140,7 +157,7 @@ export async function DELETE(
           success: false,
           error: "ID banner tidak valid",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -152,7 +169,7 @@ export async function DELETE(
           success: false,
           error: "Banner tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -167,7 +184,7 @@ export async function DELETE(
         success: false,
         error: error.message || "Gagal menghapus banner",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

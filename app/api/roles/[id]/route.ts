@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Role from "@/models/Role";
 import User from "@/models/User";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Ambil role berdasarkan ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -16,7 +17,7 @@ export async function GET(
     if (!id) {
       return NextResponse.json(
         { error: "Role ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,7 +26,7 @@ export async function GET(
     if (!role) {
       return NextResponse.json(
         { error: "Role tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -37,7 +38,7 @@ export async function GET(
     console.error("Error fetching role:", error);
     return NextResponse.json(
       { error: "Failed to fetch role" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -45,10 +46,18 @@ export async function GET(
 // PUT - Update role
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
     const body = await request.json();
@@ -57,7 +66,7 @@ export async function PUT(
     if (!id) {
       return NextResponse.json(
         { error: "Role ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,14 +74,14 @@ export async function PUT(
     if (!member || typeof member !== "string" || member.trim().length === 0) {
       return NextResponse.json(
         { error: "Nama member diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (typeof diskon !== "number" || diskon < 0 || diskon > 100) {
       return NextResponse.json(
         { error: "Diskon harus berupa angka antara 0-100" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,7 +90,7 @@ export async function PUT(
     if (!existingRole) {
       return NextResponse.json(
         { error: "Role tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -94,7 +103,7 @@ export async function PUT(
     if (duplicateRole) {
       return NextResponse.json(
         { error: "Role dengan nama tersebut sudah ada" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -107,7 +116,7 @@ export async function PUT(
         description: description?.trim() || "",
         isActive: typeof isActive === "boolean" ? isActive : true,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     return NextResponse.json({
@@ -121,7 +130,7 @@ export async function PUT(
     // Handle mongoose validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(
-        (err: any) => err.message
+        (err: any) => err.message,
       );
       return NextResponse.json({ error: messages.join(", ") }, { status: 400 });
     }
@@ -130,13 +139,13 @@ export async function PUT(
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "Role dengan nama tersebut sudah ada" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to update role" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -144,17 +153,25 @@ export async function PUT(
 // DELETE - Hapus role
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
         { error: "Role ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -163,7 +180,7 @@ export async function DELETE(
     if (!role) {
       return NextResponse.json(
         { error: "Role tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -176,7 +193,7 @@ export async function DELETE(
           details:
             "Silakan hapus atau pindahkan user tersebut ke role lain terlebih dahulu.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -191,7 +208,7 @@ export async function DELETE(
     console.error("Error deleting role:", error);
     return NextResponse.json(
       { error: "Failed to delete role" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

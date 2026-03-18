@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import RobuxPricing from "@/models/RobuxPricing";
 import Product from "@/models/Product";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
         success: false,
         message: "Gagal mengambil data harga Robux",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -29,6 +30,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const body = await request.json();
     const { pricePerHundred, description } = body;
@@ -39,7 +48,7 @@ export async function POST(request: NextRequest) {
           success: false,
           message: "Harga per 100 Robux harus lebih dari 0",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +62,7 @@ export async function POST(request: NextRequest) {
           message:
             "Harga sudah ada. Gunakan fungsi update untuk mengubah harga.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -70,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (robux5HariProducts.length > 0) {
       const updatePromises = robux5HariProducts.map(async (product) => {
         const newPrice = Math.ceil(
-          (product.robuxAmount / 100) * pricePerHundred
+          (product.robuxAmount / 100) * pricePerHundred,
         );
         return Product.findByIdAndUpdate(product._id, { price: newPrice });
       });
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
       await Promise.all(updatePromises);
 
       console.log(
-        `Updated ${robux5HariProducts.length} robux 5 hari products with new pricing`
+        `Updated ${robux5HariProducts.length} robux 5 hari products with new pricing`,
       );
     }
 
@@ -99,7 +108,7 @@ export async function POST(request: NextRequest) {
         success: false,
         message: "Gagal menambahkan harga Robux",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -107,6 +116,14 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await connectDB();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const body = await request.json();
     const { pricePerHundred, description } = body;
@@ -117,7 +134,7 @@ export async function PUT(request: NextRequest) {
           success: false,
           message: "Harga per 100 Robux harus lebih dari 0",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,7 +163,7 @@ export async function PUT(request: NextRequest) {
     if (robux5HariProducts.length > 0) {
       const updatePromises = robux5HariProducts.map(async (product) => {
         const newPrice = Math.ceil(
-          (product.robuxAmount / 100) * pricePerHundred
+          (product.robuxAmount / 100) * pricePerHundred,
         );
         return Product.findByIdAndUpdate(product._id, { price: newPrice });
       });
@@ -154,7 +171,7 @@ export async function PUT(request: NextRequest) {
       await Promise.all(updatePromises);
 
       console.log(
-        `Updated ${robux5HariProducts.length} robux 5 hari products with new pricing`
+        `Updated ${robux5HariProducts.length} robux 5 hari products with new pricing`,
       );
     }
 
@@ -175,7 +192,7 @@ export async function PUT(request: NextRequest) {
         success: false,
         message: "Gagal mengupdate harga Robux",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

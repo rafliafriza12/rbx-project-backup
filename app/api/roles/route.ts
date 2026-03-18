@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Role from "@/models/Role";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Ambil semua roles
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -50,7 +59,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching roles:", error);
     return NextResponse.json(
       { error: "Failed to fetch roles" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,6 +69,14 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const body = await request.json();
     const { member, diskon, description, isActive } = body;
 
@@ -67,14 +84,14 @@ export async function POST(request: NextRequest) {
     if (!member || typeof member !== "string" || member.trim().length === 0) {
       return NextResponse.json(
         { error: "Nama member diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (typeof diskon !== "number" || diskon < 0 || diskon > 100) {
       return NextResponse.json(
         { error: "Diskon harus berupa angka antara 0-100" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (existingRole) {
       return NextResponse.json(
         { error: "Role dengan nama tersebut sudah ada" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -111,7 +128,7 @@ export async function POST(request: NextRequest) {
     // Handle mongoose validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(
-        (err: any) => err.message
+        (err: any) => err.message,
       );
       return NextResponse.json({ error: messages.join(", ") }, { status: 400 });
     }
@@ -120,13 +137,13 @@ export async function POST(request: NextRequest) {
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "Role dengan nama tersebut sudah ada" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create role" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

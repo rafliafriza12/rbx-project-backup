@@ -1,40 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import { verifyToken, hashPassword } from "@/lib/auth";
+import { requireAdmin, hashPassword } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    // Get admin user
-    const adminUser = await User.findById(decoded.userId);
-
-    if (!adminUser || adminUser.accessRole !== "admin") {
-      return NextResponse.json(
-        {
-          error: "Akses ditolak. Hanya admin yang dapat mengupdate pengguna.",
-        },
-        { status: 403 }
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     const { id } = await params;
@@ -44,7 +25,7 @@ export async function PUT(
     if (!existingUser) {
       return NextResponse.json(
         { error: "Pengguna tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -100,7 +81,7 @@ export async function PUT(
       if (emailExists) {
         return NextResponse.json(
           { error: "Email sudah terdaftar" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -136,7 +117,7 @@ export async function PUT(
         message: "Pengguna berhasil diupdate",
         user: userResponse,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Update user error:", error);
@@ -148,43 +129,25 @@ export async function PUT(
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    // Get admin user
-    const adminUser = await User.findById(decoded.userId);
-
-    if (!adminUser || adminUser.accessRole !== "admin") {
-      return NextResponse.json(
-        {
-          error: "Akses ditolak. Hanya admin yang dapat menghapus pengguna.",
-        },
-        { status: 403 }
-      );
+    // Admin only
+    let adminUser;
+    try {
+      adminUser = await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     const { id } = await params;
@@ -194,18 +157,18 @@ export async function DELETE(
     if (!existingUser) {
       return NextResponse.json(
         { error: "Pengguna tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Prevent admin from deleting other admins (optional security)
     if (
       existingUser.accessRole === "admin" &&
-      existingUser._id.toString() !== decoded.userId
+      existingUser._id.toString() !== adminUser._id.toString()
     ) {
       return NextResponse.json(
         { error: "Tidak dapat menghapus admin lain" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -216,14 +179,14 @@ export async function DELETE(
       {
         message: "Pengguna berhasil dihapus",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Delete user error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
