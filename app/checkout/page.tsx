@@ -104,7 +104,6 @@ function CheckoutContent() {
   });
 
   // Debug render for customerInfo changes
-  console.log("🎨 RENDER - customerInfo.phone:", customerInfo.phone);
 
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -243,14 +242,7 @@ function CheckoutContent() {
 
   // Fungsi untuk menghitung diskon
   const calculateDiscount = (amount: number) => {
-    console.log("=== CALCULATE DISCOUNT DEBUG ===");
-    console.log("User object:", user);
-    console.log("User resellerTier:", user?.resellerTier);
-    console.log("User discount:", user?.diskon || 0);
-    console.log("Amount to calculate:", amount);
-
     if (!user) {
-      console.log("No user logged in, no discount applied");
       return {
         discountPercentage: 0,
         discountAmount: 0,
@@ -262,12 +254,6 @@ function CheckoutContent() {
     const discountAmount = Math.round((amount * discountPercentage) / 100);
     const finalAmount = amount - discountAmount;
 
-    console.log("Calculated discount:", {
-      discountPercentage,
-      discountAmount,
-      finalAmount,
-    });
-
     return {
       discountPercentage,
       discountAmount,
@@ -278,10 +264,6 @@ function CheckoutContent() {
   // Recalculate discount when user login status changes
   useEffect(() => {
     if (checkoutData && checkoutData.items && checkoutData.items.length > 0) {
-      console.log("=== RECALCULATE DISCOUNT ON USER CHANGE ===");
-      console.log("User changed:", user);
-      console.log("Current checkoutData:", checkoutData);
-
       // Recalculate base amount
       const baseAmount = checkoutData.items.reduce((sum: number, item: any) => {
         return sum + item.quantity * item.unitPrice;
@@ -290,8 +272,6 @@ function CheckoutContent() {
       // Recalculate discount based on current user
       const discount = calculateDiscount(baseAmount);
 
-      console.log("New discount calculated:", discount);
-
       // Update checkoutData with new discount
       setCheckoutData({
         ...checkoutData,
@@ -299,8 +279,6 @@ function CheckoutContent() {
         discountAmount: discount.discountAmount,
         finalAmount: discount.finalAmount,
       });
-
-      console.log("CheckoutData updated with new discount");
     }
   }, [user]); // Trigger when user changes (login/logout)
 
@@ -308,17 +286,13 @@ function CheckoutContent() {
   const formatPhoneNumber = (phone: string, countryCode?: string) => {
     if (!phone) return "";
 
-    console.log("📱 formatPhoneNumber called with:", { phone, countryCode });
-
     // If phone already starts with +, return as is
     if (phone.startsWith("+")) {
-      console.log("✅ Phone already has country code:", phone);
       return phone;
     }
 
     // Clean the phone number (remove all non-digit characters)
     let cleanPhone = phone.replace(/\D/g, "");
-    console.log("🧹 Cleaned phone:", cleanPhone);
 
     // Auto-detect country code from phone number pattern
     let detectedCountryCode = countryCode || "+62"; // Default to Indonesia
@@ -327,29 +301,22 @@ function CheckoutContent() {
     if (cleanPhone.startsWith("62")) {
       detectedCountryCode = "+62";
       cleanPhone = cleanPhone.substring(2); // Remove 62
-      console.log("🇮🇩 Detected Indonesia (62):", cleanPhone);
     } else if (cleanPhone.startsWith("0")) {
       detectedCountryCode = "+62";
       cleanPhone = cleanPhone.substring(1); // Remove leading 0
-      console.log("🇮🇩 Detected Indonesia (0):", cleanPhone);
     }
     // Malaysia: starts with 60
     else if (cleanPhone.startsWith("60")) {
       detectedCountryCode = "+60";
       cleanPhone = cleanPhone.substring(2);
-      console.log("🇲🇾 Detected Malaysia:", cleanPhone);
     }
     // Singapore: starts with 65
     else if (cleanPhone.startsWith("65")) {
       detectedCountryCode = "+65";
       cleanPhone = cleanPhone.substring(2);
-      console.log("🇸🇬 Detected Singapore:", cleanPhone);
-    } else {
-      console.log("🌍 Using default/provided country code");
     }
 
     const formatted = `${detectedCountryCode}${cleanPhone}`;
-    console.log("✨ Final formatted phone:", formatted);
     return formatted;
   };
 
@@ -406,28 +373,14 @@ function CheckoutContent() {
   // All payment gateway configs are handled server-side by libs
 
   useEffect(() => {
-    console.log("=== CHECKOUT PAGE DEBUG START ===");
-    console.log("User ID:", user?.id);
-    console.log("Is Guest Checkout:", !user);
-    console.log("1. Component mounted, checking sessionStorage...");
-
     // Pre-fill customer info if user is logged in
     if (user && !isGuestCheckout) {
-      console.log("2. User is logged in, pre-filling customer info...");
-      console.log("📦 Full User Object:", JSON.stringify(user, null, 2));
-
       // Format phone with auto-detection
       const formattedPhone = formatPhoneNumber(
         user.phone || "",
         user.countryCode,
       );
 
-      console.log("📊 Phone formatting details:");
-      console.log("  - Original phone:", user.phone);
-      console.log("  - Country code from DB:", user.countryCode);
-      console.log("  - Formatted result:", formattedPhone);
-
-      console.log("📝 Setting customer info with formatted phone");
       const newCustomerInfo = {
         name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
         email: user.email || "",
@@ -436,40 +389,26 @@ function CheckoutContent() {
 
       setCustomerInfo(newCustomerInfo);
 
-      console.log("✅ Customer info updated in state:");
-      console.log("   New customerInfo:", newCustomerInfo);
-
       // Check if user doesn't have phone number - will show editable field
       if (!user.phone || user.phone.trim() === "") {
-        console.log(
-          "⚠️ User doesn't have phone number - field will be editable",
-        );
       }
 
       // Verify state after update with setTimeout
-      setTimeout(() => {
-        console.log("🔍 Verifying state after 100ms...");
-        console.log("   customerInfo.phone should be:", formattedPhone);
-      }, 100);
+      setTimeout(() => {}, 100);
     } else {
-      console.log("2. Guest checkout - customer info will be manually filled");
     }
 
     // Get checkout data from sessionStorage
     const sessionData = sessionStorage.getItem("checkoutData");
-    console.log("3. SessionStorage data:", sessionData);
 
     if (sessionData) {
       try {
-        console.log("4. Parsing sessionStorage data...");
         const parsedData = JSON.parse(sessionData);
-        console.log("5. Parsed data:", parsedData);
 
         // Handle both old single object and new array format
         const itemsArray = Array.isArray(parsedData)
           ? parsedData
           : [parsedData];
-        console.log("6. Items array:", itemsArray);
 
         // Check if this is multi-checkout from cart with different credentials
         // Multi-checkout from cart: items already have robloxUsername/Password
@@ -478,22 +417,14 @@ function CheckoutContent() {
         );
         const isMultiCheckout = itemsArray.length > 1 && hasItemCredentials;
 
-        console.log("6.1. Checkout type check:", {
-          itemCount: itemsArray.length,
-          hasItemCredentials,
-          isMultiCheckout,
-        });
-
         setIsMultiCheckoutFromCart(isMultiCheckout);
 
         // Calculate total amount from all items
         const baseAmount = itemsArray.reduce((sum: number, item: any) => {
           return sum + item.quantity * item.unitPrice;
         }, 0);
-        console.log("7. Base amount calculated:", baseAmount);
 
         const discount = calculateDiscount(baseAmount);
-        console.log("8. Discount calculated:", discount);
 
         setCheckoutData({
           items: itemsArray,
@@ -503,22 +434,19 @@ function CheckoutContent() {
           finalAmount: discount.finalAmount,
         });
 
-        console.log("9. Checkout data set successfully");
-
-        // DEBUG: Check backup code in loaded data
-        itemsArray.forEach((item: any, index: number) => {
-          console.log(`[DEBUG] Item ${index + 1} data check:`, {
-            serviceType: item.serviceType,
-            robloxUsername: item.robloxUsername,
-            hasPassword: !!item.robloxPassword,
-            jokiDetails: item.jokiDetails,
-            robuxInstantDetails: item.robuxInstantDetails,
-            jokiNotes: item.jokiDetails?.notes,
-            jokiAdditionalInfo: item.jokiDetails?.additionalInfo,
-            robuxNotes: item.robuxInstantDetails?.notes,
-            robuxAdditionalInfo: item.robuxInstantDetails?.additionalInfo,
-          });
-        });
+        // // DEBUG: Check backup code in loaded data
+        // itemsArray.forEach((item: any, index: number) => {
+        //     serviceType: item.serviceType,
+        //     robloxUsername: item.robloxUsername,
+        //     hasPassword: !!item.robloxPassword,
+        //     jokiDetails: item.jokiDetails,
+        //     robuxInstantDetails: item.robuxInstantDetails,
+        //     jokiNotes: item.jokiDetails?.notes,
+        //     jokiAdditionalInfo: item.jokiDetails?.additionalInfo,
+        //     robuxNotes: item.robuxInstantDetails?.notes,
+        //     robuxAdditionalInfo: item.robuxInstantDetails?.additionalInfo,
+        //   });
+        // });
 
         // Pre-fill form data ONLY if NOT multi-checkout from cart
         // Multi-checkout dari cart: setiap item sudah punya data sendiri
@@ -526,10 +454,6 @@ function CheckoutContent() {
         if (!isMultiCheckout) {
           const firstItem = itemsArray[0];
           if (firstItem.robloxUsername) {
-            console.log(
-              "10. Pre-filling roblox username:",
-              firstItem.robloxUsername,
-            );
             setRobloxUsername(firstItem.robloxUsername);
           }
 
@@ -540,38 +464,23 @@ function CheckoutContent() {
             !(firstItem.serviceType === "robux" && firstItem.rbx5Details)
           ) {
             if (firstItem.robloxPassword) {
-              console.log("11. Pre-filling roblox password: [HIDDEN]");
               setRobloxPassword(firstItem.robloxPassword);
             }
           } else {
-            console.log(
-              "11. Gamepass, Reseller, or Robux 5 Hari detected - clearing password field",
-            );
             setRobloxPassword("");
           }
         } else {
-          console.log(
-            "10-11. Multi-checkout from cart detected - using individual item credentials",
-          );
         }
 
         // Data loaded successfully
         // Backup code for Joki and Robux Instant will stay in item.jokiDetails and item.robuxInstantDetails
         // Additional notes field is separate and universal for all services
-
-        console.log(
-          "14. Data loaded successfully, sessionStorage will be cleared on successful payment",
-        );
       } catch (error) {
-        console.error("Error parsing sessionStorage data:", error);
         toast.error("Data checkout tidak valid");
         router.push("/");
       }
     } else {
       // Fallback ke URL params
-      console.log(
-        "13. No session data found, checking URL params as fallback...",
-      );
       const serviceType = searchParams.get("serviceType");
       const serviceId = searchParams.get("serviceId");
       const serviceName = searchParams.get("serviceName");
@@ -579,17 +488,7 @@ function CheckoutContent() {
       const quantity = parseInt(searchParams.get("quantity") || "1");
       const unitPrice = parseInt(searchParams.get("unitPrice") || "0");
 
-      console.log("14. URL params found:", {
-        serviceType,
-        serviceId,
-        serviceName,
-        serviceImage,
-        quantity,
-        unitPrice,
-      });
-
       if (serviceType && serviceId && serviceName && unitPrice) {
-        console.log("15. URL params are valid, setting checkout data from URL");
         const baseAmount = quantity * unitPrice;
         const discount = calculateDiscount(baseAmount);
 
@@ -611,8 +510,6 @@ function CheckoutContent() {
           finalAmount: discount.finalAmount,
         });
       } else {
-        console.log("16. No valid data found in sessionStorage or URL params");
-        console.log("17. Missing required data - redirecting to home page");
         toast.error(
           "Data checkout tidak ditemukan. Silakan pilih produk terlebih dahulu.",
         );
@@ -621,7 +518,6 @@ function CheckoutContent() {
     }
 
     setLoading(false);
-    console.log("=== CHECKOUT PAGE DEBUG END ===");
   }, [user, router, searchParams]);
 
   // Fetch active payment gateway FIRST
@@ -637,7 +533,6 @@ function CheckoutContent() {
           );
         }
       } catch (error) {
-        console.error("Error fetching payment settings:", error);
         // Default to midtrans if fetch fails
         setActivePaymentGateway("midtrans");
       }
@@ -709,7 +604,6 @@ function CheckoutContent() {
           setPaymentCategories(Object.values(groupedMethods));
         }
       } catch (error) {
-        console.error("Error fetching payment methods:", error);
         setPaymentCategories([]);
       } finally {
         setPaymentMethodsLoading(false);
@@ -933,34 +827,6 @@ function CheckoutContent() {
     // Calculate final amount (after discount + payment fee)
     const finalAmountWithFee = baseAmountAfterDiscount + paymentFee;
 
-    console.log("\n=== PAYMENT CALCULATION DEBUG ===");
-    console.log("Subtotal:", checkoutData.totalAmount);
-    console.log(
-      "Discount Percentage:",
-      checkoutData.discountPercentage || 0,
-      "%",
-    );
-    console.log("Discount Amount:", checkoutData.discountAmount || 0);
-    console.log("After Discount (Base):", baseAmountAfterDiscount);
-    console.log("Selected Payment Method:", selectedPayment?.name);
-    console.log("Payment Fee:", paymentFee);
-    console.log("FINAL AMOUNT (to send to Midtrans):", finalAmountWithFee);
-    console.log("================================\n");
-
-    console.log("\n=== PREPARE ITEMS WITH CREDENTIALS ===");
-    console.log("Original checkoutData.items:", checkoutData.items);
-    console.log("isMultiCheckoutFromCart:", isMultiCheckoutFromCart);
-
-    checkoutData.items.forEach((item: any, index: number) => {
-      console.log(`[BEFORE MAP] Item ${index + 1}:`, {
-        serviceType: item.serviceType,
-        robloxUsername: item.robloxUsername,
-        hasPassword: !!item.robloxPassword,
-        jokiDetails: item.jokiDetails,
-        robuxInstantDetails: item.robuxInstantDetails,
-      });
-    });
-
     // Prepare items for transaction
     // Multi-checkout dari cart: gunakan data dari setiap item
     // Single checkout langsung: gunakan data dari form global
@@ -1044,101 +910,91 @@ function CheckoutContent() {
     };
 
     try {
-      console.log("=== SUBMITTING TRANSACTION DEBUG ===");
-      console.log("Full request data:", requestData);
-      console.log("\n=== BACKUP CODE CHECK BEFORE API ===");
-      itemsWithCredentials.forEach((item: any, index: number) => {
-        console.log(`Item ${index + 1}:`, {
-          serviceType: item.serviceType,
-          serviceName: item.serviceName,
-          jokiBackupCode:
-            item.jokiDetails?.notes || item.jokiDetails?.additionalInfo,
-          robuxBackupCode:
-            item.robuxInstantDetails?.notes ||
-            item.robuxInstantDetails?.additionalInfo,
-          jokiDetails: item.jokiDetails,
-          robuxInstantDetails: item.robuxInstantDetails,
-        });
-      });
-      console.log("Universal additional notes:", requestData.additionalNotes);
-      console.log("========================\n");
-      itemsWithCredentials.forEach((item, index) => {
-        if (item.jokiDetails) {
-          console.log(
-            `Item ${index} - Joki backup code (notes):`,
-            item.jokiDetails.notes,
-          );
-          console.log(
-            `Item ${index} - Joki backup code (additionalInfo):`,
-            item.jokiDetails.additionalInfo,
-          );
-        }
-        if (item.robuxInstantDetails) {
-          console.log(
-            `Item ${index} - Robux Instant backup code (notes):`,
-            item.robuxInstantDetails.notes,
-          );
-          console.log(
-            `Item ${index} - Robux Instant backup code (additionalInfo):`,
-            item.robuxInstantDetails.additionalInfo,
-          );
-        }
-      });
-      console.log("Universal additional notes:", requestData.additionalNotes);
-      console.log("========================");
-
       // Determine which API endpoint to use
       const isMultiTransaction = itemsWithCredentials.length > 1;
       const apiEndpoint = isMultiTransaction
         ? "/api/transactions/multi"
         : "/api/transactions";
 
+      // Helper: strip sensitive price fields from rbx5Details before sending
+      // Server will recalculate: unitPrice, gamepassAmount, pricePerRobux from DB
+      const sanitizeRbx5Details = (rbx5: any) => {
+        if (!rbx5) return undefined;
+        return {
+          robuxAmount: rbx5.robuxAmount, // needed for custom orders
+          packageName: rbx5.packageName,
+          selectedPlace: rbx5.selectedPlace
+            ? {
+                placeId: rbx5.selectedPlace.placeId,
+                name: rbx5.selectedPlace.name,
+              }
+            : undefined,
+          gamepassCreated: rbx5.gamepassCreated,
+          backupCode: rbx5.backupCode || "",
+          // Gamepass: only send identifiers, server recalculates price
+          gamepass: rbx5.gamepass
+            ? {
+                id: rbx5.gamepass.id,
+                name: rbx5.gamepass.name,
+                productId: rbx5.gamepass.productId,
+                sellerId: rbx5.gamepass.sellerId,
+                // price, pricePerRobux, gamepassAmount → server-side only
+              }
+            : undefined,
+          // DO NOT send: gamepassAmount, pricePerRobux, price
+        };
+      };
+
       // Prepare request data based on transaction type
       const finalRequestData: any = isMultiTransaction
         ? {
-            // Multi-checkout format
-            items: itemsWithCredentials,
-            totalAmount: checkoutData.totalAmount,
-            discountPercentage: checkoutData.discountPercentage || 0,
-            discountAmount: checkoutData.discountAmount || 0,
-            finalAmount: finalAmountWithFee, // Already includes payment fee
+            // Multi-checkout format — strip all price fields, server recalculates
+            items: itemsWithCredentials.map((item) => ({
+              serviceType: item.serviceType,
+              serviceId: item.serviceId,
+              serviceName: item.serviceName,
+              serviceImage: item.serviceImage || "",
+              serviceCategory: item.serviceCategory,
+              quantity: item.quantity,
+              robloxUsername: item.robloxUsername,
+              robloxPassword: item.robloxPassword || null,
+              jokiDetails: item.jokiDetails,
+              robuxInstantDetails: item.robuxInstantDetails,
+              rbx5Details: sanitizeRbx5Details(item.rbx5Details),
+              gamepassDetails: item.gamepassDetails,
+              resellerDetails: item.resellerDetails,
+              // unitPrice, totalAmount, discountAmount, paymentFee → NOT sent
+            })),
             paymentMethodId: selectedPaymentMethod,
-            paymentFee: paymentFee,
             additionalNotes: additionalNotes.trim() || undefined,
             customerInfo: requestData.customerInfo,
             userId: requestData.userId,
+            // totalAmount, discountPercentage, discountAmount, finalAmount, paymentFee → NOT sent
           }
         : {
-            // Single checkout format
+            // Single checkout format — strip all price fields, server recalculates
             serviceType: itemsWithCredentials[0].serviceType,
             serviceId: itemsWithCredentials[0].serviceId,
             serviceName: itemsWithCredentials[0].serviceName,
             serviceImage: itemsWithCredentials[0].serviceImage || "",
             serviceCategory: itemsWithCredentials[0].serviceCategory,
-            description: itemsWithCredentials[0].description,
             quantity: itemsWithCredentials[0].quantity,
-            unitPrice: itemsWithCredentials[0].unitPrice,
-            totalAmount: checkoutData.totalAmount,
-            discountPercentage: checkoutData.discountPercentage || 0,
-            discountAmount: checkoutData.discountAmount || 0,
-            finalAmount: finalAmountWithFee, // Already includes payment fee
             robloxUsername: itemsWithCredentials[0].robloxUsername,
             robloxPassword: itemsWithCredentials[0].robloxPassword || null,
             jokiDetails: itemsWithCredentials[0].jokiDetails,
             robuxInstantDetails: itemsWithCredentials[0].robuxInstantDetails,
-            rbx5Details: itemsWithCredentials[0].rbx5Details,
+            rbx5Details: sanitizeRbx5Details(
+              itemsWithCredentials[0].rbx5Details,
+            ),
             gamepassDetails: itemsWithCredentials[0].gamepassDetails,
-            gamepass: itemsWithCredentials[0].rbx5Details?.gamepass || null,
+            resellerDetails: itemsWithCredentials[0].resellerDetails,
             paymentMethodId: selectedPaymentMethod,
-            paymentFee: paymentFee,
             additionalNotes: additionalNotes.trim() || undefined,
             customerInfo: requestData.customerInfo,
             userId: requestData.userId,
+            // unitPrice, totalAmount, discountPercentage, discountAmount,
+            // finalAmount, paymentFee, gamepass.price → NOT sent
           };
-
-      console.log("=== FINAL REQUEST DATA ===");
-      console.log("API Endpoint:", apiEndpoint);
-      console.log("Request:", JSON.stringify(finalRequestData, null, 2));
 
       const response = await fetch(apiEndpoint, {
         method: "POST",
@@ -1149,7 +1005,6 @@ function CheckoutContent() {
       });
 
       const result = await response.json();
-      console.log("Transaction response:", result);
 
       if (result.success) {
         // Clear cart items if checkout was from cart
@@ -1158,9 +1013,6 @@ function CheckoutContent() {
           .filter((id: any) => id); // Filter out undefined/null IDs
 
         if (cartItemIds.length > 0 && user?.id) {
-          console.log("=== CLEARING CART ITEMS ===");
-          console.log("Cart Item IDs to remove:", cartItemIds);
-
           try {
             const clearResponse = await fetch("/api/cart/clear-items", {
               method: "POST",
@@ -1174,17 +1026,7 @@ function CheckoutContent() {
             });
 
             const clearResult = await clearResponse.json();
-            console.log("Clear cart result:", clearResult);
-
-            if (clearResult.success) {
-              console.log(
-                `✅ ${clearResult.removedCount} items removed from cart`,
-              );
-            } else {
-              console.error("Failed to clear cart items:", clearResult.error);
-            }
           } catch (clearError) {
-            console.error("Error clearing cart items:", clearError);
             // Don't block the checkout flow if cart clear fails
           }
         }
@@ -1198,7 +1040,6 @@ function CheckoutContent() {
         // Check if QR code is available (GoPay/QRIS Core API)
         if (result.data?.qrCodeUrl) {
           // Redirect to transaction detail page to show QR code
-          console.log("QR Code URL available:", result.data.qrCodeUrl);
           if (result.data?.transactions?.[0]?._id) {
             router.push(`/riwayat/${result.data.transactions[0]._id}`);
           } else if (result.data?.transaction?._id) {
@@ -1229,7 +1070,6 @@ function CheckoutContent() {
         );
       }
     } catch (error) {
-      console.error("Error creating transaction:", error);
       toast.error("Terjadi kesalahan saat membuat transaksi");
     } finally {
       setSubmitting(false);

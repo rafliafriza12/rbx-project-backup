@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
+import { requireAdmin } from "@/lib/auth";
 
 /**
  * Trigger auto-purchase for pending transactions
@@ -8,12 +9,20 @@ import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
  */
 export async function POST(req: NextRequest) {
   try {
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(req);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const { stockAccountId } = await req.json();
 
     if (!stockAccountId) {
       return NextResponse.json(
         { success: false, message: "Stock account ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +43,7 @@ export async function POST(req: NextRequest) {
     console.error("Error triggering auto-purchase:", error);
     return NextResponse.json(
       { success: false, message: error.message || "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

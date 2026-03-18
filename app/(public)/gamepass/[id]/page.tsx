@@ -66,7 +66,7 @@ export default function GamepassDetailPage() {
   const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null
+    null,
   );
 
   // Item search timeout
@@ -94,7 +94,7 @@ export default function GamepassDetailPage() {
 
     try {
       const response = await fetch(
-        `/api/user-info?username=${encodeURIComponent(username.trim())}`
+        `/api/user-info?username=${encodeURIComponent(username.trim())}`,
       );
       const data = await response.json();
 
@@ -106,8 +106,6 @@ export default function GamepassDetailPage() {
         setUserSearchError(data.message || "User tidak ditemukan");
       }
     } catch (error) {
-      console.error("Error searching user:", error);
-      setUserInfo(null);
       setUserSearchError("Terjadi kesalahan saat mencari user");
     } finally {
       setIsSearchingUser(false);
@@ -121,19 +119,19 @@ export default function GamepassDetailPage() {
   // Calculate total price
   const totalPrice = selectedItems.reduce(
     (total, item) => total + item.price * item.quantity,
-    0
+    0,
   );
 
   // Function to handle item selection
   const handleItemSelect = (item: GamepassItem) => {
     const existingIndex = selectedItems.findIndex(
-      (selected) => selected.itemName === item.itemName
+      (selected) => selected.itemName === item.itemName,
     );
 
     if (existingIndex >= 0) {
       // Item already selected, remove it
       setSelectedItems((prev) =>
-        prev.filter((_, index) => index !== existingIndex)
+        prev.filter((_, index) => index !== existingIndex),
       );
     } else {
       // Add new item with quantity 1
@@ -146,15 +144,15 @@ export default function GamepassDetailPage() {
     if (newQuantity < 1) {
       // Remove item if quantity becomes 0
       setSelectedItems((prev) =>
-        prev.filter((item) => item.itemName !== itemName)
+        prev.filter((item) => item.itemName !== itemName),
       );
       return;
     }
 
     setSelectedItems((prev) =>
       prev.map((item) =>
-        item.itemName === itemName ? { ...item, quantity: newQuantity } : item
-      )
+        item.itemName === itemName ? { ...item, quantity: newQuantity } : item,
+      ),
     );
   };
 
@@ -278,7 +276,6 @@ export default function GamepassDetailPage() {
         setError(data.error || "Gamepass tidak ditemukan");
       }
     } catch (error) {
-      console.error("Error fetching gamepass:", error);
       setError("Terjadi kesalahan saat mengambil data");
     } finally {
       setLoading(false);
@@ -294,7 +291,7 @@ export default function GamepassDetailPage() {
     // Check if user is logged in
     if (!user) {
       toast.error(
-        "Silakan login terlebih dahulu untuk menambahkan ke keranjang"
+        "Silakan login terlebih dahulu untuk menambahkan ke keranjang",
       );
       router.push("/login");
       return;
@@ -326,9 +323,6 @@ export default function GamepassDetailPage() {
           },
         };
 
-        console.log("=== GAMEPASS ADD TO CART DEBUG ===");
-        console.log("Sending cartItem:", JSON.stringify(cartItem, null, 2));
-
         const response = await fetch("/api/cart", {
           method: "POST",
           headers: {
@@ -338,24 +332,20 @@ export default function GamepassDetailPage() {
         });
 
         const data = await response.json();
-        console.log("Response status:", response.status);
-        console.log("Response data:", data);
 
         if (!response.ok) {
-          console.error("Error response:", data);
           throw new Error(data.error || "Gagal menambahkan ke keranjang");
         }
       }
 
       toast.success(
-        `${selectedItems.length} item berhasil ditambahkan ke keranjang!`
+        `${selectedItems.length} item berhasil ditambahkan ke keranjang!`,
       );
 
       // Reset form
       setSelectedItems([]);
       setUsername("");
     } catch (error: any) {
-      console.error("Error adding to cart:", error);
       toast.error(error.message || "Gagal menambahkan ke keranjang");
     } finally {
       setIsAddingToCart(false);
@@ -387,9 +377,6 @@ export default function GamepassDetailPage() {
 
     // Store in sessionStorage for checkout page
     sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
-
-    // Debug log
-    console.log("Gamepass checkout data:", checkoutItems);
 
     router.push("/checkout");
   };
@@ -635,8 +622,8 @@ export default function GamepassDetailPage() {
                         userInfo
                           ? "border-emerald-500 focus:border-emerald-400 focus:ring-emerald-500/20"
                           : userSearchError
-                          ? "border-red-500 focus:border-red-400 focus:ring-red-500/20"
-                          : "border-primary-100/30 focus:border-primary-100/70 focus:ring-primary-100/20"
+                            ? "border-red-500 focus:border-red-400 focus:ring-red-500/20"
+                            : "border-primary-100/30 focus:border-primary-100/70 focus:ring-primary-100/20"
                       }`}
                     />
 
@@ -910,7 +897,7 @@ export default function GamepassDetailPage() {
                                         e.stopPropagation();
                                         updateQuantity(
                                           item.itemName,
-                                          quantity - 1
+                                          quantity - 1,
                                         );
                                       }}
                                       className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-110"
@@ -927,7 +914,7 @@ export default function GamepassDetailPage() {
                                         e.stopPropagation();
                                         updateQuantity(
                                           item.itemName,
-                                          quantity + 1
+                                          quantity + 1,
                                         );
                                       }}
                                       className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-110"

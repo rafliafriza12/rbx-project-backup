@@ -164,8 +164,6 @@ export default function GamepassManager({
         onUpdate?.(gamepassData);
       }
     } catch (error: any) {
-      console.error("Error saving gamepass:", error);
-      setError(error.message || "Terjadi kesalahan saat menyimpan gamepass");
     } finally {
       setIsLoading(false);
     }

@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
+import { requireAdmin } from "@/lib/auth";
 
 // PUT - Update single review status
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { action } = await request.json();
     const { id } = await params;
@@ -17,20 +26,20 @@ export async function PUT(
     if (!["approve", "reject"].includes(action)) {
       return NextResponse.json(
         { success: false, error: "Invalid action. Use approve or reject" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const review = await Review.findByIdAndUpdate(
       reviewId,
       { isApproved: action === "approve" },
-      { new: true }
+      { new: true },
     );
 
     if (!review) {
       return NextResponse.json(
         { success: false, error: "Review not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -43,7 +52,7 @@ export async function PUT(
     console.error("Error updating review:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -51,10 +60,18 @@ export async function PUT(
 // DELETE - Delete single review
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id } = await params;
     const reviewId = id;
@@ -64,7 +81,7 @@ export async function DELETE(
     if (!review) {
       return NextResponse.json(
         { success: false, error: "Review not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -76,7 +93,7 @@ export async function DELETE(
     console.error("Error deleting review:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

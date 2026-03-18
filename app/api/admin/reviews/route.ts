@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
+import { requireAdmin } from "@/lib/auth";
+
+// Helper auth guard for admin
+async function checkAdmin(request: NextRequest) {
+  try {
+    await requireAdmin(request);
+    return null;
+  } catch (authError: any) {
+    const status = authError.message.includes("Forbidden") ? 403 : 401;
+    return NextResponse.json({ error: authError.message }, { status });
+  }
+}
 
 // GET - Get all reviews for admin (including unapproved)
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Auth check
+    const authErr = await checkAdmin(request);
+    if (authErr) return authErr;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -58,7 +74,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching admin reviews:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -68,19 +84,23 @@ export async function PUT(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Auth check
+    const authErr = await checkAdmin(request);
+    if (authErr) return authErr;
+
     const { reviewIds, action } = await request.json();
 
     if (!reviewIds || !Array.isArray(reviewIds) || reviewIds.length === 0) {
       return NextResponse.json(
         { success: false, error: "Review IDs are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!["approve", "reject"].includes(action)) {
       return NextResponse.json(
         { success: false, error: "Invalid action. Use approve or reject" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -90,7 +110,7 @@ export async function PUT(request: NextRequest) {
 
     const result = await Review.updateMany(
       { _id: { $in: reviewIds } },
-      updateData
+      updateData,
     );
 
     return NextResponse.json({
@@ -104,7 +124,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating reviews:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -114,12 +134,16 @@ export async function DELETE(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Auth check
+    const authErr = await checkAdmin(request);
+    if (authErr) return authErr;
+
     const { reviewIds } = await request.json();
 
     if (!reviewIds || !Array.isArray(reviewIds) || reviewIds.length === 0) {
       return NextResponse.json(
         { success: false, error: "Review IDs are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -136,7 +160,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting reviews:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

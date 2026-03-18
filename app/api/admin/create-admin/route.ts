@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Auth check - hanya admin yang bisa buat admin baru
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const body = await request.json();
     const { email, password, firstName, lastName } = body;
@@ -19,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (existingAdmin) {
       return NextResponse.json(
         { error: "Admin dengan email ini sudah ada" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,14 +61,14 @@ export async function POST(request: NextRequest) {
           accessRole: adminUser.accessRole,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create admin error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -48,7 +48,7 @@ export default function GamepassManager({
       showOnHomepage: false,
       developer: "",
       item: [{ itemName: "", imgUrl: "", robuxAmount: 0, price: 0 }],
-    }
+    },
   );
 
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +60,7 @@ export default function GamepassManager({
     [index: number]: File;
   }>({});
   const [gameImagePreview, setGameImagePreview] = useState(
-    gamepass?.imgUrl || ""
+    gamepass?.imgUrl || "",
   );
   const [itemImagePreviews, setItemImagePreviews] = useState<{
     [index: number]: string;
@@ -83,7 +83,7 @@ export default function GamepassManager({
   // Upload image to cloudinary
   const uploadImage = async (
     file: File,
-    folder: string = "gamepass"
+    folder: string = "gamepass",
   ): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -116,7 +116,7 @@ export default function GamepassManager({
   // Handle item image file change
   const handleItemImageChange = (
     index: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -149,13 +149,13 @@ export default function GamepassManager({
           if (itemImageFiles[index]) {
             const itemImageUrl = await uploadImage(
               itemImageFiles[index],
-              "gamepass/items"
+              "gamepass/items",
             );
             itemData.imgUrl = itemImageUrl;
           }
 
           return itemData;
-        })
+        }),
       );
 
       gamepassData.item = updatedItems;
@@ -477,7 +477,7 @@ export default function GamepassManager({
                     <p className="mt-1 text-xs text-gray-400">
                       Harga: Rp{" "}
                       {((item.robuxAmount ?? 0) * pricePerRobux).toLocaleString(
-                        "id-ID"
+                        "id-ID",
                       )}
                     </p>
                   </div>
@@ -560,8 +560,8 @@ export default function GamepassManager({
               {isLoading
                 ? "Menyimpan..."
                 : isCreate
-                ? "Buat Gamepass"
-                : "Simpan Perubahan"}
+                  ? "Buat Gamepass"
+                  : "Simpan Perubahan"}
             </span>
           </button>
         </div>

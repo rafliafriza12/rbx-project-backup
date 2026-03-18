@@ -4,22 +4,31 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import Gamepass from "@/models/Gamepass";
 import Settings from "@/models/Settings";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     // Get today's date range
     const today = new Date();
     const startOfDay = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate()
+      today.getDate(),
     );
     const endOfDay = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate() + 1
+      today.getDate() + 1,
     );
 
     // Get month's date range
@@ -151,7 +160,7 @@ export async function GET(request: NextRequest) {
       const dayName = date.toLocaleDateString("id-ID", { weekday: "short" });
 
       const salesData = salesChartData.find(
-        (item: any) => item._id === dateString
+        (item: any) => item._id === dateString,
       );
 
       chartData.push({
@@ -178,7 +187,7 @@ export async function GET(request: NextRequest) {
         status: transaction.paymentStatus || "pending",
         date: new Date(transaction.createdAt).toLocaleDateString("id-ID"),
         createdAt: transaction.createdAt,
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -195,7 +204,7 @@ export async function GET(request: NextRequest) {
         message: "Internal server error",
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

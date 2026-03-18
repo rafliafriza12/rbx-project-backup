@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Role from "@/models/Role";
+import { requireAdmin } from "@/lib/auth";
 
 const defaultRoles = [
   {
@@ -39,6 +40,14 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const results = [];
 
     for (const roleData of defaultRoles) {
@@ -58,14 +67,14 @@ export async function POST(request: NextRequest) {
         message: "Roles seeding completed",
         results,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Seed roles error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

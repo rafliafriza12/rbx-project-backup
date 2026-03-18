@@ -45,8 +45,6 @@ export default function GamepassPage() {
         setError(data.error || "Gagal mengambil data gamepass");
       }
     } catch (error) {
-      console.error("Error fetching gamepasses:", error);
-      setError("Terjadi kesalahan saat mengambil data");
     } finally {
       setLoading(false);
     }

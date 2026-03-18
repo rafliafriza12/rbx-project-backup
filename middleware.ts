@@ -1,12 +1,78 @@
 // src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import * as jose from "jose";
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-this-in-production";
+
+/**
+ * Verify JWT token in middleware (Edge Runtime compatible using jose).
+ * Returns decoded payload or null.
+ */
+async function verifyTokenEdge(token: string) {
+  try {
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload } = await jose.jwtVerify(token, secret);
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Admin routes and admin login bypass maintenance check
+  // ========================================
+  // 1. Admin API routes - require valid JWT token
+  // ========================================
+  if (pathname.startsWith("/api/admin")) {
+    const token = request.cookies.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized: Token tidak ditemukan" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = await verifyTokenEdge(token);
+
+    if (!decoded) {
+      return NextResponse.json(
+        { error: "Unauthorized: Token tidak valid atau expired" },
+        { status: 401 },
+      );
+    }
+
+    // Token valid - allow through (per-route handlers will check admin role)
+    return NextResponse.next();
+  }
+
+  // ========================================
+  // 2. Admin pages - require valid JWT token (redirect to login if invalid)
+  // ========================================
   if (pathname.startsWith("/admin")) {
+    // Allow admin login page without token
+    if (pathname === "/" || pathname === "/") {
+      return NextResponse.next();
+    }
+
+    const token = request.cookies.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    const decoded = await verifyTokenEdge(token);
+
+    if (!decoded) {
+      // Token invalid/expired - redirect to login
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete("token");
+      return response;
+    }
+
     return NextResponse.next();
   }
 
@@ -15,7 +81,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // API routes should pass through (needed for maintenance check API)
+  // Other API routes should pass through
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
@@ -45,11 +111,10 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - /api (API routes)
      * - /_next/static (static files)
      * - /_next/image (image optimization files)
      * - /favicon.ico, /sitemap.xml, /robots.txt (metadata files)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };

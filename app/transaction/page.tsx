@@ -109,8 +109,6 @@ function TransactionResultContent() {
         router.push("/");
       }
     } catch (error) {
-      console.error("Error fetching transaction:", error);
-      toast.error("Gagal mengambil data transaksi");
       router.push("/");
     } finally {
       setLoading(false);

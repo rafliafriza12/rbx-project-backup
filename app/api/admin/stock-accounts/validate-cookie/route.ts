@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(req);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const { robloxCookie } = await req.json();
 
     if (!robloxCookie) {
       return NextResponse.json(
         { success: false, message: "Cookie tidak ada" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -16,13 +25,13 @@ export async function POST(req: NextRequest) {
       "https://users.roblox.com/v1/users/authenticated",
       {
         headers: { Cookie: `.ROBLOSECURITY=${robloxCookie};` },
-      }
+      },
     );
 
     if (!userRes.ok) {
       return NextResponse.json(
         { success: false, message: "Cookie invalid / expired" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -33,7 +42,7 @@ export async function POST(req: NextRequest) {
       "https://economy.roblox.com/v1/user/currency",
       {
         headers: { Cookie: `.ROBLOSECURITY=${robloxCookie};` },
-      }
+      },
     );
 
     const robuxData = await robuxRes.json();
@@ -48,7 +57,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

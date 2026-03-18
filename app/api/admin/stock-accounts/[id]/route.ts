@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
+import { requireAdmin } from "@/lib/auth";
 
 /**
  * Fetch with retry & timeout - handles Roblox socket errors
@@ -46,6 +47,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(req);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const { id } = await params;
     const { robloxCookie } = await req.json();
 
@@ -137,6 +146,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(req);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const { id } = await params;
     await connectDB();
 

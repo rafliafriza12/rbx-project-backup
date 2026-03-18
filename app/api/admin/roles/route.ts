@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Role from "@/models/Role";
-import { verifyToken } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     // Get all active roles
@@ -40,14 +33,14 @@ export async function GET(request: NextRequest) {
         message: "Data roles berhasil diambil",
         roles: rolesResponse,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Get roles error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -56,19 +49,12 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     const { member, diskon, description } = await request.json();
@@ -77,7 +63,7 @@ export async function POST(request: NextRequest) {
     if (!member || diskon === undefined) {
       return NextResponse.json(
         { error: "Nama member dan diskon wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (existingRole) {
       return NextResponse.json(
         { error: "Nama member sudah terdaftar" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,7 +101,7 @@ export async function POST(request: NextRequest) {
         message: "Role berhasil dibuat",
         role: roleResponse,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create role error:", error);
@@ -127,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import { authenticateToken } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
     await dbConnect();
@@ -14,8 +15,23 @@ export async function GET(
     if (!userId) {
       return NextResponse.json(
         { error: "User ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
+    }
+
+    // Verify user is authenticated and requesting their own data
+    let currentUser: any;
+    try {
+      currentUser = await authenticateToken(request);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (
+      currentUser._id.toString() !== userId &&
+      currentUser.accessRole !== "admin"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Cari transaksi berdasarkan customerInfo.userId
@@ -25,7 +41,7 @@ export async function GET(
       .sort({ createdAt: -1 }) // Sort by newest first
       .exec();
 
-    // Transform data untuk frontend
+    // Transform data - strip sensitive fields
     const transformedTransactions = transactions.map((transaction) => ({
       _id: transaction._id.toString(),
       serviceType: transaction.serviceType,
@@ -35,29 +51,31 @@ export async function GET(
       quantity: transaction.quantity,
       unitPrice: transaction.unitPrice,
       totalAmount: transaction.totalAmount,
-      // Discount fields
       discountPercentage: transaction.discountPercentage || 0,
       discountAmount: transaction.discountAmount || 0,
       finalAmount: transaction.finalAmount || transaction.totalAmount,
       robloxUsername: transaction.robloxUsername,
-      robloxPassword: transaction.robloxPassword,
-      jokiDetails: transaction.jokiDetails || {},
+      // REMOVED: robloxPassword
+      gamepass: transaction.gamepass || {},
+      gamepassDetails: transaction.gamepassDetails || {},
       paymentStatus: transaction.paymentStatus,
       orderStatus: transaction.orderStatus,
-      customerInfo: transaction.customerInfo || {},
-      adminNotes: transaction.adminNotes || "",
+      paymentMethodName: transaction.paymentMethodName || null,
+      paymentFee: transaction.paymentFee || 0,
+      customerInfo: {
+        name: transaction.customerInfo?.name || "",
+        email: transaction.customerInfo?.email || "",
+      },
+      // REMOVED: adminNotes
       invoiceId: transaction.invoiceId,
-      statusHistory: transaction.statusHistory.map((history: any) => ({
+      statusHistory: (transaction.statusHistory || []).map((history: any) => ({
         status: history.status,
         updatedAt: history.timestamp || history.updatedAt,
-        updatedBy: history.updatedBy || "system",
         notes: history.notes || "",
+        // REMOVED: updatedBy
       })),
       expiresAt: transaction.expiresAt,
-      midtransOrderId: transaction.midtransOrderId,
-      midtransTransactionId: transaction.midtransTransactionId,
-      snapToken: transaction.snapToken,
-      redirectUrl: transaction.redirectUrl,
+      // REMOVED: midtransOrderId, midtransTransactionId, snapToken, redirectUrl
       createdAt: transaction.createdAt,
       updatedAt: transaction.updatedAt,
       paidAt: transaction.paidAt,
@@ -76,7 +94,7 @@ export async function GET(
         error: "Gagal mengambil data transaksi",
         message: "Terjadi kesalahan server, coba lagi nanti",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

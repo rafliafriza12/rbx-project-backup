@@ -41,6 +41,9 @@ importers:
       framer-motion:
         specifier: ^12.23.0
         version: 12.23.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      jose:
+        specifier: ^6.2.1
+        version: 6.2.1
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
@@ -2229,6 +2232,9 @@ packages:
 
   jose@4.15.9:
     resolution: {integrity: sha512-1vUQX+IdDMVPj4k8kOxgUqlcK518yluMuGZwqlr44FS1ppZB/5GWh4rZG89erpOBOJjU/OBsnCVFfapsRz6nEA==}
+
+  jose@6.2.1:
+    resolution: {integrity: sha512-jUaKr1yrbfaImV7R2TN/b3IcZzsw38/chqMpo2XJ7i2F8AfM/lA4G1goC3JVEwg0H7UldTmSt3P68nt31W7/mw==}
 
   js-cookie@3.0.5:
     resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
@@ -5949,6 +5955,8 @@ snapshots:
   jiti@2.5.1: {}
 
   jose@4.15.9: {}
+
+  jose@6.2.1: {}
 
   js-cookie@3.0.5: {}
 

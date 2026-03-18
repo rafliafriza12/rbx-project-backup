@@ -29,7 +29,7 @@ export default function CartPage() {
     setExpandedCategories((prev) =>
       prev.includes(category)
         ? prev.filter((c) => c !== category)
-        : [...prev, category]
+        : [...prev, category],
     );
   };
 
@@ -45,14 +45,17 @@ export default function CartPage() {
   };
 
   // Group items by serviceCategory
-  const groupedItems = cartItems.reduce((acc, item) => {
-    const category = getServiceCategory(item);
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(item);
-    return acc;
-  }, {} as Record<string, typeof cartItems>);
+  const groupedItems = cartItems.reduce(
+    (acc, item) => {
+      const category = getServiceCategory(item);
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(item);
+      return acc;
+    },
+    {} as Record<string, typeof cartItems>,
+  );
 
   // Auto-expand all categories on first load
   useEffect(() => {
@@ -66,7 +69,7 @@ export default function CartPage() {
   const getSelectedCategory = (): string | null => {
     if (selectedItems.length === 0) return null;
     const firstSelectedItem = cartItems.find((item) =>
-      selectedItems.includes(item._id)
+      selectedItems.includes(item._id),
     );
     return firstSelectedItem ? getServiceCategory(firstSelectedItem) : null;
   };
@@ -83,7 +86,7 @@ export default function CartPage() {
       // If trying to select and already have one selected
       if (selectedItems.length > 0 && !selectedItems.includes(itemId)) {
         toast.error(
-          "RBX 5 Hari hanya bisa memilih 1 item per checkout. Hapus pilihan sebelumnya untuk memilih item lain."
+          "RBX 5 Hari hanya bisa memilih 1 item per checkout. Hapus pilihan sebelumnya untuk memilih item lain.",
         );
         return;
       }
@@ -102,8 +105,8 @@ export default function CartPage() {
     if (currentSelectedCategory && itemCategory !== currentSelectedCategory) {
       toast.error(
         `Tidak bisa memilih item dari kategori berbeda! Anda sedang memilih dari kategori ${getCategoryDisplayName(
-          currentSelectedCategory
-        )}`
+          currentSelectedCategory,
+        )}`,
       );
       return;
     }
@@ -112,7 +115,7 @@ export default function CartPage() {
     setSelectedItems((prev) =>
       prev.includes(itemId)
         ? prev.filter((id) => id !== itemId)
-        : [...prev, itemId]
+        : [...prev, itemId],
     );
   };
 
@@ -125,7 +128,7 @@ export default function CartPage() {
 
         // Check if any item is selected
         const anySelected = categoryItemIds.some((id) =>
-          selectedItems.includes(id)
+          selectedItems.includes(id),
         );
 
         if (anySelected) {
@@ -136,7 +139,7 @@ export default function CartPage() {
           if (categoryItemIds.length > 0) {
             setSelectedItems([categoryItemIds[0]]);
             toast.info(
-              "RBX 5 Hari: Hanya 1 item yang dapat dipilih per checkout"
+              "RBX 5 Hari: Hanya 1 item yang dapat dipilih per checkout",
             );
           }
         }
@@ -149,13 +152,13 @@ export default function CartPage() {
 
       // Check if all category items are selected
       const allSelected = categoryItemIds.every((id) =>
-        selectedItems.includes(id)
+        selectedItems.includes(id),
       );
 
       if (allSelected) {
         // Deselect all from this category
         setSelectedItems((prev) =>
-          prev.filter((id) => !categoryItemIds.includes(id))
+          prev.filter((id) => !categoryItemIds.includes(id)),
         );
       } else {
         // Select all from this category (and deselect others)
@@ -197,18 +200,18 @@ export default function CartPage() {
 
     // Get selected items
     const selectedItemsData = cartItems.filter((item) =>
-      selectedItems.includes(item._id)
+      selectedItems.includes(item._id),
     );
 
     // Validate all items have same serviceCategory
     const categories = selectedItemsData.map((item) =>
-      getServiceCategory(item)
+      getServiceCategory(item),
     );
     const uniqueCategories = [...new Set(categories)];
 
     if (uniqueCategories.length > 1) {
       toast.error(
-        "Tidak bisa checkout item dari kategori berbeda! Pilih item dari satu kategori saja."
+        "Tidak bisa checkout item dari kategori berbeda! Pilih item dari satu kategori saja.",
       );
       return;
     }
@@ -224,10 +227,10 @@ export default function CartPage() {
         (item.type === "rbx5" || item.type === "rbx-instant"
           ? "robux"
           : item.type === "gamepass"
-          ? "gamepass"
-          : item.type === "joki"
-          ? "joki"
-          : "robux"),
+            ? "gamepass"
+            : item.type === "joki"
+              ? "joki"
+              : "robux"),
       serviceId: item.serviceId,
       serviceName: item.serviceName,
       serviceImage: item.serviceImage || item.imgUrl,
@@ -289,21 +292,9 @@ export default function CartPage() {
       robloxPassword: (item as any).robloxPassword,
     }));
 
-    console.log("=== CART CHECKOUT DEBUG ===");
-    console.log("Selected items from cart:", selectedItemsData);
-    console.log("Formatted checkout data:", checkoutData);
-    checkoutData.forEach((item, index) => {
-      console.log(`Item ${index + 1} credentials:`, {
-        serviceName: item.serviceName,
-        robloxUsername: item.robloxUsername,
-        hasPassword: !!item.robloxPassword,
-      });
-    });
-
     // Store data di sessionStorage untuk checkout (always use array format)
     if (typeof window !== "undefined") {
       sessionStorage.setItem("checkoutData", JSON.stringify(checkoutData));
-      console.log("Cart checkout data saved to sessionStorage");
       router.push("/checkout");
     }
   };
@@ -471,10 +462,10 @@ export default function CartPage() {
                   Object.entries(groupedItems).map(([category, items]) => {
                     const categoryItems = items.map((item) => item._id);
                     const allCategorySelected = categoryItems.every((id) =>
-                      selectedItems.includes(id)
+                      selectedItems.includes(id),
                     );
                     const someCategorySelected = categoryItems.some((id) =>
-                      selectedItems.includes(id)
+                      selectedItems.includes(id),
                     );
                     const isExpanded = expandedCategories.includes(category);
 
@@ -495,8 +486,8 @@ export default function CartPage() {
                                   category === "robux_5_hari"
                                     ? "rbx5"
                                     : category === "robux_instant"
-                                    ? "rbx-instant"
-                                    : category
+                                      ? "rbx-instant"
+                                      : category,
                                 )}
                               </div>
                               <div>
@@ -643,7 +634,7 @@ export default function CartPage() {
                                             onClick={() =>
                                               handleUpdateQuantity(
                                                 item._id,
-                                                item.quantity - 1
+                                                item.quantity - 1,
                                               )
                                             }
                                             disabled={item.quantity <= 1}
@@ -658,7 +649,7 @@ export default function CartPage() {
                                             onClick={() =>
                                               handleUpdateQuantity(
                                                 item._id,
-                                                item.quantity + 1
+                                                item.quantity + 1,
                                               )
                                             }
                                             className="p-1 bg-white/10 border border-white/20 rounded hover:bg-white/20 transition-all duration-300"
@@ -696,8 +687,8 @@ export default function CartPage() {
                             getSelectedCategory() === "robux_5_hari"
                               ? "rbx5"
                               : getSelectedCategory() === "robux_instant"
-                              ? "rbx-instant"
-                              : getSelectedCategory() || ""
+                                ? "rbx-instant"
+                                : getSelectedCategory() || "",
                           )}
                         </div>
                         <div>
@@ -706,7 +697,7 @@ export default function CartPage() {
                           </p>
                           <p className="text-sm font-bold text-primary-100">
                             {getCategoryDisplayName(
-                              getSelectedCategory() || ""
+                              getSelectedCategory() || "",
                             )}
                           </p>
                         </div>

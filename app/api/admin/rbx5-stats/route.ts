@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Rbx5Stats from "@/models/Rbx5Stats";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Ambil konfigurasi stats (untuk admin panel)
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const stats = await Rbx5Stats.getStats();
 
     return NextResponse.json({
@@ -34,6 +44,15 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const body = await request.json();
 
     const stats = await Rbx5Stats.getStats();

@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
+import { requireAdmin } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await connectDB();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const stockAccounts = await StockAccount.find({}).sort({ createdAt: -1 });
 
@@ -16,19 +25,27 @@ export async function GET() {
     console.error("Error fetching stock accounts:", error);
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(req);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const { robloxCookie } = await req.json();
 
     if (!robloxCookie) {
       return NextResponse.json(
         { success: false, message: "Cookie tidak ada" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,13 +56,13 @@ export async function POST(req: NextRequest) {
       "https://users.roblox.com/v1/users/authenticated",
       {
         headers: { Cookie: `.ROBLOSECURITY=${robloxCookie};` },
-      }
+      },
     );
 
     if (!userRes.ok) {
       return NextResponse.json(
         { success: false, message: "Cookie invalid / expired" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -56,7 +73,7 @@ export async function POST(req: NextRequest) {
       "https://economy.roblox.com/v1/user/currency",
       {
         headers: { Cookie: `.ROBLOSECURITY=${robloxCookie};` },
-      }
+      },
     );
 
     const robuxData = await robuxRes.json();
@@ -66,7 +83,7 @@ export async function POST(req: NextRequest) {
     if (existingAccount) {
       return NextResponse.json(
         { success: false, message: "Akun sudah ada dalam database" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -95,7 +112,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating stock account:", error);
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

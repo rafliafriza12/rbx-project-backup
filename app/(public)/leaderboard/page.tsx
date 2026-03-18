@@ -137,8 +137,6 @@ export default function LeaderboardPage() {
         setLeaderboard([]);
       }
     } catch (error) {
-      console.error("Error fetching leaderboard:", error);
-      toast.error("Gagal memuat data leaderboard");
       setLeaderboard([]);
     } finally {
       setLoading(false);

@@ -5,6 +5,7 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
+import { authenticateToken } from "@/lib/auth";
 import {
   validateMultiTransactionItem,
   getVerifiedDiscount,
@@ -17,8 +18,36 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    console.log("=== MULTI TRANSACTION API DEBUG ===");
-    console.log("Received body:", JSON.stringify(body, null, 2));
+
+    // Auth check: require login OR valid guest checkout data
+    const isGuestCheckout = !body.userId;
+    if (!isGuestCheckout) {
+      try {
+        const user = await authenticateToken(request);
+        if (user._id.toString() !== body.userId) {
+          return NextResponse.json(
+            { error: "Forbidden: userId tidak sesuai dengan token" },
+            { status: 403 },
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Unauthorized: Token diperlukan untuk checkout" },
+          { status: 401 },
+        );
+      }
+    } else {
+      if (
+        !body.customerInfo?.name ||
+        !body.customerInfo?.email ||
+        !body.customerInfo?.phone
+      ) {
+        return NextResponse.json(
+          { error: "Guest checkout memerlukan nama, email, dan nomor telepon" },
+          { status: 400 },
+        );
+      }
+    }
 
     const {
       items,
@@ -112,19 +141,20 @@ export async function POST(request: NextRequest) {
       console.log(`Processing item ${i + 1}:`, item);
 
       // Validasi item
+      // unitPrice is NOT required - server computes all prices from DB
       if (
         !item.serviceType ||
         !item.serviceId ||
         !item.serviceName ||
-        !item.quantity ||
-        !item.unitPrice
+        !item.quantity
       ) {
         console.error(`Invalid item at index ${i}:`, item);
         continue; // Skip invalid items
       }
 
-      // Validasi username
-      if (!item.robloxUsername) {
+      // Validasi username — reseller tidak perlu username Roblox
+      const usernameRequiredForItem = item.serviceType !== "reseller";
+      if (usernameRequiredForItem && !item.robloxUsername) {
         console.error(`Missing robloxUsername for item ${i}:`, item);
         return NextResponse.json(
           {
@@ -194,11 +224,51 @@ export async function POST(request: NextRequest) {
       }
 
       if (item.rbx5Details) {
-        transactionData.rbx5Details = item.rbx5Details;
+        // SANITIZE rbx5Details: override client values with server-verified values
+        transactionData.rbx5Details = {
+          ...item.rbx5Details,
+          robuxAmount:
+            itemValidation.verifiedRobuxAmount || item.rbx5Details.robuxAmount,
+          gamepassAmount:
+            itemValidation.verifiedGamepassAmount ||
+            item.rbx5Details.gamepassAmount,
+          packageName: item.rbx5Details.packageName,
+          selectedPlace: item.rbx5Details.selectedPlace
+            ? {
+                placeId: item.rbx5Details.selectedPlace.placeId,
+                name: item.rbx5Details.selectedPlace.name,
+              }
+            : undefined,
+          gamepassCreated: item.rbx5Details.gamepassCreated,
+          gamepass: item.rbx5Details.gamepass
+            ? {
+                id: item.rbx5Details.gamepass.id,
+                name: item.rbx5Details.gamepass.name,
+                price:
+                  itemValidation.verifiedGamepassAmount ||
+                  item.rbx5Details.gamepass.price,
+                productId: item.rbx5Details.gamepass.productId,
+                sellerId: item.rbx5Details.gamepass.sellerId,
+              }
+            : undefined,
+          paymentMethodId: undefined,
+          paymentFee: undefined,
+          additionalNotes: undefined,
+          pricePerRobux: itemValidation.verifiedPricePerHundred
+            ? itemValidation.verifiedPricePerHundred / 100
+            : item.rbx5Details.pricePerRobux,
+        };
 
-        // Extract gamepass data if available
         if (item.rbx5Details.gamepass) {
-          transactionData.gamepass = item.rbx5Details.gamepass;
+          transactionData.gamepass = {
+            id: item.rbx5Details.gamepass.id,
+            name: item.rbx5Details.gamepass.name,
+            price:
+              itemValidation.verifiedGamepassAmount ||
+              item.rbx5Details.gamepass.price,
+            productId: item.rbx5Details.gamepass.productId,
+            sellerId: item.rbx5Details.gamepass.sellerId,
+          };
         }
       }
 
@@ -279,6 +349,7 @@ export async function POST(request: NextRequest) {
     const verifiedPaymentFee = feeCheck.fee;
     const paymentMethodName = feeCheck.paymentMethodName;
     const validPaymentMethodId = feeCheck.validPaymentMethodId;
+    const paymentMethodDoc = feeCheck.paymentMethodDoc;
 
     console.log("Payment Fee (verified from DB):", verifiedPaymentFee);
     if (
@@ -465,11 +536,16 @@ export async function POST(request: NextRequest) {
 
         const midtransService = new MidtransService();
 
-        // Map payment method to Midtrans enabled_payments (use validated ID)
-        const enabledPayments = validPaymentMethodId
-          ? MidtransService.mapPaymentMethodToMidtrans(validPaymentMethodId)
+        // Map payment method to Midtrans enabled_payments
+        // MUST use payment method code (e.g., "gopay", "bca_va"), NOT ObjectId
+        const paymentMethodCode =
+          paymentMethodDoc?.code?.toLowerCase() ||
+          paymentMethodId?.toLowerCase();
+        const enabledPayments = paymentMethodCode
+          ? MidtransService.mapPaymentMethodToMidtrans(paymentMethodCode)
           : undefined;
 
+        console.log("Payment method code for Midtrans:", paymentMethodCode);
         console.log("Enabled payments for Midtrans:", enabledPayments);
 
         const snapResult = await midtransService.createSnapTransaction({
@@ -532,10 +608,38 @@ export async function POST(request: NextRequest) {
         console.error("Error sending invoice email:", emailError);
       }
 
+      // Sanitize transactions before returning - NEVER expose sensitive fields
+      const safeTransactions = createdTransactions.map((t: any) => ({
+        _id: t._id,
+        invoiceId: t.invoiceId,
+        serviceType: t.serviceType,
+        serviceCategory: t.serviceCategory,
+        serviceName: t.serviceName,
+        serviceImage: t.serviceImage,
+        quantity: t.quantity,
+        unitPrice: t.unitPrice,
+        totalAmount: t.totalAmount,
+        discountPercentage: t.discountPercentage,
+        discountAmount: t.discountAmount,
+        finalAmount: t.finalAmount,
+        status: t.status,
+        paymentGateway: t.paymentGateway,
+        paymentMethodName: t.paymentMethodName,
+        robloxUsername: t.robloxUsername,
+        customerInfo: t.customerInfo
+          ? {
+              name: t.customerInfo.name,
+              email: t.customerInfo.email,
+              phone: t.customerInfo.phone,
+            }
+          : undefined,
+        createdAt: t.createdAt,
+      }));
+
       return NextResponse.json({
         success: true,
         data: {
-          transactions: createdTransactions,
+          transactions: safeTransactions,
           masterOrderId: masterOrderId,
           paymentGateway: activeGateway,
           // Midtrans specific
@@ -549,7 +653,7 @@ export async function POST(request: NextRequest) {
           duitkuVaNumber: paymentResult.vaNumber || null,
           duitkuQrString: paymentResult.qrString || null,
           // Transaction info - ALL VERIFIED FROM DATABASE
-          totalTransactions: createdTransactions.length,
+          totalTransactions: safeTransactions.length,
           totalAmount: subtotal,
           discountAmount: verifiedDiscountAmount,
           finalAmount: verifiedFinalAmountBeforeFee,

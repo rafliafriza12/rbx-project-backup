@@ -17,7 +17,14 @@ export async function getVerifiedUnitPrice(
   quantity?: number,
   gamepassDetails?: any,
   serviceName?: string,
-): Promise<{ valid: boolean; unitPrice: number; error?: string }> {
+): Promise<{
+  valid: boolean;
+  unitPrice: number;
+  error?: string;
+  robuxAmount?: number;
+  gamepassAmount?: number;
+  pricePerHundred?: number;
+}> {
   await dbConnect();
 
   try {
@@ -102,6 +109,10 @@ export async function getVerifiedUnitPrice(
       (serviceCategory === "robux_5_hari" || rbx5Details)
     ) {
       const RobuxPricing = (await import("@/models/RobuxPricing")).default;
+      const Product = (await import("@/models/Product")).default;
+      const mongoose = (await import("mongoose")).default;
+
+      // Get pricePerHundred ALWAYS from DB - never trust client
       const pricing = await RobuxPricing.findOne().sort({ updatedAt: -1 });
 
       if (!pricing) {
@@ -112,21 +123,60 @@ export async function getVerifiedUnitPrice(
         };
       }
 
-      // Ambil jumlah robux dari rbx5Details
-      const robuxAmount = rbx5Details?.robuxAmount || quantity || 0;
-      if (robuxAmount <= 0) {
-        return {
-          valid: false,
-          unitPrice: 0,
-          error: "Jumlah Robux harus lebih dari 0",
-        };
+      let robuxAmount = 0;
+
+      // Case 1: serviceId is a valid ObjectId → fixed package from DB
+      if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
+        const product = await Product.findById(serviceId);
+        if (product && product.category === "robux_5_hari") {
+          robuxAmount = product.robuxAmount;
+          console.log(
+            `✅ Rbx5 fixed package: robuxAmount=${robuxAmount} from Product DB (client sent: ${rbx5Details?.robuxAmount ?? "N/A"})`,
+          );
+        } else if (product) {
+          return {
+            valid: false,
+            unitPrice: 0,
+            error: `Product ${serviceId} bukan kategori robux_5_hari`,
+          };
+        } else {
+          return {
+            valid: false,
+            unitPrice: 0,
+            error: `Product robux_5_hari tidak ditemukan: ${serviceId}`,
+          };
+        }
+      } else {
+        // Case 2: Custom order (serviceId like "custom_25")
+        // robuxAmount comes from client, but must be a positive integer
+        robuxAmount = parseInt(rbx5Details?.robuxAmount || quantity || 0, 10);
+        if (isNaN(robuxAmount) || robuxAmount <= 24) {
+          return {
+            valid: false,
+            unitPrice: 0,
+            error: "Jumlah Robux untuk custom order harus lebih dari 0",
+          };
+        }
+        console.log(
+          `✅ Rbx5 custom order: robuxAmount=${robuxAmount} (from client, pricePerHundred from DB: ${pricing.pricePerHundred})`,
+        );
       }
 
-      // Hitung harga: Math.ceil((robuxAmount / 100) * pricePerHundred)
+      // Price ALWAYS calculated server-side from DB's pricePerHundred
       const calculatedPrice = Math.ceil(
         (robuxAmount / 100) * pricing.pricePerHundred,
       );
-      return { valid: true, unitPrice: calculatedPrice };
+
+      // gamepassAmount ALWAYS calculated server-side (Roblox 30% tax = ×1.43)
+      const gamepassAmount = Math.ceil(robuxAmount * 1.43);
+
+      return {
+        valid: true,
+        unitPrice: calculatedPrice,
+        robuxAmount,
+        gamepassAmount,
+        pricePerHundred: pricing.pricePerHundred,
+      };
     }
 
     // ---- ROBUX INSTANT ----
@@ -372,6 +422,10 @@ export async function validateSingleTransaction(body: any): Promise<{
     paymentMethodName: string | null;
     validPaymentMethodId: string | null;
     paymentMethodDoc: any;
+    // Rbx5 verified values from DB
+    verifiedRobuxAmount?: number;
+    verifiedGamepassAmount?: number;
+    verifiedPricePerHundred?: number;
   };
 }> {
   const {
@@ -516,6 +570,10 @@ export async function validateSingleTransaction(body: any): Promise<{
       paymentMethodName: feeCheck.paymentMethodName,
       validPaymentMethodId: feeCheck.validPaymentMethodId,
       paymentMethodDoc: feeCheck.paymentMethodDoc,
+      // Rbx5 verified values from DB
+      verifiedRobuxAmount: priceCheck.robuxAmount,
+      verifiedGamepassAmount: priceCheck.gamepassAmount,
+      verifiedPricePerHundred: priceCheck.pricePerHundred,
     },
   };
 }
@@ -531,6 +589,9 @@ export async function validateMultiTransactionItem(
   error?: string;
   verifiedUnitPrice: number;
   verifiedTotalAmount: number;
+  verifiedRobuxAmount?: number;
+  verifiedGamepassAmount?: number;
+  verifiedPricePerHundred?: number;
 }> {
   const priceCheck = await getVerifiedUnitPrice(
     item.serviceType,
@@ -571,5 +632,8 @@ export async function validateMultiTransactionItem(
     valid: true,
     verifiedUnitPrice,
     verifiedTotalAmount,
+    verifiedRobuxAmount: priceCheck.robuxAmount,
+    verifiedGamepassAmount: priceCheck.gamepassAmount,
+    verifiedPricePerHundred: priceCheck.pricePerHundred,
   };
 }

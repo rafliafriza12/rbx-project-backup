@@ -2,28 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import MidtransService from "@/lib/midtrans";
+import { authenticateToken } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
+
+    // Verify user is authenticated
+    let currentUser: any;
+    try {
+      currentUser = await authenticateToken(request);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
     const transaction = await Transaction.findById(id);
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaksi tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
+    }
+
+    // Verify ownership (user can only retry their own transactions)
+    const txUserId = transaction.customerInfo?.userId?.toString();
+    if (
+      txUserId &&
+      currentUser._id.toString() !== txUserId &&
+      currentUser.accessRole !== "admin"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Only allow retry for failed payments
     if (transaction.paymentStatus !== "failed") {
       return NextResponse.json(
         { error: "Hanya transaksi yang gagal yang dapat dicoba ulang" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,13 +84,18 @@ export async function POST(
     return NextResponse.json({
       success: true,
       snapToken: snapTransaction.token,
-      data: transaction,
+      data: {
+        _id: transaction._id.toString(),
+        invoiceId: transaction.invoiceId,
+        paymentStatus: transaction.paymentStatus,
+        orderStatus: transaction.orderStatus,
+      },
     });
   } catch (error) {
     console.error("Retry payment error:", error);
     return NextResponse.json(
       { error: "Gagal membuat ulang pembayaran" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

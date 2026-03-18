@@ -1,18 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import mongoose from "mongoose";
+import { requireAdmin } from "@/lib/auth";
 
-// This endpoint can be called without authentication for emergency index fixes
-// But should only be used during development/maintenance
-export async function GET() {
+// This endpoint requires admin authentication
+export async function GET(request: NextRequest) {
   try {
     await connectDB();
+
+    // Auth check - hanya admin
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const db = mongoose.connection.db;
     if (!db) {
       return NextResponse.json(
         { error: "Database connection not available" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -26,7 +34,7 @@ export async function GET() {
 
     // Check if midtransOrderId_1 unique index exists and drop it
     const midtransIndex = indexesBefore.find(
-      (idx) => idx.name === "midtransOrderId_1" && idx.unique === true
+      (idx) => idx.name === "midtransOrderId_1" && idx.unique === true,
     );
 
     if (midtransIndex) {
@@ -61,7 +69,7 @@ export async function GET() {
     console.error("Sync indexes error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to sync indexes" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

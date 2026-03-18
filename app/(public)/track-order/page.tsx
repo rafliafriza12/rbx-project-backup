@@ -42,7 +42,7 @@ export default function TrackOrderPage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings");
+      const response = await fetch("/api/settings/public");
       const data = await response.json();
       if (response.ok) {
         setSettings({

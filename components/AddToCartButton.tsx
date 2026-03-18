@@ -173,12 +173,7 @@ export default function AddToCartButton({
         toast.error("Gagal menambahkan item ke keranjang");
       }
     } catch (error) {
-      console.error("Error adding to cart:", error);
-      if (error instanceof Error && error.message.includes("authentication")) {
-        toast.error("Sesi Anda telah berakhir. Silakan login kembali.");
-      } else {
-        toast.error("Terjadi kesalahan saat menambahkan ke keranjang");
-      }
+      toast.error("Terjadi kesalahan saat menambahkan ke keranjang");
     } finally {
       setIsLoading(false);
     }

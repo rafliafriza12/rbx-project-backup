@@ -9,8 +9,11 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit") || "10") || 10),
+    );
     const month = searchParams.get("month");
     const year = searchParams.get("year");
     const filterType = searchParams.get("filterType") || "all";
@@ -94,7 +97,7 @@ export async function GET(request: NextRequest) {
           username: {
             $concat: ["$userInfo.firstName", " ", "$userInfo.lastName"],
           },
-          email: "$userInfo.email",
+          // email NOT exposed in public leaderboard
           totalSpent: 1,
           totalOrders: 1,
           lastOrderDate: 1,
@@ -173,7 +176,7 @@ export async function GET(request: NextRequest) {
 
     // Get Premium Members count (members with roles other than "Regular")
     const premiumCount = rankedData.filter(
-      (entry) => entry.roleName && entry.roleName !== "Regular"
+      (entry) => entry.roleName && entry.roleName !== "Regular",
     ).length;
 
     return NextResponse.json({
@@ -204,10 +207,8 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         message: "Gagal mengambil data leaderboard",
-        error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -217,7 +218,8 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const { limit = 5, period = "all" } = await request.json();
+    const { limit: rawLimit = 5, period = "all" } = await request.json();
+    const safeLimit = Math.min(20, Math.max(1, parseInt(rawLimit) || 5));
 
     let dateFilter: any = {};
 
@@ -230,7 +232,7 @@ export async function POST(request: NextRequest) {
         0,
         23,
         59,
-        59
+        59,
       );
       dateFilter = {
         createdAt: {
@@ -311,7 +313,7 @@ export async function POST(request: NextRequest) {
         $sort: { totalSpent: -1 },
       },
       {
-        $limit: parseInt(limit),
+        $limit: safeLimit,
       },
     ]);
 
@@ -332,10 +334,8 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         message: "Gagal mengambil data top spenders",
-        error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

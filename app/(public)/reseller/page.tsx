@@ -85,8 +85,6 @@ export default function ResellerPage() {
         setError(data.error || "Gagal memuat paket reseller");
       }
     } catch (error) {
-      console.error("Error fetching packages:", error);
-      setError("Terjadi kesalahan saat memuat data");
     } finally {
       setLoading(false);
     }

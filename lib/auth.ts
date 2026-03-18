@@ -14,7 +14,7 @@ export const hashPassword = async (password: string): Promise<string> => {
 
 export const comparePassword = async (
   password: string,
-  hashedPassword: string
+  hashedPassword: string,
 ): Promise<boolean> => {
   return await bcrypt.compare(password, hashedPassword);
 };
@@ -35,25 +35,58 @@ export const verifyToken = (token: string): any => {
 
 export const authenticateToken = async (request: NextRequest): Promise<any> => {
   await connectDB();
-  
+
   const token = request.cookies.get("token")?.value;
-  
+
   if (!token) {
     throw new Error("Unauthorized: No token provided");
   }
-  
+
   const decoded = verifyToken(token);
-  
+
   if (!decoded) {
     throw new Error("Unauthorized: Invalid token");
   }
-  
+
   const user = await User.findById(decoded.userId).select("-password");
-  
+
   if (!user) {
     throw new Error("Unauthorized: User not found");
   }
-  
+
+  return user;
+};
+
+/**
+ * Require admin role - verifies token AND checks admin role.
+ * Returns the admin user if valid, or throws an error.
+ * Use this in all /api/admin/* routes.
+ */
+export const requireAdmin = async (request: NextRequest): Promise<any> => {
+  await connectDB();
+
+  const token = request.cookies.get("token")?.value;
+
+  if (!token) {
+    throw new Error("Unauthorized: Token tidak ditemukan");
+  }
+
+  const decoded = verifyToken(token);
+
+  if (!decoded) {
+    throw new Error("Unauthorized: Token tidak valid");
+  }
+
+  const user = await User.findById(decoded.userId).select("-password");
+
+  if (!user) {
+    throw new Error("Unauthorized: User tidak ditemukan");
+  }
+
+  if (user.accessRole !== "admin") {
+    throw new Error("Forbidden: Akses ditolak. Hanya admin yang diizinkan.");
+  }
+
   return user;
 };
 

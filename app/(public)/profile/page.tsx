@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
       // Fetch profile data from API with actual User model
       const profileResponse = await fetch(
-        `/api/user/profile?email=${encodeURIComponent(user?.email || "")}`
+        `/api/user/profile?email=${encodeURIComponent(user?.email || "")}`,
       );
       const profileResult = await profileResponse.json();
 
@@ -138,13 +138,10 @@ export default function ProfilePage() {
             countryCode: user.countryCode || "+62",
           });
         }
-
-        console.error("Failed to fetch profile:", profileResult.error);
       }
 
       fetchUserStats();
     } catch (error) {
-      console.error("Error fetching profile:", error);
       toast.error("Gagal memuat data profil");
     } finally {
       setLoading(false);
@@ -157,12 +154,11 @@ export default function ProfilePage() {
       const userId = profileData?.id || user?.id;
 
       if (!userId) {
-        console.warn("No user ID available for stats");
         return;
       }
 
       const statsResponse = await fetch(
-        `/api/user/stats?userId=${encodeURIComponent(userId)}`
+        `/api/user/stats?userId=${encodeURIComponent(userId)}`,
       );
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
@@ -176,12 +172,10 @@ export default function ProfilePage() {
               totalTransactions: statsData.data.totalOrders || 0,
             });
           }
-        } else {
-          console.error("Failed to fetch stats:", statsData.error);
         }
       }
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      // Error fetching stats
     } finally {
       setLoading(false);
     }
@@ -220,7 +214,7 @@ export default function ProfilePage() {
                   phone: result.data.phone || editForm.phone,
                   countryCode: result.data.countryCode || editForm.countryCode,
                 }
-              : null
+              : null,
           );
         } else {
           // Fallback to form data if API doesn't return updated data
@@ -234,7 +228,7 @@ export default function ProfilePage() {
                     phone: editForm.phone,
                     countryCode: editForm.countryCode,
                   }
-                : null
+                : null,
             );
           }
         }
@@ -245,10 +239,8 @@ export default function ProfilePage() {
         toast.error(result.error || "Gagal memperbarui profil");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
       toast.error("Gagal memperbarui profil");
     } finally {
-      setSubmitting(false);
     }
   };
 
@@ -381,7 +373,7 @@ export default function ProfilePage() {
                           day: "2-digit",
                           month: "long",
                           year: "numeric",
-                        }
+                        },
                       )}
                       {new Date(profileData.resellerExpiry) <= new Date() &&
                         " (Expired)"}
@@ -774,7 +766,7 @@ export default function ProfilePage() {
                               <div className="text-xs text-white/50 line-through">
                                 Rp{" "}
                                 {activity.originalAmount.toLocaleString(
-                                  "id-ID"
+                                  "id-ID",
                                 )}
                               </div>
                               <div className="font-semibold text-primary-100 text-sm sm:text-base">

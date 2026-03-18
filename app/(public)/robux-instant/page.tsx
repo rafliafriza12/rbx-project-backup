@@ -55,7 +55,7 @@ const RobuxInstan: React.FC = () => {
   const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null
+    null,
   );
 
   const router = useRouter();
@@ -73,7 +73,7 @@ const RobuxInstan: React.FC = () => {
 
     try {
       const response = await fetch(
-        `/api/user-info?username=${encodeURIComponent(username.trim())}`
+        `/api/user-info?username=${encodeURIComponent(username.trim())}`,
       );
       const data = await response.json();
 
@@ -85,9 +85,8 @@ const RobuxInstan: React.FC = () => {
         setUserSearchError(data.message || "User tidak ditemukan");
       }
     } catch (error) {
-      console.error("Error searching user:", error);
-      setUserInfo(null);
       setUserSearchError("Terjadi kesalahan saat mencari user");
+      setUserInfo(null);
     } finally {
       setIsSearchingUser(false);
     }
@@ -102,7 +101,7 @@ const RobuxInstan: React.FC = () => {
           const data = await response.json();
           // Sort products by robuxAmount ascending
           const sortedProducts = (data.products || []).sort(
-            (a: Product, b: Product) => a.robuxAmount - b.robuxAmount
+            (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
           );
           setProducts(sortedProducts);
 
@@ -111,11 +110,9 @@ const RobuxInstan: React.FC = () => {
             setRobux(sortedProducts[0].robuxAmount);
             setSelectedProduct(sortedProducts[0]);
           }
-        } else {
-          console.error("Failed to fetch products");
         }
       } catch (error) {
-        console.error("Error fetching products:", error);
+        // Error fetching products
       } finally {
         setLoading(false);
       }
@@ -216,9 +213,6 @@ const RobuxInstan: React.FC = () => {
 
     // Store in sessionStorage for checkout page
     sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
-
-    // Debug log
-    console.log("Robux Instant checkout data:", checkoutItems);
 
     router.push("/checkout");
   };
@@ -605,8 +599,8 @@ const RobuxInstan: React.FC = () => {
                       userInfo
                         ? "border-emerald-500/60 bg-emerald-500/10 hover:border-emerald-500/80"
                         : username && userSearchError
-                        ? "border-red-500/60 bg-red-500/10 hover:border-red-500/80"
-                        : "border-primary-100/30 hover:border-primary-100/60 focus-within:border-primary-100/80 hover:shadow-primary-100/20"
+                          ? "border-red-500/60 bg-red-500/10 hover:border-red-500/80"
+                          : "border-primary-100/30 hover:border-primary-100/60 focus-within:border-primary-100/80 hover:shadow-primary-100/20"
                     }`}
                   >
                     <div
@@ -614,8 +608,8 @@ const RobuxInstan: React.FC = () => {
                         userInfo
                           ? "border-emerald-500/30 bg-gradient-to-r from-emerald-500/25 to-emerald-600/15"
                           : username && userSearchError
-                          ? "border-red-500/30 bg-gradient-to-r from-red-500/25 to-red-600/15"
-                          : "border-primary-100/30 bg-gradient-to-r from-primary-100/25 to-primary-200/15"
+                            ? "border-red-500/30 bg-gradient-to-r from-red-500/25 to-red-600/15"
+                            : "border-primary-100/30 bg-gradient-to-r from-primary-100/25 to-primary-200/15"
                       }`}
                     >
                       <User
@@ -623,8 +617,8 @@ const RobuxInstan: React.FC = () => {
                           userInfo
                             ? "text-emerald-500"
                             : username && userSearchError
-                            ? "text-red-500"
-                            : "text-primary-100"
+                              ? "text-red-500"
+                              : "text-primary-100"
                         }`}
                       />
                     </div>

@@ -103,8 +103,6 @@ export default function GamepassManager({
         alert(result.message || "Gagal mengubah status homepage");
       }
     } catch (error) {
-      console.error("Error toggling homepage:", error);
-      alert("Terjadi kesalahan saat mengubah status homepage");
     } finally {
       setLoading(false);
     }
@@ -139,8 +137,6 @@ export default function GamepassManager({
         alert(result.error || "Gagal menyimpan gamepass");
       }
     } catch (error) {
-      console.error("Error saving gamepass:", error);
-      alert("Terjadi kesalahan saat menyimpan gamepass");
     } finally {
       setLoading(false);
     }
@@ -163,8 +159,6 @@ export default function GamepassManager({
         alert(result.error || "Gagal menghapus gamepass");
       }
     } catch (error) {
-      console.error("Error deleting gamepass:", error);
-      alert("Terjadi kesalahan saat menghapus gamepass");
     } finally {
       setLoading(false);
       setShowDeleteModal(false);

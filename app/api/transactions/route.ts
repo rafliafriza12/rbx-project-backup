@@ -5,6 +5,7 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
+import { authenticateToken, requireAdmin } from "@/lib/auth";
 import {
   validateSingleTransaction,
   validateMultiTransactionItem,
@@ -29,20 +30,38 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
 
-    console.log("=== GET TRANSACTIONS DEBUG ===");
-    console.log("Received userId:", userId);
-    console.log("isAdmin:", isAdmin);
-    console.log(
-      "All search params:",
-      Object.fromEntries(searchParams.entries()),
-    );
+    // Verify admin token for admin/export operations
+    if (isAdmin || isExport) {
+      try {
+        const adminUser = await requireAdmin(request);
+        if (!adminUser) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
+    // Verify user is authenticated for userId queries
+    if (userId && !isAdmin) {
+      try {
+        const user = await authenticateToken(request);
+        if (
+          !user ||
+          (user._id.toString() !== userId && user.accessRole !== "admin")
+        ) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
 
     // Build query
     const query: any = {};
 
     if (userId && !isAdmin) {
       query["customerInfo.userId"] = userId;
-      console.log("Applied filter - customerInfo.userId:", userId);
     }
 
     if (status) {
@@ -157,31 +176,11 @@ export async function GET(request: NextRequest) {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    console.log("=== DATABASE QUERY DEBUG ===");
-    console.log("Final query:", JSON.stringify(query, null, 2));
-    console.log("Skip:", skip);
-    console.log("Limit:", limit);
-
     // Get transactions with pagination
     const transactions = await Transaction.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-
-    console.log("Found transactions count:", transactions.length);
-    console.log(
-      "Sample transaction (first one):",
-      transactions[0]
-        ? {
-            invoiceId: transactions[0].invoiceId,
-            customerInfo: transactions[0].customerInfo,
-            paymentStatus: transactions[0].paymentStatus,
-            orderStatus: transactions[0].orderStatus,
-            paymentFee: transactions[0].paymentFee,
-            midtransOrderId: transactions[0].midtransOrderId,
-          }
-        : "No transactions found",
-    );
 
     // Group multi-checkout transactions
     const processedTransactions = await Promise.all(
@@ -207,26 +206,8 @@ export async function GET(request: NextRequest) {
       }),
     );
 
-    console.log(
-      "Processed transactions with multi-checkout grouping:",
-      processedTransactions.length,
-    );
-    if (processedTransactions.length > 0) {
-      console.log("First processed transaction:", {
-        invoiceId: processedTransactions[0].invoiceId,
-        paymentFee: processedTransactions[0].paymentFee,
-        isMultiCheckout: processedTransactions[0].isMultiCheckout,
-        relatedTransactionsCount:
-          processedTransactions[0].relatedTransactions?.length || 0,
-        finalAmount: processedTransactions[0].finalAmount,
-        totalAmount: processedTransactions[0].totalAmount,
-        discountAmount: processedTransactions[0].discountAmount,
-      });
-    }
-
     // Get total count
     const total = await Transaction.countDocuments(query);
-    console.log("Total matching documents:", total);
 
     // Get statistics if admin
     let statistics = null;
@@ -267,9 +248,57 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Strip sensitive fields for non-admin responses
+    const safeData = isAdmin
+      ? processedTransactions
+      : processedTransactions.map((t: any) => {
+          const {
+            robloxPassword,
+            snapToken,
+            redirectUrl,
+            midtransOrderId,
+            midtransTransactionId,
+            adminNotes,
+            ...safe
+          } = t;
+          // Also strip sensitive fields from related transactions
+          if (safe.relatedTransactions) {
+            safe.relatedTransactions = safe.relatedTransactions.map(
+              (rt: any) => {
+                const {
+                  robloxPassword: _rp,
+                  snapToken: _st,
+                  redirectUrl: _ru,
+                  midtransOrderId: _mo,
+                  midtransTransactionId: _mt,
+                  adminNotes: _an,
+                  ...safeRt
+                } = rt;
+                return safeRt;
+              },
+            );
+          }
+          // Sanitize customerInfo
+          if (safe.customerInfo) {
+            safe.customerInfo = {
+              name: safe.customerInfo.name || "",
+              email: safe.customerInfo.email || "",
+            };
+          }
+          // Sanitize statusHistory
+          if (safe.statusHistory) {
+            safe.statusHistory = safe.statusHistory.map((h: any) => ({
+              status: h.status,
+              updatedAt: h.timestamp || h.updatedAt,
+              notes: h.notes || "",
+            }));
+          }
+          return safe;
+        });
+
     return NextResponse.json({
       success: true,
-      data: processedTransactions,
+      data: safeData,
       pagination: {
         page,
         limit,
@@ -292,7 +321,49 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Auth check: require login OR valid guest checkout data
+    const token = request.cookies.get("token")?.value;
     const body = await request.json();
+
+    const isGuestCheckout = !body.userId;
+    if (!isGuestCheckout && !token) {
+      return NextResponse.json(
+        { error: "Unauthorized: Token diperlukan" },
+        { status: 401 },
+      );
+    }
+
+    if (!isGuestCheckout && token) {
+      try {
+        const user = await authenticateToken(request);
+        // Verify userId matches token
+        if (user._id.toString() !== body.userId) {
+          return NextResponse.json(
+            { error: "Forbidden: userId tidak sesuai dengan token" },
+            { status: 403 },
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Unauthorized: Token tidak valid" },
+          { status: 401 },
+        );
+      }
+    }
+
+    // Guest checkout: validate required customer info
+    if (isGuestCheckout) {
+      if (
+        !body.customerInfo?.name ||
+        !body.customerInfo?.email ||
+        !body.customerInfo?.phone
+      ) {
+        return NextResponse.json(
+          { error: "Guest checkout memerlukan nama, email, dan nomor telepon" },
+          { status: 400 },
+        );
+      }
+    }
     console.log("=== API TRANSACTION DEBUG ===");
     console.log("Received body:", JSON.stringify(body, null, 2));
 
@@ -407,12 +478,12 @@ async function handleMultiItemDirectPurchase(body: any) {
     console.log(`Processing item ${i + 1}:`, item);
 
     // Validasi item
+    // unitPrice is NOT required — server computes all prices from DB
     if (
       !item.serviceType ||
       !item.serviceId ||
       !item.serviceName ||
-      !item.quantity ||
-      !item.unitPrice
+      !item.quantity
     ) {
       console.error(`Invalid item at index ${i}:`, item);
       return NextResponse.json(
@@ -512,9 +583,51 @@ async function handleMultiItemDirectPurchase(body: any) {
     }
 
     if (item.rbx5Details) {
-      transactionData.rbx5Details = item.rbx5Details;
+      // SANITIZE rbx5Details: override client values with server-verified values
+      transactionData.rbx5Details = {
+        ...item.rbx5Details,
+        robuxAmount:
+          itemValidation.verifiedRobuxAmount || item.rbx5Details.robuxAmount,
+        gamepassAmount:
+          itemValidation.verifiedGamepassAmount ||
+          item.rbx5Details.gamepassAmount,
+        packageName: item.rbx5Details.packageName,
+        selectedPlace: item.rbx5Details.selectedPlace
+          ? {
+              placeId: item.rbx5Details.selectedPlace.placeId,
+              name: item.rbx5Details.selectedPlace.name,
+            }
+          : undefined,
+        gamepassCreated: item.rbx5Details.gamepassCreated,
+        gamepass: item.rbx5Details.gamepass
+          ? {
+              id: item.rbx5Details.gamepass.id,
+              name: item.rbx5Details.gamepass.name,
+              price:
+                itemValidation.verifiedGamepassAmount ||
+                item.rbx5Details.gamepass.price,
+              productId: item.rbx5Details.gamepass.productId,
+              sellerId: item.rbx5Details.gamepass.sellerId,
+            }
+          : undefined,
+        // Remove extra client fields
+        paymentMethodId: undefined,
+        paymentFee: undefined,
+        additionalNotes: undefined,
+        pricePerRobux: itemValidation.verifiedPricePerHundred
+          ? itemValidation.verifiedPricePerHundred / 100
+          : item.rbx5Details.pricePerRobux,
+      };
       if (item.rbx5Details.gamepass) {
-        transactionData.gamepass = item.rbx5Details.gamepass;
+        transactionData.gamepass = {
+          id: item.rbx5Details.gamepass.id,
+          name: item.rbx5Details.gamepass.name,
+          price:
+            itemValidation.verifiedGamepassAmount ||
+            item.rbx5Details.gamepass.price,
+          productId: item.rbx5Details.gamepass.productId,
+          sellerId: item.rbx5Details.gamepass.sellerId,
+        };
       }
     }
 
@@ -835,14 +948,11 @@ async function handleMultiItemDirectPurchase(body: any) {
         `isGopayDirect: ${isGopayDirect}, isQrisDirect: ${isQrisDirect}`,
       );
 
-      // TEMPORARY FIX: Skip Core API and go straight to Snap with ALL payment methods
-      // This is to test if the issue is with Core API or Snap API configuration
       let usedCoreApi = false;
 
-      // Use Snap API with ALL payment methods when QRIS is selected
-      // Don't limit payment methods - show all available
-      const snapEnabledPayments =
-        isGopayDirect || isQrisDirect ? undefined : enabledPayments;
+      // Always pass enabled_payments to lock the payment method user selected
+      // GoPay/QRIS: use their specific mapping so Midtrans only shows that method
+      const snapEnabledPayments = enabledPayments;
 
       console.log(
         "Using Snap API with enabled_payments:",
@@ -915,10 +1025,38 @@ async function handleMultiItemDirectPurchase(body: any) {
       console.error("Error sending invoice email:", emailError);
     }
 
+    // Sanitize transactions before returning - NEVER expose sensitive fields
+    const safeTransactions = createdTransactions.map((t: any) => ({
+      _id: t._id,
+      invoiceId: t.invoiceId,
+      serviceType: t.serviceType,
+      serviceCategory: t.serviceCategory,
+      serviceName: t.serviceName,
+      serviceImage: t.serviceImage,
+      quantity: t.quantity,
+      unitPrice: t.unitPrice,
+      totalAmount: t.totalAmount,
+      discountPercentage: t.discountPercentage,
+      discountAmount: t.discountAmount,
+      finalAmount: t.finalAmount,
+      status: t.status,
+      paymentGateway: t.paymentGateway,
+      paymentMethodName: t.paymentMethodName,
+      robloxUsername: t.robloxUsername,
+      customerInfo: t.customerInfo
+        ? {
+            name: t.customerInfo.name,
+            email: t.customerInfo.email,
+            phone: t.customerInfo.phone,
+          }
+        : undefined,
+      createdAt: t.createdAt,
+    }));
+
     return NextResponse.json({
       success: true,
       data: {
-        transactions: createdTransactions,
+        transactions: safeTransactions,
         masterOrderId: masterOrderId,
         paymentGateway: activeGateway,
         // Midtrans specific
@@ -936,7 +1074,7 @@ async function handleMultiItemDirectPurchase(body: any) {
         qrString: paymentResult.qrString || null,
         midtransTransactionId: paymentResult.transactionId || null,
         // Transaction info - ALL VERIFIED FROM DATABASE
-        totalTransactions: createdTransactions.length,
+        totalTransactions: safeTransactions.length,
         totalAmount: subtotal,
         discountAmount: verifiedDiscountAmount,
         finalAmount: verifiedFinalAmountBeforeFee,
@@ -984,8 +1122,11 @@ async function handleSingleItemTransaction(body: any) {
     userId,
     gamepass,
     additionalNotes,
-    paymentMethodId, // Frontend sends paymentMethodId for single checkout
   } = body;
+
+  // Normalize paymentMethodId: top-level takes priority, fallback to rbx5Details.paymentMethodId
+  const paymentMethodId: string | undefined =
+    body.paymentMethodId || rbx5Details?.paymentMethodId || undefined;
 
   // Use paymentMethodId as the payment method
   const paymentMethod = paymentMethodId;
@@ -1034,12 +1175,17 @@ async function handleSingleItemTransaction(body: any) {
   }
   // Untuk gamepass, password tidak diperlukan (passwordRequired tetap false)
 
+  // unitPrice is NOT sent from frontend anymore - server computes it from DB.
+  // We only keep this check for types where price lookup could fail without it
+  // (currently unused - all types are validated server-side via validateSingleTransaction)
+  const unitPriceRequired = false; // Server recalculates all prices from DB
+
   if (
     !serviceType ||
     !serviceId ||
     !serviceName ||
     !quantity ||
-    !unitPrice ||
+    (unitPriceRequired && !unitPrice) ||
     (usernameRequired && !robloxUsername) ||
     passwordRequired
   ) {
@@ -1079,7 +1225,10 @@ async function handleSingleItemTransaction(body: any) {
   // SERVER-SIDE VALIDATION: Jangan percaya data dari frontend!
   // Hitung ulang semua harga, diskon, dan fee dari database.
   // ============================================================
-  const validation = await validateSingleTransaction(body);
+  const validation = await validateSingleTransaction({
+    ...body,
+    paymentMethodId, // use normalized paymentMethodId (top-level or from rbx5Details)
+  });
 
   if (!validation.valid) {
     console.error("❌ Server-side validation failed:", validation.error);
@@ -1100,6 +1249,9 @@ async function handleSingleItemTransaction(body: any) {
     paymentMethodName,
     validPaymentMethodId,
     paymentMethodDoc,
+    verifiedRobuxAmount,
+    verifiedGamepassAmount,
+    verifiedPricePerHundred,
   } = validation.verified;
 
   console.log("✅ Server-side validation passed. Using verified values:");
@@ -1130,7 +1282,38 @@ async function handleSingleItemTransaction(body: any) {
     customerNotes: additionalNotes || "", // Customer notes dari form checkout
     jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
     robuxInstantDetails: robuxInstantDetails || undefined,
-    rbx5Details: rbx5Details || undefined,
+    // SANITIZE rbx5Details: override client values with server-verified values
+    rbx5Details: rbx5Details
+      ? {
+          ...rbx5Details,
+          robuxAmount: verifiedRobuxAmount || rbx5Details.robuxAmount,
+          gamepassAmount: verifiedGamepassAmount || rbx5Details.gamepassAmount,
+          packageName: rbx5Details.packageName,
+          selectedPlace: rbx5Details.selectedPlace
+            ? {
+                placeId: rbx5Details.selectedPlace.placeId,
+                name: rbx5Details.selectedPlace.name,
+              }
+            : undefined,
+          gamepassCreated: rbx5Details.gamepassCreated,
+          gamepass: rbx5Details.gamepass
+            ? {
+                id: rbx5Details.gamepass.id,
+                name: rbx5Details.gamepass.name,
+                price: verifiedGamepassAmount || rbx5Details.gamepass.price,
+                productId: rbx5Details.gamepass.productId,
+                sellerId: rbx5Details.gamepass.sellerId,
+              }
+            : undefined,
+          // Remove any extra fields client may have injected
+          paymentMethodId: undefined,
+          paymentFee: undefined,
+          additionalNotes: undefined,
+          pricePerRobux: verifiedPricePerHundred
+            ? verifiedPricePerHundred / 100
+            : rbx5Details.pricePerRobux,
+        }
+      : undefined,
     gamepassDetails: gamepassDetails || undefined,
     resellerDetails: resellerDetails || undefined, // Add resellerDetails
     paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
@@ -1141,18 +1324,20 @@ async function handleSingleItemTransaction(body: any) {
     },
   };
 
-  // Tambahkan data gamepass untuk service robux_5_hari
+  // Tambahkan data gamepass untuk service robux_5_hari - USE VERIFIED VALUES
   if (
     serviceType === "robux" &&
     serviceCategory === "robux_5_hari" &&
-    gamepass
+    (gamepass || (rbx5Details && rbx5Details.gamepass))
   ) {
-    transactionData.gamepass = gamepass;
-  }
-
-  // Add rbx5Details gamepass if available
-  if (rbx5Details && rbx5Details.gamepass) {
-    transactionData.gamepass = rbx5Details.gamepass;
+    const sourceGamepass = gamepass || rbx5Details.gamepass;
+    transactionData.gamepass = {
+      id: sourceGamepass.id,
+      name: sourceGamepass.name,
+      price: verifiedGamepassAmount || sourceGamepass.price,
+      productId: sourceGamepass.productId,
+      sellerId: sourceGamepass.sellerId,
+    };
   }
 
   console.log("=== Transaction Data Debug ===");
@@ -1336,11 +1521,15 @@ async function handleSingleItemTransaction(body: any) {
 
       const midtransService = new MidtransService();
 
-      // Map payment method to Midtrans enabled_payments (use validated ID)
-      const enabledPayments = validPaymentMethodId
-        ? MidtransService.mapPaymentMethodToMidtrans(validPaymentMethodId)
+      // Map payment method to Midtrans enabled_payments
+      // MUST use the payment method code (e.g., "gopay", "bca_va"), NOT the ObjectId
+      const paymentMethodCode =
+        paymentMethodDoc?.code?.toLowerCase() || paymentMethod?.toLowerCase();
+      const enabledPayments = paymentMethodCode
+        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethodCode)
         : undefined;
 
+      console.log("Payment method code for Midtrans:", paymentMethodCode);
       console.log("Enabled payments for Midtrans:", enabledPayments);
 
       const snapResult = await midtransService.createSnapTransaction({
@@ -1393,13 +1582,41 @@ async function handleSingleItemTransaction(body: any) {
       console.error("Error sending invoice email:", emailError);
     }
 
+    // Sanitize transaction before returning - NEVER expose sensitive fields
+    const safeTransaction = {
+      _id: transaction._id,
+      invoiceId: transaction.invoiceId,
+      serviceType: transaction.serviceType,
+      serviceCategory: transaction.serviceCategory,
+      serviceName: transaction.serviceName,
+      serviceImage: transaction.serviceImage,
+      quantity: transaction.quantity,
+      unitPrice: transaction.unitPrice,
+      totalAmount: transaction.totalAmount,
+      discountPercentage: transaction.discountPercentage,
+      discountAmount: transaction.discountAmount,
+      finalAmount: transaction.finalAmount,
+      status: transaction.status,
+      paymentGateway: transaction.paymentGateway,
+      paymentMethodName: transaction.paymentMethodName,
+      robloxUsername: transaction.robloxUsername,
+      customerInfo: transaction.customerInfo
+        ? {
+            name: transaction.customerInfo.name,
+            email: transaction.customerInfo.email,
+            phone: transaction.customerInfo.phone,
+          }
+        : undefined,
+      createdAt: transaction.createdAt,
+    };
+
     return NextResponse.json({
       success: true,
       data: {
-        transaction: transaction,
+        transaction: safeTransaction,
         paymentGateway: activeGateway,
         // Midtrans specific
-        snapToken: paymentResult.token || null,
+        // snapToken: paymentResult.token || null,
         // Common redirect URL
         redirectUrl:
           paymentResult.redirect_url || paymentResult.paymentUrl || null,

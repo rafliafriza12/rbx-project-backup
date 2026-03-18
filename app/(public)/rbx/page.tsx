@@ -113,7 +113,7 @@ export default function RBXLandingPage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings");
+      const response = await fetch("/api/settings/public");
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -128,11 +128,11 @@ export default function RBXLandingPage() {
   const handleWhatsAppClick = () => {
     const phoneNumber = settings?.whatsappNumber || "+628123456789";
     const message = encodeURIComponent(
-      "Halo, saya butuh bantuan untuk order RBX"
+      "Halo, saya butuh bantuan untuk order RBX",
     );
     window.open(
       `https://wa.me/${phoneNumber.replace(/[^0-9]/g, "")}?text=${message}`,
-      "_blank"
+      "_blank",
     );
   };
 
@@ -140,7 +140,7 @@ export default function RBXLandingPage() {
     if (banners.length > 0) {
       const interval = setInterval(() => {
         setCurrentBannerIndex((prevIndex) =>
-          prevIndex === banners.length - 1 ? 0 : prevIndex + 1
+          prevIndex === banners.length - 1 ? 0 : prevIndex + 1,
         );
       }, 4000);
 
@@ -234,7 +234,7 @@ export default function RBXLandingPage() {
                   <div
                     key={banner._id}
                     className={`absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer ${getPositionClasses(
-                      position
+                      position,
                     )}`}
                     style={{
                       transform: cardStyle.transform,

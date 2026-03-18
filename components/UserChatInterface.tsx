@@ -2,40 +2,43 @@
 
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
-import { 
-  showChatNotification, 
-  shouldShowNotification, 
-  getNotificationPreference 
+import {
+  showChatNotification,
+  shouldShowNotification,
+  getNotificationPreference,
 } from "@/lib/notifications";
 
 // Helper function to check if message is an invoice message
 function isInvoiceMessage(message: string): boolean {
-  return message.includes('### 🧾 Informasi Transaksi') && message.includes('### 📦 Detail Pesanan');
+  return (
+    message.includes("### 🧾 Informasi Transaksi") &&
+    message.includes("### 📦 Detail Pesanan")
+  );
 }
 
 // Helper function to render markdown for invoice messages
 function renderMarkdownMessage(text: string): React.ReactNode {
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
-  
+
   lines.forEach((line, index) => {
     let element: React.ReactNode;
-    
-    // Heading ### 
-    if (line.startsWith('### ')) {
+
+    // Heading ###
+    if (line.startsWith("### ")) {
       element = (
         <h3 key={index} className="text-base font-bold mt-3 mb-2 first:mt-0">
-          {line.replace('### ', '')}
+          {line.replace("### ", "")}
         </h3>
       );
     }
     // Horizontal rule ---
-    else if (line.trim() === '---') {
+    else if (line.trim() === "---") {
       element = <hr key={index} className="border-white/20 my-3" />;
     }
     // Bullet list - **bold:** value
-    else if (line.startsWith('- ')) {
-      const content = line.replace('- ', '');
+    else if (line.startsWith("- ")) {
+      const content = line.replace("- ", "");
       element = (
         <div key={index} className="flex items-start gap-2 ml-2 my-1">
           <span className="text-white/60">•</span>
@@ -44,7 +47,7 @@ function renderMarkdownMessage(text: string): React.ReactNode {
       );
     }
     // Empty line
-    else if (line.trim() === '') {
+    else if (line.trim() === "") {
       element = <div key={index} className="h-1" />;
     }
     // Regular text with inline markdown
@@ -55,10 +58,10 @@ function renderMarkdownMessage(text: string): React.ReactNode {
         </p>
       );
     }
-    
+
     elements.push(element);
   });
-  
+
   return <div className="space-y-0">{elements}</div>;
 }
 
@@ -67,7 +70,7 @@ function renderInlineMarkdown(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let keyIndex = 0;
-  
+
   while (remaining.length > 0) {
     // Match code `text`
     const codeMatch = remaining.match(/^(.*?)`([^`]+)`(.*)$/);
@@ -77,19 +80,22 @@ function renderInlineMarkdown(text: string): React.ReactNode {
         keyIndex += 10;
       }
       parts.push(
-        <code key={`code-${keyIndex++}`} className="bg-white/20 px-1.5 py-0.5 rounded text-sm font-mono">
+        <code
+          key={`code-${keyIndex++}`}
+          className="bg-white/20 px-1.5 py-0.5 rounded text-sm font-mono"
+        >
           {codeMatch[2]}
-        </code>
+        </code>,
       );
       remaining = codeMatch[3];
       continue;
     }
-    
+
     // No more code blocks, parse the rest
     parts.push(...parseNonCode(remaining, keyIndex));
     break;
   }
-  
+
   return <>{parts}</>;
 }
 
@@ -98,7 +104,7 @@ function parseNonCode(text: string, startKey: number): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let keyIndex = startKey;
-  
+
   while (remaining.length > 0) {
     // Match bold **text**
     const boldMatch = remaining.match(/^(.*?)\*\*([^*]+)\*\*(.*)$/);
@@ -110,17 +116,17 @@ function parseNonCode(text: string, startKey: number): React.ReactNode[] {
       parts.push(
         <strong key={`bold-${keyIndex++}`} className="font-semibold">
           {boldMatch[2]}
-        </strong>
+        </strong>,
       );
       remaining = boldMatch[3];
       continue;
     }
-    
+
     // No more bold, parse italic
     parts.push(...parseItalic(remaining, keyIndex));
     break;
   }
-  
+
   return parts;
 }
 
@@ -129,7 +135,7 @@ function parseItalic(text: string, startKey: number): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let keyIndex = startKey;
-  
+
   while (remaining.length > 0) {
     // Match italic _text_
     const italicMatch = remaining.match(/^(.*?)_([^_]+)_(.*)$/);
@@ -140,19 +146,19 @@ function parseItalic(text: string, startKey: number): React.ReactNode[] {
       parts.push(
         <em key={`italic-${keyIndex++}`} className="italic text-white/80">
           {italicMatch[2]}
-        </em>
+        </em>,
       );
       remaining = italicMatch[3];
       continue;
     }
-    
+
     // No more italic, just text
     if (remaining) {
       parts.push(<span key={`text-${keyIndex++}`}>{remaining}</span>);
     }
     break;
   }
-  
+
   return parts;
 }
 
@@ -203,7 +209,9 @@ export default function UserChatInterface({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [localRoomStatus, setLocalRoomStatus] = useState<"active" | "closed" | "archived">(roomStatus);
+  const [localRoomStatus, setLocalRoomStatus] = useState<
+    "active" | "closed" | "archived"
+  >(roomStatus);
   const [localUnreadCount, setLocalUnreadCount] = useState(unreadCountUser);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [isRoomDeleted, setIsRoomDeleted] = useState(false); // Track if room has been deleted
@@ -248,7 +256,7 @@ export default function UserChatInterface({
         method: "PUT",
       });
     } catch (error) {
-      console.error("Error marking messages as read:", error);
+      // Error marking messages as read
     }
   };
 
@@ -270,7 +278,7 @@ export default function UserChatInterface({
         }
       }
     } catch (error) {
-      console.error("Error marking messages as read:", error);
+      // Error marking messages as read
     } finally {
       setMarkingAsRead(false);
     }
@@ -294,15 +302,12 @@ export default function UserChatInterface({
     // Flag to prevent setup after cleanup (for async operations)
     let isCancelled = false;
     // Track last status change to prevent duplicates
-    let lastStatusChangeId = '';
-
-    console.log(`[User Pusher] 🔐 Setting up for room ${roomId}`);
+    let lastStatusChangeId = "";
 
     import("pusher-js")
       .then((Pusher) => {
         // Check if cleanup was called before import finished
         if (isCancelled) {
-          console.log('[User Pusher] ⚠️ Setup cancelled - cleanup already called');
           return;
         }
 
@@ -311,7 +316,7 @@ export default function UserChatInterface({
           {
             cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
             authEndpoint: "/api/pusher/auth",
-          }
+          },
         );
 
         const channelName = `private-chat-room-${roomId}`;
@@ -321,11 +326,11 @@ export default function UserChatInterface({
         channelRef.current = channelInstance;
 
         channelInstance.bind("pusher:subscription_succeeded", () => {
-          console.log(`[User Pusher] ✅ Subscribed to ${channelName}`);
+          // Subscribed successfully
         });
 
         channelInstance.bind("pusher:subscription_error", (error: any) => {
-          console.error(`[User Pusher] ❌ Subscription error:`, error);
+          // Subscription error
         });
 
         const handleNewMessage = (data: any) => {
@@ -333,29 +338,34 @@ export default function UserChatInterface({
 
           setMessages((prev) => {
             const isDuplicate = prev.some(
-              (msg) => msg._id === data.message._id
+              (msg) => msg._id === data.message._id,
             );
             if (isDuplicate) return prev;
-            
+
             // Show notification if message is from admin (not from user itself)
-            const isFromAdmin = data.message.senderRole === 'admin';
-            if (isFromAdmin && shouldShowNotification() && getNotificationPreference()) {
-              const senderName = data.message.senderId?.fullName || 
-                                data.message.senderId?.username || 
-                                'Admin';
-              
+            const isFromAdmin = data.message.senderRole === "admin";
+            if (
+              isFromAdmin &&
+              shouldShowNotification() &&
+              getNotificationPreference()
+            ) {
+              const senderName =
+                data.message.senderId?.fullName ||
+                data.message.senderId?.username ||
+                "Admin";
+
               showChatNotification({
                 senderName,
                 message: data.message.message,
                 roomId: roomId,
-                isImage: data.message.type === 'image',
+                isImage: data.message.type === "image",
               }).then((shown) => {
                 if (shown) {
-                  console.log('[Notification] ✅ Notification shown for admin message');
+                  // Notification shown
                 }
               });
             }
-            
+
             return [...prev, data.message];
           });
 
@@ -363,84 +373,87 @@ export default function UserChatInterface({
         };
 
         channelInstance.bind("new-message", handleNewMessage);
-        
+
         // Handle room status change event
-        channelInstance.bind("room-status-changed", (data: {
-          roomId: string;
-          status: "active" | "closed" | "archived";
-          deactivatedBy?: 'admin' | 'system';
-          messagesCleared?: boolean;
-          message?: string;
-        }) => {
-          console.log('[User Pusher] 🔄 Room status changed:', data);
-          
-          // Create a unique ID for this status change event
-          const statusChangeId = `${data.roomId}-${data.status}`;
-          
-          // Prevent duplicate handling of the same status change
-          if (statusChangeId === lastStatusChangeId) {
-            console.log('[User Pusher] ⚠️ Duplicate status change ignored:', statusChangeId);
-            return;
-          }
-          lastStatusChangeId = statusChangeId;
-          
-          // Update local room status
-          setLocalRoomStatus(data.status);
-          
-          // Notify parent component
-          if (onStatusChangeRef.current) {
-            onStatusChangeRef.current(data.status);
-          }
-          
-          // Clear messages if room was deactivated
-          if (data.messagesCleared) {
-            console.log('[User Pusher] 🗑️ Clearing all messages (room deactivated)');
-            setMessages([]);
-          }
-          
-          // Show system message about status change
-          if (data.message) {
-            // Use consistent ID based on roomId and status to prevent duplicates
-            const systemMessageId = `system-status-${data.roomId}-${data.status}`;
-            
-            setMessages((prev) => {
-              // Check if this system message already exists
-              const exists = prev.some(msg => msg._id === systemMessageId);
-              if (exists) {
-                console.log('[User Pusher] ⚠️ System message already exists:', systemMessageId);
-                return prev;
-              }
-              
-              const systemMessage: Message = {
-                _id: systemMessageId,
-                senderId: { _id: 'system', username: 'System', fullName: 'System' },
-                senderRole: 'admin' as const,
-                message: data.message!,
-                type: 'system' as const,
-                isRead: true,
-                createdAt: new Date().toISOString(),
-              };
-              console.log('[User Pusher] ✅ Adding system message:', systemMessageId);
-              return [...prev, systemMessage];
-            });
-            scrollToBottom();
-          }
-        });
+        channelInstance.bind(
+          "room-status-changed",
+          (data: {
+            roomId: string;
+            status: "active" | "closed" | "archived";
+            deactivatedBy?: "admin" | "system";
+            messagesCleared?: boolean;
+            message?: string;
+          }) => {
+            // Create a unique ID for this status change event
+            const statusChangeId = `${data.roomId}-${data.status}`;
+
+            // Prevent duplicate handling of the same status change
+            if (statusChangeId === lastStatusChangeId) {
+              return;
+            }
+            lastStatusChangeId = statusChangeId;
+
+            // Update local room status
+            setLocalRoomStatus(data.status);
+
+            // Notify parent component
+            if (onStatusChangeRef.current) {
+              onStatusChangeRef.current(data.status);
+            }
+
+            // Clear messages if room was deactivated
+            if (data.messagesCleared) {
+              setMessages([]);
+            }
+
+            // Show system message about status change
+            if (data.message) {
+              // Use consistent ID based on roomId and status to prevent duplicates
+              const systemMessageId = `system-status-${data.roomId}-${data.status}`;
+
+              setMessages((prev) => {
+                // Check if this system message already exists
+                const exists = prev.some((msg) => msg._id === systemMessageId);
+                if (exists) {
+                  return prev;
+                }
+
+                const systemMessage: Message = {
+                  _id: systemMessageId,
+                  senderId: {
+                    _id: "system",
+                    username: "System",
+                    fullName: "System",
+                  },
+                  senderRole: "admin" as const,
+                  message: data.message!,
+                  type: "system" as const,
+                  isRead: true,
+                  createdAt: new Date().toISOString(),
+                };
+                return [...prev, systemMessage];
+              });
+              scrollToBottom();
+            }
+          },
+        );
 
         // Handle room deleted event
-        channelInstance.bind("room-deleted", (data: { roomId: string; message?: string }) => {
-          console.log('[User Pusher] 🗑️ Room deleted:', data);
-          setIsRoomDeleted(true);
-        });
+        channelInstance.bind(
+          "room-deleted",
+          (data: { roomId: string; message?: string }) => {
+            setIsRoomDeleted(true);
+          },
+        );
       })
-      .catch((error) => {
-        console.error("[User Pusher] ❌ Failed to load Pusher:", error);
+      .catch((error: any) => {
+        // Failed to load Pusher
       });
 
     return () => {
       // Mark as cancelled to prevent late async operations
       isCancelled = true;
-      
+
       if (channelRef.current) {
         channelRef.current.unbind_all();
         channelRef.current.unsubscribe();
@@ -457,7 +470,7 @@ export default function UserChatInterface({
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `/api/chat/rooms/${roomId}/messages?page=1&limit=50`
+        `/api/chat/rooms/${roomId}/messages?page=1&limit=50`,
       );
       const data = await response.json();
 
@@ -465,7 +478,7 @@ export default function UserChatInterface({
         setMessages(data.data);
       }
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      // Error fetching messages
     } finally {
       setLoading(false);
     }
@@ -514,7 +527,6 @@ export default function UserChatInterface({
         fileUrl = uploadData.data.url;
         fileName = uploadData.data.fileName;
       } catch (error) {
-        console.error("Error uploading image:", error);
         alert("Gagal upload gambar. Silakan coba lagi.");
         setUploading(false);
         return;
@@ -525,10 +537,10 @@ export default function UserChatInterface({
 
     setSending(true);
     setNewMessage("");
-    
+
     // Reset textarea height
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
     }
 
     try {
@@ -554,8 +566,12 @@ export default function UserChatInterface({
         if (textareaRef.current && messageText) {
           setTimeout(() => {
             if (textareaRef.current) {
-              textareaRef.current.style.height = 'auto';
-              textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+              textareaRef.current.style.height = "auto";
+              textareaRef.current.style.height =
+                Math.min(
+                  textareaRef.current.scrollHeight,
+                  MAX_TEXTAREA_HEIGHT,
+                ) + "px";
             }
           }, 0);
         }
@@ -584,8 +600,10 @@ export default function UserChatInterface({
       if (textareaRef.current && messageText) {
         setTimeout(() => {
           if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height =
+              Math.min(textareaRef.current.scrollHeight, MAX_TEXTAREA_HEIGHT) +
+              "px";
           }
         }, 0);
       }
@@ -707,9 +725,12 @@ export default function UserChatInterface({
               </svg>
             </div>
           </div>
-          <h3 className="text-white font-bold text-lg mb-2">Chat Telah Dihapus</h3>
+          <h3 className="text-white font-bold text-lg mb-2">
+            Chat Telah Dihapus
+          </h3>
           <p className="text-white/60 text-sm mb-6 max-w-sm">
-            Percakapan ini telah dihapus oleh admin. Silakan refresh halaman untuk memulai chat baru jika diperlukan.
+            Percakapan ini telah dihapus oleh admin. Silakan refresh halaman
+            untuk memulai chat baru jika diperlukan.
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -754,75 +775,77 @@ export default function UserChatInterface({
 
         <div className="relative flex items-center justify-between">
           <div className="flex-1 min-w-0">
-          {roomType === "order" ? (
-            // Order Support Header - Style matching the image
-            <div className="space-y-1.5">
-              {/* Badge */}
-              <div className="flex items-center gap-2">
-                <div className="px-2.5 py-1 bg-emerald-fresh/20 border border-emerald-fresh/30 rounded-md flex-shrink-0">
-                  <span className="text-emerald-fresh text-xs font-semibold">
-                    Order Support
-                  </span>
-                </div>
-              </div>
-              
-              {/* Order Code - Allow wrap to 2 lines */}
-              <h3 className="text-white font-bold text-sm md:text-base line-clamp-2 break-all leading-tight">
-                Order: {transactionCode}
-              </h3>
-
-              {/* Subtitle with product name */}
-              {transactionTitle && (
-                <p className="text-white/70 text-xs md:text-sm truncate">{transactionTitle}</p>
-              )}
-            </div>
-          ) : (
-            // General Support Header - Original style
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg glow-neon-pink bg-gradient-to-br from-neon-purple to-neon-pink">
-                  <svg
-                    className="w-7 h-7 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                    />
-                  </svg>
-                </div>
-                {/* Online indicator */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-fresh rounded-full"></div>
-              </div>
-              <div>
+            {roomType === "order" ? (
+              // Order Support Header - Style matching the image
+              <div className="space-y-1.5">
+                {/* Badge */}
                 <div className="flex items-center gap-2">
-                  <div className="px-2.5 py-0.5 bg-neon-purple/20 border border-neon-purple/30 rounded-md">
-                    <span className="text-neon-purple text-xs font-semibold">
-                      General Support
+                  <div className="px-2.5 py-1 bg-emerald-fresh/20 border border-emerald-fresh/30 rounded-md flex-shrink-0">
+                    <span className="text-emerald-fresh text-xs font-semibold">
+                      Order Support
                     </span>
                   </div>
                 </div>
-                <h3 className="text-white font-bold text-xs md:text-lg flex items-center gap-2 mt-1">
-                  Chat Support - Admin
-                  <svg
-                    className="w-4 h-4 text-neon-pink"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+
+                {/* Order Code - Allow wrap to 2 lines */}
+                <h3 className="text-white font-bold text-sm md:text-base line-clamp-2 break-all leading-tight">
+                  Order: {transactionCode}
                 </h3>
+
+                {/* Subtitle with product name */}
+                {transactionTitle && (
+                  <p className="text-white/70 text-xs md:text-sm truncate">
+                    {transactionTitle}
+                  </p>
+                )}
               </div>
-            </div>
-          )}
+            ) : (
+              // General Support Header - Original style
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg glow-neon-pink bg-gradient-to-br from-neon-purple to-neon-pink">
+                    <svg
+                      className="w-7 h-7 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                      />
+                    </svg>
+                  </div>
+                  {/* Online indicator */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-fresh rounded-full"></div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="px-2.5 py-0.5 bg-neon-purple/20 border border-neon-purple/30 rounded-md">
+                      <span className="text-neon-purple text-xs font-semibold">
+                        General Support
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-white font-bold text-xs md:text-lg flex items-center gap-2 mt-1">
+                    Chat Support - Admin
+                    <svg
+                      className="w-4 h-4 text-neon-pink"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </h3>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mark as Read Button */}
@@ -838,16 +861,48 @@ export default function UserChatInterface({
               title="Tandai Sudah Dibaca"
             >
               {markingAsRead ? (
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
               ) : (
                 <>
                   {/* Double check icon - intuitive for "mark as read" */}
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M1 13l4 4M15 7l4-4" className="opacity-60" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M1 13l4 4M15 7l4-4"
+                      className="opacity-60"
+                    />
                   </svg>
                   <span className="hidden md:inline">Tandai Dibaca</span>
                 </>
@@ -955,23 +1010,23 @@ export default function UserChatInterface({
                         )}
 
                         {/* Render text message - with markdown support for invoice messages */}
-                        {message.message && message.message !== "📷 Image" && (
-                          isInvoiceMessage(message.message) ? (
-                            <div 
+                        {message.message &&
+                          message.message !== "📷 Image" &&
+                          (isInvoiceMessage(message.message) ? (
+                            <div
                               className="break-words text-[15px] leading-relaxed"
-                              style={{ overflowWrap: 'anywhere' }}
+                              style={{ overflowWrap: "anywhere" }}
                             >
                               {renderMarkdownMessage(message.message)}
                             </div>
                           ) : (
-                            <p 
+                            <p
                               className="whitespace-pre-wrap break-words text-[15px] leading-relaxed"
-                              style={{ overflowWrap: 'anywhere' }}
+                              style={{ overflowWrap: "anywhere" }}
                             >
                               {message.message}
                             </p>
-                          )
-                        )}
+                          ))}
 
                         <div
                           className={`flex items-center gap-1.5 text-xs mt-2 ${
@@ -1006,33 +1061,55 @@ export default function UserChatInterface({
       {/* Input Area - Enhanced design */}
       <div className="border-t border-white/10 pb-10 pt-6 px-5 md:p-5 bg-gradient-to-r from-primary-800 to-primary-900 backdrop-blur-sm">
         {/* Chat Archived Message - Cannot send messages */}
-        {localRoomStatus === 'archived' && (
+        {localRoomStatus === "archived" && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4">
             <div className="flex items-start gap-3 text-red-400">
-              <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              <svg
+                className="w-6 h-6 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                />
               </svg>
               <div>
                 <p className="text-sm font-semibold">Chat Diarsipkan</p>
                 <p className="text-xs text-red-400/80 mt-1">
-                  Chat ini telah diarsipkan. Silakan buat chat baru jika Anda membutuhkan bantuan lebih lanjut.
+                  Chat ini telah diarsipkan. Silakan buat chat baru jika Anda
+                  membutuhkan bantuan lebih lanjut.
                 </p>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Chat Closed/Deactivated Message - User cannot send messages */}
-        {localRoomStatus === 'closed' && (
+        {localRoomStatus === "closed" && (
           <div className="bg-gray-900/50 border border-gray-700/50 rounded-xl p-4">
             <div className="flex items-start gap-3 text-gray-400">
-              <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <svg
+                className="w-6 h-6 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
               </svg>
               <div>
                 <p className="text-sm font-semibold">Chat Dinonaktifkan</p>
                 <p className="text-xs text-gray-400/80 mt-1">
-                  Chat ini telah dinonaktifkan oleh admin. Silakan buat chat baru jika Anda membutuhkan bantuan lebih lanjut.
+                  Chat ini telah dinonaktifkan oleh admin. Silakan buat chat
+                  baru jika Anda membutuhkan bantuan lebih lanjut.
                 </p>
               </div>
             </div>
@@ -1040,7 +1117,7 @@ export default function UserChatInterface({
         )}
 
         {/* Show input only when room is active */}
-        {localRoomStatus === 'active' && (
+        {localRoomStatus === "active" && (
           <>
             {/* Image Preview */}
             {imagePreview && (
@@ -1060,14 +1137,17 @@ export default function UserChatInterface({
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
+            <form
+              onSubmit={handleSendMessage}
+              className="flex gap-3 items-center"
+            >
               {/* Hidden File Input */}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleImageSelect}
-                className="hidden"            
+                className="hidden"
               />
 
               {/* Image Upload Button */}
@@ -1089,12 +1169,14 @@ export default function UserChatInterface({
                   onChange={(e) => {
                     setNewMessage(e.target.value);
                     // Auto-resize textarea
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px';
+                    e.target.style.height = "auto";
+                    e.target.style.height =
+                      Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT) +
+                      "px";
                   }}
                   onKeyDown={(e) => {
                     // Submit on Enter, new line on Shift+Enter
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       if (newMessage.trim() || selectedImage) {
                         handleSendMessage(e as any);
@@ -1103,13 +1185,19 @@ export default function UserChatInterface({
                   }}
                   placeholder="Ketik pesan Anda..."
                   className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto"
-                  style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px`, scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  style={{
+                    maxHeight: `${MAX_TEXTAREA_HEIGHT}px`,
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                  }}
                   disabled={sending || uploading}
-                />            
+                />
               </div>
               <button
                 type="submit"
-                disabled={(!newMessage.trim() && !selectedImage) || sending || uploading}
+                disabled={
+                  (!newMessage.trim() && !selectedImage) || sending || uploading
+                }
                 className="bg-gradient-to-r from-neon-purple to-neon-pink hover:from-neon-purple/90 hover:to-neon-pink/90 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-7 py-3.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-neon-pink/50 disabled:shadow-none transform hover:scale-105 active:scale-95 flex items-center gap-2"
               >
                 {uploading ? (
@@ -1145,8 +1233,8 @@ export default function UserChatInterface({
 
             {/* Helper text */}
             <p className="text-white/40 text-xs mt-3 text-center">
-              Tekan Enter untuk mengirim • Admin biasanya membalas dalam beberapa
-              menit
+              Tekan Enter untuk mengirim • Admin biasanya membalas dalam
+              beberapa menit
             </p>
           </>
         )}
