@@ -1199,9 +1199,9 @@ export default function Rbx5Page() {
                       </span>
                     </div>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={robux || ""}
-                      min={25}
                       onChange={(e) => {
                         const value = e.target.value;
 
@@ -1211,7 +1211,8 @@ export default function Rbx5Page() {
                           return;
                         }
 
-                        const numValue = parseInt(value);
+                        // Hanya izinkan angka
+                        const numValue = parseInt(value.replace(/\D/g, ""));
                         if (!isNaN(numValue)) {
                           setRobux(numValue);
                         }

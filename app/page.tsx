@@ -955,11 +955,13 @@ export default function HomePage() {
                 </label>
                 <div className="relative group">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="Masukkan jumlah RBX"
                     value={robuxAmount === 0 ? "" : robuxAmount.toString()}
-                    min={25}
-                    onChange={(e) => handleRobuxChange(e.target.value)}
+                    onChange={(e) =>
+                      handleRobuxChange(e.target.value.replace(/\D/g, ""))
+                    }
                     onBlur={() => {
                       if (!robuxAmount || robuxAmount < 25) {
                         setRobuxAmount(25);
