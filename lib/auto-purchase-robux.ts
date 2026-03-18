@@ -263,22 +263,18 @@ export async function autoPurchasePendingRobux(
 
       if (!suitableAccount) {
         console.log(
-          `⚠️ No suitable stock account found for transaction ${transaction.invoiceId}. Need: ${gamepassPrice} robux`,
-        );
-        console.log(
-          `🛑 Stopping auto-purchase. Remaining ${
-            pendingTransactions.length - processedCount - skippedCount
-          } transactions will be processed when stock is updated again.`,
+          `⚠️ No suitable stock account found for transaction ${transaction.invoiceId}. Need: ${gamepassPrice} robux. Skipping to next...`,
         );
 
-        // Update progress: insufficient robux
-        progressDoc.transactions[i].status = "failed";
+        // Update progress: insufficient robux for this transaction, but continue
+        // NOTE: Transaction status in DB remains "pending" — will be retried on next stock update
+        progressDoc.transactions[i].status = "skipped";
         progressDoc.transactions[i].error =
-          `No account with ${gamepassPrice} robux available`;
-        progressDoc.currentStep = "Stopped: Insufficient robux in all accounts";
+          `Stok tidak cukup (butuh ${gamepassPrice} robux). Transaksi tetap pending, akan diproses saat stok diperbarui.`;
+        progressDoc.summary.skippedCount = ++skippedCount;
         await progressDoc.save();
 
-        break; // Stop processing, wait for next stock update
+        continue; // Skip this transaction, try the next one
       }
 
       console.log(
