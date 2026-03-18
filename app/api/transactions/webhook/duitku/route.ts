@@ -9,6 +9,10 @@ import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
+import {
+  notifyPaymentStatusChange,
+  notifyOrderStatusChange,
+} from "@/lib/discord";
 
 // Activate reseller package for user after payment settlement
 async function activateResellerPackage(transaction: any) {
@@ -528,6 +532,28 @@ export async function POST(request: NextRequest) {
         newStatus: statusMapping.paymentStatus,
         orderStatus: transaction.orderStatus,
       });
+
+      // Send Discord notifications for status changes
+      try {
+        if (previousPaymentStatus !== statusMapping.paymentStatus) {
+          await notifyPaymentStatusChange(
+            transaction,
+            previousPaymentStatus,
+            statusMapping.paymentStatus,
+            `Webhook Duitku: ${paymentCode}, Reference: ${reference}`,
+          );
+        }
+        if (previousOrderStatus !== transaction.orderStatus) {
+          await notifyOrderStatusChange(
+            transaction,
+            previousOrderStatus,
+            transaction.orderStatus,
+            `Order updated from Duitku webhook`,
+          );
+        }
+      } catch (discordError) {
+        console.error("Error sending Discord notification:", discordError);
+      }
     }
 
     // Process robux_5_hari transactions sequentially

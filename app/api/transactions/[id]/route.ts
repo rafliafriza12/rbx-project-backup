@@ -9,6 +9,10 @@ import EmailService from "@/lib/email";
 import mongoose from "mongoose";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
 import { requireAdmin } from "@/lib/auth";
+import {
+  notifyPaymentStatusChange,
+  notifyOrderStatusChange,
+} from "@/lib/discord";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -398,6 +402,28 @@ export async function PUT(
         console.error("Error sending invoice email:", emailError);
         // Don't fail the status update if email fails
       }
+    }
+
+    // Send Discord notification for status change
+    try {
+      if (statusType === "payment" && oldPaymentStatus !== newStatus) {
+        await notifyPaymentStatusChange(
+          transaction,
+          oldPaymentStatus,
+          newStatus,
+          notes,
+        );
+      }
+      if (statusType === "order" && oldOrderStatus !== newStatus) {
+        await notifyOrderStatusChange(
+          transaction,
+          oldOrderStatus,
+          newStatus,
+          notes,
+        );
+      }
+    } catch (discordError) {
+      console.error("Error sending Discord notification:", discordError);
     }
 
     return NextResponse.json({

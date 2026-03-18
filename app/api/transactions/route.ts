@@ -12,6 +12,7 @@ import {
   getVerifiedDiscount,
   getVerifiedPaymentFee,
 } from "@/lib/serverValidation";
+import { notifyNewTransaction } from "@/lib/discord";
 
 // GET - Ambil semua transaksi user atau admin
 export async function GET(request: NextRequest) {
@@ -1025,6 +1026,15 @@ async function handleMultiItemDirectPurchase(body: any) {
       console.error("Error sending invoice email:", emailError);
     }
 
+    // Send Discord notification for each new transaction
+    for (const transaction of createdTransactions) {
+      try {
+        await notifyNewTransaction(transaction);
+      } catch (discordError) {
+        console.error("Error sending Discord notification:", discordError);
+      }
+    }
+
     // Sanitize transactions before returning - NEVER expose sensitive fields
     const safeTransactions = createdTransactions.map((t: any) => ({
       _id: t._id,
@@ -1580,6 +1590,13 @@ async function handleSingleItemTransaction(body: any) {
       }
     } catch (emailError) {
       console.error("Error sending invoice email:", emailError);
+    }
+
+    // Send Discord notification for new transaction
+    try {
+      await notifyNewTransaction(transaction);
+    } catch (discordError) {
+      console.error("Error sending Discord notification:", discordError);
     }
 
     // Sanitize transaction before returning - NEVER expose sensitive fields
