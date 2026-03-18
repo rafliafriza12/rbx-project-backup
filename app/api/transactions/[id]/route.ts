@@ -8,6 +8,7 @@ import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 import mongoose from "mongoose";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
+import { requireAdmin } from "@/lib/auth";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -237,6 +238,13 @@ export async function PUT(
   try {
     await dbConnect();
 
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
     const { id } = await params;
     const transactionId = id;
     const body = await request.json();
@@ -414,7 +422,12 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
-
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     const { id } = await params;
     const transactionId = id;
 

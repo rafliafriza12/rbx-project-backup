@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import ResellerPackage from "@/models/ResellerPackage";
 import User from "@/models/User";
-import { verifyToken } from "@/lib/auth";
+import { requireAdmin, verifyToken } from "@/lib/auth";
 
 // GET - Ambil semua reseller packages
 export async function GET(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       if (!token) {
         return NextResponse.json(
           { error: "Token tidak ditemukan" },
-          { status: 401 }
+          { status: 401 },
         );
       }
 
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       if (!decoded) {
         return NextResponse.json(
           { error: "Token tidak valid" },
-          { status: 401 }
+          { status: 401 },
         );
       }
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       if (!user || user.accessRole !== "admin") {
         return NextResponse.json(
           { error: "Akses ditolak. Admin diperlukan" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     console.error("Get reseller packages error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -68,13 +68,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     // Verify admin token
     const token = request.cookies.get("token")?.value;
     if (!token) {
       return NextResponse.json(
         { error: "Token tidak ditemukan" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -87,7 +93,7 @@ export async function POST(request: NextRequest) {
     if (!user || user.accessRole !== "admin") {
       return NextResponse.json(
         { error: "Akses ditolak. Admin diperlukan" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -103,7 +109,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest) {
     if (existingPackage) {
       return NextResponse.json(
         { error: `Tier ${packageData.tier} sudah ada` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -128,21 +134,21 @@ export async function POST(request: NextRequest) {
         message: "Paket reseller berhasil dibuat",
         data: newPackage,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create reseller package error:", error);
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(
-        (err: any) => err.message
+        (err: any) => err.message,
       );
       return NextResponse.json(
         {
           success: false,
           error: messages.join(", "),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -151,7 +157,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: "Terjadi kesalahan server",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

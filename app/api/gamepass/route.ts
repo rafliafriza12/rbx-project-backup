@@ -47,26 +47,12 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Verify admin token
-    const token = request.cookies.get("token")?.value;
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 },
-      );
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    const user = await User.findById(decoded.userId);
-    if (!user || user.accessRole !== "admin") {
-      return NextResponse.json(
-        { error: "Akses ditolak. Admin diperlukan" },
-        { status: 403 },
-      );
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
     }
 
     const gamepassData = await request.json();

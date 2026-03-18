@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import MidtransService from "@/lib/midtrans";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireAdmin } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
@@ -10,6 +10,12 @@ export async function POST(
 ) {
   try {
     await connectDB();
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     // Verify user is authenticated
     let currentUser: any;

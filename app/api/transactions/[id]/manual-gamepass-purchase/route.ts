@@ -5,6 +5,7 @@ import StockAccount from "@/models/StockAccount";
 import Rbx5Stats from "@/models/Rbx5Stats";
 import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
+import { requireAdmin } from "@/lib/auth";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -192,6 +193,13 @@ export async function POST(
 ) {
   try {
     await dbConnect();
+
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id: transactionId } = await params;
 
