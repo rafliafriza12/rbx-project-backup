@@ -5,6 +5,11 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
+import {
+  validateMultiTransactionItem,
+  getVerifiedDiscount,
+  getVerifiedPaymentFee,
+} from "@/lib/serverValidation";
 
 // POST - Buat multiple transaksi dari cart
 export async function POST(request: NextRequest) {
@@ -44,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: "Items array is required and must not be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +58,7 @@ export async function POST(request: NextRequest) {
     const rbx5Items = items.filter(
       (item) =>
         item.serviceCategory === "robux_5_hari" ||
-        (item.serviceType === "robux" && item.rbx5Details)
+        (item.serviceType === "robux" && item.rbx5Details),
     );
 
     if (rbx5Items.length > 1) {
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
           error:
             "Rbx 5 Hari: Hanya dapat checkout 1 item per transaksi karena ada automasi gamepass creation. Silakan checkout item Rbx 5 Hari secara terpisah.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -70,73 +75,37 @@ export async function POST(request: NextRequest) {
     if (!customerInfo || !customerInfo.name || !customerInfo.email) {
       return NextResponse.json(
         { error: "Customer information is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Validate and fetch payment method
-    let paymentMethodFee = 0;
-    let validPaymentMethodId = null;
-    let paymentMethodName = null;
+    // ============================================================
+    // SERVER-SIDE VALIDATION: Jangan percaya data frontend!
+    // Validasi diskon dari DB
+    // ============================================================
+    const verifiedDiscount = await getVerifiedDiscount(userId);
+    const verifiedDiscountPercentage = verifiedDiscount.discountPercentage;
 
-    if (paymentMethodId) {
-      try {
-        const PaymentMethod = (await import("@/models/PaymentMethod")).default;
-        const mongoose = await import("mongoose");
-
-        // Check if paymentMethodId is a valid ObjectId string
-        if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
-          // It's already a valid ObjectId, use it directly
-          validPaymentMethodId = paymentMethodId;
-          const paymentMethodDoc = await PaymentMethod.findById(
-            paymentMethodId
-          );
-          if (paymentMethodDoc) {
-            paymentMethodName = paymentMethodDoc.name;
-            // You can add fee calculation here if needed
-          }
-        } else {
-          // It's a payment method code (like "bca_va"), find the ObjectId
-          console.log(`Looking up payment method by code: ${paymentMethodId}`);
-          const paymentMethodDoc = await PaymentMethod.findOne({
-            code: paymentMethodId,
-          });
-
-          if (paymentMethodDoc) {
-            validPaymentMethodId = paymentMethodDoc._id;
-            paymentMethodName = paymentMethodDoc.name;
-            console.log(
-              `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`
-            );
-            // You can add fee calculation here if needed
-          } else {
-            console.warn(
-              `Payment method not found for code: ${paymentMethodId}`
-            );
-            validPaymentMethodId = null;
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching payment method:", error);
-        validPaymentMethodId = null;
-      }
+    console.log(
+      "✅ Verified discount from DB:",
+      verifiedDiscountPercentage,
+      "%",
+    );
+    if (
+      discountPercentage &&
+      discountPercentage !== verifiedDiscountPercentage
+    ) {
+      console.warn(
+        `⚠️ DISCOUNT MISMATCH! Frontend: ${discountPercentage}%, DB: ${verifiedDiscountPercentage}%`,
+      );
     }
 
     const createdTransactions = [];
     const midtransItems = [];
-
-    // Calculate subtotal from all items first - ALWAYS recalculate from quantity × unitPrice
-    const subtotalFromItems = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0
-    );
-
-    console.log("=== DISCOUNT DISTRIBUTION DEBUG ===");
-    console.log("Subtotal from items (recalculated):", subtotalFromItems);
     console.log("Global discount percentage:", discountPercentage || 0);
     console.log("Global discount amount:", discountAmount || 0);
 
-    // Process each item and create transactions
+    // Process each item and create transactions - VALIDATE PRICES FROM DB
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
 
@@ -161,59 +130,50 @@ export async function POST(request: NextRequest) {
           {
             error: `Roblox username is required for item: ${item.serviceName}`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
-      // Calculate amounts for this item
-      // ALWAYS recalculate from quantity × unitPrice (don't trust frontend)
-      const itemTotalAmount = item.quantity * item.unitPrice;
-
-      console.log(`Item ${i + 1} calculation:`, {
-        name: item.serviceName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        calculatedTotal: itemTotalAmount,
-        frontendTotal: item.totalAmount,
-        match: itemTotalAmount === item.totalAmount,
-      });
-
-      // Distribute global discount proportionally to this item
-      let itemDiscountAmount = 0;
-      let itemDiscountPercentage = 0;
-      let itemFinalAmount = itemTotalAmount;
-
-      if (discountAmount && discountAmount > 0 && subtotalFromItems > 0) {
-        // Calculate proportional discount for this item
-        const itemRatio = itemTotalAmount / subtotalFromItems;
-        itemDiscountAmount = Math.round(discountAmount * itemRatio);
-        itemDiscountPercentage = discountPercentage || 0;
-        itemFinalAmount = itemTotalAmount - itemDiscountAmount;
-
-        console.log(`Item ${i + 1} discount distribution:`);
-        console.log(`  - Item total: ${itemTotalAmount}`);
-        console.log(`  - Item ratio: ${itemRatio.toFixed(4)}`);
-        console.log(`  - Item discount: ${itemDiscountAmount}`);
-        console.log(`  - Item final amount: ${itemFinalAmount}`);
+      // ============================================================
+      // SERVER-SIDE: Validasi harga item dari database
+      // ============================================================
+      const itemValidation = await validateMultiTransactionItem(item, i);
+      if (!itemValidation.valid) {
+        console.error(
+          `❌ Item ${i + 1} validation failed:`,
+          itemValidation.error,
+        );
+        return NextResponse.json(
+          { error: itemValidation.error || `Harga item ${i + 1} tidak valid` },
+          { status: 400 },
+        );
       }
 
-      // Prepare transaction data
+      // Gunakan harga terverifikasi dari database
+      const verifiedItemUnitPrice = itemValidation.verifiedUnitPrice;
+      const verifiedItemTotalAmount = itemValidation.verifiedTotalAmount;
+
+      console.log(
+        `✅ Item ${i + 1} price verified: frontend=${item.unitPrice}, DB=${verifiedItemUnitPrice}`,
+      );
+
+      // Prepare transaction data - GUNAKAN HARGA TERVERIFIKASI
       const transactionData: any = {
         serviceType: item.serviceType,
         serviceId: item.serviceId,
         serviceName: item.serviceName,
         serviceImage: item.serviceImage || null,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalAmount: itemTotalAmount,
-        discountPercentage: itemDiscountPercentage,
-        discountAmount: itemDiscountAmount,
-        finalAmount: itemFinalAmount,
+        unitPrice: verifiedItemUnitPrice,
+        totalAmount: verifiedItemTotalAmount,
+        discountPercentage: 0, // Will be updated after subtotal calculation
+        discountAmount: 0,
+        finalAmount: verifiedItemTotalAmount,
         robloxUsername: item.robloxUsername,
         robloxPassword: item.robloxPassword || "",
         customerNotes: additionalNotes || "",
-        paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
-        paymentMethodName: paymentMethodName,
+        paymentMethodId: null, // Will be set after payment method validation
+        paymentMethodName: null,
         customerInfo: {
           ...customerInfo,
           userId: userId || null,
@@ -252,61 +212,108 @@ export async function POST(request: NextRequest) {
 
       createdTransactions.push(transaction);
 
-      // Prepare Midtrans item with discount applied to unit price
-      const itemUnitPriceAfterDiscount =
-        itemDiscountAmount > 0
-          ? Math.round(itemFinalAmount / item.quantity)
-          : item.unitPrice;
-
-      const itemNameWithDiscount =
-        itemDiscountPercentage > 0
-          ? `${item.serviceName} (Diskon ${itemDiscountPercentage}%)`
-          : item.serviceName;
-
+      // Prepare Midtrans item with VERIFIED price (discount applied below)
       midtransItems.push({
         id: `${item.serviceId}-${i}`,
-        price: itemUnitPriceAfterDiscount,
+        price: verifiedItemUnitPrice,
         quantity: item.quantity,
-        name: itemNameWithDiscount,
+        name: item.serviceName,
         brand: "RBX Store",
         category: item.serviceType,
       });
 
       console.log(`Transaction created: ${transaction.invoiceId}`);
-      console.log(
-        `  - Midtrans item price: ${itemUnitPriceAfterDiscount} (discount applied: ${itemDiscountAmount})`
-      );
     }
 
     if (createdTransactions.length === 0) {
       return NextResponse.json(
         { error: "No valid transactions could be created" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Calculate totals from created transactions (discount already distributed)
+    // ============================================================
+    // SERVER-SIDE: Hitung ulang total, diskon, dan fee dari DB
+    // ============================================================
     const subtotal = createdTransactions.reduce(
       (sum, t) => sum + t.totalAmount,
-      0
-    );
-    const totalDiscountDistributed = createdTransactions.reduce(
-      (sum, t) => sum + (t.discountAmount || 0),
-      0
-    );
-    const finalAmountBeforeFee = createdTransactions.reduce(
-      (sum, t) => sum + t.finalAmount,
-      0
+      0,
     );
 
-    console.log("=== TOTALS CALCULATION DEBUG ===");
-    console.log("Subtotal from transactions:", subtotal);
-    console.log("Total discount distributed:", totalDiscountDistributed);
-    console.log("Final amount (before fee):", finalAmountBeforeFee);
-    console.log(
-      "Expected final amount from request:",
-      finalAmount || "not provided"
+    // Hitung diskon dari DB (BUKAN dari frontend)
+    const verifiedDiscountAmount = Math.round(
+      (subtotal * verifiedDiscountPercentage) / 100,
     );
+    const verifiedFinalAmountBeforeFee = subtotal - verifiedDiscountAmount;
+
+    console.log("=== TOTALS CALCULATION (VERIFIED) ===");
+    console.log("Subtotal (verified):", subtotal);
+    console.log("Discount % (verified from DB):", verifiedDiscountPercentage);
+    console.log("Discount Amount (calculated):", verifiedDiscountAmount);
+    console.log(
+      "Final amount before fee (verified):",
+      verifiedFinalAmountBeforeFee,
+    );
+
+    // Update transactions with VERIFIED proportional discount
+    if (verifiedDiscountAmount > 0 && createdTransactions.length > 0) {
+      for (const transaction of createdTransactions) {
+        const itemRatio = transaction.totalAmount / subtotal;
+        const itemDiscountAmount = Math.round(
+          verifiedDiscountAmount * itemRatio,
+        );
+        const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
+
+        transaction.discountPercentage = verifiedDiscountPercentage;
+        transaction.discountAmount = itemDiscountAmount;
+        transaction.finalAmount = itemFinalAmount;
+        await transaction.save();
+      }
+    }
+
+    // Validasi & hitung payment fee dari DB (BUKAN dari frontend)
+    const feeCheck = await getVerifiedPaymentFee(
+      paymentMethodId,
+      verifiedFinalAmountBeforeFee,
+    );
+    const verifiedPaymentFee = feeCheck.fee;
+    const paymentMethodName = feeCheck.paymentMethodName;
+    const validPaymentMethodId = feeCheck.validPaymentMethodId;
+
+    console.log("Payment Fee (verified from DB):", verifiedPaymentFee);
+    if (
+      rawPaymentFee &&
+      Math.abs(Number(rawPaymentFee) - verifiedPaymentFee) > 1
+    ) {
+      console.warn(
+        `⚠️ PAYMENT FEE MISMATCH! Frontend: ${rawPaymentFee}, DB: ${verifiedPaymentFee}`,
+      );
+    }
+
+    // Update payment method info on all transactions
+    if (paymentMethodName || validPaymentMethodId) {
+      for (const transaction of createdTransactions) {
+        if (paymentMethodName)
+          transaction.paymentMethodName = paymentMethodName;
+        if (validPaymentMethodId)
+          transaction.paymentMethodId = validPaymentMethodId;
+      }
+    }
+
+    // Apply VERIFIED discount to Midtrans items
+    if (verifiedDiscountAmount > 0 && midtransItems.length > 0) {
+      const discountMultiplier = 1 - verifiedDiscountPercentage / 100;
+      midtransItems.forEach((item) => {
+        const originalPrice = item.price;
+        item.price = Math.round(item.price * discountMultiplier);
+        if (!item.name.includes("Diskon")) {
+          item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
+        }
+        console.log(
+          `Item: ${item.name}, Original: ${originalPrice}, Discounted: ${item.price}`,
+        );
+      });
+    }
 
     // Create a master order ID for grouping BEFORE saving transactions
     const masterOrderId = `MULTI-${Date.now()}-${Math.random()
@@ -337,48 +344,43 @@ export async function POST(request: NextRequest) {
       // Calculate sum of items with discount already applied to unit prices
       const itemsTotal = midtransItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
-        0
+        0,
       );
 
-      console.log("=== PAYMENT FEE FROM REQUEST ===");
-      console.log("Payment Fee (from frontend):", paymentFee);
-      console.log("Payment Fee Type:", typeof paymentFee);
-      console.log("Items Total (after discount):", itemsTotal);
-
-      // Store payment fee in FIRST transaction only
-      if (createdTransactions.length > 0 && paymentFee > 0) {
-        createdTransactions[0].paymentFee = paymentFee;
+      // Store VERIFIED payment fee in FIRST transaction only
+      if (createdTransactions.length > 0 && verifiedPaymentFee > 0) {
+        createdTransactions[0].paymentFee = verifiedPaymentFee;
         await createdTransactions[0].save();
         console.log(
-          `Payment fee (${paymentFee}) saved to first transaction: ${createdTransactions[0].invoiceId}`
+          `Verified payment fee (${verifiedPaymentFee}) saved to first transaction: ${createdTransactions[0].invoiceId}`,
         );
       }
 
-      // Add payment fee to items if applicable
-      if (paymentFee && paymentFee > 0) {
+      // Add VERIFIED payment fee to items if applicable
+      if (verifiedPaymentFee > 0) {
         midtransItems.push({
           id: "PAYMENT_FEE",
-          price: paymentFee,
+          price: verifiedPaymentFee,
           quantity: 1,
           name: "Biaya Admin",
           brand: "RBX Store",
           category: "fee",
         });
-        console.log(`✅ Payment fee added to items: ${paymentFee}`);
-      } else {
-        console.log(`❌ Payment fee NOT added (value: ${paymentFee})`);
+        console.log(
+          `✅ Verified payment fee added to items: ${verifiedPaymentFee}`,
+        );
       }
 
       // Calculate gross_amount from sum of item_details
       const grossAmount = midtransItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
-        0
+        0,
       );
 
-      console.log("=== MULTI-CHECKOUT PAYMENT DEBUG ===");
+      console.log("=== MULTI-CHECKOUT PAYMENT DEBUG (VERIFIED) ===");
       console.log("Items:", JSON.stringify(midtransItems, null, 2));
       console.log("Items total (with discount):", itemsTotal);
-      console.log("Payment fee:", paymentFee);
+      console.log("Payment fee (verified):", verifiedPaymentFee);
       console.log("Gross amount:", grossAmount);
       console.log("Payment method ID:", paymentMethodId);
 
@@ -403,9 +405,8 @@ export async function POST(request: NextRequest) {
           try {
             const PaymentMethod = (await import("@/models/PaymentMethod"))
               .default;
-            const paymentMethodDoc = await PaymentMethod.findById(
-              validPaymentMethodId
-            );
+            const paymentMethodDoc =
+              await PaymentMethod.findById(validPaymentMethodId);
             if (paymentMethodDoc && paymentMethodDoc.duitkuCode) {
               duitkuPaymentCode = paymentMethodDoc.duitkuCode;
             }
@@ -464,9 +465,9 @@ export async function POST(request: NextRequest) {
 
         const midtransService = new MidtransService();
 
-        // Map payment method to Midtrans enabled_payments
-        const enabledPayments = paymentMethodId
-          ? MidtransService.mapPaymentMethodToMidtrans(paymentMethodId)
+        // Map payment method to Midtrans enabled_payments (use validated ID)
+        const enabledPayments = validPaymentMethodId
+          ? MidtransService.mapPaymentMethodToMidtrans(validPaymentMethodId)
           : undefined;
 
         console.log("Enabled payments for Midtrans:", enabledPayments);
@@ -513,18 +514,17 @@ export async function POST(request: NextRequest) {
           console.log("Sending invoice email to:", customerInfo.email);
           console.log(
             "Number of transactions in invoice:",
-            createdTransactions.length
+            createdTransactions.length,
           );
 
-          const emailSent = await EmailService.sendInvoiceEmail(
-            createdTransactions
-          );
+          const emailSent =
+            await EmailService.sendInvoiceEmail(createdTransactions);
 
           if (emailSent) {
             console.log("Multi-checkout invoice email sent successfully");
           } else {
             console.warn(
-              "Failed to send invoice email, but transactions were created"
+              "Failed to send invoice email, but transactions were created",
             );
           }
         }
@@ -548,11 +548,11 @@ export async function POST(request: NextRequest) {
           duitkuReference: paymentResult.reference || null,
           duitkuVaNumber: paymentResult.vaNumber || null,
           duitkuQrString: paymentResult.qrString || null,
-          // Transaction info
+          // Transaction info - ALL VERIFIED FROM DATABASE
           totalTransactions: createdTransactions.length,
           totalAmount: subtotal,
-          discountAmount: totalDiscountDistributed,
-          finalAmount: finalAmountBeforeFee,
+          discountAmount: verifiedDiscountAmount,
+          finalAmount: verifiedFinalAmountBeforeFee,
         },
       });
     } catch (paymentError) {
@@ -560,20 +560,20 @@ export async function POST(request: NextRequest) {
 
       // Delete created transactions if payment gateway fails
       const deletePromises = createdTransactions.map((t) =>
-        Transaction.findByIdAndDelete(t._id)
+        Transaction.findByIdAndDelete(t._id),
       );
       await Promise.all(deletePromises);
 
       return NextResponse.json(
         { error: "Failed to create payment gateway. Please try again later." },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error) {
     console.error("Error creating multi transactions:", error);
     return NextResponse.json(
       { error: "Failed to create transactions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

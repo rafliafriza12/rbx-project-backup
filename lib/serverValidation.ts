@@ -1,0 +1,575 @@
+/**
+ * Server-side validation untuk transaksi.
+ * JANGAN percaya data dari frontend mentah-mentah.
+ * Semua harga, diskon, dan fee dihitung ulang dari database.
+ */
+
+import dbConnect from "@/lib/mongodb";
+
+// ============================================================
+// 1. Validasi & ambil harga asli item dari database
+// ============================================================
+export async function getVerifiedUnitPrice(
+  serviceType: string,
+  serviceId: string,
+  serviceCategory?: string,
+  rbx5Details?: any,
+  quantity?: number,
+  gamepassDetails?: any,
+  serviceName?: string,
+): Promise<{ valid: boolean; unitPrice: number; error?: string }> {
+  await dbConnect();
+
+  try {
+    // ---- GAMEPASS ----
+    if (serviceType === "gamepass") {
+      const Gamepass = (await import("@/models/Gamepass")).default;
+
+      // Tentukan itemName dari gamepassDetails atau serviceName
+      // serviceName format: "GameName - ItemName"
+      const itemName =
+        gamepassDetails?.itemName ||
+        (serviceName && serviceName.includes(" - ")
+          ? serviceName.split(" - ").slice(1).join(" - ")
+          : null);
+
+      // 1. Coba cari berdasarkan item._id = serviceId (jika serviceId = item subdocument ID)
+      const gamepassByItemId = await Gamepass.findOne({
+        "item._id": serviceId,
+      });
+      if (gamepassByItemId) {
+        const item = gamepassByItemId.item.find(
+          (i: any) => i._id.toString() === serviceId,
+        );
+        if (item) {
+          console.log(
+            `✅ Gamepass price verified by item._id: ${item.itemName} = ${item.price}`,
+          );
+          return { valid: true, unitPrice: item.price };
+        }
+      }
+
+      // 2. Cari berdasarkan gamepass._id = serviceId (frontend mengirim gamepass ID)
+      const gamepassById = await Gamepass.findById(serviceId);
+      if (gamepassById && gamepassById.item.length > 0) {
+        // Jika ada itemName, cari item yang cocok
+        if (itemName) {
+          const matchedItem = gamepassById.item.find(
+            (i: any) =>
+              i.itemName === itemName ||
+              i.itemName.toLowerCase() === itemName.toLowerCase(),
+          );
+          if (matchedItem) {
+            console.log(
+              `✅ Gamepass price verified by itemName "${itemName}": ${matchedItem.price}`,
+            );
+            return { valid: true, unitPrice: matchedItem.price };
+          }
+          console.warn(
+            `⚠️ Item "${itemName}" not found in gamepass "${gamepassById.gameName}". Available items: ${gamepassById.item.map((i: any) => i.itemName).join(", ")}`,
+          );
+        }
+
+        // Jika hanya 1 item, aman menggunakan item pertama
+        if (gamepassById.item.length === 1) {
+          console.log(
+            `✅ Gamepass has single item, using: ${gamepassById.item[0].itemName} = ${gamepassById.item[0].price}`,
+          );
+          return { valid: true, unitPrice: gamepassById.item[0].price };
+        }
+
+        // Multi-item gamepass tanpa itemName — tidak bisa verifikasi
+        console.error(
+          `❌ Cannot verify gamepass price: multiple items but no itemName provided. Gamepass: ${gamepassById.gameName}, Items: ${gamepassById.item.map((i: any) => `${i.itemName}(${i.price})`).join(", ")}`,
+        );
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: `Tidak dapat memverifikasi harga gamepass: item tidak teridentifikasi`,
+        };
+      }
+
+      return {
+        valid: false,
+        unitPrice: 0,
+        error: `Gamepass tidak ditemukan: ${serviceId}`,
+      };
+    }
+
+    // ---- ROBUX 5 HARI ----
+    if (
+      serviceType === "robux" &&
+      (serviceCategory === "robux_5_hari" || rbx5Details)
+    ) {
+      const RobuxPricing = (await import("@/models/RobuxPricing")).default;
+      const pricing = await RobuxPricing.findOne().sort({ updatedAt: -1 });
+
+      if (!pricing) {
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: "Harga Robux 5 Hari belum dikonfigurasi",
+        };
+      }
+
+      // Ambil jumlah robux dari rbx5Details
+      const robuxAmount = rbx5Details?.robuxAmount || quantity || 0;
+      if (robuxAmount <= 0) {
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: "Jumlah Robux harus lebih dari 0",
+        };
+      }
+
+      // Hitung harga: Math.ceil((robuxAmount / 100) * pricePerHundred)
+      const calculatedPrice = Math.ceil(
+        (robuxAmount / 100) * pricing.pricePerHundred,
+      );
+      return { valid: true, unitPrice: calculatedPrice };
+    }
+
+    // ---- ROBUX INSTANT ----
+    if (
+      serviceType === "robux" &&
+      (serviceCategory === "robux_instant" || !serviceCategory)
+    ) {
+      const Product = (await import("@/models/Product")).default;
+      const product = await Product.findById(serviceId);
+
+      if (product && product.category === "robux_instant") {
+        console.log(
+          `✅ Robux Instant price verified from Product: ${product.name} = ${product.price}`,
+        );
+        return { valid: true, unitPrice: product.price };
+      }
+
+      return {
+        valid: false,
+        unitPrice: 0,
+        error: `Product robux_instant tidak ditemukan: ${serviceId}`,
+      };
+    }
+
+    // ---- RESELLER PACKAGE ----
+    if (serviceType === "reseller") {
+      const ResellerPackage = (await import("@/models/ResellerPackage"))
+        .default;
+      const pkg = await ResellerPackage.findById(serviceId);
+
+      if (!pkg) {
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: `Paket reseller tidak ditemukan: ${serviceId}`,
+        };
+      }
+
+      return { valid: true, unitPrice: pkg.price };
+    }
+
+    // ---- JOKI ----
+    if (serviceType === "joki") {
+      // Joki menggunakan gamepass item price juga
+      const Gamepass = (await import("@/models/Gamepass")).default;
+      const gamepass = await Gamepass.findOne({ "item._id": serviceId });
+      if (gamepass) {
+        const item = gamepass.item.find(
+          (i: any) => i._id.toString() === serviceId,
+        );
+        if (item) {
+          return { valid: true, unitPrice: item.price };
+        }
+      }
+
+      return {
+        valid: false,
+        unitPrice: 0,
+        error: `Joki item tidak ditemukan: ${serviceId}`,
+      };
+    }
+
+    // Tipe tidak dikenal - tolak
+    return {
+      valid: false,
+      unitPrice: 0,
+      error: `Tipe layanan tidak dikenal: ${serviceType}`,
+    };
+  } catch (error) {
+    console.error("Error verifying unit price:", error);
+    return {
+      valid: false,
+      unitPrice: 0,
+      error: "Gagal memverifikasi harga dari database",
+    };
+  }
+}
+
+// ============================================================
+// 2. Validasi & ambil diskon asli user dari database
+// ============================================================
+export async function getVerifiedDiscount(
+  userId: string | null,
+): Promise<{ discountPercentage: number }> {
+  if (!userId) {
+    return { discountPercentage: 0 };
+  }
+
+  try {
+    await dbConnect();
+    const User = (await import("@/models/User")).default;
+    const ResellerPackage = (await import("@/models/ResellerPackage")).default;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return { discountPercentage: 0 };
+    }
+
+    // Cek apakah user punya reseller package yang aktif
+    if (
+      user.resellerPackageId &&
+      user.resellerExpiry &&
+      new Date(user.resellerExpiry) > new Date()
+    ) {
+      const resellerPackage = await ResellerPackage.findById(
+        user.resellerPackageId,
+      );
+      if (resellerPackage) {
+        return { discountPercentage: resellerPackage.discount };
+      }
+    }
+
+    return { discountPercentage: 0 };
+  } catch (error) {
+    console.error("Error verifying discount:", error);
+    return { discountPercentage: 0 };
+  }
+}
+
+// ============================================================
+// 3. Validasi & hitung payment fee dari database
+// ============================================================
+export async function getVerifiedPaymentFee(
+  paymentMethodId: string | null,
+  baseAmount: number,
+): Promise<{
+  fee: number;
+  paymentMethodName: string | null;
+  validPaymentMethodId: string | null;
+  paymentMethodDoc: any;
+}> {
+  if (!paymentMethodId) {
+    return {
+      fee: 0,
+      paymentMethodName: null,
+      validPaymentMethodId: null,
+      paymentMethodDoc: null,
+    };
+  }
+
+  try {
+    await dbConnect();
+    const PaymentMethod = (await import("@/models/PaymentMethod")).default;
+    const mongoose = await import("mongoose");
+
+    let paymentMethodDoc = null;
+
+    // Cek apakah paymentMethodId adalah ObjectId atau code
+    if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
+      paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+    } else {
+      // Cari berdasarkan code (case-insensitive)
+      paymentMethodDoc = await PaymentMethod.findOne({
+        $or: [
+          { code: paymentMethodId.toUpperCase() },
+          { code: paymentMethodId.toLowerCase() },
+          { code: paymentMethodId },
+        ],
+      });
+    }
+
+    if (!paymentMethodDoc) {
+      console.warn(`Payment method tidak ditemukan: ${paymentMethodId}`);
+      return {
+        fee: 0,
+        paymentMethodName: null,
+        validPaymentMethodId: null,
+        paymentMethodDoc: null,
+      };
+    }
+
+    // Validasi apakah payment method aktif
+    if (!paymentMethodDoc.isActive) {
+      console.warn(`Payment method tidak aktif: ${paymentMethodDoc.name}`);
+      return {
+        fee: 0,
+        paymentMethodName: paymentMethodDoc.name,
+        validPaymentMethodId: paymentMethodDoc._id.toString(),
+        paymentMethodDoc: null,
+      };
+    }
+
+    // Validasi min/max amount
+    if (
+      paymentMethodDoc.minimumAmount &&
+      paymentMethodDoc.minimumAmount > 0 &&
+      baseAmount < paymentMethodDoc.minimumAmount
+    ) {
+      console.warn(
+        `Amount ${baseAmount} di bawah minimum ${paymentMethodDoc.minimumAmount} untuk ${paymentMethodDoc.name}`,
+      );
+    }
+
+    if (
+      paymentMethodDoc.maximumAmount &&
+      paymentMethodDoc.maximumAmount > 0 &&
+      baseAmount > paymentMethodDoc.maximumAmount
+    ) {
+      console.warn(
+        `Amount ${baseAmount} di atas maximum ${paymentMethodDoc.maximumAmount} untuk ${paymentMethodDoc.name}`,
+      );
+    }
+
+    // Hitung fee dari database
+    let calculatedFee = 0;
+    if (paymentMethodDoc.feeType === "percentage") {
+      calculatedFee = Math.round((baseAmount * paymentMethodDoc.fee) / 100);
+    } else {
+      calculatedFee = paymentMethodDoc.fee || 0;
+    }
+
+    return {
+      fee: calculatedFee,
+      paymentMethodName: paymentMethodDoc.name,
+      validPaymentMethodId: paymentMethodDoc._id.toString(),
+      paymentMethodDoc,
+    };
+  } catch (error) {
+    console.error("Error verifying payment fee:", error);
+    return {
+      fee: 0,
+      paymentMethodName: null,
+      validPaymentMethodId: null,
+      paymentMethodDoc: null,
+    };
+  }
+}
+
+// ============================================================
+// 4. Validasi lengkap transaksi single item
+// ============================================================
+export async function validateSingleTransaction(body: any): Promise<{
+  valid: boolean;
+  error?: string;
+  verified: {
+    unitPrice: number;
+    totalAmount: number;
+    discountPercentage: number;
+    discountAmount: number;
+    finalAmountBeforeFee: number;
+    paymentFee: number;
+    finalAmountWithFee: number;
+    paymentMethodName: string | null;
+    validPaymentMethodId: string | null;
+    paymentMethodDoc: any;
+  };
+}> {
+  const {
+    serviceType,
+    serviceId,
+    serviceCategory,
+    quantity,
+    rbx5Details,
+    userId,
+    paymentMethodId,
+    gamepassDetails,
+    serviceName,
+  } = body;
+
+  // 1. Validasi harga dari DB
+  const priceCheck = await getVerifiedUnitPrice(
+    serviceType,
+    serviceId,
+    serviceCategory,
+    rbx5Details,
+    quantity,
+    gamepassDetails,
+    serviceName,
+  );
+
+  if (!priceCheck.valid) {
+    return {
+      valid: false,
+      error: priceCheck.error || "Harga tidak valid",
+      verified: {
+        unitPrice: 0,
+        totalAmount: 0,
+        discountPercentage: 0,
+        discountAmount: 0,
+        finalAmountBeforeFee: 0,
+        paymentFee: 0,
+        finalAmountWithFee: 0,
+        paymentMethodName: null,
+        validPaymentMethodId: null,
+        paymentMethodDoc: null,
+      },
+    };
+  }
+
+  const verifiedUnitPrice = priceCheck.unitPrice;
+
+  // 2. Hitung total amount
+  // Untuk rbx5, quantity selalu 1, unitPrice = total harga
+  const verifiedTotalAmount =
+    serviceType === "robux" &&
+    (serviceCategory === "robux_5_hari" || rbx5Details)
+      ? verifiedUnitPrice // unitPrice sudah total untuk rbx5
+      : verifiedUnitPrice * (quantity || 1);
+
+  // 3. Validasi diskon dari DB
+  const discountCheck = await getVerifiedDiscount(userId);
+  const verifiedDiscountPercentage = discountCheck.discountPercentage;
+  const verifiedDiscountAmount = Math.round(
+    (verifiedTotalAmount * verifiedDiscountPercentage) / 100,
+  );
+  const verifiedFinalAmountBeforeFee =
+    verifiedTotalAmount - verifiedDiscountAmount;
+
+  // 4. Validasi payment fee dari DB
+  const feeCheck = await getVerifiedPaymentFee(
+    paymentMethodId,
+    verifiedFinalAmountBeforeFee,
+  );
+  const verifiedPaymentFee = feeCheck.fee;
+  const verifiedFinalAmountWithFee =
+    verifiedFinalAmountBeforeFee + verifiedPaymentFee;
+
+  // Log perbandingan frontend vs backend
+  console.log("=== SERVER-SIDE VALIDATION RESULTS ===");
+  console.log(
+    "Frontend unitPrice:",
+    body.unitPrice,
+    "→ DB:",
+    verifiedUnitPrice,
+  );
+  console.log(
+    "Frontend totalAmount:",
+    body.totalAmount,
+    "→ Calculated:",
+    verifiedTotalAmount,
+  );
+  console.log(
+    "Frontend discount%:",
+    body.discountPercentage,
+    "→ DB:",
+    verifiedDiscountPercentage,
+  );
+  console.log(
+    "Frontend discountAmount:",
+    body.discountAmount,
+    "→ Calculated:",
+    verifiedDiscountAmount,
+  );
+  console.log(
+    "Frontend finalAmount:",
+    body.finalAmount,
+    "→ Calculated:",
+    verifiedFinalAmountWithFee,
+  );
+  console.log(
+    "Frontend paymentFee:",
+    body.paymentFee,
+    "→ DB:",
+    verifiedPaymentFee,
+  );
+
+  // Deteksi manipulasi (log warning jika ada perbedaan signifikan)
+  if (body.unitPrice && Math.abs(body.unitPrice - verifiedUnitPrice) > 1) {
+    console.warn(
+      `⚠️ PRICE MISMATCH DETECTED! Frontend: ${body.unitPrice}, DB: ${verifiedUnitPrice}`,
+    );
+  }
+  if (
+    body.discountPercentage &&
+    body.discountPercentage !== verifiedDiscountPercentage
+  ) {
+    console.warn(
+      `⚠️ DISCOUNT MISMATCH DETECTED! Frontend: ${body.discountPercentage}%, DB: ${verifiedDiscountPercentage}%`,
+    );
+  }
+  if (body.paymentFee && Math.abs(body.paymentFee - verifiedPaymentFee) > 1) {
+    console.warn(
+      `⚠️ PAYMENT FEE MISMATCH DETECTED! Frontend: ${body.paymentFee}, DB: ${verifiedPaymentFee}`,
+    );
+  }
+
+  return {
+    valid: true,
+    verified: {
+      unitPrice: verifiedUnitPrice,
+      totalAmount: verifiedTotalAmount,
+      discountPercentage: verifiedDiscountPercentage,
+      discountAmount: verifiedDiscountAmount,
+      finalAmountBeforeFee: verifiedFinalAmountBeforeFee,
+      paymentFee: verifiedPaymentFee,
+      finalAmountWithFee: verifiedFinalAmountWithFee,
+      paymentMethodName: feeCheck.paymentMethodName,
+      validPaymentMethodId: feeCheck.validPaymentMethodId,
+      paymentMethodDoc: feeCheck.paymentMethodDoc,
+    },
+  };
+}
+
+// ============================================================
+// 5. Validasi item untuk multi-transaction
+// ============================================================
+export async function validateMultiTransactionItem(
+  item: any,
+  index: number,
+): Promise<{
+  valid: boolean;
+  error?: string;
+  verifiedUnitPrice: number;
+  verifiedTotalAmount: number;
+}> {
+  const priceCheck = await getVerifiedUnitPrice(
+    item.serviceType,
+    item.serviceId,
+    item.serviceCategory,
+    item.rbx5Details,
+    item.quantity,
+    item.gamepassDetails,
+    item.serviceName,
+  );
+
+  if (!priceCheck.valid) {
+    return {
+      valid: false,
+      error: `Item ${index + 1} (${item.serviceName}): ${priceCheck.error}`,
+      verifiedUnitPrice: 0,
+      verifiedTotalAmount: 0,
+    };
+  }
+
+  const verifiedUnitPrice = priceCheck.unitPrice;
+
+  // Untuk rbx5, quantity selalu 1, unitPrice = total harga
+  const verifiedTotalAmount =
+    item.serviceType === "robux" &&
+    (item.serviceCategory === "robux_5_hari" || item.rbx5Details)
+      ? verifiedUnitPrice
+      : verifiedUnitPrice * (item.quantity || 1);
+
+  // Log jika ada perbedaan
+  if (item.unitPrice && Math.abs(item.unitPrice - verifiedUnitPrice) > 1) {
+    console.warn(
+      `⚠️ PRICE MISMATCH on item ${index + 1} (${item.serviceName})! Frontend: ${item.unitPrice}, DB: ${verifiedUnitPrice}`,
+    );
+  }
+
+  return {
+    valid: true,
+    verifiedUnitPrice,
+    verifiedTotalAmount,
+  };
+}

@@ -5,6 +5,12 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
+import {
+  validateSingleTransaction,
+  validateMultiTransactionItem,
+  getVerifiedDiscount,
+  getVerifiedPaymentFee,
+} from "@/lib/serverValidation";
 
 // GET - Ambil semua transaksi user atau admin
 export async function GET(request: NextRequest) {
@@ -352,43 +358,17 @@ async function handleMultiItemDirectPurchase(body: any) {
   console.log("Payment method:", paymentMethod);
 
   // Fetch payment method name and validate paymentMethodId (can be ObjectId or code)
-  let paymentMethodName = null;
-  let validPaymentMethodId = null;
-  let paymentMethodDoc = null;
+  // ============================================================
+  // SERVER-SIDE VALIDATION: Validasi diskon & payment fee dari DB
+  // ============================================================
+  const verifiedDiscount = await getVerifiedDiscount(userId);
+  const verifiedDiscountPercentage = verifiedDiscount.discountPercentage;
 
-  if (paymentMethodId) {
-    try {
-      const PaymentMethod = (await import("@/models/PaymentMethod")).default;
-      const mongoose = await import("mongoose");
-
-      // Check if paymentMethodId is a valid ObjectId string
-      if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
-        // It's already a valid ObjectId, use it directly
-        validPaymentMethodId = paymentMethodId;
-        paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
-        if (paymentMethodDoc) {
-          paymentMethodName = paymentMethodDoc.name;
-        }
-      } else {
-        // It's a payment method code (like "bca_va", "gopay"), find by code
-        console.log(`Looking up payment method by code: ${paymentMethodId}`);
-        paymentMethodDoc = await PaymentMethod.findOne({
-          code: paymentMethodId.toUpperCase(),
-        });
-
-        if (paymentMethodDoc) {
-          validPaymentMethodId = paymentMethodDoc._id;
-          paymentMethodName = paymentMethodDoc.name;
-          console.log(
-            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`,
-          );
-        } else {
-          console.warn(`Payment method not found for code: ${paymentMethodId}`);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching payment method:", error);
-    }
+  console.log("✅ Verified discount from DB:", verifiedDiscountPercentage, "%");
+  if (discountPercentage && discountPercentage !== verifiedDiscountPercentage) {
+    console.warn(
+      `⚠️ DISCOUNT MISMATCH! Frontend: ${discountPercentage}%, DB: ${verifiedDiscountPercentage}%`,
+    );
   }
 
   // CRITICAL: Validasi Rbx 5 Hari hanya boleh 1 item per checkout
@@ -420,7 +400,7 @@ async function handleMultiItemDirectPurchase(body: any) {
   const createdTransactions = [];
   const midtransItems = [];
 
-  // Create transaction for each item
+  // Create transaction for each item - VALIDATE PRICES FROM DB
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
 
@@ -468,26 +448,46 @@ async function handleMultiItemDirectPurchase(body: any) {
       );
     }
 
-    // Calculate amounts for this item
-    const itemTotalAmount = item.quantity * item.unitPrice;
+    // ============================================================
+    // SERVER-SIDE: Validasi harga item dari database
+    // ============================================================
+    const itemValidation = await validateMultiTransactionItem(item, i);
+    if (!itemValidation.valid) {
+      console.error(
+        `❌ Item ${i + 1} validation failed:`,
+        itemValidation.error,
+      );
+      return NextResponse.json(
+        { error: itemValidation.error || `Harga item ${i + 1} tidak valid` },
+        { status: 400 },
+      );
+    }
 
-    // Prepare transaction data
+    // Gunakan harga terverifikasi dari database
+    const verifiedItemUnitPrice = itemValidation.verifiedUnitPrice;
+    const verifiedItemTotalAmount = itemValidation.verifiedTotalAmount;
+
+    console.log(
+      `✅ Item ${i + 1} price verified: frontend=${item.unitPrice}, DB=${verifiedItemUnitPrice}`,
+    );
+
+    // Prepare transaction data - GUNAKAN HARGA TERVERIFIKASI
     const transactionData: any = {
       serviceType: item.serviceType,
       serviceId: item.serviceId,
       serviceName: item.serviceName,
       serviceImage: item.serviceImage || "",
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      totalAmount: itemTotalAmount,
+      unitPrice: verifiedItemUnitPrice,
+      totalAmount: verifiedItemTotalAmount,
       discountPercentage: 0, // Individual items don't get discount
       discountAmount: 0,
-      finalAmount: itemTotalAmount,
+      finalAmount: verifiedItemTotalAmount,
       robloxUsername: item.robloxUsername,
       robloxPassword: item.robloxPassword || "",
       customerNotes: additionalNotes || "", // Customer notes dari form checkout
       paymentMethodId: paymentMethodId || null,
-      paymentMethodName: paymentMethodName,
+      paymentMethodName: null, // Will be set after payment method validation
       customerInfo: {
         ...customerInfo,
         userId: userId || null,
@@ -524,10 +524,10 @@ async function handleMultiItemDirectPurchase(body: any) {
 
     createdTransactions.push(transaction);
 
-    // Prepare Midtrans item (will apply discount later)
+    // Prepare Midtrans item (will apply discount later) - USE VERIFIED PRICE
     midtransItems.push({
       id: `${item.serviceId}-${i}`,
-      price: item.unitPrice, // Original price, discount will be applied below
+      price: verifiedItemUnitPrice, // Verified price from DB
       quantity: item.quantity,
       name: item.serviceName,
       brand: "RBX Store",
@@ -544,34 +544,47 @@ async function handleMultiItemDirectPurchase(body: any) {
     );
   }
 
-  // Calculate final amount with discount (applied to total, not per item)
-  const subtotal =
-    totalAmount ||
-    createdTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
-  const discount = discountAmount || 0;
-  const discountPercent = discountPercentage || 0;
+  // ============================================================
+  // SERVER-SIDE: Hitung ulang total, diskon, dan payment fee dari DB
+  // ============================================================
+  // Subtotal dihitung dari harga terverifikasi (bukan frontend)
+  const subtotal = createdTransactions.reduce(
+    (sum, t) => sum + t.totalAmount,
+    0,
+  );
 
-  console.log("=== MULTI-ITEM PRICE CALCULATION DEBUG ===");
-  console.log("Subtotal (before discount):", subtotal);
-  console.log("Discount Amount:", discount);
-  console.log("Discount Percentage:", discountPercent);
-  console.log("Payment Fee:", paymentFee);
-  console.log("Final Amount (from frontend):", finalAmount);
+  // Diskon dihitung dari DB (bukan frontend)
+  const verifiedDiscountAmount = Math.round(
+    (subtotal * verifiedDiscountPercentage) / 100,
+  );
 
-  const finalAmountAfterDiscount = finalAmount || subtotal - discount;
+  console.log("=== MULTI-ITEM PRICE CALCULATION (VERIFIED) ===");
+  console.log("Subtotal (verified from DB):", subtotal);
+  console.log("Discount % (verified from DB):", verifiedDiscountPercentage);
+  console.log("Discount Amount (calculated):", verifiedDiscountAmount);
 
-  // Update each transaction with proportional discount
-  if (discount > 0 && createdTransactions.length > 0) {
+  if (discountAmount && Math.abs(discountAmount - verifiedDiscountAmount) > 1) {
+    console.warn(
+      `⚠️ DISCOUNT AMOUNT MISMATCH! Frontend: ${discountAmount}, Calculated: ${verifiedDiscountAmount}`,
+    );
+  }
+
+  const verifiedFinalAmountBeforeFee = subtotal - verifiedDiscountAmount;
+
+  // Update each transaction with VERIFIED proportional discount
+  if (verifiedDiscountAmount > 0 && createdTransactions.length > 0) {
     for (const transaction of createdTransactions) {
       // Calculate proportion of this item to subtotal
       const itemProportion = transaction.totalAmount / subtotal;
 
       // Calculate proportional discount for this item
-      const itemDiscountAmount = discount * itemProportion;
+      const itemDiscountAmount = Math.round(
+        verifiedDiscountAmount * itemProportion,
+      );
       const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
 
-      // Update transaction with discount info
-      transaction.discountPercentage = discountPercent;
+      // Update transaction with VERIFIED discount info
+      transaction.discountPercentage = verifiedDiscountPercentage;
       transaction.discountAmount = itemDiscountAmount;
       transaction.finalAmount = itemFinalAmount;
 
@@ -579,10 +592,43 @@ async function handleMultiItemDirectPurchase(body: any) {
     }
   }
 
-  // Store payment fee in the first transaction object (will be saved later with gateway data)
-  if (paymentFee && paymentFee > 0 && createdTransactions.length > 0) {
-    createdTransactions[0].paymentFee = paymentFee;
-    console.log("Payment fee set to first transaction:", paymentFee);
+  // Validasi & hitung payment fee dari DB (bukan frontend)
+  const feeCheck = await getVerifiedPaymentFee(
+    paymentMethodId,
+    verifiedFinalAmountBeforeFee,
+  );
+  const verifiedPaymentFee = feeCheck.fee;
+  const paymentMethodName = feeCheck.paymentMethodName;
+  const validPaymentMethodId = feeCheck.validPaymentMethodId;
+  const paymentMethodDoc = feeCheck.paymentMethodDoc;
+
+  console.log("Payment Fee (verified from DB):", verifiedPaymentFee);
+  if (
+    rawPaymentFee &&
+    Math.abs(Number(rawPaymentFee) - verifiedPaymentFee) > 1
+  ) {
+    console.warn(
+      `⚠️ PAYMENT FEE MISMATCH! Frontend: ${rawPaymentFee}, DB: ${verifiedPaymentFee}`,
+    );
+  }
+
+  // Update payment method name on all transactions
+  if (paymentMethodName) {
+    for (const transaction of createdTransactions) {
+      transaction.paymentMethodName = paymentMethodName;
+      if (validPaymentMethodId) {
+        transaction.paymentMethodId = validPaymentMethodId;
+      }
+    }
+  }
+
+  // Store VERIFIED payment fee in the first transaction
+  if (verifiedPaymentFee > 0 && createdTransactions.length > 0) {
+    createdTransactions[0].paymentFee = verifiedPaymentFee;
+    console.log(
+      "Verified payment fee set to first transaction:",
+      verifiedPaymentFee,
+    );
   }
 
   // Create a master order ID for grouping BEFORE Midtrans call
@@ -599,16 +645,16 @@ async function handleMultiItemDirectPurchase(body: any) {
     transaction.midtransOrderId = masterOrderId;
   });
 
-  // Apply discount to each item price (proportionally)
-  if (discount > 0 && midtransItems.length > 0) {
-    const discountMultiplier = 1 - discountPercent / 100;
+  // Apply VERIFIED discount to each Midtrans item price (proportionally)
+  if (verifiedDiscountAmount > 0 && midtransItems.length > 0) {
+    const discountMultiplier = 1 - verifiedDiscountPercentage / 100;
     midtransItems.forEach((item) => {
       const originalPrice = item.price;
       item.price = Math.round(item.price * discountMultiplier);
 
       // Update item name to show discount
       if (!item.name.includes("Diskon")) {
-        item.name = `${item.name} (Diskon ${discountPercent}%)`;
+        item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
       }
 
       console.log(
@@ -625,29 +671,17 @@ async function handleMultiItemDirectPurchase(body: any) {
 
   console.log("Items total after discount (before payment fee):", itemsTotal);
 
-  // Add payment fee if applicable
-  console.log("=== PAYMENT FEE DEBUG ===");
-  console.log("Payment Fee value:", paymentFee);
-  console.log("Payment Fee type:", typeof paymentFee);
-  console.log("Payment Fee > 0:", paymentFee > 0);
-  console.log("Payment Fee && paymentFee > 0:", paymentFee && paymentFee > 0);
-  console.log("Current midtransItems count:", midtransItems.length);
-
-  if (paymentFee && paymentFee > 0) {
-    console.log("✅ ADDING payment fee to items...");
+  // Add VERIFIED payment fee if applicable
+  if (verifiedPaymentFee > 0) {
+    console.log("✅ ADDING verified payment fee to items:", verifiedPaymentFee);
     midtransItems.push({
       id: "PAYMENT_FEE",
-      price: paymentFee,
+      price: verifiedPaymentFee,
       quantity: 1,
       name: "Biaya Admin",
       brand: "RBX Store",
       category: "fee",
     });
-    console.log("✅ Payment fee added! New items count:", midtransItems.length);
-  } else {
-    console.log("❌ Payment fee NOT added. Reason:");
-    console.log("  - paymentFee is falsy:", !paymentFee);
-    console.log("  - paymentFee <= 0:", paymentFee <= 0);
   }
 
   console.log("Final midtransItems:", JSON.stringify(midtransItems, null, 2));
@@ -669,10 +703,10 @@ async function handleMultiItemDirectPurchase(body: any) {
       0,
     );
 
-    console.log("=== MULTI-ITEM PAYMENT DEBUG ===");
+    console.log("=== MULTI-ITEM PAYMENT DEBUG (VERIFIED) ===");
     console.log("Items:", JSON.stringify(midtransItems, null, 2));
-    console.log("Payment fee from frontend:", paymentFee);
-    console.log("Final Amount (from frontend):", finalAmountAfterDiscount);
+    console.log("Payment fee (verified from DB):", verifiedPaymentFee);
+    console.log("Final Amount (verified):", verifiedFinalAmountBeforeFee);
     console.log("Payment method:", paymentMethod);
     console.log("Total items amount:", totalItemsAmount);
 
@@ -738,9 +772,9 @@ async function handleMultiItemDirectPurchase(body: any) {
           transaction.duitkuQrString = duitkuResult.qrString || "";
           transaction.redirectUrl = duitkuResult.paymentUrl; // For backward compatibility
 
-          // Explicitly set payment fee for first transaction
-          if (index === 0 && paymentFee > 0) {
-            transaction.paymentFee = paymentFee;
+          // Explicitly set VERIFIED payment fee for first transaction
+          if (index === 0 && verifiedPaymentFee > 0) {
+            transaction.paymentFee = verifiedPaymentFee;
             transaction.markModified("paymentFee");
             console.log(
               "First transaction paymentFee before save:",
@@ -845,9 +879,9 @@ async function handleMultiItemDirectPurchase(body: any) {
           transaction.snapToken = snapResult.token;
           transaction.redirectUrl = snapResult.redirect_url;
 
-          // Explicitly set payment fee for first transaction
-          if (index === 0 && paymentFee > 0) {
-            transaction.paymentFee = paymentFee;
+          // Explicitly set VERIFIED payment fee for first transaction
+          if (index === 0 && verifiedPaymentFee > 0) {
+            transaction.paymentFee = verifiedPaymentFee;
             transaction.markModified("paymentFee");
             console.log(
               "First transaction paymentFee before save:",
@@ -901,11 +935,11 @@ async function handleMultiItemDirectPurchase(body: any) {
         qrCodeUrl: paymentResult.qrCodeUrl || null,
         qrString: paymentResult.qrString || null,
         midtransTransactionId: paymentResult.transactionId || null,
-        // Transaction info
+        // Transaction info - ALL VERIFIED FROM DATABASE
         totalTransactions: createdTransactions.length,
         totalAmount: subtotal,
-        discountAmount: discount,
-        finalAmount: finalAmountAfterDiscount,
+        discountAmount: verifiedDiscountAmount,
+        finalAmount: verifiedFinalAmountBeforeFee,
       },
     });
   } catch (paymentError) {
@@ -1041,72 +1075,56 @@ async function handleSingleItemTransaction(body: any) {
     );
   }
 
-  // ALWAYS recalculate from quantity × unitPrice (don't trust frontend totalAmount)
-  const calculatedTotalAmount = quantity * unitPrice;
-  const calculatedFinalAmount = finalAmount || calculatedTotalAmount;
+  // ============================================================
+  // SERVER-SIDE VALIDATION: Jangan percaya data dari frontend!
+  // Hitung ulang semua harga, diskon, dan fee dari database.
+  // ============================================================
+  const validation = await validateSingleTransaction(body);
 
-  console.log("Single transaction calculation:", {
-    quantity,
-    unitPrice,
-    calculatedTotal: calculatedTotalAmount,
-    frontendTotal: totalAmount,
-    match: calculatedTotalAmount === totalAmount,
-  });
-
-  // Fetch payment method name and validate paymentMethodId
-  let paymentMethodName = null;
-  let validPaymentMethodId = null;
-
-  if (paymentMethodId) {
-    try {
-      const PaymentMethod = (await import("@/models/PaymentMethod")).default;
-      const mongoose = await import("mongoose");
-
-      // Check if paymentMethodId is a valid ObjectId string
-      if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
-        // It's already a valid ObjectId, use it directly
-        validPaymentMethodId = paymentMethodId;
-        const paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
-        if (paymentMethodDoc) {
-          paymentMethodName = paymentMethodDoc.name;
-        }
-      } else {
-        // It's a payment method code (like "bca_va"), find the ObjectId
-        console.log(`Looking up payment method by code: ${paymentMethodId}`);
-        const paymentMethodDoc = await PaymentMethod.findOne({
-          code: paymentMethodId,
-        });
-
-        if (paymentMethodDoc) {
-          validPaymentMethodId = paymentMethodDoc._id;
-          paymentMethodName = paymentMethodDoc.name;
-          console.log(
-            `Found payment method: ${paymentMethodName} (${validPaymentMethodId})`,
-          );
-        } else {
-          console.warn(`Payment method not found for code: ${paymentMethodId}`);
-          // Don't throw error, just log warning and continue without paymentMethodId
-          validPaymentMethodId = null;
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching payment method:", error);
-      validPaymentMethodId = null;
-    }
+  if (!validation.valid) {
+    console.error("❌ Server-side validation failed:", validation.error);
+    return NextResponse.json(
+      { error: validation.error || "Validasi harga gagal" },
+      { status: 400 },
+    );
   }
 
-  // Buat transaksi baru
+  const {
+    unitPrice: verifiedUnitPrice,
+    totalAmount: verifiedTotalAmount,
+    discountPercentage: verifiedDiscountPercentage,
+    discountAmount: verifiedDiscountAmount,
+    finalAmountBeforeFee: verifiedFinalAmountBeforeFee,
+    paymentFee: verifiedPaymentFee,
+    finalAmountWithFee: verifiedFinalAmountWithFee,
+    paymentMethodName,
+    validPaymentMethodId,
+    paymentMethodDoc,
+  } = validation.verified;
+
+  console.log("✅ Server-side validation passed. Using verified values:");
+  console.log({
+    verifiedUnitPrice,
+    verifiedTotalAmount,
+    verifiedDiscountPercentage,
+    verifiedDiscountAmount,
+    verifiedFinalAmountBeforeFee,
+    verifiedPaymentFee,
+    verifiedFinalAmountWithFee,
+  });
+
+  // Buat transaksi baru - GUNAKAN DATA TERVERIFIKASI DARI DATABASE
   const transactionData: any = {
     serviceType,
     serviceId,
     serviceName,
     serviceImage,
     quantity,
-    unitPrice,
-    totalAmount: calculatedTotalAmount,
-    discountPercentage: discountPercentage || 0,
-    discountAmount: discountAmount || 0,
-    finalAmount: calculatedFinalAmount,
+    unitPrice: verifiedUnitPrice,
+    totalAmount: verifiedTotalAmount,
+    discountPercentage: verifiedDiscountPercentage,
+    discountAmount: verifiedDiscountAmount,
+    finalAmount: verifiedFinalAmountBeforeFee,
     robloxUsername: robloxUsername || "", // Empty for reseller
     robloxPassword: robloxPassword || "", // Empty string for gamepass, robux_5_hari, and reseller
     customerNotes: additionalNotes || "", // Customer notes dari form checkout
@@ -1166,18 +1184,18 @@ async function handleSingleItemTransaction(body: any) {
   // Generate Midtrans order ID
   const midtransOrderId = transaction.generateMidtransOrderId();
 
-  // Calculate price after discount (WITHOUT payment fee)
-  const amountAfterDiscount = totalAmount - (discountAmount || 0);
+  // Calculate price after discount (WITHOUT payment fee) - USING VERIFIED VALUES
+  const amountAfterDiscount = verifiedFinalAmountBeforeFee;
   const finalUnitPrice = Math.round(amountAfterDiscount / quantity);
 
-  console.log("=== PRICE CALCULATION DEBUG ===");
-  console.log("Total Amount (subtotal):", totalAmount);
-  console.log("Discount Amount:", discountAmount);
-  console.log("Amount After Discount:", amountAfterDiscount);
+  console.log("=== PRICE CALCULATION DEBUG (VERIFIED) ===");
+  console.log("Total Amount (verified):", verifiedTotalAmount);
+  console.log("Discount Amount (verified):", verifiedDiscountAmount);
+  console.log("Amount After Discount (verified):", amountAfterDiscount);
   console.log("Quantity:", quantity);
   console.log("Final Unit Price:", finalUnitPrice);
-  console.log("Payment Fee:", paymentFee);
-  console.log("Final Amount (from frontend):", calculatedFinalAmount);
+  console.log("Payment Fee (verified):", verifiedPaymentFee);
+  console.log("Final Amount With Fee (verified):", verifiedFinalAmountWithFee);
 
   const items = [
     {
@@ -1185,8 +1203,8 @@ async function handleSingleItemTransaction(body: any) {
       price: finalUnitPrice, // Use unit price after discount (WITHOUT payment fee)
       quantity: quantity,
       name:
-        discountPercentage > 0
-          ? `${serviceName} (Diskon ${discountPercentage}%)`
+        verifiedDiscountPercentage > 0
+          ? `${serviceName} (Diskon ${verifiedDiscountPercentage}%)`
           : serviceName,
       brand: "RBX Store",
       category: serviceType,
@@ -1220,11 +1238,11 @@ async function handleSingleItemTransaction(body: any) {
       0,
     );
 
-    // Use payment fee from frontend (already calculated correctly)
-    if (paymentFee && paymentFee > 0) {
+    // Use VERIFIED payment fee from database (not frontend)
+    if (verifiedPaymentFee && verifiedPaymentFee > 0) {
       items.push({
         id: "PAYMENT_FEE",
-        price: paymentFee,
+        price: verifiedPaymentFee,
         quantity: 1,
         name: "Biaya Admin",
         brand: "RBX Store",
@@ -1238,10 +1256,10 @@ async function handleSingleItemTransaction(body: any) {
       0,
     );
 
-    console.log("=== SINGLE-ITEM PAYMENT DEBUG ===");
+    console.log("=== SINGLE-ITEM PAYMENT DEBUG (VERIFIED) ===");
     console.log("Items:", JSON.stringify(items, null, 2));
     console.log("Items total:", itemsTotal);
-    console.log("Payment fee from frontend:", paymentFee);
+    console.log("Payment fee (verified from DB):", verifiedPaymentFee);
     console.log("Total items amount:", totalItemsAmount);
 
     // Generate order ID
@@ -1318,9 +1336,9 @@ async function handleSingleItemTransaction(body: any) {
 
       const midtransService = new MidtransService();
 
-      // Map payment method to Midtrans enabled_payments
-      const enabledPayments = paymentMethod
-        ? MidtransService.mapPaymentMethodToMidtrans(paymentMethod)
+      // Map payment method to Midtrans enabled_payments (use validated ID)
+      const enabledPayments = validPaymentMethodId
+        ? MidtransService.mapPaymentMethodToMidtrans(validPaymentMethodId)
         : undefined;
 
       console.log("Enabled payments for Midtrans:", enabledPayments);
