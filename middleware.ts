@@ -50,14 +50,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // ========================================
-  // 2. Admin pages - require valid JWT token (redirect to login if invalid)
+  // 2. Admin pages - require valid JWT token AND admin role
   // ========================================
   if (pathname.startsWith("/admin")) {
-    // Allow admin login page without token
-    if (pathname === "/" || pathname === "/") {
-      return NextResponse.next();
-    }
-
     const token = request.cookies.get("token")?.value;
 
     if (!token) {
@@ -68,9 +63,15 @@ export async function middleware(request: NextRequest) {
 
     if (!decoded) {
       // Token invalid/expired - redirect to login
-      const response = NextResponse.redirect(new URL("/login", request.url));
+      const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete("token");
       return response;
+    }
+
+    // Check if user has admin role
+    if (decoded.accessRole !== "admin") {
+      // User is authenticated but not an admin - redirect to home
+      return NextResponse.redirect(new URL("/", request.url));
     }
 
     return NextResponse.next();

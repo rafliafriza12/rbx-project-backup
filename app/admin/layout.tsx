@@ -653,7 +653,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, loading } = useAuth();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userName, setUserName] = useState("");
@@ -671,6 +671,17 @@ export default function AdminLayout({
       console.error("Logout error:", error);
     }
   };
+
+  // Guard: hanya admin yang boleh akses halaman admin
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.replace("/");
+      } else if (!isAdmin()) {
+        router.replace("/");
+      }
+    }
+  }, [user, loading, router, isAdmin]);
 
   useEffect(() => {
     // Get user name from cookie
@@ -796,6 +807,11 @@ export default function AdminLayout({
 
     return () => clearInterval(pollInterval);
   }, []);
+
+  // Jangan render konten admin saat masih loading atau bukan admin
+  if (loading || !user || !isAdmin()) {
+    return null;
+  }
 
   return (
     <>

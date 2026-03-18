@@ -39,35 +39,35 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Field yang wajib diisi belum lengkap" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!validateEmail(email)) {
       return NextResponse.json(
         { error: "Format email tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!validatePhone(phone)) {
       return NextResponse.json(
         { error: "Format nomor handphone tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!validatePassword(password)) {
       return NextResponse.json(
         { error: "Password minimal 6 karakter" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (password !== confirmPassword) {
       return NextResponse.json(
         { error: "Password dan konfirmasi password tidak cocok" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,12 +83,12 @@ export async function POST(request: NextRequest) {
       if (existingUser.email === email.toLowerCase()) {
         return NextResponse.json(
           { error: "Email sudah terdaftar" },
-          { status: 400 }
+          { status: 400 },
         );
       } else {
         return NextResponse.json(
           { error: "Nomor handphone sudah terdaftar" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     await newUser.save();
 
     // Generate token
-    const token = generateToken(newUser._id.toString());
+    const token = generateToken(newUser._id.toString(), newUser.accessRole);
 
     // Return success response (exclude password)
     const userResponse = {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         message: "Pendaftaran berhasil",
         user: userResponse,
       },
-      { status: 201 }
+      { status: 201 },
     );
 
     // Set HTTP-only cookie
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

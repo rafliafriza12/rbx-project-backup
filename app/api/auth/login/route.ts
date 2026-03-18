@@ -15,14 +15,14 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email dan password harus diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!validateEmail(email)) {
       return NextResponse.json(
         { error: "Format email tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "Email atau password salah" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Email atau password salah" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     ) {
       console.log(
         `🔄 Auto-deactivating expired reseller for user ${user.email}: ` +
-          `Tier ${user.resellerTier} expired on ${user.resellerExpiry}`
+          `Tier ${user.resellerTier} expired on ${user.resellerExpiry}`,
       );
 
       user.resellerTier = null;
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     ) {
       try {
         const resellerPackage = await ResellerPackage.findById(
-          user.resellerPackageId
+          user.resellerPackageId,
         );
         if (resellerPackage) {
           resellerDiscount = resellerPackage.discount;
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate token
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user._id.toString(), user.accessRole);
 
     // Return success response (exclude password)
     const userResponse = {
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         message: "Login berhasil",
         user: userResponse,
       },
-      { status: 200 }
+      { status: 200 },
     );
 
     // Set HTTP-only cookie
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
