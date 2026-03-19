@@ -27,18 +27,19 @@ export async function POST(request: NextRequest) {
 
     // Verify signature for security
     if (signature_key) {
-      const isValidSignature = midtransService.verifyNotificationSignature(
-        order_id,
-        status_code,
-        gross_amount,
-        signature_key
-      );
+      const isValidSignature =
+        await midtransService.verifyNotificationSignature(
+          order_id,
+          status_code,
+          gross_amount,
+          signature_key,
+        );
 
       if (!isValidSignature) {
         console.error("Invalid signature:", { order_id, signature_key });
         return NextResponse.json(
           { error: "Invalid signature" },
-          { status: 401 }
+          { status: 401 },
         );
       }
     }
@@ -53,18 +54,18 @@ export async function POST(request: NextRequest) {
       console.error("Transaction not found:", order_id);
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     console.log(
-      `Found ${transactions.length} transaction(s) for order_id: ${order_id}`
+      `Found ${transactions.length} transaction(s) for order_id: ${order_id}`,
     );
 
     // Map Midtrans status to internal status
     const statusMapping = midtransService.mapMidtransStatus(
       transaction_status,
-      fraud_status
+      fraud_status,
     );
 
     console.log("Status mapping:", {
@@ -158,14 +159,14 @@ export async function POST(request: NextRequest) {
               const user = await User.findById(transaction.userId);
               if (user && transaction.serviceId) {
                 const resellerPackage = await ResellerPackage.findById(
-                  transaction.serviceId
+                  transaction.serviceId,
                 );
 
                 if (resellerPackage) {
                   // Calculate expiry date
                   const expiryDate = new Date();
                   expiryDate.setMonth(
-                    expiryDate.getMonth() + resellerPackage.duration
+                    expiryDate.getMonth() + resellerPackage.duration,
                   );
 
                   // Update user with reseller info
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest) {
                   await user.save();
 
                   console.log(
-                    `Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}, Expires: ${expiryDate}`
+                    `Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}, Expires: ${expiryDate}`,
                   );
                 }
               }
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
             await EmailService.sendInvoiceEmail(firstTransaction);
             console.log(
               "Payment confirmation email sent to:",
-              firstTransaction.customerInfo.email
+              firstTransaction.customerInfo.email,
             );
           } else {
             console.log("No customer email found for transaction:", order_id);
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
         } catch (emailError) {
           console.error(
             "Failed to send payment confirmation email:",
-            emailError
+            emailError,
           );
           // Don't fail the webhook for email errors
         }
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
     console.error("Webhook processing error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

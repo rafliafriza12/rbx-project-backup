@@ -391,17 +391,26 @@ class MidtransService {
   }
 
   // Verify notification signature
-  verifyNotificationSignature(
+  async verifyNotificationSignature(
     orderId: string,
     statusCode: string,
     grossAmount: string,
     signature: string,
-  ): boolean {
+  ): Promise<boolean> {
+    await this.initializeConfig();
     const crypto = require("crypto");
     const hash = crypto
       .createHash("sha512")
       .update(orderId + statusCode + grossAmount + this.serverKey)
       .digest("hex");
+
+    console.log("🔐 Signature verification:", {
+      orderId,
+      statusCode,
+      grossAmount,
+      serverKeyPresent: !!this.serverKey,
+      signatureMatch: hash === signature,
+    });
 
     return hash === signature;
   }
