@@ -11,6 +11,7 @@ import {
   getVerifiedDiscount,
   getVerifiedPaymentFee,
   verifyRobloxUsername,
+  verifyGamepassFromRoblox,
 } from "@/lib/serverValidation";
 
 // POST - Buat multiple transaksi dari cart
@@ -215,7 +216,10 @@ export async function POST(request: NextRequest) {
       const transactionData: any = {
         serviceType: item.serviceType,
         serviceId: item.serviceId,
-        serviceName: item.serviceName,
+        // Use verified name from DB: robux_instant from Product DB, others from client
+        serviceName:
+          itemValidation.verifiedRobuxInstantDetails?.productName ||
+          item.serviceName,
         serviceImage: item.serviceImage || null,
         quantity: item.quantity,
         unitPrice: verifiedItemUnitPrice,
@@ -262,9 +266,60 @@ export async function POST(request: NextRequest) {
       }
 
       if (item.rbx5Details) {
-        // SANITIZE rbx5Details: override client values with server-verified values
+        // VERIFY gamepass via Roblox API if gamepass data exists
+        let verifiedGamepass = item.rbx5Details.gamepass;
+        if (
+          item.rbx5Details.gamepass &&
+          item.rbx5Details.selectedPlace?.placeId
+        ) {
+          const expectedGamepassPrice =
+            itemValidation.verifiedGamepassAmount ||
+            item.rbx5Details.gamepass.price;
+          const robloxCheck = await verifyGamepassFromRoblox(
+            item.rbx5Details.selectedPlace.placeId,
+            expectedGamepassPrice,
+          );
+          if (!robloxCheck.valid || !robloxCheck.gamepass) {
+            console.error(
+              `❌ Gamepass verification failed for item ${i + 1}:`,
+              robloxCheck.error,
+            );
+            return NextResponse.json(
+              {
+                error:
+                  robloxCheck.error ||
+                  `GamePass tidak valid untuk item ${i + 1}. Pastikan GamePass sudah dibuat dengan benar.`,
+              },
+              { status: 400 },
+            );
+          }
+          verifiedGamepass = robloxCheck.gamepass;
+          console.log(
+            `✅ Item ${i + 1} gamepass verified from Roblox API:`,
+            verifiedGamepass,
+          );
+
+          // Cross-check: sellerId gamepass harus = userId dari robloxUsername
+          if (item._verifiedRobloxUserId && verifiedGamepass.sellerId) {
+            if (verifiedGamepass.sellerId !== item._verifiedRobloxUserId) {
+              console.error(
+                `❌ Item ${i + 1} seller ID mismatch! sellerId=${verifiedGamepass.sellerId}, userId=${item._verifiedRobloxUserId}`,
+              );
+              return NextResponse.json(
+                {
+                  error: `GamePass item ${i + 1} bukan milik akun "${item.robloxUsername}". Pemilik GamePass tidak sesuai dengan username yang dimasukkan.`,
+                },
+                { status: 400 },
+              );
+            }
+            console.log(
+              `✅ Item ${i + 1} seller ID match: sellerId=${verifiedGamepass.sellerId} === userId=${item._verifiedRobloxUserId}`,
+            );
+          }
+        }
+
+        // SANITIZE rbx5Details: ALL gamepass data from Roblox API, not client
         transactionData.rbx5Details = {
-          ...item.rbx5Details,
           robuxAmount:
             itemValidation.verifiedRobuxAmount || item.rbx5Details.robuxAmount,
           gamepassAmount:
@@ -278,34 +333,27 @@ export async function POST(request: NextRequest) {
               }
             : undefined,
           gamepassCreated: item.rbx5Details.gamepassCreated,
-          gamepass: item.rbx5Details.gamepass
+          gamepass: verifiedGamepass
             ? {
-                id: item.rbx5Details.gamepass.id,
-                name: item.rbx5Details.gamepass.name,
-                price:
-                  itemValidation.verifiedGamepassAmount ||
-                  item.rbx5Details.gamepass.price,
-                productId: item.rbx5Details.gamepass.productId,
-                sellerId: item.rbx5Details.gamepass.sellerId,
+                id: verifiedGamepass.id,
+                name: verifiedGamepass.name,
+                price: verifiedGamepass.price,
+                productId: verifiedGamepass.productId,
+                sellerId: verifiedGamepass.sellerId,
               }
             : undefined,
-          paymentMethodId: undefined,
-          paymentFee: undefined,
-          additionalNotes: undefined,
           pricePerRobux: itemValidation.verifiedPricePerHundred
             ? itemValidation.verifiedPricePerHundred / 100
             : item.rbx5Details.pricePerRobux,
         };
 
-        if (item.rbx5Details.gamepass) {
+        if (verifiedGamepass) {
           transactionData.gamepass = {
-            id: item.rbx5Details.gamepass.id,
-            name: item.rbx5Details.gamepass.name,
-            price:
-              itemValidation.verifiedGamepassAmount ||
-              item.rbx5Details.gamepass.price,
-            productId: item.rbx5Details.gamepass.productId,
-            sellerId: item.rbx5Details.gamepass.sellerId,
+            id: verifiedGamepass.id,
+            name: verifiedGamepass.name,
+            price: verifiedGamepass.price,
+            productId: verifiedGamepass.productId,
+            sellerId: verifiedGamepass.sellerId,
           };
         }
       }

@@ -554,7 +554,10 @@ async function handleMultiItemDirectPurchase(body: any) {
     const transactionData: any = {
       serviceType: item.serviceType,
       serviceId: item.serviceId,
-      serviceName: item.serviceName,
+      // Use verified name from DB: robux_instant from Product DB, others from client
+      serviceName:
+        itemValidation.verifiedRobuxInstantDetails?.productName ||
+        item.serviceName,
       serviceImage: item.serviceImage || "",
       quantity: item.quantity,
       unitPrice: verifiedItemUnitPrice,
@@ -1430,8 +1433,14 @@ async function handleSingleItemTransaction(body: any) {
   const transactionData: any = {
     serviceType,
     serviceId,
-    // For reseller, use verified name from DB to prevent spoofing
-    serviceName: verifiedServiceName || serviceName,
+    // Use verified name from DB to prevent spoofing:
+    // - reseller: verifiedServiceName from ResellerPackage DB
+    // - robux_instant: productName from Product DB
+    // - others: fallback to client serviceName
+    serviceName:
+      verifiedServiceName ||
+      verifiedRobuxInstantDetails?.productName ||
+      serviceName,
     serviceImage,
     quantity,
     unitPrice: verifiedUnitPrice,
