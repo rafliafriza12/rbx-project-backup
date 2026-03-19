@@ -540,9 +540,12 @@ export async function POST(request: NextRequest) {
         newOrderStatus: transaction.orderStatus,
       });
 
-      // Send Discord notifications for status changes
+      // Send Discord notifications only for settlement (payment) and completed (order)
       try {
-        if (previousPaymentStatus !== transaction.paymentStatus) {
+        if (
+          previousPaymentStatus !== transaction.paymentStatus &&
+          transaction.paymentStatus === "settlement"
+        ) {
           await notifyPaymentStatusChange(
             transaction,
             previousPaymentStatus,
@@ -550,7 +553,10 @@ export async function POST(request: NextRequest) {
             `Webhook Midtrans: ${transaction_status} via ${payment_type}`,
           );
         }
-        if (previousOrderStatus !== transaction.orderStatus) {
+        if (
+          previousOrderStatus !== transaction.orderStatus &&
+          transaction.orderStatus === "completed"
+        ) {
           await notifyOrderStatusChange(
             transaction,
             previousOrderStatus,

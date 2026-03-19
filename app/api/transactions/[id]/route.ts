@@ -495,9 +495,13 @@ export async function PUT(
       }
     }
 
-    // Send Discord notification for status change
+    // Send Discord notification only for settlement (payment) and completed (order)
     try {
-      if (statusType === "payment" && oldPaymentStatus !== newStatus) {
+      if (
+        statusType === "payment" &&
+        newStatus === "settlement" &&
+        oldPaymentStatus !== newStatus
+      ) {
         await notifyPaymentStatusChange(
           transaction,
           oldPaymentStatus,
@@ -505,7 +509,11 @@ export async function PUT(
           notes,
         );
       }
-      if (statusType === "order" && oldOrderStatus !== newStatus) {
+      if (
+        statusType === "order" &&
+        newStatus === "completed" &&
+        oldOrderStatus !== newStatus
+      ) {
         await notifyOrderStatusChange(
           transaction,
           oldOrderStatus,

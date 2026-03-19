@@ -533,9 +533,12 @@ export async function POST(request: NextRequest) {
         orderStatus: transaction.orderStatus,
       });
 
-      // Send Discord notifications for status changes
+      // Send Discord notifications only for settlement (payment) and completed (order)
       try {
-        if (previousPaymentStatus !== statusMapping.paymentStatus) {
+        if (
+          previousPaymentStatus !== statusMapping.paymentStatus &&
+          statusMapping.paymentStatus === "settlement"
+        ) {
           await notifyPaymentStatusChange(
             transaction,
             previousPaymentStatus,
@@ -543,7 +546,10 @@ export async function POST(request: NextRequest) {
             `Webhook Duitku: ${paymentCode}, Reference: ${reference}`,
           );
         }
-        if (previousOrderStatus !== transaction.orderStatus) {
+        if (
+          previousOrderStatus !== transaction.orderStatus &&
+          transaction.orderStatus === "completed"
+        ) {
           await notifyOrderStatusChange(
             transaction,
             previousOrderStatus,

@@ -13,7 +13,8 @@ import {
   getVerifiedPaymentFee,
   verifyGamepassFromRoblox,
 } from "@/lib/serverValidation";
-import { notifyNewTransaction } from "@/lib/discord";
+// Discord notifications are handled via webhook when payment status changes to settlement
+// import { notifyNewTransaction } from "@/lib/discord";
 
 // Rate limiter for transaction creation (anti invoice spam)
 const txRateLimitStore = new Map<
@@ -1061,14 +1062,8 @@ async function handleMultiItemDirectPurchase(body: any) {
       console.error("Error sending invoice email:", emailError);
     }
 
-    // Send Discord notification for each new transaction
-    for (const transaction of createdTransactions) {
-      try {
-        await notifyNewTransaction(transaction);
-      } catch (discordError) {
-        console.error("Error sending Discord notification:", discordError);
-      }
-    }
+    // Discord notification removed from transaction creation
+    // Notifications are now only sent when payment status changes to "settlement"
 
     // Sanitize transactions before returning - NEVER expose sensitive fields
     const safeTransactions = createdTransactions.map((t: any) => ({
@@ -1674,12 +1669,8 @@ async function handleSingleItemTransaction(body: any) {
       console.error("Error sending invoice email:", emailError);
     }
 
-    // Send Discord notification for new transaction
-    try {
-      await notifyNewTransaction(transaction);
-    } catch (discordError) {
-      console.error("Error sending Discord notification:", discordError);
-    }
+    // Discord notification removed from transaction creation
+    // Notifications are now only sent when payment status changes to "settlement"
 
     // Sanitize transaction before returning - NEVER expose sensitive fields
     const safeTransaction = {

@@ -35,6 +35,26 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// Mask sensitive strings
+function maskString(str: string, visibleChars: number = 2): string {
+  if (!str) return "***";
+  if (str.length <= visibleChars) return str[0] + "***";
+  return str.substring(0, visibleChars) + "***";
+}
+
+function maskEmail(email: string): string {
+  if (!email) return "***";
+  const [local, domain] = email.split("@");
+  if (!domain) return maskString(email);
+  return maskString(local, 2) + "@" + maskString(domain, 2);
+}
+
+function maskPhone(phone: string): string {
+  if (!phone) return "***";
+  if (phone.length <= 6) return maskString(phone, 3);
+  return phone.substring(0, 4) + "****" + phone.substring(phone.length - 2);
+}
+
 // Get color based on notification type and status
 function getEmbedColor(type: NotificationType, status?: string): number {
   switch (type) {
@@ -232,24 +252,24 @@ function buildFields(
     });
   }
 
-  // Roblox username
+  // Roblox username (masked)
   if (transaction.robloxUsername) {
     fields.push({
       name: "👤 Roblox Username",
-      value: `\`${transaction.robloxUsername}\``,
+      value: `\`${maskString(transaction.robloxUsername, 3)}\``,
       inline: true,
     });
   }
 
-  // Customer info
+  // Customer info (masked)
   if (transaction.customerInfo) {
     const customerParts = [];
     if (transaction.customerInfo.name)
-      customerParts.push(`👤 ${transaction.customerInfo.name}`);
+      customerParts.push(`👤 ${maskString(transaction.customerInfo.name, 2)}`);
     if (transaction.customerInfo.email)
-      customerParts.push(`📧 ${transaction.customerInfo.email}`);
+      customerParts.push(`📧 ${maskEmail(transaction.customerInfo.email)}`);
     if (transaction.customerInfo.phone)
-      customerParts.push(`📱 ${transaction.customerInfo.phone}`);
+      customerParts.push(`📱 ${maskPhone(transaction.customerInfo.phone)}`);
 
     if (customerParts.length > 0) {
       fields.push({
@@ -338,30 +358,18 @@ export async function sendDiscordNotification(
 }
 
 /**
- * Send notification for a new transaction (accepts Mongoose document or plain object)
+ * Send notification for a new transaction
+ * DISABLED: Notifications are now only sent on payment settlement, not on creation
  */
 export async function notifyNewTransaction(transaction: any): Promise<boolean> {
-  return sendDiscordNotification("new_transaction", {
-    invoiceId: transaction.invoiceId,
-    serviceName: transaction.serviceName,
-    serviceType: transaction.serviceType,
-    serviceCategory: transaction.serviceCategory,
-    quantity: transaction.quantity,
-    totalAmount: transaction.totalAmount,
-    finalAmount: transaction.finalAmount,
-    discountPercentage: transaction.discountPercentage,
-    discountAmount: transaction.discountAmount,
-    paymentMethodName: transaction.paymentMethodName,
-    paymentGateway: transaction.paymentGateway,
-    paymentStatus: transaction.paymentStatus,
-    orderStatus: transaction.orderStatus,
-    robloxUsername: transaction.robloxUsername,
-    customerInfo: transaction.customerInfo,
-  });
+  console.log(
+    `⏭️ Discord notification skipped for new transaction ${transaction.invoiceId} (only settlement triggers notification)`,
+  );
+  return false;
 }
 
 /**
- * Send notification for payment status change
+ * Send notification for payment status change (ONLY for settlement)
  */
 export async function notifyPaymentStatusChange(
   transaction: any,
@@ -369,6 +377,14 @@ export async function notifyPaymentStatusChange(
   newStatus: string,
   notes?: string,
 ): Promise<boolean> {
+  // Only send Discord notification for settlement (successful payment)
+  if (newStatus !== "settlement") {
+    console.log(
+      `⏭️ Discord notification skipped: payment status "${newStatus}" (only settlement triggers notification)`,
+    );
+    return false;
+  }
+
   return sendDiscordNotification(
     "payment_status",
     {
@@ -397,7 +413,7 @@ export async function notifyPaymentStatusChange(
 }
 
 /**
- * Send notification for order status change
+ * Send notification for order status change (ONLY for completed)
  */
 export async function notifyOrderStatusChange(
   transaction: any,
@@ -405,6 +421,14 @@ export async function notifyOrderStatusChange(
   newStatus: string,
   notes?: string,
 ): Promise<boolean> {
+  // Only send Discord notification for completed orders
+  if (newStatus !== "completed") {
+    console.log(
+      `⏭️ Discord notification skipped: order status "${newStatus}" (only completed triggers notification)`,
+    );
+    return false;
+  }
+
   return sendDiscordNotification(
     "order_status",
     {
