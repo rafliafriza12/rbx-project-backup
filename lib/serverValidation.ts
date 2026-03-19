@@ -224,6 +224,8 @@ export async function getVerifiedUnitPrice(
     gameName: string;
     itemName: string;
     gamepassId: string;
+    serviceImage: string;
+    serviceName: string;
   };
 }> {
   await dbConnect();
@@ -260,6 +262,8 @@ export async function getVerifiedUnitPrice(
               gameName: gamepassByItemId.gameName,
               itemName: item.itemName,
               gamepassId: gamepassByItemId._id.toString(),
+              serviceImage: item.imgUrl || gamepassByItemId.imgUrl || "",
+              serviceName: `${gamepassByItemId.gameName} - ${item.itemName}`,
             },
           };
         }
@@ -286,6 +290,8 @@ export async function getVerifiedUnitPrice(
                 gameName: gamepassById.gameName,
                 itemName: matchedItem.itemName,
                 gamepassId: gamepassById._id.toString(),
+                serviceImage: matchedItem.imgUrl || gamepassById.imgUrl || "",
+                serviceName: `${gamepassById.gameName} - ${matchedItem.itemName}`,
               },
             };
           }
@@ -306,6 +312,9 @@ export async function getVerifiedUnitPrice(
               gameName: gamepassById.gameName,
               itemName: gamepassById.item[0].itemName,
               gamepassId: gamepassById._id.toString(),
+              serviceImage:
+                gamepassById.item[0].imgUrl || gamepassById.imgUrl || "",
+              serviceName: `${gamepassById.gameName} - ${gamepassById.item[0].itemName}`,
             },
           };
         }
@@ -688,6 +697,8 @@ export async function validateSingleTransaction(body: any): Promise<{
       gameName: string;
       itemName: string;
       gamepassId: string;
+      serviceImage: string;
+      serviceName: string;
     };
   };
 }> {
@@ -871,6 +882,8 @@ export async function validateMultiTransactionItem(
     gameName: string;
     itemName: string;
     gamepassId: string;
+    serviceImage: string;
+    serviceName: string;
   };
 }> {
   const priceCheck = await getVerifiedUnitPrice(

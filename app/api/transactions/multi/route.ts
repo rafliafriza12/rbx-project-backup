@@ -216,11 +216,16 @@ export async function POST(request: NextRequest) {
       const transactionData: any = {
         serviceType: item.serviceType,
         serviceId: item.serviceId,
-        // Use verified name from DB: robux_instant from Product DB, others from client
+        // Use verified name from DB: robux_instant from Product DB, gamepass from Gamepass DB, others from client
         serviceName:
           itemValidation.verifiedRobuxInstantDetails?.productName ||
+          itemValidation.verifiedGamepassDetails?.serviceName ||
           item.serviceName,
-        serviceImage: item.serviceImage || null,
+        // Use verified image from DB for gamepass, fallback to client for other types
+        serviceImage:
+          itemValidation.verifiedGamepassDetails?.serviceImage ||
+          item.serviceImage ||
+          null,
         quantity: item.quantity,
         unitPrice: verifiedItemUnitPrice,
         totalAmount: verifiedItemTotalAmount,
