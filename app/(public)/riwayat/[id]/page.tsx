@@ -56,6 +56,16 @@ function maskPhone(phone: string): string {
   return phone.slice(0, visible) + "****" + phone.slice(-4);
 }
 
+// Mask Roblox username: player123 → pl*****23
+function maskUsername(username: string): string {
+  if (!username || username.length <= 3) return username;
+  if (username.length <= 5)
+    return username.slice(0, 1) + "***" + username.slice(-1);
+  return (
+    username.slice(0, 2) + "*".repeat(username.length - 4) + username.slice(-2)
+  );
+}
+
 export default function TransactionDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -509,7 +519,7 @@ export default function TransactionDetailPage() {
                           <div className="flex justify-between">
                             <span className="text-primary-200">Username:</span>
                             <span className="text-white font-medium">
-                              {item.robloxUsername}
+                              {maskUsername(item.robloxUsername)}
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -761,7 +771,7 @@ export default function TransactionDetailPage() {
                     Username Roblox:
                   </span>
                   <span className="font-semibold text-white">
-                    {transaction.robloxUsername}
+                    {maskUsername(transaction.robloxUsername)}
                   </span>
                 </div>
               </div>

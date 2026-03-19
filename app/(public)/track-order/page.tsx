@@ -48,6 +48,16 @@ function maskPhone(phone: string): string {
   return phone.slice(0, visible) + "****" + phone.slice(-4);
 }
 
+// Mask Roblox username: player123 → pl*****23
+function maskUsername(username: string): string {
+  if (!username || username.length <= 3) return username;
+  if (username.length <= 5)
+    return username.slice(0, 1) + "***" + username.slice(-1);
+  return (
+    username.slice(0, 2) + "*".repeat(username.length - 4) + username.slice(-2)
+  );
+}
+
 export default function TrackOrderPage() {
   const [invoiceId, setInvoiceId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -490,7 +500,7 @@ export default function TrackOrderPage() {
                                 <p className="text-sm text-white/70 mt-1">
                                   Akun:{" "}
                                   <span className="font-medium">
-                                    {item.robloxUsername}
+                                    {maskUsername(item.robloxUsername)}
                                   </span>
                                 </p>
                               </div>
@@ -675,7 +685,7 @@ export default function TrackOrderPage() {
                           <div className="flex justify-between">
                             <span className="text-white/60">Akun Roblox:</span>
                             <span className="font-medium text-white break-all">
-                              {transaction.robloxUsername}
+                              {maskUsername(transaction.robloxUsername)}
                             </span>
                           </div>
 

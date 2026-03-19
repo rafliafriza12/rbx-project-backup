@@ -5,6 +5,16 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
 
+// Mask Roblox username: player123 → pl*****23
+function maskUsername(username: string): string {
+  if (!username || username.length <= 3) return username;
+  if (username.length <= 5)
+    return username.slice(0, 1) + "***" + username.slice(-1);
+  return (
+    username.slice(0, 2) + "*".repeat(username.length - 4) + username.slice(-2)
+  );
+}
+
 interface OrderData {
   type: "gamepass" | "robux5" | "robux-instant" | "joki";
   game?: string;
@@ -91,8 +101,8 @@ function UniversalInvoiceContent() {
           typeParam === "robux5"
             ? "robux"
             : typeParam === "robux-instant"
-            ? "robux"
-            : typeParam,
+              ? "robux"
+              : typeParam,
         serviceId: invoiceId,
         serviceName: packageParam,
         serviceImage: "",
@@ -187,7 +197,7 @@ function UniversalInvoiceContent() {
   ];
 
   const selectedPaymentMethod = paymentMethods.find(
-    (method) => method.id === paymentMethod
+    (method) => method.id === paymentMethod,
   );
   const adminFee = selectedPaymentMethod?.fee || 0;
   const totalPrice = orderData ? orderData.price + adminFee : 0;
@@ -246,7 +256,7 @@ function UniversalInvoiceContent() {
   const validateForm = () => {
     const required = getRequiredFields();
     return required.every(
-      (field) => customerInfo[field as keyof typeof customerInfo]
+      (field) => customerInfo[field as keyof typeof customerInfo],
     );
   };
 
@@ -262,7 +272,7 @@ function UniversalInvoiceContent() {
     setTimeout(() => {
       setIsLoading(false);
       router.push(
-        `/payment-success?type=${orderData?.type}&invoice=${invoiceNumber}`
+        `/payment-success?type=${orderData?.type}&invoice=${invoiceNumber}`,
       );
     }, 2000);
   };
@@ -328,7 +338,7 @@ function UniversalInvoiceContent() {
                     )}
                     {customerInfo.robloxUsername && (
                       <p className="text-black text-sm mb-2 font-bold">
-                        👤 Username: {customerInfo.robloxUsername}
+                        👤 Username: {maskUsername(customerInfo.robloxUsername)}
                       </p>
                     )}
                     {customerInfo.robloxPassword &&
@@ -464,7 +474,7 @@ function UniversalInvoiceContent() {
                       </label>
                       <input
                         type="text"
-                        value={customerInfo.robloxUsername}
+                        value={maskUsername(customerInfo.robloxUsername)}
                         disabled
                         className="w-full bg-gray-100 border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-600 cursor-not-allowed"
                         placeholder="RobloxUsername123"
