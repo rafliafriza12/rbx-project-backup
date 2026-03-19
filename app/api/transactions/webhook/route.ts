@@ -279,17 +279,17 @@ export async function POST(request: NextRequest) {
 
     // Verifikasi signature
     const midtransService = new MidtransService();
-    // if (
-    //   !midtransService.verifyNotificationSignature(
-    //     order_id,
-    //     status_code,
-    //     gross_amount,
-    //     signature_key
-    //   )
-    // ) {
-    //   console.error("Invalid signature from Midtrans webhook");
-    //   return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    // }
+    if (
+      !midtransService.verifyNotificationSignature(
+        order_id,
+        status_code,
+        gross_amount,
+        signature_key,
+      )
+    ) {
+      console.error("Invalid signature from Midtrans webhook");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
 
     // CRITICAL FIX: Cari SEMUA transaksi dengan masterOrderId yang sama
     // Untuk multi-item checkout, bisa ada multiple transactions dengan same order_id
