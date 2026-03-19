@@ -1,31 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import User, { IUser } from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
 import dbConnect from "@/lib/mongodb";
+import { authenticateToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    // In a real implementation, you would extract user ID from JWT token
-    // For demo purposes, let's get a user by email or return the first user
-    // You should implement proper JWT token validation here
-
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    const email = url.searchParams.get("email");
-
-    let user: IUser | null = null;
-
-    if (userId) {
-      user = await User.findById(userId).select("-password");
-    } else if (email) {
-      user = await User.findOne({ email }).select("-password");
-    } else {
-      // For demo - get first user, replace with proper JWT validation
-      user = await User.findOne({}).select("-password");
-    }
+    // Authenticate user from token — never trust userId from query params
+    const currentUser = await authenticateToken(request);
+    const user: IUser | null = await User.findById(currentUser._id).select(
+      "-password",
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -33,7 +20,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -45,7 +32,7 @@ export async function GET(request: NextRequest) {
       new Date(user.resellerExpiry) > new Date()
     ) {
       const resellerPackage = await ResellerPackage.findById(
-        user.resellerPackageId
+        user.resellerPackageId,
       );
       if (resellerPackage && resellerPackage.isActive) {
         diskon = resellerPackage.discount;
@@ -85,7 +72,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: "Failed to fetch profile",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -94,8 +81,12 @@ export async function PUT(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Authenticate user from token
+    const currentUser = await authenticateToken(request);
+
     const body = await request.json();
-    const { userId, email, firstName, lastName, phone, countryCode } = body;
+    const { firstName, lastName, phone, countryCode } = body;
+    // NOTE: userId and email from body are intentionally ignored to prevent IDOR
 
     // Validate input - only firstName is required
     if (!firstName) {
@@ -104,7 +95,7 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: "First name is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,18 +106,12 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: "Phone number must be 8-15 digits",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Find user and update
-    let user: IUser | null = null;
-
-    if (userId) {
-      user = await User.findById(userId);
-    } else if (email) {
-      user = await User.findOne({ email });
-    }
+    // Find user from token — do not accept userId/email from body
+    const user = await User.findById(currentUser._id);
 
     if (!user) {
       return NextResponse.json(
@@ -134,7 +119,7 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -163,7 +148,7 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: "Failed to update user",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -175,7 +160,7 @@ export async function PUT(request: NextRequest) {
       new Date(updatedUser.resellerExpiry) > new Date()
     ) {
       const resellerPackage = await ResellerPackage.findById(
-        updatedUser.resellerPackageId
+        updatedUser.resellerPackageId,
       );
       if (resellerPackage && resellerPackage.isActive) {
         diskon = resellerPackage.discount;
@@ -207,14 +192,14 @@ export async function PUT(request: NextRequest) {
     // Handle mongoose validation errors
     if (error.name === "ValidationError") {
       const errorMessages = Object.values(error.errors).map(
-        (err: any) => err.message
+        (err: any) => err.message,
       );
       return NextResponse.json(
         {
           success: false,
           error: errorMessages.join(", "),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -223,7 +208,7 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: "Failed to update profile",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

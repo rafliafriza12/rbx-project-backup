@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin(request);
     await dbConnect();
 
     // Get user ID from request body
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to create sample transactions",
         details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

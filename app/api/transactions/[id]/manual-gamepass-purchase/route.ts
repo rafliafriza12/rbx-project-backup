@@ -49,7 +49,10 @@ async function processGamepassPurchase(transaction: any) {
       `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+        },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
         }),
@@ -107,7 +110,10 @@ async function processGamepassPurchase(transaction: any) {
     console.log("🎯 Purchasing gamepass...");
     const purchaseRequest = new NextRequest(`${apiUrl}/api/buy-pass`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+      },
       body: JSON.stringify({
         robloxCookie: suitableAccount.robloxCookie,
         gamepassId: transaction.gamepass.id,

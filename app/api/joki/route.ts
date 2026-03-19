@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import Joki from "@/models/Joki";
 import Transaction from "@/models/Transaction";
 import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Fetch all joki services with order count
 export async function GET(request: NextRequest) {
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
         const orderCount = Math.max(
           orderCountObjectId,
           orderCountString,
-          orderCountByName
+          orderCountByName,
         );
 
         console.log(`\n=== ${joki.gameName} ===`);
@@ -78,18 +79,18 @@ export async function GET(request: NextRequest) {
           ...joki,
           orderCount,
         };
-      })
+      }),
     );
 
     // Sort by orderCount to determine top 3
     const sortedJoki = jokiWithOrderCount.sort(
-      (a, b) => b.orderCount - a.orderCount
+      (a, b) => b.orderCount - a.orderCount,
     );
 
     console.log("\n=== SORTED JOKI BY ORDER COUNT ===");
     sortedJoki.forEach((joki, index) => {
       console.log(
-        `${index + 1}. ${(joki as any).gameName}: ${joki.orderCount} orders`
+        `${index + 1}. ${(joki as any).gameName}: ${joki.orderCount} orders`,
       );
     });
 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
       console.log(
         `${
           (joki as any).gameName
-        }: isHot = ${isHot} (index: ${index}, orderCount: ${joki.orderCount})`
+        }: isHot = ${isHot} (index: ${index}, orderCount: ${joki.orderCount})`,
       );
 
       return {
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching joki services:", error);
     return NextResponse.json(
       { error: "Gagal mengambil data joki services" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,6 +132,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new joki service
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin(request);
     await connectDB();
 
     const formData = await request.formData();
@@ -150,7 +152,7 @@ export async function POST(request: NextRequest) {
       console.error("JSON Parse Error:", parseError);
       return NextResponse.json(
         { error: "Invalid JSON data in request" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -158,7 +160,7 @@ export async function POST(request: NextRequest) {
     if (!gameName || !developer || !caraPesan || !items) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -169,14 +171,14 @@ export async function POST(request: NextRequest) {
     if (gameImageFile && gameImageFile.size > 0) {
       const uploadResult = await uploadToCloudinary(
         gameImageFile,
-        "joki/games"
+        "joki/games",
       );
       if (uploadResult.success) {
         gameImageUrl = uploadResult.url;
       } else {
         return NextResponse.json(
           { error: "Gagal upload gambar game" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -191,14 +193,14 @@ export async function POST(request: NextRequest) {
       if (itemImageFile && itemImageFile.size > 0) {
         const uploadResult = await uploadToCloudinary(
           itemImageFile,
-          "joki/items"
+          "joki/items",
         );
         if (uploadResult.success) {
           itemImageUrl = uploadResult.url;
         } else {
           return NextResponse.json(
             { error: `Gagal upload gambar item ${item.itemName}` },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
@@ -229,13 +231,13 @@ export async function POST(request: NextRequest) {
         message: "Joki service berhasil dibuat",
         joki: newJoki,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error creating joki service:", error);
     return NextResponse.json(
       { error: error.message || "Gagal membuat joki service" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -13,6 +13,13 @@ export const runtime = "nodejs";
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify cron secret to prevent unauthorized triggering
+    const cronSecret = request.headers.get("x-cron-secret");
+    const expectedSecret = process.env.CRON_SECRET;
+    if (!expectedSecret || cronSecret !== expectedSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await dbConnect();
 
     // Find all users with expired reseller tiers
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest) {
 
       console.log(
         `✅ Deactivated reseller for user ${user.email}: ` +
-          `Tier ${previousTier} expired on ${expiredDate}`
+          `Tier ${previousTier} expired on ${expiredDate}`,
       );
     }
 
@@ -56,7 +63,7 @@ export async function POST(request: NextRequest) {
         deactivatedUsers,
         totalProcessed: expiredResellers.length,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error deactivating expired resellers:", error);
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to deactivate expired resellers",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -76,6 +83,12 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const cronSecret = request.headers.get("x-cron-secret");
+    const expectedSecret = process.env.CRON_SECRET;
+    if (!expectedSecret || cronSecret !== expectedSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await dbConnect();
 
     // Find all users with expired reseller tiers
@@ -94,7 +107,7 @@ export async function GET(request: NextRequest) {
       expiredDate: user.resellerExpiry,
       daysExpired: Math.floor(
         (new Date().getTime() - new Date(user.resellerExpiry!).getTime()) /
-          (1000 * 60 * 60 * 24)
+          (1000 * 60 * 60 * 24),
       ),
     }));
 
@@ -104,7 +117,7 @@ export async function GET(request: NextRequest) {
         totalExpired: expiredResellers.length,
         expiredResellers: expiredList,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error checking expired resellers:", error);
@@ -113,7 +126,7 @@ export async function GET(request: NextRequest) {
         error: "Failed to check expired resellers",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

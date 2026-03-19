@@ -1,45 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import { verifyToken } from "@/lib/auth";
 
 export async function PUT(request: NextRequest) {
   try {
+    // This endpoint is restricted to internal server calls only (e.g. webhook handlers).
+    // It must NOT be callable by regular users from the browser.
+    const internalSecret = request.headers.get("x-internal-secret");
+    const expectedSecret = process.env.INTERNAL_API_SECRET;
+    if (!expectedSecret || internalSecret !== expectedSecret) {
+      return NextResponse.json(
+        { error: "Forbidden: endpoint is internal only" },
+        { status: 403 },
+      );
+    }
+
     await dbConnect();
 
-    const token = request.cookies.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Token tidak valid" }, { status: 401 });
-    }
-
-    // Get user
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User tidak ditemukan" },
-        { status: 404 }
-      );
-    }
-
     const body = await request.json();
-    const { amount } = body;
+    const { userId, amount } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId wajib diisi" },
+        { status: 400 },
+      );
+    }
 
     // Validation
     if (!amount || typeof amount !== "number" || amount <= 0) {
       return NextResponse.json(
         { error: "Jumlah harus berupa angka positif" },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User tidak ditemukan" },
+        { status: 404 },
       );
     }
 
@@ -47,35 +48,20 @@ export async function PUT(request: NextRequest) {
     user.spendedMoney += amount;
     await user.save();
 
-    const userResponse = {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phone,
-      countryCode: user.countryCode,
-      accessRole: user.accessRole,
-      resellerTier: user.resellerTier,
-      resellerExpiry: user.resellerExpiry,
-      resellerPackageId: user.resellerPackageId,
-      spendedMoney: user.spendedMoney,
-      isVerified: user.isVerified,
-    };
-
     return NextResponse.json(
       {
         message: "Pengeluaran berhasil diperbarui",
-        user: userResponse,
         addedAmount: amount,
+        spendedMoney: user.spendedMoney,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Update spending error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

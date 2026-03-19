@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Cart, { ICartItem } from "@/models/Cart";
+import { authenticateToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID diperlukan" },
-        { status: 400 }
-      );
-    }
+    const currentUser = await authenticateToken(request);
+    const userId = currentUser._id.toString();
 
     await dbConnect();
 
@@ -26,26 +20,32 @@ export async function GET(request: NextRequest) {
             total +
             (item.totalAmount ||
               (item.unitPrice || item.price) * item.quantity),
-          0
+          0,
         ) || 0,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message?.startsWith("Unauthorized")) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     console.error("Error fetching cart:", error);
     return NextResponse.json(
       { error: "Gagal mengambil data keranjang" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await authenticateToken(request);
+    const userId = currentUser._id.toString();
+
     const body = await request.json();
     console.log("=== CART API POST DEBUG ===");
     console.log("Received body:", JSON.stringify(body, null, 2));
 
     const {
-      userId, // Pass userId directly from client
+      // userId from body is intentionally ignored — taken from token above
       // Primary fields (sesuai Transaction model)
       serviceType,
       serviceId,
@@ -86,14 +86,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Extracted userId:", userId);
 
-    if (!userId) {
-      console.error("Missing userId");
-      return NextResponse.json(
-        { error: "User ID diperlukan" },
-        { status: 400 }
-      );
-    }
-
     await dbConnect();
 
     // Validation untuk field wajib
@@ -102,10 +94,10 @@ export async function POST(request: NextRequest) {
       (type === "rbx5" || type === "rbx-instant"
         ? "robux"
         : type === "gamepass"
-        ? "gamepass"
-        : type === "joki"
-        ? "joki"
-        : "robux");
+          ? "gamepass"
+          : type === "joki"
+            ? "joki"
+            : "robux");
     const finalServiceId = serviceId || gameId || itemName;
     const finalServiceName = serviceName || itemName;
     const finalServiceImage = serviceImage || imgUrl || ""; // Allow empty image
@@ -144,7 +136,7 @@ export async function POST(request: NextRequest) {
       console.error("Validation failed - Data item tidak lengkap");
       return NextResponse.json(
         { error: "Data item tidak lengkap" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -213,32 +205,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: "Item berhasil ditambahkan ke keranjang",
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message?.startsWith("Unauthorized")) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     console.error("Error adding to cart:", error);
     return NextResponse.json(
       { error: "Gagal menambahkan item ke keranjang" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const itemId = searchParams.get("itemId");
+    const currentUser = await authenticateToken(request);
+    const userId = currentUser._id.toString();
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID diperlukan" },
-        { status: 400 }
-      );
-    }
+    const { searchParams } = new URL(request.url);
+    const itemId = searchParams.get("itemId");
 
     if (!itemId) {
       return NextResponse.json(
         { error: "Item ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -249,13 +239,13 @@ export async function DELETE(request: NextRequest) {
     if (!cart) {
       return NextResponse.json(
         { error: "Keranjang tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Remove item from cart
     cart.items = cart.items.filter(
-      (item: ICartItem) => item._id?.toString() !== itemId
+      (item: ICartItem) => item._id?.toString() !== itemId,
     );
 
     await cart.save();
@@ -264,11 +254,14 @@ export async function DELETE(request: NextRequest) {
       message: "Item berhasil dihapus dari keranjang",
       items: cart.items,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message?.startsWith("Unauthorized")) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     console.error("Error removing item from cart:", error);
     return NextResponse.json(
       { error: "Gagal menghapus item dari keranjang" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

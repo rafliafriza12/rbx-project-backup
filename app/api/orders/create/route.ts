@@ -10,14 +10,14 @@ export async function POST(request: NextRequest) {
     if (!amount || !productType || !productDetails) {
       return NextResponse.json(
         { error: "Data order tidak lengkap" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (typeof amount !== "number" || amount <= 0) {
       return NextResponse.json(
         { error: "Jumlah pembayaran tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || "Gagal memproses pesanan" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -63,14 +63,14 @@ export async function POST(request: NextRequest) {
         message: "Pesanan berhasil dibuat",
         order: orderResponse,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create order error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

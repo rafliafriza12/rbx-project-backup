@@ -47,6 +47,16 @@ async function withRetry<T>(
 
 export async function POST(req: NextRequest) {
   try {
+    // Internal-only endpoint: must be called from server-side with secret
+    const internalSecret = req.headers.get("x-internal-secret");
+    const expectedSecret = process.env.INTERNAL_API_SECRET;
+    if (!expectedSecret || internalSecret !== expectedSecret) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { robloxCookie, gamepassId, gamepassName, price, sellerId } =
       await req.json();
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Settings from "@/models/Settings";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Get current Midtrans settings
 export async function GET() {
@@ -22,7 +23,7 @@ export async function GET() {
     console.error("Error getting Midtrans settings:", error);
     return NextResponse.json(
       { error: "Failed to get settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -30,6 +31,7 @@ export async function GET() {
 // POST - Set Midtrans configuration
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin(request);
     await dbConnect();
 
     const body = await request.json();
@@ -45,14 +47,14 @@ export async function POST(request: NextRequest) {
     if (!serverKey || !clientKey || !mode) {
       return NextResponse.json(
         { error: "Server key, client key, and mode are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!["sandbox", "production"].includes(mode)) {
       return NextResponse.json(
         { error: "Mode must be 'sandbox' or 'production'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
     console.error("Error setting Midtrans configuration:", error);
     return NextResponse.json(
       { error: "Failed to update settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

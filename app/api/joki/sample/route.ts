@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Joki from "@/models/Joki";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin(request);
     await connectDB();
 
     // Clear existing sample data
@@ -252,13 +254,13 @@ export async function POST(request: NextRequest) {
         count: createdJokiServices.length,
         jokiServices: createdJokiServices,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error creating sample joki services:", error);
     return NextResponse.json(
       { error: "Gagal membuat sample data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

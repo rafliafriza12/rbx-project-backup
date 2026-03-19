@@ -47,13 +47,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Auth check - hanya admin
-    // try {
-    //   await requireAdmin(req);
-    // } catch (authError: any) {
-    //   const status = authError.message.includes("Forbidden") ? 403 : 401;
-    //   return NextResponse.json({ error: authError.message }, { status });
-    // }
+    // Allow admin OR internal server calls (from webhooks)
+    const internalSecret = req.headers.get("x-internal-secret");
+    const expectedSecret = process.env.INTERNAL_API_SECRET;
+    const isInternalCall = expectedSecret && internalSecret === expectedSecret;
+
+    if (!isInternalCall) {
+      try {
+        await requireAdmin(req);
+      } catch (authError: any) {
+        const status = authError.message.includes("Forbidden") ? 403 : 401;
+        return NextResponse.json({ error: authError.message }, { status });
+      }
+    }
 
     const { id } = await params;
     const { robloxCookie } = await req.json();

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import PaymentMethod from "@/models/PaymentMethod";
+import { requireAdmin } from "@/lib/auth";
+import { NextRequest } from "next/server";
 
 // Sample payment methods data
 const samplePaymentMethods = [
@@ -228,8 +230,9 @@ const samplePaymentMethods = [
   },
 ];
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    await requireAdmin(request);
     await connectDB();
 
     // Clear existing payment methods

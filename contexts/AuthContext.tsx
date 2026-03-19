@@ -268,27 +268,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {}
   };
 
-  const updateSpending = async (amount: number) => {
-    try {
-      const response = await fetch("/api/user/update-spending", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ amount }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setUser(data.user);
-      } else {
-        throw new Error(data.error || "Failed to update spending");
-      }
-    } catch (error: any) {
-      throw error;
-    }
+  const updateSpending = async (_amount: number) => {
+    // spendedMoney is now only updated server-side via payment webhooks.
+    // Re-fetch auth state to get the latest value from the server.
+    await checkAuth();
   };
 
   const isAdmin = () => {

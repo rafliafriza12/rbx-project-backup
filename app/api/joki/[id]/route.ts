@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Joki from "@/models/Joki";
 import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
+import { requireAdmin } from "@/lib/auth";
 
 // GET - Fetch single joki service
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
@@ -17,7 +18,7 @@ export async function GET(
     if (!joki) {
       return NextResponse.json(
         { error: "Joki service tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -29,7 +30,7 @@ export async function GET(
     console.error("Error fetching joki service:", error);
     return NextResponse.json(
       { error: "Gagal mengambil data joki service" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -37,9 +38,10 @@ export async function GET(
 // PUT - Update joki service
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireAdmin(request);
     await connectDB();
 
     const { id } = await params;
@@ -47,7 +49,7 @@ export async function PUT(
     if (!existingJoki) {
       return NextResponse.json(
         { error: "Joki service tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -71,7 +73,7 @@ export async function PUT(
       console.error("JSON Parse Error:", parseError);
       return NextResponse.json(
         { error: "Invalid JSON data in request" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,7 +81,7 @@ export async function PUT(
     if (!gameName || !developer || !caraPesan || !items) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -99,7 +101,7 @@ export async function PUT(
       // Upload new image
       const uploadResult = await uploadToCloudinary(
         gameImageFile,
-        "joki/games"
+        "joki/games",
       );
       if (uploadResult.success) {
         gameImageUrl = uploadResult.url;
@@ -126,7 +128,7 @@ export async function PUT(
         // Upload new image
         const uploadResult = await uploadToCloudinary(
           itemImageFile,
-          "joki/items"
+          "joki/items",
         );
         if (uploadResult.success) {
           itemImageUrl = uploadResult.url;
@@ -153,13 +155,13 @@ export async function PUT(
         caraPesan: caraPesan.filter((item: string) => item.trim()),
         item: processedItems,
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedJoki) {
       return NextResponse.json(
         { error: "Gagal mengupdate joki service" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -171,7 +173,7 @@ export async function PUT(
     console.error("Error updating joki service:", error);
     return NextResponse.json(
       { error: error.message || "Gagal mengupdate joki service" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -179,9 +181,10 @@ export async function PUT(
 // DELETE - Delete joki service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireAdmin(request);
     await connectDB();
 
     const { id } = await params;
@@ -190,7 +193,7 @@ export async function DELETE(
     if (!joki) {
       return NextResponse.json(
         { error: "Joki service tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -221,7 +224,7 @@ export async function DELETE(
     console.error("Error deleting joki service:", error);
     return NextResponse.json(
       { error: "Gagal menghapus joki service" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
