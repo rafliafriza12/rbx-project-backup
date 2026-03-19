@@ -545,9 +545,10 @@ async function handleMultiItemDirectPurchase(body: any) {
     // Gunakan harga terverifikasi dari database
     const verifiedItemUnitPrice = itemValidation.verifiedUnitPrice;
     const verifiedItemTotalAmount = itemValidation.verifiedTotalAmount;
+    const verifiedItemQuantity = itemValidation.verifiedQuantity; // Server-verified quantity
 
     console.log(
-      `✅ Item ${i + 1} price verified: frontend=${item.unitPrice}, DB=${verifiedItemUnitPrice}`,
+      `✅ Item ${i + 1} price verified: frontend=${item.unitPrice}, DB=${verifiedItemUnitPrice}, quantity=${verifiedItemQuantity}`,
     );
 
     // Prepare transaction data - GUNAKAN HARGA TERVERIFIKASI
@@ -564,7 +565,7 @@ async function handleMultiItemDirectPurchase(body: any) {
         itemValidation.verifiedGamepassDetails?.serviceImage ||
         item.serviceImage ||
         "",
-      quantity: item.quantity,
+      quantity: verifiedItemQuantity, // Server-verified quantity
       unitPrice: verifiedItemUnitPrice,
       totalAmount: verifiedItemTotalAmount,
       discountPercentage: 0, // Individual items don't get discount
@@ -726,7 +727,7 @@ async function handleMultiItemDirectPurchase(body: any) {
     midtransItems.push({
       id: `${item.serviceId}-${i}`,
       price: verifiedItemUnitPrice, // Verified price from DB
-      quantity: item.quantity,
+      quantity: verifiedItemQuantity, // Server-verified quantity
       name: item.serviceName,
       brand: "RBX Store",
       category: item.serviceType,
@@ -1352,6 +1353,7 @@ async function handleSingleItemTransaction(body: any) {
   }
 
   const {
+    quantity: verifiedQuantity, // Server-verified quantity (forced for rbx5/joki/reseller, validated for others)
     unitPrice: verifiedUnitPrice,
     totalAmount: verifiedTotalAmount,
     discountPercentage: verifiedDiscountPercentage,
@@ -1447,7 +1449,7 @@ async function handleSingleItemTransaction(body: any) {
       serviceName,
     // Use verified image from DB for gamepass, fallback to client for other types
     serviceImage: verifiedGamepassDetails?.serviceImage || serviceImage,
-    quantity,
+    quantity: verifiedQuantity, // Server-verified quantity
     unitPrice: verifiedUnitPrice,
     totalAmount: verifiedTotalAmount,
     discountPercentage: verifiedDiscountPercentage,
@@ -1558,13 +1560,13 @@ async function handleSingleItemTransaction(body: any) {
 
   // Calculate price after discount (WITHOUT payment fee) - USING VERIFIED VALUES
   const amountAfterDiscount = verifiedFinalAmountBeforeFee;
-  const finalUnitPrice = Math.round(amountAfterDiscount / quantity);
+  const finalUnitPrice = Math.round(amountAfterDiscount / verifiedQuantity);
 
   console.log("=== PRICE CALCULATION DEBUG (VERIFIED) ===");
   console.log("Total Amount (verified):", verifiedTotalAmount);
   console.log("Discount Amount (verified):", verifiedDiscountAmount);
   console.log("Amount After Discount (verified):", amountAfterDiscount);
-  console.log("Quantity:", quantity);
+  console.log("Quantity (verified):", verifiedQuantity);
   console.log("Final Unit Price:", finalUnitPrice);
   console.log("Payment Fee (verified):", verifiedPaymentFee);
   console.log("Final Amount With Fee (verified):", verifiedFinalAmountWithFee);
@@ -1573,7 +1575,7 @@ async function handleSingleItemTransaction(body: any) {
     {
       id: serviceId,
       price: finalUnitPrice, // Use unit price after discount (WITHOUT payment fee)
-      quantity: quantity,
+      quantity: verifiedQuantity,
       name:
         verifiedDiscountPercentage > 0
           ? `${serviceName} (Diskon ${verifiedDiscountPercentage}%)`
@@ -1671,7 +1673,7 @@ async function handleSingleItemTransaction(body: any) {
       console.log("Duitku payment code:", duitkuPaymentCode);
 
       // Build product details string
-      const productDetails = `${serviceName} x${quantity}`;
+      const productDetails = `${serviceName} x${verifiedQuantity}`;
 
       const duitkuResult = await duitkuService.createTransaction({
         orderId: orderId,

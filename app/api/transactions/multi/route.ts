@@ -207,9 +207,10 @@ export async function POST(request: NextRequest) {
       // Gunakan harga terverifikasi dari database
       const verifiedItemUnitPrice = itemValidation.verifiedUnitPrice;
       const verifiedItemTotalAmount = itemValidation.verifiedTotalAmount;
+      const verifiedItemQuantity = itemValidation.verifiedQuantity; // Server-verified quantity
 
       console.log(
-        `✅ Item ${i + 1} price verified: frontend=${item.unitPrice}, DB=${verifiedItemUnitPrice}`,
+        `✅ Item ${i + 1} price verified: frontend=${item.unitPrice}, DB=${verifiedItemUnitPrice}, quantity=${verifiedItemQuantity}`,
       );
 
       // Prepare transaction data - GUNAKAN HARGA TERVERIFIKASI
@@ -226,7 +227,7 @@ export async function POST(request: NextRequest) {
           itemValidation.verifiedGamepassDetails?.serviceImage ||
           item.serviceImage ||
           null,
-        quantity: item.quantity,
+        quantity: verifiedItemQuantity, // Server-verified quantity
         unitPrice: verifiedItemUnitPrice,
         totalAmount: verifiedItemTotalAmount,
         discountPercentage: 0, // Will be updated after subtotal calculation
@@ -389,7 +390,7 @@ export async function POST(request: NextRequest) {
       midtransItems.push({
         id: `${item.serviceId}-${i}`,
         price: verifiedItemUnitPrice,
-        quantity: item.quantity,
+        quantity: verifiedItemQuantity, // Server-verified quantity
         name: item.serviceName,
         brand: "RBX Store",
         category: item.serviceType,

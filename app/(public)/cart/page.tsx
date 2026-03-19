@@ -216,6 +216,17 @@ export default function CartPage() {
       return;
     }
 
+    // RBX 5 Hari: hanya boleh 1 item per checkout (tidak boleh multi checkout)
+    if (
+      uniqueCategories[0] === "robux_5_hari" &&
+      selectedItemsData.length > 1
+    ) {
+      toast.error(
+        "Robux 5 Hari hanya bisa checkout 1 item per transaksi karena ada automasi gamepass.",
+      );
+      return;
+    }
+
     // Format data untuk checkout sesuai dengan Transaction model
     const checkoutData = selectedItemsData.map((item) => ({
       // Cart item ID for clearing after checkout
@@ -629,34 +640,44 @@ export default function CartPage() {
                                         <div className="text-primary-100 font-bold text-sm sm:text-base">
                                           Rp {item.price.toLocaleString()}
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            onClick={() =>
-                                              handleUpdateQuantity(
-                                                item._id,
-                                                item.quantity - 1,
-                                              )
-                                            }
-                                            disabled={item.quantity <= 1}
-                                            className="p-1 bg-white/10 border border-white/20 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 transition-all duration-300"
-                                          >
-                                            <Minus className="w-3 h-3 text-white" />
-                                          </button>
+                                        {/* Robux 5 Hari & Robux Instant: quantity selalu 1, tidak bisa diubah */}
+                                        {getServiceCategory(item) ===
+                                          "robux_5_hari" ||
+                                        getServiceCategory(item) ===
+                                          "robux_instant" ? (
                                           <span className="px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[3rem] text-center">
-                                            {item.quantity}
+                                            1
                                           </span>
-                                          <button
-                                            onClick={() =>
-                                              handleUpdateQuantity(
-                                                item._id,
-                                                item.quantity + 1,
-                                              )
-                                            }
-                                            className="p-1 bg-white/10 border border-white/20 rounded hover:bg-white/20 transition-all duration-300"
-                                          >
-                                            <Plus className="w-3 h-3 text-white" />
-                                          </button>
-                                        </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={() =>
+                                                handleUpdateQuantity(
+                                                  item._id,
+                                                  item.quantity - 1,
+                                                )
+                                              }
+                                              disabled={item.quantity <= 1}
+                                              className="p-1 bg-white/10 border border-white/20 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 transition-all duration-300"
+                                            >
+                                              <Minus className="w-3 h-3 text-white" />
+                                            </button>
+                                            <span className="px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[3rem] text-center">
+                                              {item.quantity}
+                                            </span>
+                                            <button
+                                              onClick={() =>
+                                                handleUpdateQuantity(
+                                                  item._id,
+                                                  item.quantity + 1,
+                                                )
+                                              }
+                                              className="p-1 bg-white/10 border border-white/20 rounded hover:bg-white/20 transition-all duration-300"
+                                            >
+                                              <Plus className="w-3 h-3 text-white" />
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>

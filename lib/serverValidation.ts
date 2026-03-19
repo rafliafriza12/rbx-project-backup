@@ -191,6 +191,72 @@ export async function verifyGamepassFromRoblox(
 }
 
 // ============================================================
+// 0c. Validasi & enforce quantity dari server side
+// ============================================================
+const MAX_QUANTITY = 100; // Batas maksimum quantity per transaksi
+
+export function getVerifiedQuantity(
+  serviceType: string,
+  serviceCategory?: string,
+  clientQuantity?: any,
+): { valid: boolean; quantity: number; error?: string } {
+  // Service types yang quantity-nya SELALU 1 (tidak bisa diubah user)
+  const forceQuantityOne =
+    serviceType === "joki" ||
+    serviceType === "reseller" ||
+    (serviceType === "robux" && serviceCategory === "robux_5_hari") ||
+    (serviceType === "robux" && serviceCategory === "robux_instant");
+
+  if (forceQuantityOne) {
+    if (clientQuantity && parseInt(clientQuantity, 10) !== 1) {
+      console.warn(
+        `⚠️ QUANTITY OVERRIDE: ${serviceType}/${serviceCategory} forced to 1 (client sent: ${clientQuantity})`,
+      );
+    }
+    return { valid: true, quantity: 1 };
+  }
+
+  // Untuk tipe lain (gamepass): quantity dari client, tapi divalidasi ketat
+  const parsed = parseInt(clientQuantity, 10);
+
+  if (isNaN(parsed) || !isFinite(parsed)) {
+    return {
+      valid: false,
+      quantity: 0,
+      error: "Quantity harus berupa angka yang valid",
+    };
+  }
+
+  if (parsed < 1) {
+    return {
+      valid: false,
+      quantity: 0,
+      error: "Quantity minimal 1",
+    };
+  }
+
+  if (parsed > MAX_QUANTITY) {
+    return {
+      valid: false,
+      quantity: 0,
+      error: `Quantity maksimal ${MAX_QUANTITY}`,
+    };
+  }
+
+  // Pastikan integer bulat (bukan float)
+  if (
+    parsed !== Number(clientQuantity) &&
+    !Number.isInteger(Number(clientQuantity))
+  ) {
+    console.warn(
+      `⚠️ QUANTITY SANITIZED: float ${clientQuantity} → integer ${parsed}`,
+    );
+  }
+
+  return { valid: true, quantity: parsed };
+}
+
+// ============================================================
 // 1. Validasi & ambil harga asli item dari database
 // ============================================================
 export async function getVerifiedUnitPrice(
@@ -664,6 +730,7 @@ export async function validateSingleTransaction(body: any): Promise<{
   valid: boolean;
   error?: string;
   verified: {
+    quantity: number; // Server-verified quantity
     unitPrice: number;
     totalAmount: number;
     discountPercentage: number;
@@ -706,13 +773,40 @@ export async function validateSingleTransaction(body: any): Promise<{
     serviceType,
     serviceId,
     serviceCategory,
-    quantity,
+    quantity: rawQuantity,
     rbx5Details,
     userId,
     paymentMethodId,
     gamepassDetails,
     serviceName,
   } = body;
+
+  // 0. Validasi & enforce quantity dari server
+  const quantityCheck = getVerifiedQuantity(
+    serviceType,
+    serviceCategory,
+    rawQuantity,
+  );
+  if (!quantityCheck.valid) {
+    return {
+      valid: false,
+      error: quantityCheck.error || "Quantity tidak valid",
+      verified: {
+        quantity: 0,
+        unitPrice: 0,
+        totalAmount: 0,
+        discountPercentage: 0,
+        discountAmount: 0,
+        finalAmountBeforeFee: 0,
+        paymentFee: 0,
+        finalAmountWithFee: 0,
+        paymentMethodName: null,
+        validPaymentMethodId: null,
+        paymentMethodDoc: null,
+      },
+    };
+  }
+  const quantity = quantityCheck.quantity;
 
   // 1. Validasi harga dari DB
   const priceCheck = await getVerifiedUnitPrice(
@@ -730,6 +824,7 @@ export async function validateSingleTransaction(body: any): Promise<{
       valid: false,
       error: priceCheck.error || "Harga tidak valid",
       verified: {
+        quantity: 0,
         unitPrice: 0,
         totalAmount: 0,
         discountPercentage: 0,
@@ -834,6 +929,7 @@ export async function validateSingleTransaction(body: any): Promise<{
   return {
     valid: true,
     verified: {
+      quantity, // Server-verified quantity
       unitPrice: verifiedUnitPrice,
       totalAmount: verifiedTotalAmount,
       discountPercentage: verifiedDiscountPercentage,
@@ -868,6 +964,7 @@ export async function validateMultiTransactionItem(
 ): Promise<{
   valid: boolean;
   error?: string;
+  verifiedQuantity: number; // Server-verified quantity
   verifiedUnitPrice: number;
   verifiedTotalAmount: number;
   verifiedRobuxAmount?: number;
@@ -886,12 +983,29 @@ export async function validateMultiTransactionItem(
     serviceName: string;
   };
 }> {
+  // 0. Validasi & enforce quantity dari server
+  const quantityCheck = getVerifiedQuantity(
+    item.serviceType,
+    item.serviceCategory,
+    item.quantity,
+  );
+  if (!quantityCheck.valid) {
+    return {
+      valid: false,
+      error: `Item ${index + 1} (${item.serviceName}): ${quantityCheck.error}`,
+      verifiedQuantity: 0,
+      verifiedUnitPrice: 0,
+      verifiedTotalAmount: 0,
+    };
+  }
+  const verifiedQuantity = quantityCheck.quantity;
+
   const priceCheck = await getVerifiedUnitPrice(
     item.serviceType,
     item.serviceId,
     item.serviceCategory,
     item.rbx5Details,
-    item.quantity,
+    verifiedQuantity,
     item.gamepassDetails,
     item.serviceName,
   );
@@ -900,6 +1014,7 @@ export async function validateMultiTransactionItem(
     return {
       valid: false,
       error: `Item ${index + 1} (${item.serviceName}): ${priceCheck.error}`,
+      verifiedQuantity: 0,
       verifiedUnitPrice: 0,
       verifiedTotalAmount: 0,
     };
@@ -912,7 +1027,7 @@ export async function validateMultiTransactionItem(
     item.serviceType === "robux" &&
     (item.serviceCategory === "robux_5_hari" || item.rbx5Details)
       ? verifiedUnitPrice
-      : verifiedUnitPrice * (item.quantity || 1);
+      : verifiedUnitPrice * verifiedQuantity;
 
   // Log jika ada perbedaan
   if (item.unitPrice && Math.abs(item.unitPrice - verifiedUnitPrice) > 1) {
@@ -923,6 +1038,7 @@ export async function validateMultiTransactionItem(
 
   return {
     valid: true,
+    verifiedQuantity,
     verifiedUnitPrice,
     verifiedTotalAmount,
     verifiedRobuxAmount: priceCheck.robuxAmount,
