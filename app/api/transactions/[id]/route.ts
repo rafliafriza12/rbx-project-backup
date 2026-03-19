@@ -122,7 +122,7 @@ async function processGamepassPurchase(transaction: any) {
       await transaction.updateStatus(
         "order",
         "completed",
-        `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
+        `Gamepass berhasil dibeli`,
         null,
       );
 

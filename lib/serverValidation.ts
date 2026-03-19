@@ -24,6 +24,13 @@ export async function getVerifiedUnitPrice(
   robuxAmount?: number;
   gamepassAmount?: number;
   pricePerHundred?: number;
+  verifiedResellerDetails?: {
+    tier: number;
+    duration: number;
+    discount: number;
+    features: string[];
+  };
+  verifiedServiceName?: string;
 }> {
   await dbConnect();
 
@@ -215,7 +222,17 @@ export async function getVerifiedUnitPrice(
         };
       }
 
-      return { valid: true, unitPrice: pkg.price };
+      return {
+        valid: true,
+        unitPrice: pkg.price,
+        verifiedResellerDetails: {
+          tier: pkg.tier,
+          duration: pkg.duration,
+          discount: pkg.discount,
+          features: pkg.features || [],
+        },
+        verifiedServiceName: pkg.name,
+      };
     }
 
     // ---- JOKI ----
@@ -426,6 +443,14 @@ export async function validateSingleTransaction(body: any): Promise<{
     verifiedRobuxAmount?: number;
     verifiedGamepassAmount?: number;
     verifiedPricePerHundred?: number;
+    // Reseller verified values from DB
+    verifiedResellerDetails?: {
+      tier: number;
+      duration: number;
+      discount: number;
+      features: string[];
+    };
+    verifiedServiceName?: string;
   };
 }> {
   const {
@@ -574,6 +599,9 @@ export async function validateSingleTransaction(body: any): Promise<{
       verifiedRobuxAmount: priceCheck.robuxAmount,
       verifiedGamepassAmount: priceCheck.gamepassAmount,
       verifiedPricePerHundred: priceCheck.pricePerHundred,
+      // Reseller verified values from DB
+      verifiedResellerDetails: priceCheck.verifiedResellerDetails,
+      verifiedServiceName: priceCheck.verifiedServiceName,
     },
   };
 }

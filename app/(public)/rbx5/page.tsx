@@ -378,6 +378,11 @@ export default function Rbx5Page() {
           } else {
             console.error("Failed to parse RBX5 stats:", data);
           }
+          // Stock accounts info is now included in rbx5-stats response
+          if (data.stockAccountsInfo) {
+            setStockAccountsInfo(data.stockAccountsInfo);
+            console.log("Stock accounts info loaded:", data.stockAccountsInfo);
+          }
         } else {
           console.error("Failed to fetch RBX5 stats, status:", response.status);
           const errorData = await response.json().catch(() => null);
@@ -390,27 +395,9 @@ export default function Rbx5Page() {
       }
     };
 
-    const fetchStockAccountsInfo = async () => {
-      try {
-        const response = await fetch("/api/stock-accounts");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.stats) {
-            setStockAccountsInfo(data.stats);
-            console.log("Stock accounts info loaded:", data.stats);
-          }
-        } else {
-          console.error("Failed to fetch stock accounts info");
-        }
-      } catch (error) {
-        console.error("Error fetching stock accounts info:", error);
-      }
-    };
-
     fetchProducts();
     fetchRobuxPricing();
     fetchStats();
-    fetchStockAccountsInfo();
   }, [homepageDataProcessed, robux]); // Wait for homepage data and depend on robux value
 
   // Effect to detect robux amount changes and reset gamepass check status

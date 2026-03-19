@@ -41,6 +41,21 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+// Mask email: ra***@gmail.com
+function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return email;
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
+// Mask phone: 0812****5678
+function maskPhone(phone: string): string {
+  if (!phone || phone.length < 6) return phone;
+  const visible = Math.min(4, Math.floor(phone.length / 3));
+  return phone.slice(0, visible) + "****" + phone.slice(-4);
+}
+
 export default function TransactionDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -725,7 +740,9 @@ export default function TransactionDetailPage() {
                   <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
                     <span className="text-primary-200 font-medium">Email:</span>
                     <span className="font-semibold text-white break-all">
-                      {transaction.customerInfo.email || "N/A"}
+                      {transaction.customerInfo.email
+                        ? maskEmail(transaction.customerInfo.email)
+                        : "N/A"}
                     </span>
                   </div>
                 </div>
@@ -733,7 +750,9 @@ export default function TransactionDetailPage() {
                   <div className="flex justify-between items-center py-3 border-b border-neon-purple/20">
                     <span className="text-primary-200 font-medium">Phone:</span>
                     <span className="font-semibold text-white">
-                      {transaction.customerInfo.phone || "N/A"}
+                      {transaction.customerInfo.phone
+                        ? maskPhone(transaction.customerInfo.phone)
+                        : "N/A"}
                     </span>
                   </div>
                 </div>

@@ -96,13 +96,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check maintenance mode from cookie
-  // Cookie is set by MaintenanceChecker component after fetching from database
-  const maintenanceCookie = request.cookies.get("maintenance_mode");
-
-  if (maintenanceCookie?.value === "true") {
-    // Redirect to maintenance page
-    return NextResponse.redirect(new URL("/maintenance", request.url));
+  // Clean up any stale maintenance_mode cookie (no longer used by middleware)
+  const staleMaintenanceCookie = request.cookies.get("maintenance_mode");
+  if (staleMaintenanceCookie) {
+    const response = NextResponse.next();
+    response.cookies.delete("maintenance_mode");
+    return response;
   }
 
   return NextResponse.next();

@@ -33,15 +33,12 @@ export default function MaintenancePage({ message }: MaintenancePageProps) {
           const data = await response.json();
 
           if (data.maintenanceMode === false) {
-            // Clear the maintenance cookie
-            document.cookie = `maintenance_mode=; path=/; max-age=0; SameSite=Lax`;
-            // Redirect to home page
             router.replace("/");
           }
         }
       } catch (error) {
-        // On error, try to redirect to home anyway
-        document.cookie = `maintenance_mode=; path=/; max-age=0; SameSite=Lax`;
+        // Silently fail
+        console.error("Maintenance status check failed:", error);
       }
     };
 

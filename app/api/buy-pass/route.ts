@@ -340,12 +340,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (result.purchased) {
-      console.log(
-        `�� Pembelian berhasil! "${result.assetName}" - ${result.price} Robux dari ${result.sellerName}`,
-      );
+      console.log(`�� Pembelian berhasil!`);
       return NextResponse.json({
         success: true,
-        message: `Gamepass "${result.assetName}" berhasil dibeli seharga ${result.price} Robux`,
+        message: `Gamepass berhasil dibeli`,
         data: {
           productId: result.productId,
           assetName: result.assetName,
@@ -378,7 +376,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            message: `Gamepass sudah dimiliki oleh akun ini. ${result.errorMsg}`,
+            message: `Gamepass sudah dimiliki oleh akun ini.`,
             reason: "AlreadyOwned",
           },
           { status: 400 },

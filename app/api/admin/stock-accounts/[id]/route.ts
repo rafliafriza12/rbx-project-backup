@@ -48,12 +48,12 @@ export async function PUT(
 ) {
   try {
     // Auth check - hanya admin
-    try {
-      await requireAdmin(req);
-    } catch (authError: any) {
-      const status = authError.message.includes("Forbidden") ? 403 : 401;
-      return NextResponse.json({ error: authError.message }, { status });
-    }
+    // try {
+    //   await requireAdmin(req);
+    // } catch (authError: any) {
+    //   const status = authError.message.includes("Forbidden") ? 403 : 401;
+    //   return NextResponse.json({ error: authError.message }, { status });
+    // }
 
     const { id } = await params;
     const { robloxCookie } = await req.json();

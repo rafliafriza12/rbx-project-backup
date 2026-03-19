@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
 
+// Simple in-memory rate limiter for review submissions
+const reviewRateLimit = new Map<string, { count: number; resetAt: number }>();
+const REVIEW_RATE_LIMIT = 3; // max reviews
+const REVIEW_RATE_WINDOW = 60 * 60 * 1000; // per 1 hour
+
+function isReviewRateLimited(identifier: string): boolean {
+  const now = Date.now();
+  const entry = reviewRateLimit.get(identifier);
+
+  if (!entry || now > entry.resetAt) {
+    reviewRateLimit.set(identifier, {
+      count: 1,
+      resetAt: now + REVIEW_RATE_WINDOW,
+    });
+    return false;
+  }
+
+  if (entry.count >= REVIEW_RATE_LIMIT) {
+    return true;
+  }
+
+  entry.count++;
+  return false;
+}
+
 // GET - Get all approved reviews
 export async function GET(request: Request) {
   try {
@@ -52,7 +77,7 @@ export async function GET(request: Request) {
     console.error("Error fetching reviews:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -61,6 +86,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await dbConnect();
+
+    // Rate limit by IP
+    const forwarded = (request as any).headers?.get?.("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || "unknown";
+    if (isReviewRateLimited(ip)) {
+      return NextResponse.json(
+        { success: false, error: "Terlalu banyak review. Coba lagi nanti." },
+        { status: 429 },
+      );
+    }
 
     const body = await request.json();
     const {
@@ -77,7 +112,7 @@ export async function POST(request: Request) {
     if (!username || !serviceType || !rating || !comment) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -85,7 +120,25 @@ export async function POST(request: Request) {
     if (rating < 1 || rating > 5) {
       return NextResponse.json(
         { success: false, error: "Rating must be between 1 and 5" },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    // Cek duplicate review dari username yang sama untuk service yang sama
+    const existingReview = await Review.findOne({
+      username: username,
+      serviceType: serviceType,
+      ...(serviceCategory && { serviceCategory }),
+      ...(serviceId && { serviceId }),
+    });
+
+    if (existingReview) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Anda sudah pernah memberikan review untuk layanan ini",
+        },
+        { status: 400 },
       );
     }
 
@@ -96,7 +149,7 @@ export async function POST(request: Request) {
           success: false,
           error: "Service category is required for robux type",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -111,7 +164,7 @@ export async function POST(request: Request) {
           error:
             "Service ID and service name are required for joki and gamepass",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -134,13 +187,13 @@ export async function POST(request: Request) {
         message: "Review submitted successfully and waiting for approval",
         data: review,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error creating review:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

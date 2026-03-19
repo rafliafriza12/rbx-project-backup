@@ -17,6 +17,10 @@ export default async function Maintenance() {
 
     return <MaintenancePage message={settings.maintenanceMessage} />;
   } catch (error) {
+    // Don't catch redirect errors (Next.js throws NEXT_REDIRECT)
+    if (error && typeof error === "object" && "digest" in error) {
+      throw error;
+    }
     console.error("Error loading maintenance page:", error);
     return <MaintenancePage />;
   }

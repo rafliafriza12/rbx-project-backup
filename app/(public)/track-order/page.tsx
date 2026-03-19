@@ -33,6 +33,21 @@ interface SiteSettings {
   youtubeUrl?: string;
 }
 
+// Mask email: ra***@gmail.com
+function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return email;
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
+// Mask phone: 0812****5678
+function maskPhone(phone: string): string {
+  if (!phone || phone.length < 6) return phone;
+  const visible = Math.min(4, Math.floor(phone.length / 3));
+  return phone.slice(0, visible) + "****" + phone.slice(-4);
+}
+
 export default function TrackOrderPage() {
   const [invoiceId, setInvoiceId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -665,7 +680,7 @@ export default function TrackOrderPage() {
                           </div>
 
                           {/* Gamepass Information */}
-                          {transaction.gamepass && (
+                          {/* {transaction.gamepass && (
                             <>
                               <div className="border-t border-white/20 pt-3">
                                 <h4 className="text-white font-medium mb-2 text-sm">
@@ -705,7 +720,7 @@ export default function TrackOrderPage() {
                                 </span>
                               </div>
                             </>
-                          )}
+                          )} */}
 
                           {/* Service Category Information */}
                           {transaction.serviceCategory && (
@@ -755,15 +770,17 @@ export default function TrackOrderPage() {
                         <div className="flex justify-between">
                           <span className="text-white/60">Email:</span>
                           <span className="font-medium text-white break-all">
-                            {transaction.customerInfo?.email ||
-                              "Tidak tersedia"}
+                            {transaction.customerInfo?.email
+                              ? maskEmail(transaction.customerInfo.email)
+                              : "Tidak tersedia"}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-white/60">Telepon:</span>
                           <span className="font-medium text-white break-all">
-                            {transaction.customerInfo?.phone ||
-                              "Tidak tersedia"}
+                            {transaction.customerInfo?.phone
+                              ? maskPhone(transaction.customerInfo.phone)
+                              : "Tidak tersedia"}
                           </span>
                         </div>
 

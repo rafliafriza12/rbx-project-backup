@@ -14,6 +14,53 @@ import {
 } from "@/lib/serverValidation";
 import { notifyNewTransaction } from "@/lib/discord";
 
+// Rate limiter for transaction creation (anti invoice spam)
+const txRateLimitStore = new Map<
+  string,
+  { count: number; resetAt: number; lastCreatedAt: number }
+>();
+const TX_RATE_LIMIT = 5; // max 5 transactions
+const TX_RATE_WINDOW = 10 * 60 * 1000; // per 10 minutes
+const TX_COOLDOWN = 30 * 1000; // 30 seconds cooldown between transactions
+
+function isTxRateLimited(identifier: string): {
+  limited: boolean;
+  message?: string;
+} {
+  const now = Date.now();
+  const entry = txRateLimitStore.get(identifier);
+
+  if (!entry || now > entry.resetAt) {
+    txRateLimitStore.set(identifier, {
+      count: 1,
+      resetAt: now + TX_RATE_WINDOW,
+      lastCreatedAt: now,
+    });
+    return { limited: false };
+  }
+
+  const timeSinceLast = now - entry.lastCreatedAt;
+  if (timeSinceLast < TX_COOLDOWN) {
+    const waitSeconds = Math.ceil((TX_COOLDOWN - timeSinceLast) / 1000);
+    return {
+      limited: true,
+      message: `Tunggu ${waitSeconds} detik sebelum membuat transaksi baru`,
+    };
+  }
+
+  if (entry.count >= TX_RATE_LIMIT) {
+    const waitMinutes = Math.ceil((entry.resetAt - now) / 60000);
+    return {
+      limited: true,
+      message: `Terlalu banyak transaksi. Coba lagi dalam ${waitMinutes} menit`,
+    };
+  }
+
+  entry.count++;
+  entry.lastCreatedAt = now;
+  return { limited: false };
+}
+
 // GET - Ambil semua transaksi user atau admin
 export async function GET(request: NextRequest) {
   try {
@@ -365,6 +412,18 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+
+    // Rate limit check — use userId or guest email as identifier
+    const rateLimitKey =
+      body.userId ||
+      body.customerInfo?.email ||
+      request.headers.get("x-forwarded-for") ||
+      "unknown";
+    const txRateCheck = isTxRateLimited(rateLimitKey);
+    if (txRateCheck.limited) {
+      return NextResponse.json({ error: txRateCheck.message }, { status: 429 });
+    }
+
     console.log("=== API TRANSACTION DEBUG ===");
     console.log("Received body:", JSON.stringify(body, null, 2));
 
@@ -1262,6 +1321,8 @@ async function handleSingleItemTransaction(body: any) {
     verifiedRobuxAmount,
     verifiedGamepassAmount,
     verifiedPricePerHundred,
+    verifiedResellerDetails,
+    verifiedServiceName,
   } = validation.verified;
 
   console.log("✅ Server-side validation passed. Using verified values:");
@@ -1279,7 +1340,8 @@ async function handleSingleItemTransaction(body: any) {
   const transactionData: any = {
     serviceType,
     serviceId,
-    serviceName,
+    // For reseller, use verified name from DB to prevent spoofing
+    serviceName: verifiedServiceName || serviceName,
     serviceImage,
     quantity,
     unitPrice: verifiedUnitPrice,
@@ -1325,7 +1387,8 @@ async function handleSingleItemTransaction(body: any) {
         }
       : undefined,
     gamepassDetails: gamepassDetails || undefined,
-    resellerDetails: resellerDetails || undefined, // Add resellerDetails
+    // SANITIZE resellerDetails: use verified data from DB, NOT from frontend
+    resellerDetails: verifiedResellerDetails || undefined,
     paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
     paymentMethodName: paymentMethodName,
     customerInfo: {

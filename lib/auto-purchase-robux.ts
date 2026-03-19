@@ -300,7 +300,7 @@ export async function autoPurchasePendingRobux(
           await transaction.updateStatus(
             "order",
             "completed",
-            `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
+            `Gamepass berhasil dibeli `,
             null,
           );
 

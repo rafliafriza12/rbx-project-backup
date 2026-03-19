@@ -8,6 +8,55 @@ import nodemailer from "nodemailer";
 // Store OTPs temporarily (in production, use Redis or similar)
 const otpStore = new Map<string, { code: string; expiresAt: number }>();
 
+// Rate limiter for OTP requests (per email)
+const otpRateLimit = new Map<
+  string,
+  { count: number; resetAt: number; lastSentAt: number }
+>();
+const OTP_RATE_LIMIT = 5; // max OTP requests
+const OTP_RATE_WINDOW = 15 * 60 * 1000; // per 15 minutes
+const OTP_COOLDOWN = 60 * 1000; // 60 seconds between OTP requests
+
+function isOtpRateLimited(email: string): {
+  limited: boolean;
+  message?: string;
+} {
+  const now = Date.now();
+  const key = email.toLowerCase();
+  const entry = otpRateLimit.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    otpRateLimit.set(key, {
+      count: 1,
+      resetAt: now + OTP_RATE_WINDOW,
+      lastSentAt: now,
+    });
+    return { limited: false };
+  }
+
+  // Cooldown check (minimum interval between requests)
+  const timeSinceLast = now - entry.lastSentAt;
+  if (timeSinceLast < OTP_COOLDOWN) {
+    const waitSeconds = Math.ceil((OTP_COOLDOWN - timeSinceLast) / 1000);
+    return {
+      limited: true,
+      message: `Tunggu ${waitSeconds} detik sebelum mengirim OTP lagi`,
+    };
+  }
+
+  if (entry.count >= OTP_RATE_LIMIT) {
+    const waitMinutes = Math.ceil((entry.resetAt - now) / 60000);
+    return {
+      limited: true,
+      message: `Terlalu banyak permintaan OTP. Coba lagi dalam ${waitMinutes} menit`,
+    };
+  }
+
+  entry.count++;
+  entry.lastSentAt = now;
+  return { limited: false };
+}
+
 // Generate 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -28,8 +77,14 @@ export async function POST(request: NextRequest) {
     if (!validateEmail(email)) {
       return NextResponse.json(
         { error: "Format email tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
+    }
+
+    // Rate limit check
+    const rateCheck = isOtpRateLimited(email);
+    if (rateCheck.limited) {
+      return NextResponse.json({ error: rateCheck.message }, { status: 429 });
     }
 
     // Check if user already exists
@@ -37,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { error: "Email sudah terdaftar" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (!settings || !settings.emailUser || !settings.emailPassword) {
       return NextResponse.json(
         { error: "Konfigurasi email belum diatur. Silakan hubungi admin." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -172,20 +227,20 @@ export async function POST(request: NextRequest) {
           success: true,
           message: "Kode OTP telah dikirim ke email Anda",
         },
-        { status: 200 }
+        { status: 200 },
       );
     } catch (emailError) {
       console.error("Error sending email:", emailError);
       return NextResponse.json(
         { error: "Gagal mengirim email OTP. Silakan coba lagi." },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error) {
     console.error("Send OTP error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
