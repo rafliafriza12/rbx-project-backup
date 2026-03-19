@@ -66,7 +66,6 @@ export default function AdminRbx5StatsPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching stats config:", error);
       toast.error("Gagal memuat konfigurasi statistik");
     } finally {
       setLoading(false);
@@ -107,7 +106,6 @@ export default function AdminRbx5StatsPage() {
         toast.error(data.message || "Gagal menyimpan");
       }
     } catch (error) {
-      console.error("Error saving stats config:", error);
       toast.error("Gagal menyimpan konfigurasi");
     } finally {
       setSaving(false);

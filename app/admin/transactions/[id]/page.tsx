@@ -104,7 +104,6 @@ export default function TransactionDetailPage() {
         router.push("/admin/transactions");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to fetch transaction");
       router.push("/admin/transactions");
     } finally {
@@ -178,7 +177,7 @@ export default function TransactionDetailPage() {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -191,7 +190,6 @@ export default function TransactionDetailPage() {
         toast.error(data.error || "Failed to process gamepass purchase");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to process gamepass purchase");
     } finally {
       setProcessingPurchase(false);
@@ -208,10 +206,6 @@ export default function TransactionDetailPage() {
     transaction?.paymentStatus === "settlement" &&
     transaction?.orderStatus === "pending" &&
     transaction?.gamepass;
-
-  console.log("isrobux 5 hari : ", isRobux5Hari);
-  console.log("showManualPurchaseButton : ", showManualPurchaseButton);
-  console.log("transaction data : ", transaction);
 
   if (loading) {
     return (
@@ -372,7 +366,7 @@ export default function TransactionDetailPage() {
                         <span className="text-[#94a3b8]">Final Amount:</span>
                         <span className="font-medium text-[#f1f5f9]">
                           {formatCurrency(
-                            transaction.finalAmount || transaction.totalAmount
+                            transaction.finalAmount || transaction.totalAmount,
                           )}
                         </span>
                       </div>
@@ -653,7 +647,7 @@ export default function TransactionDetailPage() {
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-400">
                         {formatCurrency(
-                          calculateGrandTotal(transaction as any)
+                          calculateGrandTotal(transaction as any),
                         )}
                       </div>
                     </div>

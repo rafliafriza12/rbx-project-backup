@@ -67,12 +67,10 @@ export default function DashboardPage() {
     try {
       const response = await fetch("/api/admin/dashboard");
       const data = await response.json();
-      console.log(data);
 
       setStats(data.stats);
       setRecentTransactions(data.recentTransactions);
     } catch (error) {
-      console.error("Error:", error);
     } finally {
       setDataLoading(false);
     }
@@ -228,7 +226,7 @@ export default function DashboardPage() {
                     style={{
                       width: `${calculatePercentage(
                         stats?.pendingOrders || 0,
-                        getTotalOrders()
+                        getTotalOrders(),
                       )}%`,
                     }}
                   ></div>
@@ -236,7 +234,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-semibold text-[#f1f5f9]">
                   {calculatePercentage(
                     stats?.pendingOrders || 0,
-                    getTotalOrders()
+                    getTotalOrders(),
                   )}
                   %
                 </span>
@@ -251,7 +249,7 @@ export default function DashboardPage() {
                     style={{
                       width: `${calculatePercentage(
                         stats?.successOrders || 0,
-                        getTotalOrders()
+                        getTotalOrders(),
                       )}%`,
                     }}
                   ></div>
@@ -259,7 +257,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-semibold text-[#f1f5f9]">
                   {calculatePercentage(
                     stats?.successOrders || 0,
-                    getTotalOrders()
+                    getTotalOrders(),
                   )}
                   %
                 </span>
@@ -274,7 +272,7 @@ export default function DashboardPage() {
                     style={{
                       width: `${calculatePercentage(
                         stats?.failedOrders || 0,
-                        getTotalOrders()
+                        getTotalOrders(),
                       )}%`,
                     }}
                   ></div>
@@ -282,7 +280,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-semibold text-[#f1f5f9]">
                   {calculatePercentage(
                     stats?.failedOrders || 0,
-                    getTotalOrders()
+                    getTotalOrders(),
                   )}
                   %
                 </span>

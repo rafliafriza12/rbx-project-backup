@@ -17,7 +17,7 @@ export default function EmailManagementPage() {
     email: "",
   });
   const [searchType, setSearchType] = useState<"transactionId" | "invoiceId">(
-    "invoiceId"
+    "invoiceId",
   );
 
   const handleInputChange = (field: keyof ResendInvoiceForm, value: string) => {
@@ -64,7 +64,6 @@ export default function EmailManagementPage() {
         toast.error(data.error || "Gagal mengirim email invoice");
       }
     } catch (error) {
-      console.error("Error resending invoice:", error);
       toast.error("Terjadi kesalahan saat mengirim email");
     } finally {
       setIsResending(false);

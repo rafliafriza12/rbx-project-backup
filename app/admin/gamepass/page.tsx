@@ -32,7 +32,7 @@ export default function AdminGamepassPage() {
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingGamepass, setEditingGamepass] = useState<GamepassData | null>(
-    null
+    null,
   );
   const [pricePerRobux, setPricePerRobux] = useState(100); // NEW: Harga per Robux
   const { user } = useAuth();
@@ -45,9 +45,7 @@ export default function AdminGamepassPage() {
       if (data.success) {
         setPricePerRobux(data.data.pricePerRobux);
       }
-    } catch (error) {
-      console.error("Error fetching robux setting:", error);
-    }
+    } catch (error) {}
   };
 
   // Fetch gamepasses
@@ -63,7 +61,6 @@ export default function AdminGamepassPage() {
         setError(data.error || "Gagal memuat gamepass");
       }
     } catch (error) {
-      console.error("Error fetching gamepasses:", error);
       setError("Terjadi kesalahan saat memuat gamepass");
     } finally {
       setLoading(false);
@@ -98,7 +95,6 @@ export default function AdminGamepassPage() {
         toast.error(data.error || "Gagal membuat gamepass");
       }
     } catch (error) {
-      console.error("Error creating gamepass:", error);
       toast.error("Terjadi kesalahan saat membuat gamepass");
     }
   };
@@ -106,8 +102,6 @@ export default function AdminGamepassPage() {
   // Update gamepass
   const handleUpdate = async (updatedGamepass: GamepassData) => {
     try {
-      console.log("Updating gamepass with data:", updatedGamepass);
-
       const response = await fetch(`/api/gamepass/${updatedGamepass._id}`, {
         method: "PUT",
         headers: {
@@ -117,13 +111,12 @@ export default function AdminGamepassPage() {
       });
 
       const data = await response.json();
-      console.log("Update response:", data);
 
       if (data.success) {
         setGamepasses(
           gamepasses.map((gp) =>
-            gp._id === updatedGamepass._id ? data.data : gp
-          )
+            gp._id === updatedGamepass._id ? data.data : gp,
+          ),
         );
         setEditingGamepass(null);
         toast.success("Gamepass berhasil diperbarui!");
@@ -131,7 +124,6 @@ export default function AdminGamepassPage() {
         toast.error(data.error || "Gagal memperbarui gamepass");
       }
     } catch (error) {
-      console.error("Error updating gamepass:", error);
       toast.error("Terjadi kesalahan saat memperbarui gamepass");
     }
   };
@@ -156,7 +148,6 @@ export default function AdminGamepassPage() {
         toast.error(data.error || "Gagal menghapus gamepass");
       }
     } catch (error) {
-      console.error("Error deleting gamepass:", error);
       toast.error("Terjadi kesalahan saat menghapus gamepass");
     }
   };
@@ -165,7 +156,7 @@ export default function AdminGamepassPage() {
   const toggleHomepage = async (id: string, currentStatus: boolean) => {
     // Check if trying to enable homepage when already at limit
     const currentHomepageCount = gamepasses.filter(
-      (gp) => gp.showOnHomepage
+      (gp) => gp.showOnHomepage,
     ).length;
     if (!currentStatus && currentHomepageCount >= 3) {
       toast.warning("Maksimal 3 gamepass yang dapat ditampilkan di homepage");
@@ -186,21 +177,20 @@ export default function AdminGamepassPage() {
       if (data.success) {
         setGamepasses(
           gamepasses.map((gp) =>
-            gp._id === id ? { ...gp, showOnHomepage: !currentStatus } : gp
-          )
+            gp._id === id ? { ...gp, showOnHomepage: !currentStatus } : gp,
+          ),
         );
         toast.success(
           `Gamepass ${
             !currentStatus ? "ditambahkan ke" : "dihapus dari"
-          } homepage`
+          } homepage`,
         );
       } else {
         toast.error(
-          data.message || data.error || "Gagal mengubah status homepage"
+          data.message || data.error || "Gagal mengubah status homepage",
         );
       }
     } catch (error) {
-      console.error("Error toggling homepage:", error);
       toast.error("Terjadi kesalahan saat mengubah status homepage");
     }
   };
@@ -354,7 +344,7 @@ export default function AdminGamepassPage() {
                         {gamepass.item
                           .reduce(
                             (acc, item) => acc + (item.robuxAmount ?? 0),
-                            0
+                            0,
                           )
                           .toLocaleString()}{" "}
                         Robux
@@ -366,7 +356,7 @@ export default function AdminGamepassPage() {
                             (acc, item) =>
                               acc +
                               (item.price || item.robuxAmount * pricePerRobux),
-                            0
+                            0,
                           )
                           .toLocaleString()}
                       </div>
@@ -374,7 +364,7 @@ export default function AdminGamepassPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {(() => {
                         const currentHomepageCount = gamepasses.filter(
-                          (gp) => gp.showOnHomepage
+                          (gp) => gp.showOnHomepage,
                         ).length;
                         const canToggle =
                           gamepass.showOnHomepage || currentHomepageCount < 3;
@@ -384,7 +374,7 @@ export default function AdminGamepassPage() {
                             onClick={() =>
                               toggleHomepage(
                                 gamepass._id!,
-                                gamepass.showOnHomepage
+                                gamepass.showOnHomepage,
                               )
                             }
                             disabled={!canToggle}
@@ -392,8 +382,8 @@ export default function AdminGamepassPage() {
                               gamepass.showOnHomepage
                                 ? "bg-green-100 text-green-800"
                                 : canToggle
-                                ? "bg-gray-100 text-[#1e293b] hover:bg-gray-200"
-                                : "bg-red-100 text-red-800 cursor-not-allowed opacity-60"
+                                  ? "bg-gray-100 text-[#1e293b] hover:bg-gray-200"
+                                  : "bg-red-100 text-red-800 cursor-not-allowed opacity-60"
                             }`}
                             title={
                               !canToggle
@@ -404,8 +394,8 @@ export default function AdminGamepassPage() {
                             {gamepass.showOnHomepage
                               ? "Aktif"
                               : canToggle
-                              ? "Nonaktif"
-                              : "Limit"}
+                                ? "Nonaktif"
+                                : "Limit"}
                           </button>
                         );
                       })()}
@@ -414,7 +404,7 @@ export default function AdminGamepassPage() {
                       <div className="text-sm text-[#f1f5f9]">
                         {gamepass.createdAt
                           ? new Date(gamepass.createdAt).toLocaleDateString(
-                              "id-ID"
+                              "id-ID",
                             )
                           : "-"}
                       </div>

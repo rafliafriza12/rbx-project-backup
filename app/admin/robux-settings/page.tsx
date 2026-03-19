@@ -50,7 +50,6 @@ export default function RobuxSettingsPage() {
         toast.error(result.error || "Gagal mengambil setting");
       }
     } catch (error) {
-      console.error("Error fetching setting:", error);
       toast.error("Gagal mengambil setting");
     } finally {
       setLoading(false);
@@ -88,7 +87,6 @@ export default function RobuxSettingsPage() {
         toast.error(result.error || "Gagal menyimpan setting");
       }
     } catch (error) {
-      console.error("Error saving setting:", error);
       toast.error("Gagal menyimpan setting");
     } finally {
       setSaving(false);

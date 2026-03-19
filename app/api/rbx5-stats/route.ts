@@ -52,33 +52,9 @@ export async function GET(request: NextRequest) {
         mode: "manual" as const,
       };
 
-      // Stock accounts info (public stats only - no sensitive data)
-      const allStockAccounts = await StockAccount.find({}).select(
-        "robux status",
-      );
-      const activeAccounts = allStockAccounts.filter(
-        (acc) => acc.status === "active",
-      ).length;
-      const inactiveAccounts = allStockAccounts.filter(
-        (acc) => acc.status === "inactive",
-      ).length;
-      const totalRobuxPublic = allStockAccounts
-        .filter((acc) => acc.status === "active")
-        .reduce((sum, acc) => sum + (acc.robux || 0), 0);
-
       return NextResponse.json({
         success: true,
         data: stats,
-        stockAccountsInfo: {
-          totalAccounts: allStockAccounts.length,
-          activeAccounts,
-          inactiveAccounts,
-          totalRobux: totalRobuxPublic,
-          averageRobuxPerAccount:
-            activeAccounts > 0
-              ? Math.round(totalRobuxPublic / activeAccounts)
-              : 0,
-        },
       });
     }
 
@@ -133,28 +109,9 @@ export async function GET(request: NextRequest) {
       mode: "auto" as const,
     };
 
-    // Stock accounts info for public display
-    const allStockAccounts = await StockAccount.find({}).select("robux status");
-    const activeAccountCount = allStockAccounts.filter(
-      (acc) => acc.status === "active",
-    ).length;
-    const inactiveAccountCount = allStockAccounts.filter(
-      (acc) => acc.status === "inactive",
-    ).length;
-
     return NextResponse.json({
       success: true,
       data: stats,
-      stockAccountsInfo: {
-        totalAccounts: allStockAccounts.length,
-        activeAccounts: activeAccountCount,
-        inactiveAccounts: inactiveAccountCount,
-        totalRobux: totalStok,
-        averageRobuxPerAccount:
-          activeAccountCount > 0
-            ? Math.round(totalStok / activeAccountCount)
-            : 0,
-      },
     });
   } catch (error) {
     console.error("Error fetching RBX5 stats:", error);

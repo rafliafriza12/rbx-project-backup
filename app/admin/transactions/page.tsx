@@ -88,24 +88,18 @@ export default function TransactionsPage() {
         ...(filters.dateTo && { dateTo: filters.dateTo }),
       });
 
-      console.log("Fetching transactions with params:", params.toString());
       const response = await fetch(`/api/transactions?${params}`);
       const data = await response.json();
-      console.log("API Response status:", response.status);
-      console.log("API Response data:", data);
 
       if (response.ok) {
-        console.log("Setting transactions count:", data.data?.length || 0);
         setTransactions(data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalTransactions(data.pagination?.total || 0);
       } else {
-        console.error("API Error:", data);
         setTransactions([]);
         toast.error(data.error || "Failed to fetch transactions");
       }
     } catch (error) {
-      console.error("Error:", error);
       setTransactions([]);
       toast.error("Failed to fetch transactions");
     } finally {
@@ -122,7 +116,7 @@ export default function TransactionsPage() {
   const handleUpdateStatus = async (
     transactionId: string,
     newStatus: string,
-    statusType: "payment" | "order"
+    statusType: "payment" | "order",
   ) => {
     try {
       setIsUpdating(true);
@@ -143,7 +137,7 @@ export default function TransactionsPage() {
         // Show different message for settlement status update
         if (statusType === "payment" && newStatus === "settlement") {
           toast.success(
-            `Payment status updated to settlement. User's spent money has been updated.`
+            `Payment status updated to settlement. User's spent money has been updated.`,
           );
         } else {
           toast.success(`${statusType} status updated successfully`);
@@ -157,7 +151,6 @@ export default function TransactionsPage() {
         toast.error(data.error || "Failed to update status");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to update status");
     } finally {
       setIsUpdating(false);
@@ -198,7 +191,7 @@ export default function TransactionsPage() {
   const handleDeleteTransaction = async (transactionId: string) => {
     if (
       !confirm(
-        "Are you sure you want to delete this transaction? This action cannot be undone."
+        "Are you sure you want to delete this transaction? This action cannot be undone.",
       )
     )
       return;
@@ -216,7 +209,6 @@ export default function TransactionsPage() {
         toast.error(data.error || "Failed to delete transaction");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to delete transaction");
     }
   };
@@ -252,7 +244,6 @@ export default function TransactionsPage() {
         toast.error("Failed to export data");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to export data");
     }
   };
@@ -668,8 +659,8 @@ export default function TransactionsPage() {
                       t.paymentStatus === "settlement"
                         ? sum + calculateGrandTotal(t as any)
                         : sum,
-                    0
-                  )
+                    0,
+                  ),
                 )}
               </p>
             </div>
@@ -697,7 +688,7 @@ export default function TransactionsPage() {
               <p className="text-2xl font-bold text-[#f1f5f9]">
                 {
                   (transactions || []).filter(
-                    (t) => t.orderStatus === "completed"
+                    (t) => t.orderStatus === "completed",
                   ).length
                 }
               </p>
@@ -728,7 +719,7 @@ export default function TransactionsPage() {
                   (transactions || []).filter(
                     (t) =>
                       t.orderStatus === "processing" ||
-                      t.orderStatus === "pending"
+                      t.orderStatus === "pending",
                   ).length
                 }
               </p>
@@ -761,7 +752,7 @@ export default function TransactionsPage() {
                   (transactions || []).filter(
                     (t) =>
                       t.paymentStatus === "failed" ||
-                      t.orderStatus === "cancelled"
+                      t.orderStatus === "cancelled",
                   ).length
                 }
               </p>
@@ -863,10 +854,10 @@ export default function TransactionsPage() {
                 {/* Amount with discount info */}
                 {(() => {
                   const modalPaymentFee = getPaymentFee(
-                    selectedTransaction as any
+                    selectedTransaction as any,
                   );
                   const modalGrandTotal = calculateGrandTotal(
-                    selectedTransaction as any
+                    selectedTransaction as any,
                   );
 
                   return (
@@ -890,7 +881,7 @@ export default function TransactionsPage() {
                             <span className="text-green-400">
                               -
                               {formatCurrency(
-                                selectedTransaction.discountAmount || 0
+                                selectedTransaction.discountAmount || 0,
                               )}
                             </span>
                           </div>
@@ -900,7 +891,7 @@ export default function TransactionsPage() {
                             </span>{" "}
                             {formatCurrency(
                               selectedTransaction.finalAmount ||
-                                selectedTransaction.totalAmount
+                                selectedTransaction.totalAmount,
                             )}
                           </div>
                         </>

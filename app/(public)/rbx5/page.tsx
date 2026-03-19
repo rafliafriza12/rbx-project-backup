@@ -59,14 +59,6 @@ interface RBX5Stats {
   hargaPer100Robux: number;
 }
 
-interface StockAccountsInfo {
-  totalAccounts: number;
-  activeAccounts: number;
-  inactiveAccounts: number;
-  totalRobux: number;
-  averageRobuxPerAccount: number;
-}
-
 interface SiteSettings {
   whatsappNumber?: string;
   instagramUrl?: string;
@@ -93,9 +85,6 @@ export default function Rbx5Page() {
     hargaPer100Robux: 13000,
   });
   const [loadingStats, setLoadingStats] = useState(true);
-  const [stockAccountsInfo, setStockAccountsInfo] =
-    useState<StockAccountsInfo | null>(null);
-  const [showStockInfo, setShowStockInfo] = useState(false);
 
   // Place selection states
   const [userPlaces, setUserPlaces] = useState<UserPlace[]>([]);
@@ -148,7 +137,6 @@ export default function Rbx5Page() {
         });
       }
     } catch (error) {
-      console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
     }
@@ -171,7 +159,6 @@ export default function Rbx5Page() {
         setPlacesError(data.message || "Gagal mengambil data place");
       }
     } catch (error) {
-      console.error("Error fetching user places:", error);
       setUserPlaces([]);
       setPlacesError("Terjadi kesalahan saat mengambil data place");
     } finally {
@@ -209,7 +196,6 @@ export default function Rbx5Page() {
         setGamepassInstructionShown(false);
       }
     } catch (error) {
-      console.error("Error searching user:", error);
       setUserInfo(null);
       setUserSearchError("Terjadi kesalahan saat mencari user");
     } finally {
@@ -265,14 +251,11 @@ export default function Rbx5Page() {
     const checkHomepageData = () => {
       try {
         const storedData = sessionStorage.getItem("rbx5InputData");
-        console.log("Checking for homepage data:", storedData);
 
         if (storedData) {
           const data = JSON.parse(storedData);
-          console.log("Parsed homepage data:", data);
 
           if (data.fromHomePage && data.robuxAmount) {
-            console.log("Setting RBX amount from homepage:", data.robuxAmount);
             setRobux(data.robuxAmount);
             setIsFromHomepage(true);
             setHomepageDataProcessed(true);
@@ -286,21 +269,11 @@ export default function Rbx5Page() {
               const thumbWidth = 50;
               const offset = percent * (estimatedSliderWidth - thumbWidth);
 
-              console.log("Immediate thumb calculation:", {
-                robux: robuxValue,
-                percent,
-                estimatedSliderWidth,
-                thumbWidth,
-                offset,
-                finalPosition: `${offset}px`,
-              });
-
               return `${offset}px`;
             };
 
             const newThumbLeft = calculateThumbPosition(data.robuxAmount);
             setThumbLeft(newThumbLeft);
-            console.log("Set thumbLeft immediately to:", newThumbLeft);
 
             // Clear the data so it doesn't persist on page refresh
             sessionStorage.removeItem("rbx5InputData");
@@ -308,11 +281,9 @@ export default function Rbx5Page() {
             setHomepageDataProcessed(true);
           }
         } else {
-          console.log("No homepage data found in sessionStorage");
           setHomepageDataProcessed(true);
         }
       } catch (error) {
-        console.error("Error reading homepage data:", error);
         setHomepageDataProcessed(true);
       }
     };
@@ -343,10 +314,8 @@ export default function Rbx5Page() {
             // setRobux(0); - Remove this line to avoid resetting homepage value
           }
         } else {
-          console.error("Failed to fetch products");
         }
       } catch (error) {
-        console.error("Error fetching products:", error);
       } finally {
         setLoading(false);
       }
@@ -361,9 +330,7 @@ export default function Rbx5Page() {
             setCurrentRobuxPricing(data.data);
           }
         }
-      } catch (error) {
-        console.error("Error fetching robux pricing:", error);
-      }
+      } catch (error) {}
     };
 
     const fetchStats = async () => {
@@ -371,25 +338,14 @@ export default function Rbx5Page() {
         const response = await fetch("/api/rbx5-stats");
         if (response.ok) {
           const data = await response.json();
-          console.log("data rbx : ", data);
           if (data.success && data.data) {
             setStats(data.data);
-            console.log("RBX5 Stats loaded:", data.data);
           } else {
-            console.error("Failed to parse RBX5 stats:", data);
-          }
-          // Stock accounts info is now included in rbx5-stats response
-          if (data.stockAccountsInfo) {
-            setStockAccountsInfo(data.stockAccountsInfo);
-            console.log("Stock accounts info loaded:", data.stockAccountsInfo);
           }
         } else {
-          console.error("Failed to fetch RBX5 stats, status:", response.status);
           const errorData = await response.json().catch(() => null);
-          console.error("Error details:", errorData);
         }
       } catch (error) {
-        console.error("Error fetching RBX5 stats:", error);
       } finally {
         setLoadingStats(false);
       }
@@ -506,10 +462,6 @@ export default function Rbx5Page() {
         return;
       }
 
-      console.log(
-        `🔍 Checking gamepass for Place ID: ${placeId}, expected price: ${expectedRobux} Robux`,
-      );
-
       // Use Universe-based GamePass API with placeId
       // This endpoint returns all gamepasses for a specific universe/place
       const response = await fetch(
@@ -524,15 +476,7 @@ export default function Rbx5Page() {
 
       // Log result
       if (data.success) {
-        console.log(
-          `✅ GamePass found! Name: ${data.gamepass?.name}, Price: ${data.gamepass?.price} Robux`,
-        );
       } else {
-        console.log(
-          `❌ GamePass not found. Total gamepasses: ${
-            data.allGamepasses?.length || 0
-          }`,
-        );
       }
 
       setGamepassCheckResult(data);
@@ -573,7 +517,6 @@ export default function Rbx5Page() {
         });
       }
     } catch (error) {
-      console.error("Error checking gamepass:", error);
       toast.error(
         "Terjadi kesalahan saat memeriksa GamePass. Silakan coba lagi.",
         {
@@ -604,7 +547,6 @@ export default function Rbx5Page() {
     const updateThumb = () => {
       const slider = sliderRef.current;
       if (!slider) {
-        console.log("Slider ref not found during regular update");
         return;
       }
 
@@ -613,15 +555,6 @@ export default function Rbx5Page() {
       const sliderWidth = slider.offsetWidth;
       const thumbWidth = 50;
       const offset = percent * (sliderWidth - thumbWidth);
-
-      console.log("Regular update calculation:", {
-        robux,
-        percent,
-        sliderWidth,
-        thumbWidth,
-        offset,
-        finalPosition: `${offset}px`,
-      });
 
       setThumbLeft(`${offset}px`);
     };
@@ -691,14 +624,12 @@ export default function Rbx5Page() {
     ];
 
     // Store in sessionStorage for checkout page
-    console.log("Storing RBX5 checkout data:", checkoutItems); // Debug log
 
     if (typeof window !== "undefined") {
       sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
 
       // Verify data was stored
       const stored = sessionStorage.getItem("checkoutData");
-      console.log("Verified stored RBX5 data:", stored); // Debug log
     }
 
     router.push("/checkout");
@@ -723,11 +654,7 @@ export default function Rbx5Page() {
   const refreshStats = async () => {
     setLoadingStats(true);
     try {
-      // Fetch both stats and stock accounts info in parallel
-      const [statsResponse, stockResponse] = await Promise.all([
-        fetch("/api/rbx5-stats"),
-        fetch("/api/stock-accounts"),
-      ]);
+      const statsResponse = await fetch("/api/rbx5-stats");
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
@@ -736,19 +663,11 @@ export default function Rbx5Page() {
         }
       }
 
-      if (stockResponse.ok) {
-        const stockData = await stockResponse.json();
-        if (stockData.success && stockData.stats) {
-          setStockAccountsInfo(stockData.stats);
-        }
-      }
-
       toast.success("Statistik berhasil diperbarui!", {
         position: "top-right",
         autoClose: 2000,
       });
     } catch (error) {
-      console.error("Error refreshing stats:", error);
       toast.error("Terjadi kesalahan saat memperbarui statistik");
     } finally {
       setLoadingStats(false);
@@ -831,24 +750,6 @@ export default function Rbx5Page() {
                     `${stats.totalStok.toLocaleString()} R$`
                   ),
                   img: "/stok.png",
-                  hasInfo: true,
-                  infoContent: stockAccountsInfo ? (
-                    <div className="text-xs text-left">
-                      <div className="font-semibold mb-1">
-                        Detail Stok Akun:
-                      </div>
-                      <div>Total Akun: {stockAccountsInfo.totalAccounts}</div>
-                      <div>Akun Aktif: {stockAccountsInfo.activeAccounts}</div>
-                      <div>
-                        Akun Nonaktif: {stockAccountsInfo.inactiveAccounts}
-                      </div>
-                      <div>
-                        Rata-rata per Akun:{" "}
-                        {stockAccountsInfo.averageRobuxPerAccount.toLocaleString()}{" "}
-                        R$
-                      </div>
-                    </div>
-                  ) : null,
                 },
                 {
                   label: "Total Order",
@@ -860,7 +761,6 @@ export default function Rbx5Page() {
                     `${stats.totalOrder} Order`
                   ),
                   img: "/order.png",
-                  hasInfo: false,
                 },
                 {
                   label: "Terjual",
@@ -872,7 +772,6 @@ export default function Rbx5Page() {
                     `${stats.totalTerjual.toLocaleString()} R$`
                   ),
                   img: "/terjual.png",
-                  hasInfo: false,
                 },
                 {
                   label: "Harga Robux",
@@ -884,7 +783,6 @@ export default function Rbx5Page() {
                     `Rp.${stats.hargaPer100Robux.toLocaleString()} / 100 R$`
                   ),
                   img: "/harga.png",
-                  hasInfo: false,
                 },
               ].map((item, i) => (
                 <div
@@ -901,21 +799,6 @@ export default function Rbx5Page() {
                       {i === 2 && <TrendingUp className="text-white w-8 h-8" />}
                       {i === 3 && <Coins className="text-white w-8 h-8" />}
                     </div>
-
-                    {/* Info Icon for items with additional info */}
-                    {item.hasInfo && item.infoContent && (
-                      <div className="absolute top-3 right-3">
-                        <div className="relative">
-                          {/* <Info className="w-4 h-4 text-cyan-400 hover:text-cyan-300 cursor-help" /> */}
-
-                          {/* Modern Tooltip */}
-                          <div className="absolute bottom-full right-0 mb-2 w-48 bg-slate-800/90 backdrop-blur-lg border border-slate-600/50 text-white text-xs rounded-xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-10 shadow-xl">
-                            {item.infoContent}
-                            <div className="absolute top-full right-4 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-600/50"></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     <div className="text-center">
                       <div className="text-xl font-black text-white mb-2 group-hover:text-neon-pink transition-colors duration-300">

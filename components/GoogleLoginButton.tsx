@@ -27,7 +27,6 @@ export default function GoogleLoginButton({
         await googleLogin(credentialResponse.credential);
         onSuccess?.();
       } catch (error: any) {
-        console.error("Google login error:", error);
         onError?.(error.message || "Google login failed");
       } finally {
         setIsLoading(false);
@@ -36,7 +35,6 @@ export default function GoogleLoginButton({
   };
 
   const handleError = () => {
-    console.error("Google login error");
     onError?.("Google login gagal");
   };
 

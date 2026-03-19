@@ -667,9 +667,7 @@ export default function AdminLayout({
     try {
       await logout();
       // setSidebarOpen(false);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    } catch (error) {}
   };
 
   // Guard: hanya admin yang boleh akses halaman admin
@@ -794,9 +792,7 @@ export default function AdminLayout({
           setAutoPurchaseProgress(null);
           localStorage.removeItem("autoPurchaseSessionId");
         }
-      } catch (error) {
-        console.error("Error checking auto-purchase status:", error);
-      }
+      } catch (error) {}
     };
 
     // Initial check

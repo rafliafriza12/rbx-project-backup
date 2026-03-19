@@ -160,15 +160,12 @@ export default function GamepassManager({
 
       gamepassData.item = updatedItems;
 
-      console.log("Sending gamepass data:", gamepassData);
-
       if (isCreate) {
         onCreate?.(gamepassData);
       } else {
         onUpdate?.(gamepassData);
       }
     } catch (error: any) {
-      console.error("Error saving gamepass:", error);
       setError(error.message || "Terjadi kesalahan saat menyimpan gamepass");
     } finally {
       setIsLoading(false);

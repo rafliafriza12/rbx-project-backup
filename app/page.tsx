@@ -167,24 +167,16 @@ export default function HomePage() {
   // Scroll to section with offset when hash is present in URL
   useEffect(() => {
     const hashTarget = window.location.hash.replace("#", "");
-    console.log("🔍 Hash target:", hashTarget);
 
     if (!hashTarget) return;
 
     const performScroll = () => {
       const OFFSET = 90; // navbar height
       const element = document.getElementById(hashTarget);
-      console.log(
-        "🎯 Attempting scroll to:",
-        hashTarget,
-        "Element found:",
-        !!element,
-      );
 
       if (element) {
         const top =
           element.getBoundingClientRect().top + window.scrollY - OFFSET;
-        console.log("✅ Scrolling to position:", top);
         window.scrollTo({ top, behavior: "smooth" });
 
         // Clean hash from URL after scroll
@@ -199,10 +191,8 @@ export default function HomePage() {
     // Try to scroll after a short delay to ensure DOM is ready
     const timer = setTimeout(() => {
       if (performScroll()) {
-        console.log("✅ Scroll successful");
       } else {
         // Retry if element not found
-        console.log("⚠️ Element not found, retrying...");
         setTimeout(performScroll, 500);
       }
     }, 100);
@@ -225,7 +215,6 @@ export default function HomePage() {
         });
       }
     } catch (error) {
-      console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
     }
@@ -240,10 +229,8 @@ export default function HomePage() {
           setRbx5Stats(data.data);
         }
       } else {
-        console.error("Failed to fetch RBX5 stats");
       }
     } catch (error) {
-      console.error("Error fetching RBX5 stats:", error);
     } finally {
       setLoadingStats(false);
     }
@@ -263,10 +250,8 @@ export default function HomePage() {
           setGamepasses(homepageGamepasses);
         }
       } else {
-        console.error("Failed to fetch gamepasses");
       }
     } catch (error) {
-      console.error("Error fetching gamepasses:", error);
     } finally {
       setLoadingGamepasses(false);
     }
@@ -305,7 +290,6 @@ export default function HomePage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching banners:", error);
       // Use default banners on error
       setBanners([
         {
@@ -342,10 +326,8 @@ export default function HomePage() {
           setLiveTransactions(data.data);
         }
       } else {
-        console.error("Failed to fetch live transactions");
       }
     } catch (error) {
-      console.error("Error fetching live transactions:", error);
     } finally {
       setLoadingTransactions(false);
     }
@@ -361,10 +343,8 @@ export default function HomePage() {
           setLiveReviews(data.data);
         }
       } else {
-        console.error("Failed to fetch live reviews");
       }
     } catch (error) {
-      console.error("Error fetching live reviews:", error);
     } finally {
       setLoadingReviews(false);
     }
@@ -405,8 +385,6 @@ export default function HomePage() {
       return;
     }
 
-    console.log("Preparing data for RBX5:", { robuxAmount, totalPrice });
-
     // Prepare data for RBX5 page
     const rbx5Data = {
       robuxAmount: robuxAmount,
@@ -417,7 +395,6 @@ export default function HomePage() {
     // Store in sessionStorage for RBX5 page
     if (typeof window !== "undefined") {
       sessionStorage.setItem("rbx5InputData", JSON.stringify(rbx5Data));
-      console.log("Data stored in sessionStorage:", rbx5Data);
     }
 
     // Redirect to RBX5 page

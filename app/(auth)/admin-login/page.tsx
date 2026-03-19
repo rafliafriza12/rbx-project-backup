@@ -48,7 +48,6 @@ export default function AdminLoginPage() {
 
   const handleGoogleLogin = () => {
     // Handle Google login for admin
-    console.log("Google admin login clicked");
   };
 
   return (

@@ -78,7 +78,6 @@ export default function RBXLandingPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching banners:", error);
       setBanners([
         {
           _id: "1",
@@ -120,9 +119,7 @@ export default function RBXLandingPage() {
           setSettings(data.data);
         }
       }
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-    }
+    } catch (error) {}
   };
 
   const handleWhatsAppClick = () => {

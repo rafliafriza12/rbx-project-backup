@@ -49,9 +49,7 @@ const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
           const data = await response.json();
           setSettings((prev) => ({ ...prev, ...data.settings }));
         }
-      } catch (error) {
-        console.error("Error loading email settings:", error);
-      }
+      } catch (error) {}
     };
     loadSettings();
   }, []);

@@ -21,7 +21,6 @@ export default async function Maintenance() {
     if (error && typeof error === "object" && "digest" in error) {
       throw error;
     }
-    console.error("Error loading maintenance page:", error);
     return <MaintenancePage />;
   }
 }

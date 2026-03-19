@@ -61,7 +61,6 @@ export default function RolesPage() {
         toast.error(data.error || "Failed to fetch roles");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to fetch roles");
     } finally {
       setLoading(false);
@@ -122,7 +121,6 @@ export default function RolesPage() {
         toast.error(data.error || "Failed to create role");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to create role");
     }
   };
@@ -150,7 +148,6 @@ export default function RolesPage() {
         toast.error(data.error || "Failed to update role");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to update role");
     }
   };
@@ -174,7 +171,6 @@ export default function RolesPage() {
         toast.error(data.error || "Failed to delete role");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Failed to delete role");
     }
   };
@@ -561,7 +557,9 @@ export default function RolesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-[#1e293b] rounded-lg shadow-lg max-w-md w-full mx-4 border border-[#334155]">
             <div className="flex justify-between items-center p-4 border-b border-[#334155]">
-              <h3 className="text-lg font-semibold text-[#f1f5f9]">Edit Role</h3>
+              <h3 className="text-lg font-semibold text-[#f1f5f9]">
+                Edit Role
+              </h3>
               <button
                 onClick={() => setShowEditModal(false)}
                 className="text-[#94a3b8] hover:text-[#f1f5f9]"
@@ -698,7 +696,9 @@ export default function RolesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-[#1e293b] rounded-lg shadow-lg max-w-md w-full mx-4 border border-[#334155]">
             <div className="flex justify-between items-center p-4 border-b border-[#334155]">
-              <h3 className="text-lg font-semibold text-[#f1f5f9]">Hapus Role</h3>
+              <h3 className="text-lg font-semibold text-[#f1f5f9]">
+                Hapus Role
+              </h3>
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="text-[#94a3b8] hover:text-[#f1f5f9]"

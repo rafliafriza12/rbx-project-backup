@@ -185,7 +185,6 @@ export default function SettingsPage() {
         toast.error("Error loading settings: " + data.error);
       }
     } catch (error) {
-      console.error("Error fetching settings:", error);
       toast.error("Failed to load settings");
     } finally {
       setLoading(false);
@@ -225,7 +224,6 @@ export default function SettingsPage() {
         toast.error("Error menyimpan settings: " + data.error);
       }
     } catch (error) {
-      console.error("Error saving settings:", error);
       toast.error("Gagal menyimpan settings");
     } finally {
       setSaving(false);
@@ -235,7 +233,7 @@ export default function SettingsPage() {
   const handleReset = async () => {
     if (
       !confirm(
-        "Yakin ingin reset semua settings ke default? Aksi ini tidak bisa dibatalkan."
+        "Yakin ingin reset semua settings ke default? Aksi ini tidak bisa dibatalkan.",
       )
     ) {
       return;
@@ -257,7 +255,6 @@ export default function SettingsPage() {
         toast.error("Error reset settings: " + data.error);
       }
     } catch (error) {
-      console.error("Error resetting settings:", error);
       toast.error("Gagal reset settings");
     } finally {
       setLoading(false);
@@ -811,7 +808,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         handleInputChange(
                           "duitkuExpiryPeriod",
-                          parseInt(e.target.value) || 1440
+                          parseInt(e.target.value) || 1440,
                         )
                       }
                       className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"

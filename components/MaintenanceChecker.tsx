@@ -45,7 +45,6 @@ export default function MaintenanceChecker() {
       }
     } catch (error) {
       // Silently fail - don't block user if check fails
-      console.error("Maintenance check failed:", error);
     }
   }, [pathname, router]);
 

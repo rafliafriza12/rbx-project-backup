@@ -16,9 +16,7 @@ const PublicAppHeader: React.FC = () => {
       await logout();
       setIsProfileOpen(false);
       setIsMenuOpen(false);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    } catch (error) {}
   };
 
   const handleLinkClick = () => {

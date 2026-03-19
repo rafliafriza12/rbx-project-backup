@@ -35,13 +35,13 @@ interface AuthContextType {
   login: (
     email: string,
     password: string,
-    rememberMe?: boolean
+    rememberMe?: boolean,
   ) => Promise<void>;
   googleLogin: (credential: string) => Promise<void>;
   adminLogin: (
     email: string,
     password: string,
-    rememberMe?: boolean
+    rememberMe?: boolean,
   ) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -96,17 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (response.ok) {
         const data = await response.json();
-        console.log("=== AUTH CONTEXT DEBUG ===");
-        console.log("Response data:", data);
-        console.log("User data:", data.user);
-        console.log("User resellerTier:", data.user?.resellerTier);
-        console.log("User discount from reseller:", data.user?.diskon || 0);
         setUser(data.user);
       } else {
         setUser(null);
       }
     } catch (error) {
-      console.error("Auth check failed:", error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -116,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (
     email: string,
     password: string,
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
   ) => {
     try {
       setLoading(true);
@@ -139,7 +133,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(data.error || "Login failed");
       }
     } catch (error: any) {
-      console.error("Login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -158,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           .map(function (c) {
             return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
           })
-          .join("")
+          .join(""),
       );
 
       const googleUser = JSON.parse(jsonPayload);
@@ -187,7 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(data.error || "Google login failed");
       }
     } catch (error: any) {
-      console.error("Google login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -197,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const adminLogin = async (
     email: string,
     password: string,
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
   ) => {
     try {
       setLoading(true);
@@ -221,14 +213,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           router.push("/admin/dashboard");
         } else {
           throw new Error(
-            "Akses ditolak. Hanya admin yang dapat menggunakan halaman ini."
+            "Akses ditolak. Hanya admin yang dapat menggunakan halaman ini.",
           );
         }
       } else {
         throw new Error(data.error || "Login failed");
       }
     } catch (error: any) {
-      console.error("Admin login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -257,7 +248,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(data.error || "Registration failed");
       }
     } catch (error: any) {
-      console.error("Registration error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -275,9 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(null);
         router.push("/");
       }
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    } catch (error) {}
   };
 
   const updateSpending = async (amount: number) => {
@@ -299,7 +287,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(data.error || "Failed to update spending");
       }
     } catch (error: any) {
-      console.error("Update spending error:", error);
       throw error;
     }
   };

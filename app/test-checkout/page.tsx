@@ -16,25 +16,17 @@ export default function TestCheckoutPage() {
       robloxPassword: "testpass",
     };
 
-    console.log("=== TEST: Storing data to sessionStorage ===");
-    console.log("Data to store:", testData);
-
     try {
       sessionStorage.setItem("checkoutData", JSON.stringify(testData));
-      console.log("✅ Data stored successfully");
 
       // Verify immediately
       const stored = sessionStorage.getItem("checkoutData");
-      console.log("✅ Verified stored data:", stored);
 
       // Navigate to checkout
       setTimeout(() => {
-        console.log("📍 Navigating to checkout...");
         router.push("/checkout");
       }, 500);
-    } catch (error) {
-      console.error("❌ Error storing data:", error);
-    }
+    } catch (error) {}
   };
 
   const testUrlParams = () => {
@@ -46,9 +38,6 @@ export default function TestCheckoutPage() {
       quantity: "1",
       unitPrice: "50000",
     });
-
-    console.log("=== TEST: Using URL params ===");
-    console.log("URL params:", params.toString());
 
     router.push(`/checkout?${params.toString()}`);
   };

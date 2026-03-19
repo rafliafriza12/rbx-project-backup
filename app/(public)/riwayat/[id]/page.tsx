@@ -92,7 +92,6 @@ export default function TransactionDetailPage() {
       setLoading(true);
       const response = await fetch(`/api/transactions/${params.id}`);
       const data: ApiResponse<any> = await response.json();
-      console.log(data.data);
 
       if (response.ok && data.data) {
         // Verify that this transaction belongs to the current user
@@ -107,7 +106,6 @@ export default function TransactionDetailPage() {
         router.push("/riwayat");
       }
     } catch (error) {
-      console.error("Error fetching transaction:", error);
       toast.error("Gagal mengambil detail transaksi");
       router.push("/riwayat");
     } finally {
@@ -287,7 +285,6 @@ export default function TransactionDetailPage() {
         toast.error(data.error || "Gagal membuat ruang chat");
       }
     } catch (error) {
-      console.error("Error creating chat room:", error);
       toast.error("Gagal menghubungi CS");
     }
   };

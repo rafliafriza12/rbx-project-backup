@@ -58,7 +58,6 @@ export default function SalesChart() {
         setChartData(data.salesChartData);
       }
     } catch (error) {
-      console.error("Error fetching chart data:", error);
     } finally {
       setLoading(false);
     }

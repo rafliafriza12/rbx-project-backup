@@ -41,7 +41,7 @@ export default function ProductsPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<"robux_5_hari" | "robux_instant">(
-    "robux_5_hari"
+    "robux_5_hari",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentRobuxPricing, setCurrentRobuxPricing] =
@@ -73,9 +73,7 @@ export default function ProductsPage() {
           setCurrentRobuxPricing(data.data);
         }
       }
-    } catch (error) {
-      console.error("Error fetching robux pricing:", error);
-    }
+    } catch (error) {}
   };
 
   // Calculate auto price for robux_5_hari
@@ -96,11 +94,10 @@ export default function ProductsPage() {
 
       const data = await response.json();
       const sortedProducts = (data.products || []).sort(
-        (a: Product, b: Product) => a.robuxAmount - b.robuxAmount
+        (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
       );
       setProducts(sortedProducts || []);
     } catch (error) {
-      console.error("Error fetching products:", error);
       toast.error("Gagal mengambil data produk");
     } finally {
       setLoading(false);
@@ -130,7 +127,7 @@ export default function ProductsPage() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
 
@@ -242,15 +239,14 @@ export default function ProductsPage() {
       }
 
       toast.success(
-        selectedProduct ? "Produk berhasil diupdate" : "Produk berhasil dibuat"
+        selectedProduct ? "Produk berhasil diupdate" : "Produk berhasil dibuat",
       );
       setShowModal(false);
       resetForm();
       fetchProducts();
     } catch (error) {
-      console.error("Error saving product:", error);
       toast.error(
-        error instanceof Error ? error.message : "Gagal menyimpan produk"
+        error instanceof Error ? error.message : "Gagal menyimpan produk",
       );
     } finally {
       setIsSubmitting(false);
@@ -276,9 +272,8 @@ export default function ProductsPage() {
       toast.success("Produk berhasil dihapus");
       fetchProducts();
     } catch (error) {
-      console.error("Error deleting product:", error);
       toast.error(
-        error instanceof Error ? error.message : "Gagal menghapus produk"
+        error instanceof Error ? error.message : "Gagal menghapus produk",
       );
     }
   };
@@ -304,16 +299,15 @@ export default function ProductsPage() {
 
       fetchProducts();
     } catch (error) {
-      console.error("Error toggling product status:", error);
       toast.error(
-        error instanceof Error ? error.message : "Gagal mengubah status produk"
+        error instanceof Error ? error.message : "Gagal mengubah status produk",
       );
     }
   };
 
   // Filter products by category
   const filteredProducts = products.filter(
-    (product) => product.category === activeTab
+    (product) => product.category === activeTab,
   );
 
   // Loading state
@@ -595,7 +589,7 @@ export default function ProductsPage() {
                         <p className="text-xs text-[#475569] mt-1">
                           Berdasarkan{" "}
                           {currentRobuxPricing.pricePerHundred.toLocaleString(
-                            "id-ID"
+                            "id-ID",
                           )}{" "}
                           per 100 Robux.{" "}
                           <a
@@ -639,8 +633,8 @@ export default function ProductsPage() {
                     {isSubmitting
                       ? "Menyimpan..."
                       : selectedProduct
-                      ? "Update"
-                      : "Simpan"}
+                        ? "Update"
+                        : "Simpan"}
                   </button>
                 </div>
               </form>

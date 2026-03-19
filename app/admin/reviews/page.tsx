@@ -62,7 +62,6 @@ export default function AdminReviewsPage() {
         setStats(data.stats);
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
     } finally {
       setLoading(false);
     }
@@ -72,7 +71,7 @@ export default function AdminReviewsPage() {
     setSelectedReviews((prev) =>
       prev.includes(reviewId)
         ? prev.filter((id) => id !== reviewId)
-        : [...prev, reviewId]
+        : [...prev, reviewId],
     );
   };
 
@@ -124,7 +123,6 @@ export default function AdminReviewsPage() {
         toast.error(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error("Error performing bulk action:", error);
       toast.error("Terjadi kesalahan");
     } finally {
       setActionLoading(false);
@@ -133,7 +131,7 @@ export default function AdminReviewsPage() {
 
   const handleSingleAction = async (
     reviewId: string,
-    action: "approve" | "reject" | "delete"
+    action: "approve" | "reject" | "delete",
   ) => {
     const confirmMessage =
       action === "delete"
@@ -162,7 +160,6 @@ export default function AdminReviewsPage() {
         toast.error(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error("Error performing action:", error);
       toast.error("Terjadi kesalahan");
     }
   };

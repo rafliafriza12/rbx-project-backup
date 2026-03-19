@@ -19,7 +19,7 @@ interface CreateChatRoomModalProps {
   onCreateRoom: (
     roomType: "general" | "order",
     transactionCode?: string,
-    transactionTitle?: string
+    transactionTitle?: string,
   ) => Promise<void>;
   userName?: string;
 }
@@ -31,7 +31,7 @@ export default function CreateChatRoomModal({
   userName,
 }: CreateChatRoomModalProps) {
   const [selectedType, setSelectedType] = useState<"general" | "order" | null>(
-    null
+    null,
   );
   const [transactionCode, setTransactionCode] = useState("");
   const [selectedTransaction, setSelectedTransaction] =
@@ -62,7 +62,7 @@ export default function CreateChatRoomModal({
       try {
         setIsSearching(true);
         const response = await fetch(
-          `/api/transactions/search?q=${encodeURIComponent(searchQuery)}`
+          `/api/transactions/search?q=${encodeURIComponent(searchQuery)}`,
         );
         const data = await response.json();
 
@@ -71,7 +71,6 @@ export default function CreateChatRoomModal({
           setShowDropdown(true);
         }
       } catch (error) {
-        console.error("Error searching transactions:", error);
       } finally {
         setIsSearching(false);
       }
@@ -115,7 +114,7 @@ export default function CreateChatRoomModal({
         await onCreateRoom(
           selectedType,
           selectedTransaction.invoiceId,
-          selectedTransaction.serviceName
+          selectedTransaction.serviceName,
         );
       } else {
         await onCreateRoom(selectedType);
@@ -206,8 +205,8 @@ export default function CreateChatRoomModal({
                 selectedType === "general"
                   ? `Chat Support - ${userName || "User"}`
                   : transactionCode
-                  ? `Order Support - ${transactionCode}`
-                  : ""
+                    ? `Order Support - ${transactionCode}`
+                    : ""
               }
               readOnly
               className="w-full bg-primary-700/50 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm"

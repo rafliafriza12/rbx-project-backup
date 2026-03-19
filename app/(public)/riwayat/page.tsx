@@ -79,10 +79,6 @@ export default function RiwayatPage() {
     try {
       setLoading(true);
       const url = `/api/transactions?userId=${user.id}`;
-      console.log("=== FRONTEND FETCH DEBUG ===");
-      console.log("Making request to:", url);
-      console.log("User object:", user);
-      console.log("User ID:", user.id);
 
       const response = await fetch(url, {
         headers: {
@@ -90,60 +86,26 @@ export default function RiwayatPage() {
         },
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-
       if (response.ok) {
         const data: ApiResponse<Transaction[]> = await response.json();
-        console.log("Response data:", data);
-        console.log("Transactions received:", data.data?.length || 0);
 
         // Debug: Log first transaction details
         if (data.data && data.data.length > 0) {
           const firstTx = data.data[0];
-          console.log("=== FIRST TRANSACTION DEBUG ===");
-          console.log("Invoice ID:", firstTx.invoiceId);
-          console.log("Total Amount:", firstTx.totalAmount);
-          console.log("Discount Amount:", firstTx.discountAmount);
-          console.log("Final Amount:", firstTx.finalAmount);
-          console.log("Payment Fee:", firstTx.paymentFee);
-          console.log("Is Multi Checkout:", firstTx.isMultiCheckout);
-          console.log(
-            "Related Transactions Count:",
-            firstTx.relatedTransactions?.length || 0,
-          );
 
           // Test helper functions
-          console.log("=== HELPER FUNCTIONS TEST ===");
-          console.log(
-            "calculateOriginalTotal:",
-            calculateOriginalTotal(firstTx),
-          );
-          console.log(
-            "calculateTotalDiscount:",
-            calculateTotalDiscount(firstTx),
-          );
-          console.log(
-            "calculateSubtotalAfterDiscount:",
-            calculateSubtotalAfterDiscount(firstTx),
-          );
-          console.log("getPaymentFee:", getPaymentFee(firstTx));
-          console.log("calculateGrandTotal:", calculateGrandTotal(firstTx));
 
           // Manual calculation
           const manualCalc =
             calculateSubtotalAfterDiscount(firstTx) + getPaymentFee(firstTx);
-          console.log("Manual Calculation (subtotal + fee):", manualCalc);
         }
 
         setTransactions(data.data || []);
       } else {
         const errorData = await response.json();
-        console.error("Error response:", errorData);
         toast.error(errorData.message || "Gagal memuat riwayat transaksi");
       }
     } catch (error) {
-      console.error("Error fetching transactions:", error);
       toast.error("Terjadi kesalahan saat memuat riwayat transaksi");
     } finally {
       setLoading(false);

@@ -45,7 +45,7 @@ export default function NotificationPrompt({
     }
 
     const permission = getNotificationPermission();
-    
+
     // Only show if permission is default (not yet asked)
     if (permission === "default") {
       // Check if user previously dismissed the prompt
@@ -58,12 +58,12 @@ export default function NotificationPrompt({
 
   const handleEnable = async () => {
     setRequesting(true);
-    
+
     try {
       // Step 1: Request notification permission
       setCurrentStep("Meminta izin notifikasi...");
       const permission = await requestNotificationPermission();
-      
+
       if (permission !== "granted") {
         setShow(false);
         onPermissionDenied?.();
@@ -78,7 +78,6 @@ export default function NotificationPrompt({
       }
 
       const registration = await navigator.serviceWorker.register("/sw.js");
-      console.log("✅ Service Worker registered");
 
       // Wait for Service Worker to be ready
       await navigator.serviceWorker.ready;
@@ -89,7 +88,7 @@ export default function NotificationPrompt({
       if (!vapidResponse.ok) {
         throw new Error("Failed to get VAPID public key");
       }
-      
+
       const { publicKey } = await vapidResponse.json();
 
       // Step 4: Subscribe to push notifications
@@ -98,8 +97,6 @@ export default function NotificationPrompt({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
-
-      console.log("✅ Push subscription created");
 
       // Step 5: Send subscription to server
       setCurrentStep("Menyimpan ke server...");
@@ -119,19 +116,23 @@ export default function NotificationPrompt({
       }
 
       const result = await subscribeResponse.json();
-      console.log("✅ Subscription saved to server:", result);
 
       // Show success message
-      alert("✅ Notifikasi berhasil diaktifkan!\n\n" +
-            "Sekarang Anda akan menerima notifikasi push saat ada pesan baru masuk, " +
-            "bahkan ketika browser ditutup atau Anda sedang membuka halaman lain.");
+      alert(
+        "✅ Notifikasi berhasil diaktifkan!\n\n" +
+          "Sekarang Anda akan menerima notifikasi push saat ada pesan baru masuk, " +
+          "bahkan ketika browser ditutup atau Anda sedang membuka halaman lain.",
+      );
 
       setShow(false);
       onPermissionGranted?.();
     } catch (error: any) {
-      console.error("Error setting up push notifications:", error);
-      alert("❌ Gagal mengaktifkan notifikasi: " + error.message + "\n\n" +
-            "Silakan coba lagi atau hubungi administrator.");
+      alert(
+        "❌ Gagal mengaktifkan notifikasi: " +
+          error.message +
+          "\n\n" +
+          "Silakan coba lagi atau hubungi administrator.",
+      );
     } finally {
       setRequesting(false);
       setCurrentStep("");
@@ -154,13 +155,13 @@ export default function NotificationPrompt({
           <div>
             <p className="font-semibold">Aktifkan Notifikasi Push</p>
             <p className="text-sm text-white/80">
-              {requesting 
-                ? currentStep 
+              {requesting
+                ? currentStep
                 : "Dapatkan notifikasi real-time bahkan saat browser ditutup"}
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={handleEnable}

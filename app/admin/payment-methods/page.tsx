@@ -193,10 +193,8 @@ export default function PaymentMethodsPage() {
       if (result.success) {
         setPaymentMethods(result.data || []);
       } else {
-        console.error("Error fetching payment methods:", result.error);
       }
     } catch (error) {
-      console.error("Error fetching payment methods:", error);
     } finally {
       setLoading(false);
     }
@@ -355,15 +353,11 @@ export default function PaymentMethodsPage() {
         instructions: formData.instructions,
       };
 
-      console.log("Submitting payment method:", submitData);
-
       const url = selectedMethod
         ? `/api/payment-methods/${selectedMethod._id}`
         : "/api/payment-methods";
 
       const method = selectedMethod ? "PUT" : "POST";
-
-      console.log(`Sending ${method} request to ${url}`);
 
       const response = await fetch(url, {
         method,
@@ -372,8 +366,6 @@ export default function PaymentMethodsPage() {
         },
         body: JSON.stringify(submitData),
       });
-
-      console.log("Response status:", response.status, response.statusText);
 
       // Check if response is OK
       if (!response.ok) {
@@ -393,14 +385,10 @@ export default function PaymentMethodsPage() {
       let result;
       try {
         const responseText = await response.text();
-        console.log("Response text:", responseText);
         result = JSON.parse(responseText);
       } catch (jsonError) {
-        console.error("JSON Parse Error:", jsonError);
         throw new Error("Server mengembalikan response yang tidak valid");
       }
-
-      console.log("Result:", result);
 
       if (result.success) {
         toast.success(
@@ -415,7 +403,6 @@ export default function PaymentMethodsPage() {
         throw new Error(result.error || "Terjadi kesalahan");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan saat menyimpan");
     } finally {
       setIsSubmitting(false);
@@ -441,7 +428,6 @@ export default function PaymentMethodsPage() {
         throw new Error(result.error || "Terjadi kesalahan");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan saat menghapus");
     }
   };
@@ -470,7 +456,6 @@ export default function PaymentMethodsPage() {
         throw new Error(result.error || "Terjadi kesalahan");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan");
     }
   };

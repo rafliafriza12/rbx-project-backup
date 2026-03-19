@@ -38,7 +38,6 @@ export default function MaintenancePage({ message }: MaintenancePageProps) {
         }
       } catch (error) {
         // Silently fail
-        console.error("Maintenance status check failed:", error);
       }
     };
 

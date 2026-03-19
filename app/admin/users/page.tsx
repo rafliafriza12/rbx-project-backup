@@ -96,7 +96,6 @@ export default function UsersPage() {
       const response = await fetch("/api/admin/users");
       if (response.ok) {
         const data = await response.json();
-        // console.log("Users API Response:", data);
 
         if (data.users) {
           let filteredUsers = data.users;
@@ -121,7 +120,6 @@ export default function UsersPage() {
         toast.error(errorData.error || "Failed to fetch users");
       }
     } catch (error) {
-      console.error("Error fetching users:", error);
       toast.error("Error fetching users");
     } finally {
       setTableLoading(false);
@@ -133,22 +131,16 @@ export default function UsersPage() {
       const response = await fetch("/api/reseller-packages");
       if (response.ok) {
         const result = await response.json();
-        console.log("Reseller Packages API Response:", result);
 
         // Handle both response formats: {data: [...]} or {packages: [...]}
         const packagesData = result.data || result.packages || [];
 
-        console.log("Extracted packages:", packagesData);
-        console.log("Packages count:", packagesData.length);
-
         setResellerPackages(packagesData);
       } else {
         const errorData = await response.json();
-        console.error("Failed to fetch reseller packages:", errorData);
         setResellerPackages([]);
       }
     } catch (error) {
-      console.error("Error fetching reseller packages:", error);
       setResellerPackages([]);
     }
   };
@@ -158,21 +150,17 @@ export default function UsersPage() {
       const response = await fetch("/api/admin/stock-accounts");
       if (response.ok) {
         const data = await response.json();
-        console.log("Stock Accounts API Response:", data);
 
         if (data.stockAccounts) {
           setStockAccounts(data.stockAccounts);
         } else {
-          console.error("No stock accounts data found");
           setStockAccounts([]);
         }
       } else {
         const errorData = await response.json();
-        console.error("Failed to fetch stock accounts:", errorData);
         setStockAccounts([]);
       }
     } catch (error) {
-      console.error("Error fetching stock accounts:", error);
       setStockAccounts([]);
     }
   };
@@ -216,7 +204,6 @@ export default function UsersPage() {
           toast.error(data.error || "Failed to delete user");
         }
       } catch (error) {
-        console.error("Error deleting user:", error);
         toast.error("Error deleting user");
       }
     }
@@ -281,7 +268,6 @@ export default function UsersPage() {
         toast.error(data.message || "Failed to start auto-purchase");
       }
     } catch (error) {
-      console.error("Error triggering auto-purchase:", error);
       toast.error("Error starting auto-purchase");
     } finally {
       setPendingStockAccountId(null);
@@ -309,7 +295,6 @@ export default function UsersPage() {
           toast.error(data.message || "Failed to delete stock account");
         }
       } catch (error) {
-        console.error("Error deleting stock account:", error);
         toast.error("Error deleting stock account");
       }
     }
@@ -426,7 +411,6 @@ export default function UsersPage() {
         }
       }
     } catch (error) {
-      console.error("Error saving:", error);
       toast.error("Error saving data");
     } finally {
       setSubmitLoading(false);
@@ -1075,16 +1059,6 @@ export default function UsersPage() {
                           const selectedPackageId = e.target.value;
                           const selectedPackage = resellerPackages.find(
                             (pkg) => pkg._id === selectedPackageId,
-                          );
-
-                          console.log(
-                            "Selected Package ID:",
-                            selectedPackageId,
-                          );
-                          console.log("Selected Package:", selectedPackage);
-                          console.log(
-                            "All Reseller Packages:",
-                            resellerPackages,
                           );
 
                           if (selectedPackageId === "") {

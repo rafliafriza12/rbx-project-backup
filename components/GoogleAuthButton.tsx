@@ -28,10 +28,9 @@ export default function GoogleAuthButton({
         // Redirect after successful login
         router.push(redirectUrl);
       } catch (error: any) {
-        console.error("Google auth error:", error);
         onError?.(
           error.message ||
-            `Google ${mode === "login" ? "login" : "registrasi"} gagal`
+            `Google ${mode === "login" ? "login" : "registrasi"} gagal`,
         );
       } finally {
         setIsLoading(false);
@@ -40,7 +39,6 @@ export default function GoogleAuthButton({
   };
 
   const handleError = () => {
-    console.error("Google auth error");
     onError?.(`Google ${mode === "login" ? "login" : "registrasi"} gagal`);
   };
 

@@ -80,7 +80,6 @@ export default function TrackOrderPage() {
         });
       }
     } catch (error) {
-      console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
     }
@@ -99,36 +98,15 @@ export default function TrackOrderPage() {
       );
 
       const data = await response.json();
-      console.log(data.data);
       if (response.ok && data.data) {
-        console.log("=== TRACK ORDER FRONTEND DEBUG ===");
-        console.log("Transaction received:", data.data);
-        console.log("Is Multi Checkout:", data.data.isMultiCheckout);
-        console.log(
-          "Related Transactions:",
-          data.data.relatedTransactions?.length || 0,
-        );
-
         // Debug each item
         const allItems = [data.data, ...(data.data.relatedTransactions || [])];
-        allItems.forEach((item: any, idx: number) => {
-          console.log(`\nItem ${idx + 1}:`, {
-            name: item.serviceName,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalAmount: item.totalAmount,
-            discountAmount: item.discountAmount,
-            finalAmount: item.finalAmount,
-            calculated_total: item.quantity * item.unitPrice,
-          });
-        });
 
         setTransaction(data.data);
       } else {
         setTransaction(null);
       }
     } catch (error) {
-      console.error("Error tracking order:", error);
       setTransaction(null);
     } finally {
       setLoading(false);

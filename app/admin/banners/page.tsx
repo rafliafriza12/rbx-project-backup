@@ -49,7 +49,6 @@ export default function BannersManagement() {
         toast.error(data.error || "Gagal mengambil data banner");
       }
     } catch (error) {
-      console.error("Error fetching banners:", error);
       toast.error("Terjadi kesalahan saat mengambil data");
     } finally {
       setLoading(false);
@@ -106,7 +105,6 @@ export default function BannersManagement() {
 
       return data.data.url;
     } catch (error) {
-      console.error("Error uploading image:", error);
       throw error;
     } finally {
       setUploadingImage(false);
@@ -186,7 +184,7 @@ export default function BannersManagement() {
         toast.success(
           selectedBanner
             ? "Banner berhasil diupdate!"
-            : "Banner berhasil ditambahkan!"
+            : "Banner berhasil ditambahkan!",
         );
         setShowModal(false);
         resetForm();
@@ -195,7 +193,6 @@ export default function BannersManagement() {
         throw new Error(result.error || "Terjadi kesalahan");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan saat menyimpan");
     } finally {
       setIsSubmitting(false);
@@ -221,7 +218,6 @@ export default function BannersManagement() {
         throw new Error(result.error || "Terjadi kesalahan");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan saat menghapus");
     }
   };
@@ -243,14 +239,13 @@ export default function BannersManagement() {
 
       if (result.success) {
         toast.success(
-          `Banner ${!banner.isActive ? "diaktifkan" : "dinonaktifkan"}!`
+          `Banner ${!banner.isActive ? "diaktifkan" : "dinonaktifkan"}!`,
         );
         fetchBanners();
       } else {
         throw new Error(result.error || "Terjadi kesalahan");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Terjadi kesalahan");
     }
   };
@@ -543,10 +538,10 @@ export default function BannersManagement() {
                     {uploadingImage
                       ? "Mengupload gambar..."
                       : isSubmitting
-                      ? "Menyimpan..."
-                      : selectedBanner
-                      ? "Update Banner"
-                      : "Tambah Banner"}
+                        ? "Menyimpan..."
+                        : selectedBanner
+                          ? "Update Banner"
+                          : "Tambah Banner"}
                   </button>
                 </div>
               </form>

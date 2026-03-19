@@ -39,7 +39,7 @@ export default function AdminResellerPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState<ResellerPackage | null>(
-    null
+    null,
   );
   const [formData, setFormData] = useState({
     name: "",
@@ -69,7 +69,6 @@ export default function AdminResellerPage() {
         toast.error(data.error || "Gagal memuat paket reseller");
       }
     } catch (error) {
-      console.error("Error fetching packages:", error);
       toast.error("Terjadi kesalahan saat memuat data");
     } finally {
       setLoading(false);
@@ -131,7 +130,7 @@ export default function AdminResellerPage() {
         toast.success(
           editingPackage
             ? "Paket berhasil diperbarui!"
-            : "Paket berhasil dibuat!"
+            : "Paket berhasil dibuat!",
         );
         setShowModal(false);
         fetchPackages();
@@ -139,7 +138,6 @@ export default function AdminResellerPage() {
         toast.error(data.error || "Gagal menyimpan paket");
       }
     } catch (error) {
-      console.error("Error saving package:", error);
       toast.error("Terjadi kesalahan saat menyimpan");
     }
   };
@@ -163,7 +161,6 @@ export default function AdminResellerPage() {
         toast.error(data.error || "Gagal menghapus paket");
       }
     } catch (error) {
-      console.error("Error deleting package:", error);
       toast.error("Terjadi kesalahan saat menghapus");
     }
   };

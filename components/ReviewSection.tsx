@@ -51,7 +51,6 @@ export default function ReviewSection({
         setReviews(data.data);
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
     } finally {
       setLoading(false);
     }
@@ -107,7 +106,6 @@ export default function ReviewSection({
         toast.error(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       toast.error("Terjadi kesalahan saat mengirim review");
     } finally {
       setSubmitting(false);
@@ -262,12 +260,12 @@ export default function ReviewSection({
                         {rating === 5
                           ? "Sangat Baik"
                           : rating === 4
-                          ? "Baik"
-                          : rating === 3
-                          ? "Cukup"
-                          : rating === 2
-                          ? "Kurang"
-                          : "Buruk"}
+                            ? "Baik"
+                            : rating === 3
+                              ? "Cukup"
+                              : rating === 2
+                                ? "Kurang"
+                                : "Buruk"}
                       </span>
                     </div>
                   </div>
@@ -353,17 +351,17 @@ export default function ReviewSection({
                           const reviewDate = new Date(review.createdAt);
                           const now = new Date();
                           const diffTime = Math.abs(
-                            now.getTime() - reviewDate.getTime()
+                            now.getTime() - reviewDate.getTime(),
                           );
                           const diffDays = Math.ceil(
-                            diffTime / (1000 * 60 * 60 * 24)
+                            diffTime / (1000 * 60 * 60 * 24),
                           );
 
                           if (diffDays === 1) return "1 hari yang lalu";
                           if (diffDays < 7) return `${diffDays} hari yang lalu`;
                           if (diffDays < 30)
                             return `${Math.ceil(
-                              diffDays / 7
+                              diffDays / 7,
                             )} minggu yang lalu`;
                           return `${Math.ceil(diffDays / 30)} bulan yang lalu`;
                         })()}

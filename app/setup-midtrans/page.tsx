@@ -22,9 +22,7 @@ export default function MidtransSetupPage() {
       if (data.success) {
         setCurrentConfig(data.data);
       }
-    } catch (error) {
-      console.error("Error fetching config:", error);
-    }
+    } catch (error) {}
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +53,6 @@ export default function MidtransSetupPage() {
         toast.error(data.error || "Failed to save configuration");
       }
     } catch (error) {
-      console.error("Error saving config:", error);
       toast.error("Failed to save configuration");
     } finally {
       setLoading(false);
@@ -102,7 +99,6 @@ export default function MidtransSetupPage() {
         toast.error(`Connection test failed: ${error.error}`);
       }
     } catch (error) {
-      console.error("Test failed:", error);
       toast.error("Connection test failed");
     } finally {
       setLoading(false);

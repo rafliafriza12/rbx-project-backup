@@ -406,15 +406,12 @@ const PublicAppFooter: React.FC = () => {
   const handleAnchorClick = (e: React.MouseEvent, hash: string) => {
     e.preventDefault();
     const targetId = hash.replace("#", "");
-    console.log("🖱️ Footer link clicked:", targetId, "Current path:", pathname);
 
     if (pathname === "/") {
       // same page - just scroll
-      console.log("📍 Same page scroll");
       scrollToSection(targetId);
     } else {
       // Cross-page: hard navigate with hash (no router, no splash screen)
-      console.log("🔄 Cross-page hard navigation with hash");
       window.location.href = `/${hash}`;
     }
   };
@@ -438,7 +435,6 @@ const PublicAppFooter: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
     }

@@ -36,7 +36,7 @@ export default function RobuxPricingPage() {
 
   // Gamepass Robux Setting States
   const [gamepassSetting, setGamepassSetting] = useState<RobuxSetting | null>(
-    null
+    null,
   );
   const [gamepassLoading, setGamepassLoading] = useState(true);
   const [gamepassPrice, setGamepassPrice] = useState("");
@@ -56,10 +56,8 @@ export default function RobuxPricingPage() {
           });
         }
       } else {
-        console.log("No pricing data found");
       }
     } catch (error) {
-      console.error("Error fetching pricing:", error);
       toast.error("Terjadi kesalahan saat mengambil data");
     } finally {
       setLoading(false);
@@ -78,7 +76,6 @@ export default function RobuxPricingPage() {
         setGamepassPrice(data.data.pricePerRobux.toString());
       }
     } catch (error) {
-      console.error("Error fetching gamepass setting:", error);
     } finally {
       setGamepassLoading(false);
     }
@@ -118,14 +115,13 @@ export default function RobuxPricingPage() {
           "Setting Robux Instant berhasil diperbarui! Semua harga produk telah diupdate.",
           {
             autoClose: 5000,
-          }
+          },
         );
         fetchPricing();
       } else {
         toast.error(data.message || "Gagal memperbarui setting");
       }
     } catch (error) {
-      console.error("Error saving pricing:", error);
       toast.error("Terjadi kesalahan saat menyimpan data");
     } finally {
       setIsSaving(false);
@@ -159,14 +155,13 @@ export default function RobuxPricingPage() {
           "Setting Robux Gamepass berhasil diperbarui! Semua harga gamepass telah diupdate.",
           {
             autoClose: 5000,
-          }
+          },
         );
         fetchGamepassSetting();
       } else {
         toast.error(data.error || "Gagal memperbarui setting");
       }
     } catch (error) {
-      console.error("Error updating gamepass setting:", error);
       toast.error("Terjadi kesalahan saat memperbarui setting");
     } finally {
       setIsGamepassSaving(false);
@@ -282,7 +277,7 @@ export default function RobuxPricingPage() {
                         <span className="text-[#cbd5e1]">250 Robux</span>
                         <span className="font-semibold text-[#f1f5f9]">
                           {formatCurrency(
-                            Math.ceil((250 / 100) * pricing.pricePerHundred)
+                            Math.ceil((250 / 100) * pricing.pricePerHundred),
                           )}
                         </span>
                       </div>
@@ -290,7 +285,7 @@ export default function RobuxPricingPage() {
                         <span className="text-[#cbd5e1]">500 Robux</span>
                         <span className="font-semibold text-[#f1f5f9]">
                           {formatCurrency(
-                            Math.ceil((500 / 100) * pricing.pricePerHundred)
+                            Math.ceil((500 / 100) * pricing.pricePerHundred),
                           )}
                         </span>
                       </div>
@@ -298,7 +293,7 @@ export default function RobuxPricingPage() {
                         <span className="text-[#cbd5e1]">1,000 Robux</span>
                         <span className="font-semibold text-[#f1f5f9]">
                           {formatCurrency(
-                            Math.ceil((1000 / 100) * pricing.pricePerHundred)
+                            Math.ceil((1000 / 100) * pricing.pricePerHundred),
                           )}
                         </span>
                       </div>
@@ -395,8 +390,8 @@ export default function RobuxPricingPage() {
                       {isSaving
                         ? "Menyimpan..."
                         : pricing
-                        ? "Update Harga"
-                        : "Simpan Harga"}
+                          ? "Update Harga"
+                          : "Simpan Harga"}
                     </span>
                   </button>
                 </div>
@@ -465,7 +460,7 @@ export default function RobuxPricingPage() {
                         day: "numeric",
                         hour: "2-digit",
                         minute: "2-digit",
-                      }
+                      },
                     )}
                   </div>
 
@@ -592,8 +587,8 @@ export default function RobuxPricingPage() {
                       {isGamepassSaving
                         ? "Menyimpan..."
                         : gamepassSetting
-                        ? "Update Harga"
-                        : "Simpan Harga"}
+                          ? "Update Harga"
+                          : "Simpan Harga"}
                     </span>
                   </button>
                 </div>

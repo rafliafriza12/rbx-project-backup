@@ -39,7 +39,6 @@ export default function TransactionsPage() {
           router.push("/login");
         }
       } catch (error) {
-        console.error("Auth check failed:", error);
         router.push("/login");
       }
     };
@@ -65,7 +64,6 @@ export default function TransactionsPage() {
         toast.error(data.error || "Gagal mengambil data transaksi");
       }
     } catch (error) {
-      console.error("Error fetching transactions:", error);
       toast.error("Gagal mengambil data transaksi");
     } finally {
       setLoading(false);
@@ -114,15 +112,15 @@ export default function TransactionsPage() {
     // Redirect to appropriate transaction status page
     if (transaction.paymentStatus === "settlement") {
       router.push(
-        `/transaction/success?order_id=${transaction.midtransOrderId}`
+        `/transaction/success?order_id=${transaction.midtransOrderId}`,
       );
     } else if (transaction.paymentStatus === "pending") {
       router.push(
-        `/transaction/pending?order_id=${transaction.midtransOrderId}`
+        `/transaction/pending?order_id=${transaction.midtransOrderId}`,
       );
     } else {
       router.push(
-        `/transaction/failed?order_id=${transaction.midtransOrderId}`
+        `/transaction/failed?order_id=${transaction.midtransOrderId}`,
       );
     }
   };
@@ -291,7 +289,7 @@ export default function TransactionsPage() {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
-                            }
+                            },
                           )}
                         </p>
                       </div>
@@ -307,7 +305,7 @@ export default function TransactionsPage() {
                         </span>
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            transaction.paymentStatus
+                            transaction.paymentStatus,
                           )}`}
                         >
                           {getStatusText(transaction.paymentStatus)}
@@ -317,7 +315,7 @@ export default function TransactionsPage() {
                         <span className="text-sm text-gray-600">Pesanan:</span>
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            transaction.orderStatus
+                            transaction.orderStatus,
                           )}`}
                         >
                           {getStatusText(transaction.orderStatus)}

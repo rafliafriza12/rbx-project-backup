@@ -133,7 +133,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const userId = (user as any)?.id || (user as any)?._id;
       if (!userId) {
-        console.error("User ID not found");
         return;
       }
 
@@ -150,18 +149,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         setItemCount(
           data.items?.reduce(
             (total: number, item: CartItem) => total + item.quantity,
-            0
-          ) || 0
+            0,
+          ) || 0,
         );
       } else {
-        console.error(
-          "Failed to refresh cart:",
-          response.status,
-          response.statusText
-        );
       }
     } catch (error) {
-      console.error("Error refreshing cart:", error);
       setItems([]);
       setItemCount(0);
     } finally {
@@ -175,7 +168,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const userId = (user as any)?.id || (user as any)?._id;
       if (!userId) {
-        console.error("User ID not found");
         return false;
       }
 
@@ -195,25 +187,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return true;
       } else {
         const errorData = await response.json();
-        console.error("Failed to add to cart:", errorData);
         return false;
       }
     } catch (error) {
-      console.error("Error adding to cart:", error);
       return false;
     }
   };
 
   const updateQuantity = async (
     itemId: string,
-    quantity: number
+    quantity: number,
   ): Promise<boolean> => {
     if (!user) return false;
 
     try {
       const userId = (user as any)?.id || (user as any)?._id;
       if (!userId) {
-        console.error("User ID not found");
         return false;
       }
 
@@ -230,11 +219,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return true;
       } else {
         const errorData = await response.json();
-        console.error("Failed to update quantity:", errorData);
         return false;
       }
     } catch (error) {
-      console.error("Error updating quantity:", error);
       return false;
     }
   };
@@ -245,20 +232,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const userId = (user as any)?.id || (user as any)?._id;
       if (!userId) {
-        console.error("User ID not found");
         return false;
       }
 
       const response = await fetch(
         `/api/cart?userId=${encodeURIComponent(
-          userId
+          userId,
         )}&itemId=${encodeURIComponent(itemId)}`,
         {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -266,11 +252,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return true;
       } else {
         const errorData = await response.json();
-        console.error("Failed to remove item:", errorData);
         return false;
       }
     } catch (error) {
-      console.error("Error removing item:", error);
       return false;
     }
   };
