@@ -7,7 +7,101 @@
 import dbConnect from "@/lib/mongodb";
 
 // ============================================================
-// 0. Verifikasi gamepass via Roblox API (anti-spoof)
+// 0a. Verifikasi Roblox username via Roblox API (anti-spoof)
+// ============================================================
+export async function verifyRobloxUsername(username: string): Promise<{
+  valid: boolean;
+  error?: string;
+  verifiedUsername?: string;
+  userId?: number;
+  displayName?: string;
+}> {
+  if (!username || typeof username !== "string" || username.trim() === "") {
+    return { valid: false, error: "Roblox username diperlukan" };
+  }
+
+  const trimmed = username.trim();
+
+  // Basic format validation: Roblox usernames are 3-20 chars, alphanumeric + underscore
+  if (trimmed.length < 3 || trimmed.length > 20) {
+    return {
+      valid: false,
+      error: "Roblox username harus 3-20 karakter",
+    };
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+    return {
+      valid: false,
+      error: "Roblox username hanya boleh huruf, angka, dan underscore",
+    };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(
+      "https://users.roblox.com/v1/usernames/users",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usernames: [trimmed],
+          excludeBannedUsers: false,
+        }),
+        signal: controller.signal,
+      },
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`Roblox username API error: HTTP ${response.status}`);
+      return {
+        valid: false,
+        error: `Gagal memverifikasi username dari Roblox (HTTP ${response.status})`,
+      };
+    }
+
+    const data = await response.json();
+
+    if (!data.data || data.data.length === 0) {
+      console.warn(`⚠️ Roblox username "${trimmed}" not found via Roblox API`);
+      return {
+        valid: false,
+        error: `Username Roblox "${trimmed}" tidak ditemukan`,
+      };
+    }
+
+    const user = data.data[0];
+    console.log(
+      `✅ Roblox username verified: "${trimmed}" → id=${user.id}, name="${user.name}", displayName="${user.displayName}"`,
+    );
+
+    return {
+      valid: true,
+      verifiedUsername: user.name, // Use the exact casing from Roblox
+      userId: user.id,
+      displayName: user.displayName,
+    };
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      return {
+        valid: false,
+        error: "Roblox API timeout saat verifikasi username",
+      };
+    }
+    console.error("Error verifying Roblox username:", error);
+    return {
+      valid: false,
+      error: "Gagal memverifikasi username dari Roblox",
+    };
+  }
+}
+
+// ============================================================
+// 0b. Verifikasi gamepass via Roblox API (anti-spoof)
 // ============================================================
 export async function verifyGamepassFromRoblox(
   placeId: number | string,

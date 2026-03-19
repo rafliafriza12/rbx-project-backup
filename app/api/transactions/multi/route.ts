@@ -10,6 +10,7 @@ import {
   validateMultiTransactionItem,
   getVerifiedDiscount,
   getVerifiedPaymentFee,
+  verifyRobloxUsername,
 } from "@/lib/serverValidation";
 
 // POST - Buat multiple transaksi dari cart
@@ -162,6 +163,29 @@ export async function POST(request: NextRequest) {
           },
           { status: 400 },
         );
+      }
+
+      // Verifikasi username ke Roblox API (anti-spoof)
+      if (usernameRequiredForItem && item.robloxUsername) {
+        const usernameVerification = await verifyRobloxUsername(
+          item.robloxUsername,
+        );
+        if (!usernameVerification.valid) {
+          console.error(
+            `❌ Roblox username verification failed for item ${i}: ${usernameVerification.error}`,
+          );
+          return NextResponse.json(
+            {
+              error:
+                usernameVerification.error ||
+                `Username Roblox "${item.robloxUsername}" tidak valid`,
+            },
+            { status: 400 },
+          );
+        }
+        // Use verified username from Roblox (exact casing)
+        item.robloxUsername = usernameVerification.verifiedUsername!;
+        item._verifiedRobloxUserId = usernameVerification.userId;
       }
 
       // ============================================================

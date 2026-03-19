@@ -12,6 +12,7 @@ import {
   getVerifiedDiscount,
   getVerifiedPaymentFee,
   verifyGamepassFromRoblox,
+  verifyRobloxUsername,
 } from "@/lib/serverValidation";
 // Discord notifications are handled via webhook when payment status changes to settlement
 // import { notifyNewTransaction } from "@/lib/discord";
@@ -487,6 +488,27 @@ async function handleMultiItemDirectPurchase(body: any) {
       );
     }
 
+    // Verifikasi username ke Roblox API (anti-spoof)
+    const usernameVerification = await verifyRobloxUsername(
+      item.robloxUsername,
+    );
+    if (!usernameVerification.valid) {
+      console.error(
+        `❌ Roblox username verification failed for item ${i}: ${usernameVerification.error}`,
+      );
+      return NextResponse.json(
+        {
+          error:
+            usernameVerification.error ||
+            `Username Roblox "${item.robloxUsername}" tidak valid`,
+        },
+        { status: 400 },
+      );
+    }
+    // Use verified username from Roblox (exact casing)
+    item.robloxUsername = usernameVerification.verifiedUsername!;
+    const itemRobloxUserId = usernameVerification.userId;
+
     // Check if password is required
     let passwordRequired = false;
     if (item.serviceType === "joki") {
@@ -627,6 +649,24 @@ async function handleMultiItemDirectPurchase(body: any) {
           `✅ Item ${i + 1} gamepass verified from Roblox API:`,
           verifiedGamepass,
         );
+
+        // Cross-check: sellerId gamepass harus = userId dari robloxUsername
+        if (itemRobloxUserId && verifiedGamepass.sellerId) {
+          if (verifiedGamepass.sellerId !== itemRobloxUserId) {
+            console.error(
+              `❌ Item ${i + 1} seller ID mismatch! Gamepass sellerId=${verifiedGamepass.sellerId}, but robloxUsername "${item.robloxUsername}" has userId=${itemRobloxUserId}`,
+            );
+            return NextResponse.json(
+              {
+                error: `GamePass item ${i + 1} bukan milik akun "${item.robloxUsername}". Pemilik GamePass tidak sesuai dengan username yang dimasukkan.`,
+              },
+              { status: 400 },
+            );
+          }
+          console.log(
+            `✅ Item ${i + 1} seller ID match: sellerId=${verifiedGamepass.sellerId} === userId=${itemRobloxUserId}`,
+          );
+        }
       }
 
       // SANITIZE rbx5Details: ALL gamepass data from Roblox API, not client
@@ -1262,6 +1302,34 @@ async function handleSingleItemTransaction(body: any) {
   }
 
   // ============================================================
+  // Verifikasi Roblox username ke Roblox API (anti-spoof)
+  // ============================================================
+  let verifiedRobloxUsername = robloxUsername || "";
+  let verifiedRobloxUserId: number | undefined;
+  if (usernameRequired && robloxUsername) {
+    const usernameVerification = await verifyRobloxUsername(robloxUsername);
+    if (!usernameVerification.valid) {
+      console.error(
+        `❌ Roblox username verification failed: ${usernameVerification.error}`,
+      );
+      return NextResponse.json(
+        {
+          error:
+            usernameVerification.error ||
+            `Username Roblox "${robloxUsername}" tidak valid`,
+        },
+        { status: 400 },
+      );
+    }
+    // Use verified username from Roblox (exact casing)
+    verifiedRobloxUsername = usernameVerification.verifiedUsername!;
+    verifiedRobloxUserId = usernameVerification.userId;
+    console.log(
+      `✅ Roblox username verified: "${robloxUsername}" → "${verifiedRobloxUsername}" (userId=${verifiedRobloxUserId})`,
+    );
+  }
+
+  // ============================================================
   // SERVER-SIDE VALIDATION: Jangan percaya data dari frontend!
   // Hitung ulang semua harga, diskon, dan fee dari database.
   // ============================================================
@@ -1338,6 +1406,24 @@ async function handleSingleItemTransaction(body: any) {
     }
     verifiedRbx5Gamepass = robloxCheck.gamepass;
     console.log("✅ Gamepass verified from Roblox API:", verifiedRbx5Gamepass);
+
+    // Cross-check: sellerId gamepass harus = userId dari robloxUsername
+    if (verifiedRobloxUserId && verifiedRbx5Gamepass.sellerId) {
+      if (verifiedRbx5Gamepass.sellerId !== verifiedRobloxUserId) {
+        console.error(
+          `❌ Seller ID mismatch! Gamepass sellerId=${verifiedRbx5Gamepass.sellerId}, but robloxUsername "${verifiedRobloxUsername}" has userId=${verifiedRobloxUserId}`,
+        );
+        return NextResponse.json(
+          {
+            error: `GamePass ini bukan milik akun "${verifiedRobloxUsername}". Pemilik GamePass tidak sesuai dengan username yang dimasukkan.`,
+          },
+          { status: 400 },
+        );
+      }
+      console.log(
+        `✅ Seller ID match: gamepass sellerId=${verifiedRbx5Gamepass.sellerId} === username userId=${verifiedRobloxUserId}`,
+      );
+    }
   }
 
   // Buat transaksi baru - GUNAKAN DATA TERVERIFIKASI DARI DATABASE
@@ -1353,7 +1439,7 @@ async function handleSingleItemTransaction(body: any) {
     discountPercentage: verifiedDiscountPercentage,
     discountAmount: verifiedDiscountAmount,
     finalAmount: verifiedFinalAmountBeforeFee,
-    robloxUsername: robloxUsername || "", // Empty for reseller
+    robloxUsername: verifiedRobloxUsername, // Verified from Roblox API (empty for reseller)
     robloxPassword: robloxPassword || "", // Empty string for gamepass, robux_5_hari, and reseller
     customerNotes: additionalNotes || "", // Customer notes dari form checkout
     jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
