@@ -80,7 +80,6 @@ export default function TransactionsPage() {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: "10",
-        admin: "true",
         ...(filters.search && { search: filters.search }),
         ...(filters.status && { status: filters.status }),
         ...(filters.serviceType && { serviceType: filters.serviceType }),
@@ -217,7 +216,6 @@ export default function TransactionsPage() {
     try {
       const params = new URLSearchParams({
         export: "true",
-        admin: "true",
         ...(filters.search && { search: filters.search }),
         ...(filters.status && { status: filters.status }),
         ...(filters.serviceType && { serviceType: filters.serviceType }),

@@ -99,7 +99,7 @@ function TransactionResultContent() {
 
   const fetchTransaction = async (orderId: string) => {
     try {
-      const response = await fetch(`/api/transactions/${orderId}`);
+      const response = await fetch(`/api/transactions/invoice/${orderId}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -335,7 +335,7 @@ function TransactionResultContent() {
                               </div>
                             </div>
                           </div>
-                        )
+                        ),
                       )}
                     </div>
 
@@ -375,7 +375,7 @@ function TransactionResultContent() {
                         <span className="text-xl font-bold text-primary-100">
                           Rp{" "}
                           {calculateGrandTotal(
-                            transaction as any
+                            transaction as any,
                           ).toLocaleString("id-ID")}
                         </span>
                       </div>

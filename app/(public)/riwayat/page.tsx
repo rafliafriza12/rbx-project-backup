@@ -78,7 +78,7 @@ export default function RiwayatPage() {
 
     try {
       setLoading(true);
-      const url = `/api/transactions?userId=${user.id}`;
+      const url = `/api/transactions/user/${user.id}`;
 
       const response = await fetch(url, {
         headers: {

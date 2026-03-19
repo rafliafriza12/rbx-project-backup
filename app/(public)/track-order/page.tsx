@@ -94,7 +94,7 @@ export default function TrackOrderPage() {
 
     try {
       const response = await fetch(
-        `/api/transactions/${encodeURIComponent(invoiceId)}`,
+        `/api/transactions/invoice/${encodeURIComponent(invoiceId)}`,
       );
 
       const data = await response.json();

@@ -11,6 +11,7 @@ import {
   validateMultiTransactionItem,
   getVerifiedDiscount,
   getVerifiedPaymentFee,
+  verifyGamepassFromRoblox,
 } from "@/lib/serverValidation";
 import { notifyNewTransaction } from "@/lib/discord";
 
@@ -61,56 +62,37 @@ function isTxRateLimited(identifier: string): {
   return { limited: false };
 }
 
-// GET - Ambil semua transaksi user atau admin
+// GET - Ambil semua transaksi (ADMIN ONLY)
+// User harus menggunakan /api/transactions/user/[userId] untuk melihat transaksinya sendiri
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
+    // ============================================================
+    // ADMIN ONLY: Semua GET ke /api/transactions harus admin
+    // ============================================================
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message?.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json(
+        { error: authError.message || "Unauthorized" },
+        { status },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
     const status = searchParams.get("status");
     const serviceType = searchParams.get("serviceType");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const isAdmin = searchParams.get("admin") === "true";
     const isExport = searchParams.get("export") === "true";
     const search = searchParams.get("search");
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
 
-    // Verify admin token for admin/export operations
-    if (isAdmin || isExport) {
-      try {
-        const adminUser = await requireAdmin(request);
-        if (!adminUser) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-      } catch {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    }
-
-    // Verify user is authenticated for userId queries
-    if (userId && !isAdmin) {
-      try {
-        const user = await authenticateToken(request);
-        if (
-          !user ||
-          (user._id.toString() !== userId && user.accessRole !== "admin")
-        ) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-      } catch {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    }
-
     // Build query
     const query: any = {};
-
-    if (userId && !isAdmin) {
-      query["customerInfo.userId"] = userId;
-    }
 
     if (status) {
       if (status.includes("payment:")) {
@@ -206,17 +188,6 @@ export async function GET(request: NextRequest) {
     // Remove duplicate userId filtering since it's already handled above with customerInfo.userId
     // The Transaction model doesn't have a top-level userId field
 
-    if (status) {
-      if (status.includes("payment:")) {
-        query.paymentStatus = status.replace("payment:", "");
-      } else if (status.includes("order:")) {
-        query.orderStatus = status.replace("order:", "");
-      } else {
-        // Default to payment status
-        query.paymentStatus = status;
-      }
-    }
-
     if (serviceType) {
       query.serviceType = serviceType;
     }
@@ -258,8 +229,9 @@ export async function GET(request: NextRequest) {
     const total = await Transaction.countDocuments(query);
 
     // Get statistics if admin
+    // Statistics (admin only endpoint, always include)
     let statistics = null;
-    if (isAdmin) {
+    {
       // Calculate basic statistics
       const totalTransactions = await Transaction.countDocuments();
       const paidTransactions = await Transaction.countDocuments({
@@ -296,57 +268,10 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Strip sensitive fields for non-admin responses
-    const safeData = isAdmin
-      ? processedTransactions
-      : processedTransactions.map((t: any) => {
-          const {
-            robloxPassword,
-            snapToken,
-            redirectUrl,
-            midtransOrderId,
-            midtransTransactionId,
-            adminNotes,
-            ...safe
-          } = t;
-          // Also strip sensitive fields from related transactions
-          if (safe.relatedTransactions) {
-            safe.relatedTransactions = safe.relatedTransactions.map(
-              (rt: any) => {
-                const {
-                  robloxPassword: _rp,
-                  snapToken: _st,
-                  redirectUrl: _ru,
-                  midtransOrderId: _mo,
-                  midtransTransactionId: _mt,
-                  adminNotes: _an,
-                  ...safeRt
-                } = rt;
-                return safeRt;
-              },
-            );
-          }
-          // Sanitize customerInfo
-          if (safe.customerInfo) {
-            safe.customerInfo = {
-              name: safe.customerInfo.name || "",
-              email: safe.customerInfo.email || "",
-            };
-          }
-          // Sanitize statusHistory
-          if (safe.statusHistory) {
-            safe.statusHistory = safe.statusHistory.map((h: any) => ({
-              status: h.status,
-              updatedAt: h.timestamp || h.updatedAt,
-              notes: h.notes || "",
-            }));
-          }
-          return safe;
-        });
-
+    // Admin-only endpoint — return full data without stripping
     return NextResponse.json({
       success: true,
-      data: safeData,
+      data: processedTransactions,
       pagination: {
         page,
         limit,
@@ -631,7 +556,19 @@ async function handleMultiItemDirectPurchase(body: any) {
     }
 
     if (item.gamepassDetails) {
-      transactionData.gamepassDetails = item.gamepassDetails;
+      // SANITIZE gamepassDetails: use verified data from DB, only allow additionalInfo from client
+      if (itemValidation.verifiedGamepassDetails) {
+        transactionData.gamepassDetails = {
+          gameName: itemValidation.verifiedGamepassDetails.gameName,
+          itemName: itemValidation.verifiedGamepassDetails.itemName,
+          gamepassId: itemValidation.verifiedGamepassDetails.gamepassId,
+          additionalInfo: item.gamepassDetails.additionalInfo || "",
+        };
+      } else {
+        transactionData.gamepassDetails = {
+          additionalInfo: item.gamepassDetails.additionalInfo || "",
+        };
+      }
     }
 
     if (item.jokiDetails) {
@@ -639,13 +576,60 @@ async function handleMultiItemDirectPurchase(body: any) {
     }
 
     if (item.robuxInstantDetails) {
-      transactionData.robuxInstantDetails = item.robuxInstantDetails;
+      // SANITIZE robuxInstantDetails: use verified data from DB, only allow notes from client
+      if (itemValidation.verifiedRobuxInstantDetails) {
+        transactionData.robuxInstantDetails = {
+          robuxAmount: itemValidation.verifiedRobuxInstantDetails.robuxAmount,
+          productName: itemValidation.verifiedRobuxInstantDetails.productName,
+          description: itemValidation.verifiedRobuxInstantDetails.description,
+          notes: item.robuxInstantDetails.notes || "",
+          additionalInfo: item.robuxInstantDetails.additionalInfo || "",
+        };
+      } else {
+        transactionData.robuxInstantDetails = {
+          notes: item.robuxInstantDetails.notes || "",
+          additionalInfo: item.robuxInstantDetails.additionalInfo || "",
+        };
+      }
     }
 
     if (item.rbx5Details) {
-      // SANITIZE rbx5Details: override client values with server-verified values
+      // VERIFY gamepass via Roblox API if gamepass data exists
+      let verifiedGamepass = item.rbx5Details.gamepass;
+      if (
+        item.rbx5Details.gamepass &&
+        item.rbx5Details.selectedPlace?.placeId
+      ) {
+        const expectedGamepassPrice =
+          itemValidation.verifiedGamepassAmount ||
+          item.rbx5Details.gamepass.price;
+        const robloxCheck = await verifyGamepassFromRoblox(
+          item.rbx5Details.selectedPlace.placeId,
+          expectedGamepassPrice,
+        );
+        if (!robloxCheck.valid || !robloxCheck.gamepass) {
+          console.error(
+            `❌ Gamepass verification failed for item ${i + 1}:`,
+            robloxCheck.error,
+          );
+          return NextResponse.json(
+            {
+              error:
+                robloxCheck.error ||
+                `GamePass tidak valid untuk item ${i + 1}. Pastikan GamePass sudah dibuat dengan benar.`,
+            },
+            { status: 400 },
+          );
+        }
+        verifiedGamepass = robloxCheck.gamepass;
+        console.log(
+          `✅ Item ${i + 1} gamepass verified from Roblox API:`,
+          verifiedGamepass,
+        );
+      }
+
+      // SANITIZE rbx5Details: ALL gamepass data from Roblox API, not client
       transactionData.rbx5Details = {
-        ...item.rbx5Details,
         robuxAmount:
           itemValidation.verifiedRobuxAmount || item.rbx5Details.robuxAmount,
         gamepassAmount:
@@ -659,34 +643,26 @@ async function handleMultiItemDirectPurchase(body: any) {
             }
           : undefined,
         gamepassCreated: item.rbx5Details.gamepassCreated,
-        gamepass: item.rbx5Details.gamepass
+        gamepass: verifiedGamepass
           ? {
-              id: item.rbx5Details.gamepass.id,
-              name: item.rbx5Details.gamepass.name,
-              price:
-                itemValidation.verifiedGamepassAmount ||
-                item.rbx5Details.gamepass.price,
-              productId: item.rbx5Details.gamepass.productId,
-              sellerId: item.rbx5Details.gamepass.sellerId,
+              id: verifiedGamepass.id,
+              name: verifiedGamepass.name,
+              price: verifiedGamepass.price,
+              productId: verifiedGamepass.productId,
+              sellerId: verifiedGamepass.sellerId,
             }
           : undefined,
-        // Remove extra client fields
-        paymentMethodId: undefined,
-        paymentFee: undefined,
-        additionalNotes: undefined,
         pricePerRobux: itemValidation.verifiedPricePerHundred
           ? itemValidation.verifiedPricePerHundred / 100
           : item.rbx5Details.pricePerRobux,
       };
-      if (item.rbx5Details.gamepass) {
+      if (verifiedGamepass) {
         transactionData.gamepass = {
-          id: item.rbx5Details.gamepass.id,
-          name: item.rbx5Details.gamepass.name,
-          price:
-            itemValidation.verifiedGamepassAmount ||
-            item.rbx5Details.gamepass.price,
-          productId: item.rbx5Details.gamepass.productId,
-          sellerId: item.rbx5Details.gamepass.sellerId,
+          id: verifiedGamepass.id,
+          name: verifiedGamepass.name,
+          price: verifiedGamepass.price,
+          productId: verifiedGamepass.productId,
+          sellerId: verifiedGamepass.sellerId,
         };
       }
     }
@@ -1323,6 +1299,8 @@ async function handleSingleItemTransaction(body: any) {
     verifiedPricePerHundred,
     verifiedResellerDetails,
     verifiedServiceName,
+    verifiedRobuxInstantDetails,
+    verifiedGamepassDetails,
   } = validation.verified;
 
   console.log("✅ Server-side validation passed. Using verified values:");
@@ -1335,6 +1313,37 @@ async function handleSingleItemTransaction(body: any) {
     verifiedPaymentFee,
     verifiedFinalAmountWithFee,
   });
+
+  // ============================================================
+  // VERIFY GAMEPASS via Roblox API for rbx5_hari (anti-spoof)
+  // ============================================================
+  let verifiedRbx5Gamepass: any = null;
+  if (
+    serviceType === "robux" &&
+    serviceCategory === "robux_5_hari" &&
+    rbx5Details?.gamepass &&
+    rbx5Details?.selectedPlace?.placeId
+  ) {
+    const expectedGamepassPrice =
+      verifiedGamepassAmount || rbx5Details.gamepass.price;
+    const robloxCheck = await verifyGamepassFromRoblox(
+      rbx5Details.selectedPlace.placeId,
+      expectedGamepassPrice,
+    );
+    if (!robloxCheck.valid || !robloxCheck.gamepass) {
+      console.error("❌ Gamepass verification failed:", robloxCheck.error);
+      return NextResponse.json(
+        {
+          error:
+            robloxCheck.error ||
+            "GamePass tidak valid. Pastikan GamePass sudah dibuat dengan benar dan harga sesuai.",
+        },
+        { status: 400 },
+      );
+    }
+    verifiedRbx5Gamepass = robloxCheck.gamepass;
+    console.log("✅ Gamepass verified from Roblox API:", verifiedRbx5Gamepass);
+  }
 
   // Buat transaksi baru - GUNAKAN DATA TERVERIFIKASI DARI DATABASE
   const transactionData: any = {
@@ -1353,11 +1362,19 @@ async function handleSingleItemTransaction(body: any) {
     robloxPassword: robloxPassword || "", // Empty string for gamepass, robux_5_hari, and reseller
     customerNotes: additionalNotes || "", // Customer notes dari form checkout
     jokiDetails: serviceType === "joki" ? jokiDetails : undefined,
-    robuxInstantDetails: robuxInstantDetails || undefined,
-    // SANITIZE rbx5Details: override client values with server-verified values
+    // SANITIZE robuxInstantDetails: use verified data from DB, only allow notes from client
+    robuxInstantDetails: verifiedRobuxInstantDetails
+      ? {
+          robuxAmount: verifiedRobuxInstantDetails.robuxAmount,
+          productName: verifiedRobuxInstantDetails.productName,
+          description: verifiedRobuxInstantDetails.description,
+          notes: robuxInstantDetails?.notes || "",
+          additionalInfo: robuxInstantDetails?.additionalInfo || "",
+        }
+      : undefined,
+    // SANITIZE rbx5Details: ALL gamepass data from Roblox API, not client
     rbx5Details: rbx5Details
       ? {
-          ...rbx5Details,
           robuxAmount: verifiedRobuxAmount || rbx5Details.robuxAmount,
           gamepassAmount: verifiedGamepassAmount || rbx5Details.gamepassAmount,
           packageName: rbx5Details.packageName,
@@ -1368,25 +1385,28 @@ async function handleSingleItemTransaction(body: any) {
               }
             : undefined,
           gamepassCreated: rbx5Details.gamepassCreated,
-          gamepass: rbx5Details.gamepass
+          gamepass: verifiedRbx5Gamepass
             ? {
-                id: rbx5Details.gamepass.id,
-                name: rbx5Details.gamepass.name,
-                price: verifiedGamepassAmount || rbx5Details.gamepass.price,
-                productId: rbx5Details.gamepass.productId,
-                sellerId: rbx5Details.gamepass.sellerId,
+                id: verifiedRbx5Gamepass.id,
+                name: verifiedRbx5Gamepass.name,
+                price: verifiedRbx5Gamepass.price,
+                productId: verifiedRbx5Gamepass.productId,
+                sellerId: verifiedRbx5Gamepass.sellerId,
               }
             : undefined,
-          // Remove any extra fields client may have injected
-          paymentMethodId: undefined,
-          paymentFee: undefined,
-          additionalNotes: undefined,
           pricePerRobux: verifiedPricePerHundred
             ? verifiedPricePerHundred / 100
             : rbx5Details.pricePerRobux,
         }
       : undefined,
-    gamepassDetails: gamepassDetails || undefined,
+    gamepassDetails: verifiedGamepassDetails
+      ? {
+          gameName: verifiedGamepassDetails.gameName,
+          itemName: verifiedGamepassDetails.itemName,
+          gamepassId: verifiedGamepassDetails.gamepassId,
+          additionalInfo: gamepassDetails?.additionalInfo || "",
+        }
+      : undefined,
     // SANITIZE resellerDetails: use verified data from DB, NOT from frontend
     resellerDetails: verifiedResellerDetails || undefined,
     paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
@@ -1397,19 +1417,18 @@ async function handleSingleItemTransaction(body: any) {
     },
   };
 
-  // Tambahkan data gamepass untuk service robux_5_hari - USE VERIFIED VALUES
+  // Tambahkan data gamepass untuk service robux_5_hari - USE VERIFIED FROM ROBLOX API
   if (
     serviceType === "robux" &&
     serviceCategory === "robux_5_hari" &&
-    (gamepass || (rbx5Details && rbx5Details.gamepass))
+    verifiedRbx5Gamepass
   ) {
-    const sourceGamepass = gamepass || rbx5Details.gamepass;
     transactionData.gamepass = {
-      id: sourceGamepass.id,
-      name: sourceGamepass.name,
-      price: verifiedGamepassAmount || sourceGamepass.price,
-      productId: sourceGamepass.productId,
-      sellerId: sourceGamepass.sellerId,
+      id: verifiedRbx5Gamepass.id,
+      name: verifiedRbx5Gamepass.name,
+      price: verifiedRbx5Gamepass.price,
+      productId: verifiedRbx5Gamepass.productId,
+      sellerId: verifiedRbx5Gamepass.sellerId,
     };
   }
 

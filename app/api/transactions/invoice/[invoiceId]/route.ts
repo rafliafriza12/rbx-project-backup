@@ -85,9 +85,12 @@ export async function GET(
       );
     }
 
-    // Cari transaksi berdasarkan invoiceId
+    // Cari transaksi berdasarkan invoiceId ATAU midtransOrderId (for post-payment redirect)
     const transaction = await Transaction.findOne({
-      invoiceId: invoiceId.toUpperCase(),
+      $or: [
+        { invoiceId: invoiceId.toUpperCase() },
+        { midtransOrderId: invoiceId },
+      ],
     }).exec();
 
     if (!transaction) {

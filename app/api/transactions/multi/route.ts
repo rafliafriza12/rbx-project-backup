@@ -220,7 +220,21 @@ export async function POST(request: NextRequest) {
       }
 
       if (item.robuxInstantDetails) {
-        transactionData.robuxInstantDetails = item.robuxInstantDetails;
+        // SANITIZE robuxInstantDetails: use verified data from DB, only allow notes from client
+        if (itemValidation.verifiedRobuxInstantDetails) {
+          transactionData.robuxInstantDetails = {
+            robuxAmount: itemValidation.verifiedRobuxInstantDetails.robuxAmount,
+            productName: itemValidation.verifiedRobuxInstantDetails.productName,
+            description: itemValidation.verifiedRobuxInstantDetails.description,
+            notes: item.robuxInstantDetails.notes || "",
+            additionalInfo: item.robuxInstantDetails.additionalInfo || "",
+          };
+        } else {
+          transactionData.robuxInstantDetails = {
+            notes: item.robuxInstantDetails.notes || "",
+            additionalInfo: item.robuxInstantDetails.additionalInfo || "",
+          };
+        }
       }
 
       if (item.rbx5Details) {
@@ -273,7 +287,19 @@ export async function POST(request: NextRequest) {
       }
 
       if (item.gamepassDetails) {
-        transactionData.gamepassDetails = item.gamepassDetails;
+        // SANITIZE gamepassDetails: use verified data from DB, only allow additionalInfo from client
+        if (itemValidation.verifiedGamepassDetails) {
+          transactionData.gamepassDetails = {
+            gameName: itemValidation.verifiedGamepassDetails.gameName,
+            itemName: itemValidation.verifiedGamepassDetails.itemName,
+            gamepassId: itemValidation.verifiedGamepassDetails.gamepassId,
+            additionalInfo: item.gamepassDetails.additionalInfo || "",
+          };
+        } else {
+          transactionData.gamepassDetails = {
+            additionalInfo: item.gamepassDetails.additionalInfo || "",
+          };
+        }
       }
 
       // Create transaction

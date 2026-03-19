@@ -8,7 +8,7 @@ import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 import mongoose from "mongoose";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, authenticateToken } from "@/lib/auth";
 import {
   notifyPaymentStatusChange,
   notifyOrderStatusChange,
@@ -168,12 +168,26 @@ async function processGamepassPurchase(transaction: any) {
 }
 
 // GET - Get transaction by ID atau invoice ID (with related transactions for multi-checkout)
+// Requires authentication: admin gets full data, user gets own transaction (sanitized)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
+
+    // ============================================================
+    // AUTH: Must be logged in (admin or user)
+    // ============================================================
+    let currentUser: any = null;
+    let isAdmin = false;
+
+    try {
+      currentUser = await authenticateToken(request);
+      isAdmin = currentUser?.accessRole === "admin";
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
     const transactionId = id;
@@ -200,6 +214,19 @@ export async function GET(
       );
     }
 
+    // Non-admin: verify ownership
+    if (!isAdmin) {
+      const txUserId =
+        transaction.customerInfo?.userId?._id?.toString() ||
+        transaction.customerInfo?.userId?.toString();
+      if (!txUserId || txUserId !== currentUser._id.toString()) {
+        return NextResponse.json(
+          { error: "Forbidden: Anda tidak memiliki akses ke transaksi ini" },
+          { status: 403 },
+        );
+      }
+    }
+
     // Check if this is part of a multi-checkout (grouped by midtransOrderId)
     let relatedTransactions: any[] = [];
     let isMultiCheckout = false;
@@ -216,14 +243,78 @@ export async function GET(
       isMultiCheckout = relatedTransactions.length > 0;
     }
 
-    // Prepare response data
-    const responseData = transaction.toObject();
-    responseData.relatedTransactions = relatedTransactions;
-    responseData.isMultiCheckout = isMultiCheckout;
+    // Admin: return full data
+    if (isAdmin) {
+      const responseData = transaction.toObject();
+      responseData.relatedTransactions = relatedTransactions;
+      responseData.isMultiCheckout = isMultiCheckout;
+
+      return NextResponse.json({
+        success: true,
+        data: responseData,
+      });
+    }
+
+    // User: return sanitized data (strip sensitive fields)
+    const safeTransaction = {
+      _id: transaction._id.toString(),
+      serviceType: transaction.serviceType,
+      serviceId: transaction.serviceId.toString(),
+      serviceName: transaction.serviceName,
+      serviceImage: transaction.serviceImage || "",
+      serviceCategory: transaction.serviceCategory,
+      quantity: transaction.quantity,
+      unitPrice: transaction.unitPrice,
+      totalAmount: transaction.totalAmount,
+      discountPercentage: transaction.discountPercentage || 0,
+      discountAmount: transaction.discountAmount || 0,
+      finalAmount: transaction.finalAmount || transaction.totalAmount,
+      robloxUsername: transaction.robloxUsername,
+      // REMOVED: robloxPassword, jokiDetails, robuxInstantDetails, rbx5Details sensitive data
+      gamepass: transaction.gamepass || {},
+      gamepassDetails: transaction.gamepassDetails || {},
+      paymentStatus: transaction.paymentStatus,
+      orderStatus: transaction.orderStatus,
+      paymentMethodName: transaction.paymentMethodName || null,
+      paymentFee: transaction.paymentFee || 0,
+      customerInfo: {
+        name: transaction.customerInfo?.name || "",
+        email: transaction.customerInfo?.email || "",
+        userId: transaction.customerInfo?.userId,
+      },
+      invoiceId: transaction.invoiceId,
+      statusHistory: (transaction.statusHistory || []).map((h: any) => ({
+        status: h.status,
+        updatedAt: h.timestamp || h.updatedAt,
+        notes: h.notes || "",
+        // REMOVED: updatedBy
+      })),
+      expiresAt: transaction.expiresAt,
+      // REMOVED: midtransOrderId, snapToken, redirectUrl, adminNotes
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+      paidAt: transaction.paidAt,
+      completedAt: transaction.completedAt,
+      relatedTransactions: relatedTransactions.map((t: any) => ({
+        _id: t._id.toString(),
+        serviceType: t.serviceType,
+        serviceName: t.serviceName,
+        serviceImage: t.serviceImage || "",
+        quantity: t.quantity,
+        unitPrice: t.unitPrice,
+        totalAmount: t.totalAmount,
+        finalAmount: t.finalAmount || t.totalAmount,
+        robloxUsername: t.robloxUsername,
+        orderStatus: t.orderStatus,
+        invoiceId: t.invoiceId,
+        createdAt: t.createdAt,
+      })),
+      isMultiCheckout,
+    };
 
     return NextResponse.json({
       success: true,
-      data: responseData,
+      data: safeTransaction,
     });
   } catch (error) {
     console.error("Error fetching transaction:", error);

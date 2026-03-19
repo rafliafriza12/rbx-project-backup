@@ -30,39 +30,14 @@ export function getAllTransactions(transaction: Transaction): Transaction[] {
 export function calculateGrandTotal(transaction: Transaction): number {
   const allTransactions = getAllTransactions(transaction);
 
-  console.log(
-    "[calculateGrandTotal] All transactions:",
-    allTransactions.length
-  );
-  console.log(
-    "[calculateGrandTotal] Transactions:",
-    allTransactions.map((t) => ({
-      id: t._id,
-      invoice: t.invoiceId,
-      finalAmount: t.finalAmount,
-      totalAmount: t.totalAmount,
-    }))
-  );
-
   // Sum all finalAmount (already includes discount)
   const totalAfterDiscount = allTransactions.reduce(
     (sum, t) => sum + (t.finalAmount || t.totalAmount),
-    0
-  );
-
-  console.log(
-    "[calculateGrandTotal] Total after discount:",
-    totalAfterDiscount
+    0,
   );
 
   // Add payment fee (only stored in main/first transaction)
   const paymentFee = getPaymentFee(transaction);
-
-  console.log("[calculateGrandTotal] Payment fee:", paymentFee);
-  console.log(
-    "[calculateGrandTotal] Grand total:",
-    totalAfterDiscount + paymentFee
-  );
 
   return totalAfterDiscount + paymentFee;
 }
@@ -112,12 +87,12 @@ export function getPaymentFee(transaction: Transaction): number {
  * Calculate subtotal after discount (before payment fee)
  */
 export function calculateSubtotalAfterDiscount(
-  transaction: Transaction
+  transaction: Transaction,
 ): number {
   const allTransactions = getAllTransactions(transaction);
   return allTransactions.reduce(
     (sum, t) => sum + (t.finalAmount || t.totalAmount),
-    0
+    0,
   );
 }
 
@@ -147,7 +122,7 @@ export function getCheckoutDisplayName(transaction: Transaction): string {
  * Group transactions by Roblox username (untuk multi-account checkout di masa depan)
  */
 export function groupTransactionsByAccount(
-  transaction: Transaction
+  transaction: Transaction,
 ): Map<string, Transaction[]> {
   const grouped = new Map<string, Transaction[]>();
   const allTransactions = getAllTransactions(transaction);

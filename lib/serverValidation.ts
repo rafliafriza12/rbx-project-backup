@@ -7,6 +7,96 @@
 import dbConnect from "@/lib/mongodb";
 
 // ============================================================
+// 0. Verifikasi gamepass via Roblox API (anti-spoof)
+// ============================================================
+export async function verifyGamepassFromRoblox(
+  placeId: number | string,
+  expectedPrice: number,
+): Promise<{
+  valid: boolean;
+  error?: string;
+  gamepass?: {
+    id: number;
+    name: string;
+    price: number;
+    sellerId: number;
+    productId: number;
+  };
+}> {
+  if (!placeId || !expectedPrice) {
+    return { valid: false, error: "placeId dan expectedPrice diperlukan" };
+  }
+
+  try {
+    const apiEndpoint = `https://apis.roblox.com/game-passes/v1/universes/${placeId}/game-passes?passView=Full&pageSize=100`;
+    console.log(
+      `🔍 [Server] Verifying gamepass at placeId=${placeId}, expectedPrice=${expectedPrice}`,
+    );
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(apiEndpoint, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return {
+        valid: false,
+        error: `Roblox API error: HTTP ${response.status}`,
+      };
+    }
+
+    const data = await response.json();
+    if (data.errors || data.code === 0) {
+      return {
+        valid: false,
+        error: data.message || "Roblox API returned error",
+      };
+    }
+
+    const gamePasses = data.gamePasses || [];
+    // Find gamepass matching expected price exactly
+    const matching = gamePasses.find((gp: any) => gp.price === expectedPrice);
+
+    if (!matching) {
+      console.warn(
+        `⚠️ No gamepass found with price=${expectedPrice} at placeId=${placeId}. ` +
+          `Available: ${gamePasses.map((gp: any) => `${gp.name}(${gp.price})`).join(", ")}`,
+      );
+      return {
+        valid: false,
+        error: `GamePass dengan harga ${expectedPrice} Robux tidak ditemukan di place ${placeId}`,
+      };
+    }
+
+    console.log(
+      `✅ [Server] Gamepass verified from Roblox API: id=${matching.id}, name=${matching.name}, price=${matching.price}`,
+    );
+
+    return {
+      valid: true,
+      gamepass: {
+        id: matching.id,
+        name: matching.name || matching.displayName,
+        price: matching.price,
+        sellerId: matching.creator?.creatorId,
+        productId: matching.productId,
+      },
+    };
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      return { valid: false, error: "Roblox API timeout" };
+    }
+    console.error("Error verifying gamepass from Roblox:", error);
+    return { valid: false, error: "Gagal memverifikasi gamepass dari Roblox" };
+  }
+}
+
+// ============================================================
 // 1. Validasi & ambil harga asli item dari database
 // ============================================================
 export async function getVerifiedUnitPrice(
@@ -31,6 +121,16 @@ export async function getVerifiedUnitPrice(
     features: string[];
   };
   verifiedServiceName?: string;
+  verifiedRobuxInstantDetails?: {
+    robuxAmount: number;
+    productName: string;
+    description: string;
+  };
+  verifiedGamepassDetails?: {
+    gameName: string;
+    itemName: string;
+    gamepassId: string;
+  };
 }> {
   await dbConnect();
 
@@ -59,7 +159,15 @@ export async function getVerifiedUnitPrice(
           console.log(
             `✅ Gamepass price verified by item._id: ${item.itemName} = ${item.price}`,
           );
-          return { valid: true, unitPrice: item.price };
+          return {
+            valid: true,
+            unitPrice: item.price,
+            verifiedGamepassDetails: {
+              gameName: gamepassByItemId.gameName,
+              itemName: item.itemName,
+              gamepassId: gamepassByItemId._id.toString(),
+            },
+          };
         }
       }
 
@@ -77,7 +185,15 @@ export async function getVerifiedUnitPrice(
             console.log(
               `✅ Gamepass price verified by itemName "${itemName}": ${matchedItem.price}`,
             );
-            return { valid: true, unitPrice: matchedItem.price };
+            return {
+              valid: true,
+              unitPrice: matchedItem.price,
+              verifiedGamepassDetails: {
+                gameName: gamepassById.gameName,
+                itemName: matchedItem.itemName,
+                gamepassId: gamepassById._id.toString(),
+              },
+            };
           }
           console.warn(
             `⚠️ Item "${itemName}" not found in gamepass "${gamepassById.gameName}". Available items: ${gamepassById.item.map((i: any) => i.itemName).join(", ")}`,
@@ -89,7 +205,15 @@ export async function getVerifiedUnitPrice(
           console.log(
             `✅ Gamepass has single item, using: ${gamepassById.item[0].itemName} = ${gamepassById.item[0].price}`,
           );
-          return { valid: true, unitPrice: gamepassById.item[0].price };
+          return {
+            valid: true,
+            unitPrice: gamepassById.item[0].price,
+            verifiedGamepassDetails: {
+              gameName: gamepassById.gameName,
+              itemName: gamepassById.item[0].itemName,
+              gamepassId: gamepassById._id.toString(),
+            },
+          };
         }
 
         // Multi-item gamepass tanpa itemName — tidak bisa verifikasi
@@ -196,9 +320,17 @@ export async function getVerifiedUnitPrice(
 
       if (product && product.category === "robux_instant") {
         console.log(
-          `✅ Robux Instant price verified from Product: ${product.name} = ${product.price}`,
+          `✅ Robux Instant price verified from Product: ${product.name} = ${product.price}, robuxAmount=${product.robuxAmount}`,
         );
-        return { valid: true, unitPrice: product.price };
+        return {
+          valid: true,
+          unitPrice: product.price,
+          verifiedRobuxInstantDetails: {
+            robuxAmount: product.robuxAmount,
+            productName: product.name,
+            description: product.description,
+          },
+        };
       }
 
       return {
@@ -451,6 +583,18 @@ export async function validateSingleTransaction(body: any): Promise<{
       features: string[];
     };
     verifiedServiceName?: string;
+    // Robux Instant verified values from DB
+    verifiedRobuxInstantDetails?: {
+      robuxAmount: number;
+      productName: string;
+      description: string;
+    };
+    // Gamepass verified values from DB
+    verifiedGamepassDetails?: {
+      gameName: string;
+      itemName: string;
+      gamepassId: string;
+    };
   };
 }> {
   const {
@@ -602,6 +746,10 @@ export async function validateSingleTransaction(body: any): Promise<{
       // Reseller verified values from DB
       verifiedResellerDetails: priceCheck.verifiedResellerDetails,
       verifiedServiceName: priceCheck.verifiedServiceName,
+      // Robux Instant verified values from DB
+      verifiedRobuxInstantDetails: priceCheck.verifiedRobuxInstantDetails,
+      // Gamepass verified values from DB
+      verifiedGamepassDetails: priceCheck.verifiedGamepassDetails,
     },
   };
 }
@@ -620,6 +768,16 @@ export async function validateMultiTransactionItem(
   verifiedRobuxAmount?: number;
   verifiedGamepassAmount?: number;
   verifiedPricePerHundred?: number;
+  verifiedRobuxInstantDetails?: {
+    robuxAmount: number;
+    productName: string;
+    description: string;
+  };
+  verifiedGamepassDetails?: {
+    gameName: string;
+    itemName: string;
+    gamepassId: string;
+  };
 }> {
   const priceCheck = await getVerifiedUnitPrice(
     item.serviceType,
@@ -663,5 +821,7 @@ export async function validateMultiTransactionItem(
     verifiedRobuxAmount: priceCheck.robuxAmount,
     verifiedGamepassAmount: priceCheck.gamepassAmount,
     verifiedPricePerHundred: priceCheck.pricePerHundred,
+    verifiedRobuxInstantDetails: priceCheck.verifiedRobuxInstantDetails,
+    verifiedGamepassDetails: priceCheck.verifiedGamepassDetails,
   };
 }
