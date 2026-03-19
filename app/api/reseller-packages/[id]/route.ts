@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import ResellerPackage from "@/models/ResellerPackage";
 import User from "@/models/User";
-import { verifyToken } from "@/lib/auth";
+import { requireAdmin, verifyToken } from "@/lib/auth";
 
 // GET - Ambil reseller package berdasarkan ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -17,7 +17,7 @@ export async function GET(
     if (!id || id.length !== 24) {
       return NextResponse.json(
         { error: "ID package tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function GET(
     if (!resellerPackage) {
       return NextResponse.json(
         { error: "Package tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -41,7 +41,7 @@ export async function GET(
         success: false,
         error: "Terjadi kesalahan server",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -49,19 +49,25 @@ export async function GET(
 // PUT - Update reseller package by ID (Admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
 
     const { id } = await params;
 
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     // Verify admin token
     const token = request.cookies.get("token")?.value;
     if (!token) {
       return NextResponse.json(
         { error: "Token tidak ditemukan" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -74,7 +80,7 @@ export async function PUT(
     if (!user || user.accessRole !== "admin") {
       return NextResponse.json(
         { error: "Akses ditolak. Admin diperlukan" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -90,7 +96,7 @@ export async function PUT(
     ) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -104,7 +110,7 @@ export async function PUT(
       if (existingPackage) {
         return NextResponse.json(
           { error: `Tier ${packageData.tier} sudah ada` },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -113,13 +119,13 @@ export async function PUT(
     const updatedPackage = await ResellerPackage.findByIdAndUpdate(
       id,
       packageData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedPackage) {
       return NextResponse.json(
         { error: "Package tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -129,21 +135,21 @@ export async function PUT(
         message: "Paket reseller berhasil diperbarui",
         data: updatedPackage,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Update reseller package error:", error);
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(
-        (err: any) => err.message
+        (err: any) => err.message,
       );
       return NextResponse.json(
         {
           success: false,
           error: messages.join(", "),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -152,7 +158,7 @@ export async function PUT(
         success: false,
         error: "Terjadi kesalahan server",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -160,19 +166,24 @@ export async function PUT(
 // DELETE - Hapus reseller package by ID (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
 
     const { id } = await params;
-
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     // Verify admin token
     const token = request.cookies.get("token")?.value;
     if (!token) {
       return NextResponse.json(
         { error: "Token tidak ditemukan" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -185,7 +196,7 @@ export async function DELETE(
     if (!user || user.accessRole !== "admin") {
       return NextResponse.json(
         { error: "Akses ditolak. Admin diperlukan" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -194,7 +205,7 @@ export async function DELETE(
     if (!deletedPackage) {
       return NextResponse.json(
         { error: "Package tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -209,7 +220,7 @@ export async function DELETE(
         success: false,
         error: "Terjadi kesalahan server",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

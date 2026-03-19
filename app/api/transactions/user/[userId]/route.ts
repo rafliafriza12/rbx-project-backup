@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import { authenticateToken } from "@/lib/auth";
+import { maskEmail, maskUsername, maskName } from "@/lib/mask";
 
 export async function GET(
   request: NextRequest,
@@ -54,7 +55,7 @@ export async function GET(
       discountPercentage: transaction.discountPercentage || 0,
       discountAmount: transaction.discountAmount || 0,
       finalAmount: transaction.finalAmount || transaction.totalAmount,
-      robloxUsername: transaction.robloxUsername,
+      robloxUsername: maskUsername(transaction.robloxUsername),
       // REMOVED: robloxPassword
       gamepass: transaction.gamepass || {},
       gamepassDetails: transaction.gamepassDetails || {},
@@ -63,8 +64,8 @@ export async function GET(
       paymentMethodName: transaction.paymentMethodName || null,
       paymentFee: transaction.paymentFee || 0,
       customerInfo: {
-        name: transaction.customerInfo?.name || "",
-        email: transaction.customerInfo?.email || "",
+        name: maskName(transaction.customerInfo?.name || ""),
+        email: maskEmail(transaction.customerInfo?.email || ""),
       },
       // REMOVED: adminNotes
       invoiceId: transaction.invoiceId,

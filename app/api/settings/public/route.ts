@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
     if (!settings) {
       const defaults = {
-        activePaymentGateway: "midtrans",
+        // activePaymentGateway: "midtrans",
         siteName: "RBX Store",
         siteDescription: "",
         robuxPricePerUnit: 150,
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     // We only expose which gateway is active
     const publicSettings = {
       // Only which gateway is active - configs are in libs
-      activePaymentGateway: settings.activePaymentGateway || "midtrans",
+      // activePaymentGateway: settings.activePaymentGateway || "midtrans",
 
       // Public site settings
       siteName: settings.siteName || "RBX Store",

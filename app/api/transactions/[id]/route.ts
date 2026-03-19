@@ -13,6 +13,7 @@ import {
   notifyPaymentStatusChange,
   notifyOrderStatusChange,
 } from "@/lib/discord";
+import { maskEmail, maskUsername, maskName } from "@/lib/mask";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -269,7 +270,7 @@ export async function GET(
       discountPercentage: transaction.discountPercentage || 0,
       discountAmount: transaction.discountAmount || 0,
       finalAmount: transaction.finalAmount || transaction.totalAmount,
-      robloxUsername: transaction.robloxUsername,
+      robloxUsername: maskUsername(transaction.robloxUsername),
       // REMOVED: robloxPassword, jokiDetails, robuxInstantDetails, rbx5Details sensitive data
       gamepass: transaction.gamepass || {},
       gamepassDetails: transaction.gamepassDetails || {},
@@ -278,8 +279,8 @@ export async function GET(
       paymentMethodName: transaction.paymentMethodName || null,
       paymentFee: transaction.paymentFee || 0,
       customerInfo: {
-        name: transaction.customerInfo?.name || "",
-        email: transaction.customerInfo?.email || "",
+        name: maskName(transaction.customerInfo?.name || ""),
+        email: maskEmail(transaction.customerInfo?.email || ""),
         userId: transaction.customerInfo?.userId,
       },
       invoiceId: transaction.invoiceId,
@@ -304,7 +305,7 @@ export async function GET(
         unitPrice: t.unitPrice,
         totalAmount: t.totalAmount,
         finalAmount: t.finalAmount || t.totalAmount,
-        robloxUsername: t.robloxUsername,
+        robloxUsername: maskUsername(t.robloxUsername),
         orderStatus: t.orderStatus,
         invoiceId: t.invoiceId,
         createdAt: t.createdAt,

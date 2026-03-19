@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Gamepass from "@/models/Gamepass";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     // Delete all existing gamepasses
     await Gamepass.deleteMany({});
 
@@ -139,13 +145,13 @@ export async function POST(request: NextRequest) {
         count: insertedGamepasses.length,
         gamepasses: insertedGamepasses,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create sample gamepass error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

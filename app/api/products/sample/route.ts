@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     // Sample products untuk gamepass (robux 5 hari)
     const gamepassProducts = [
@@ -78,13 +85,13 @@ export async function POST(request: NextRequest) {
         count: insertedProducts.length,
         products: insertedProducts,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create sample products error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

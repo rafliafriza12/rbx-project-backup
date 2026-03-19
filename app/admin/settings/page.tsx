@@ -261,54 +261,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleTestEmail = async () => {
-    if (!testEmail) {
-      setTestResult({
-        success: false,
-        message: "Silakan masukkan email untuk test",
-      });
-      return;
-    }
-
-    setIsTestingEmail(true);
-    setTestResult(null);
-
-    try {
-      // Save current settings first
-      await handleSave();
-
-      // Then test email
-      const response = await fetch("/api/email/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ testEmail }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setTestResult({ success: true, message: data.message });
-        toast.success("Test email berhasil dikirim!");
-      } else {
-        setTestResult({
-          success: false,
-          message: data.error || "Test email gagal",
-        });
-        toast.error("Test email gagal: " + (data.error || "Unknown error"));
-      }
-    } catch (error) {
-      setTestResult({
-        success: false,
-        message: "Terjadi kesalahan saat test email",
-      });
-      toast.error("Terjadi kesalahan saat test email");
-    } finally {
-      setIsTestingEmail(false);
-    }
-  };
-
   const renderTabContent = () => {
     if (!settings) return null;
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import { maskEmail, maskPhone, maskUsername, maskName } from "@/lib/mask";
 
 /**
  * Transform transaction to safe public response.
@@ -21,17 +22,17 @@ function toSafeTransaction(transaction: any) {
     discountPercentage: transaction.discountPercentage || 0,
     discountAmount: transaction.discountAmount || 0,
     finalAmount: transaction.finalAmount || transaction.totalAmount,
-    robloxUsername: transaction.robloxUsername,
+    robloxUsername: maskUsername(transaction.robloxUsername),
     // REMOVED: robloxPassword, jokiDetails, robuxInstantDetails, rbx5Details
-    gamepass: transaction.gamepass || {},
+    // gamepass: transaction.gamepass || {},
     gamepassDetails: transaction.gamepassDetails || {},
     paymentStatus: transaction.paymentStatus,
     orderStatus: transaction.orderStatus,
     paymentMethodName: transaction.paymentMethodName || null,
     paymentFee: transaction.paymentFee || 0,
     customerInfo: {
-      name: transaction.customerInfo?.name || "",
-      email: transaction.customerInfo?.email || "",
+      name: maskName(transaction.customerInfo?.name || ""),
+      email: maskEmail(transaction.customerInfo?.email || ""),
     },
     invoiceId: transaction.invoiceId,
     statusHistory: (transaction.statusHistory || []).map((history: any) => ({
@@ -62,7 +63,7 @@ function toSafeRelatedTransaction(t: any) {
     discountPercentage: t.discountPercentage || 0,
     discountAmount: t.discountAmount || 0,
     finalAmount: t.finalAmount || t.totalAmount,
-    robloxUsername: t.robloxUsername,
+    robloxUsername: maskUsername(t.robloxUsername),
     orderStatus: t.orderStatus,
     invoiceId: t.invoiceId,
     createdAt: t.createdAt,

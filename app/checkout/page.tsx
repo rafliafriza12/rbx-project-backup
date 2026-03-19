@@ -1294,15 +1294,6 @@ function CheckoutContent() {
                   <CreditCard className="w-4 h-4 text-neon-purple" />
                 </div>
                 Pilih Metode Pembayaran
-                {activePaymentGateway && (
-                  <span className="ml-2 text-xs font-normal text-primary-300">
-                    (
-                    {activePaymentGateway === "midtrans"
-                      ? "Midtrans"
-                      : "Duitku"}
-                    )
-                  </span>
-                )}
               </h3>
 
               {paymentMethodsLoading ? (

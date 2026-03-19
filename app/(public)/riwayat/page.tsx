@@ -44,16 +44,6 @@ import {
   Zap,
 } from "lucide-react";
 
-// Mask Roblox username: player123 → pl*****23
-function maskUsername(username: string): string {
-  if (!username || username.length <= 3) return username;
-  if (username.length <= 5)
-    return username.slice(0, 1) + "***" + username.slice(-1);
-  return (
-    username.slice(0, 2) + "*".repeat(username.length - 4) + username.slice(-2)
-  );
-}
-
 export default function RiwayatPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -806,7 +796,7 @@ export default function RiwayatPage() {
                           </div>
                           <span>Akun:</span>
                           <span className="font-medium text-white bg-primary-100/10 px-2 py-1 rounded border border-primary-100/20">
-                            {maskUsername(transaction.robloxUsername)}
+                            {transaction.robloxUsername}
                           </span>
                         </div>
                       </div>

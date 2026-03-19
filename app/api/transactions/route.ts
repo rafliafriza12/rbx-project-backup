@@ -1327,9 +1327,6 @@ async function handleSingleItemTransaction(body: any) {
     // Use verified username from Roblox (exact casing)
     verifiedRobloxUsername = usernameVerification.verifiedUsername!;
     verifiedRobloxUserId = usernameVerification.userId;
-    console.log(
-      `✅ Roblox username verified: "${robloxUsername}" → "${verifiedRobloxUsername}" (userId=${verifiedRobloxUserId})`,
-    );
   }
 
   // ============================================================

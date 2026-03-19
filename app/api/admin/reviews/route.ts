@@ -20,6 +20,12 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     // Auth check
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     const authErr = await checkAdmin(request);
     if (authErr) return authErr;
 
@@ -85,6 +91,12 @@ export async function PUT(request: NextRequest) {
     await dbConnect();
 
     // Auth check
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     const authErr = await checkAdmin(request);
     if (authErr) return authErr;
 
@@ -135,6 +147,12 @@ export async function DELETE(request: NextRequest) {
     await dbConnect();
 
     // Auth check
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
     const authErr = await checkAdmin(request);
     if (authErr) return authErr;
 

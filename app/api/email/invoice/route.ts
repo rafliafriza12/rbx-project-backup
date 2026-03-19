@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import EmailService from "@/lib/email";
+import { requireAdmin } from "@/lib/auth";
 
 // POST - Kirim ulang email invoice
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const body = await request.json();
     const { transactionId, invoiceId, email } = body;
@@ -15,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!transactionId && !invoiceId) {
       return NextResponse.json(
         { error: "Transaction ID atau Invoice ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaksi tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -40,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (!emailAddress) {
       return NextResponse.json(
         { error: "Email address tidak tersedia" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,40 +69,45 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(
         { error: "Gagal mengirim email invoice" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error) {
     console.error("Error resending invoice email:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// GET - Test email configuration
-export async function GET() {
-  try {
-    await dbConnect();
+// // GET - Test email configuration
+// export async function GET() {
+//   try {
+//     await dbConnect();
+//     try {
+//       await requireAdmin();
+//     } catch (authError: any) {
+//       const status = authError.message.includes("Forbidden") ? 403 : 401;
+//       return NextResponse.json({ error: authError.message }, { status });
+//     }
+//     // Test email by sending a test message
+//     const testEmailSent = await EmailService.sendEmail({
+//       to: "test@example.com", // This will fail but we can check the config
+//       subject: "Test Email Configuration",
+//       html: "<h1>Test</h1><p>This is a test email to check configuration.</p>",
+//     });
 
-    // Test email by sending a test message
-    const testEmailSent = await EmailService.sendEmail({
-      to: "test@example.com", // This will fail but we can check the config
-      subject: "Test Email Configuration",
-      html: "<h1>Test</h1><p>This is a test email to check configuration.</p>",
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: "Email configuration test completed",
-      result: testEmailSent,
-    });
-  } catch (error) {
-    console.error("Error testing email configuration:", error);
-    return NextResponse.json(
-      { error: "Error testing email configuration" },
-      { status: 500 }
-    );
-  }
-}
+//     return NextResponse.json({
+//       success: true,
+//       message: "Email configuration test completed",
+//       result: testEmailSent,
+//     });
+//   } catch (error) {
+//     console.error("Error testing email configuration:", error);
+//     return NextResponse.json(
+//       { error: "Error testing email configuration" },
+//       { status: 500 },
+//     );
+//   }
+// }
