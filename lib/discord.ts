@@ -161,10 +161,10 @@ function buildFields(
 ): Array<{ name: string; value: string; inline: boolean }> {
   const fields: Array<{ name: string; value: string; inline: boolean }> = [];
 
-  // Transaction Code
+  // Transaction Code (masked)
   fields.push({
     name: "📝 Kode Transaksi",
-    value: `\`${transaction.invoiceId}\``,
+    value: `\`${maskString(transaction.invoiceId, 4)}\``,
     inline: false,
   });
 
@@ -280,14 +280,7 @@ function buildFields(
     }
   }
 
-  // Notes
-  if (extra?.notes) {
-    fields.push({
-      name: "📝 Catatan",
-      value: extra.notes,
-      inline: false,
-    });
-  }
+  // Notes dihapus — tidak menampilkan info siapa yang mengubah status
 
   return fields;
 }
