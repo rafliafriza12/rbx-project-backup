@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import connectDB from "@/lib/mongodb";
 
@@ -88,6 +88,29 @@ export const requireAdmin = async (request: NextRequest): Promise<any> => {
   }
 
   return user;
+};
+
+/**
+ * Validate x-internal-secret API key from request headers.
+ * Returns true if valid, false otherwise.
+ */
+export const validateApiKey = (request: NextRequest): boolean => {
+  const internalSecret = request.headers.get("x-internal-secret");
+  return internalSecret === process.env.INTERNAL_API_SECRET;
+};
+
+/**
+ * Require valid API key. Returns 401 response if invalid.
+ * Use this at the TOP of every route handler.
+ */
+export const requireApiKey = (request: NextRequest): NextResponse | null => {
+  if (!validateApiKey(request)) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Invalid or missing API key" },
+      { status: 401 },
+    );
+  }
+  return null; // API key valid, continue
 };
 
 export const validateEmail = (email: string): boolean => {

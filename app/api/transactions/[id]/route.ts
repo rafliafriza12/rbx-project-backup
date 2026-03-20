@@ -8,7 +8,7 @@ import MidtransService from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 import mongoose from "mongoose";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
-import { requireAdmin, authenticateToken } from "@/lib/auth";
+import { requireAdmin, authenticateToken, requireApiKey } from "@/lib/auth";
 import {
   notifyPaymentStatusChange,
   notifyOrderStatusChange,
@@ -179,6 +179,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // ============================================================
@@ -336,6 +340,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     try {
@@ -551,6 +559,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
     try {
       await requireAdmin(request);

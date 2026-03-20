@@ -23,6 +23,7 @@ import {
 } from "@/lib/transaction-helpers";
 import { Transaction } from "@/types";
 import Link from "next/link";
+import { getPublicSettings } from "@/app/lib/actions";
 
 interface SiteSettings {
   whatsappNumber?: string;
@@ -42,16 +43,15 @@ export default function TrackOrderPage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings/public");
-      const data = await response.json();
-      if (response.ok) {
+      const data = await getPublicSettings();
+      if (data.success) {
         setSettings({
-          whatsappNumber: data.settings.whatsappNumber,
-          instagramUrl: data.settings.instagramUrl,
-          discordInvite: data.settings.discordInvite,
-          facebookUrl: data.settings.facebookUrl,
-          twitterUrl: data.settings.twitterUrl,
-          youtubeUrl: data.settings.youtubeUrl,
+          whatsappNumber: data.settings?.whatsappNumber,
+          instagramUrl: data.settings?.instagramUrl,
+          discordInvite: data.settings?.discordInvite,
+          facebookUrl: data.settings?.facebookUrl,
+          twitterUrl: data.settings?.twitterUrl,
+          youtubeUrl: data.settings?.youtubeUrl,
         });
       }
     } catch (error) {

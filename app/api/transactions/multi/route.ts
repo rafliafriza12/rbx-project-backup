@@ -5,7 +5,7 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 import {
   validateMultiTransactionItem,
   getVerifiedDiscount,
@@ -15,9 +15,14 @@ import {
 } from "@/lib/serverValidation";
 
 // POST - Buat multiple transaksi dari cart
+// API key WAJIB di setiap request
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
 
     const body = await request.json();
 

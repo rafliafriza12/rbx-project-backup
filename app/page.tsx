@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import Marquee from "react-fast-marquee";
+import { getPublicSettings } from "@/app/lib/actions";
 import {
   Gem,
   Rocket,
@@ -202,9 +203,8 @@ export default function HomePage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings/public");
-      const data = await response.json();
-      if (response.ok) {
+      const data = await getPublicSettings();
+      if (data.success) {
         setSettings({
           whatsappNumber: data.settings.whatsappNumber,
           instagramUrl: data.settings.instagramUrl,

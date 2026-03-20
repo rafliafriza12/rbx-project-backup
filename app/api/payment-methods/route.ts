@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import PaymentMethod from "@/models/PaymentMethod";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Fetch all payment methods atau active payment methods
+// API key WAJIB di setiap request
 export async function GET(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
+    // Admin only
+    // try {
+    //   await requireAdmin(request);
+    // } catch (authError: any) {
+    //   const status = authError.message.includes("Forbidden") ? 403 : 401;
+    //   return NextResponse.json({ error: authError.message }, { status });
+    // }
+
     await connectDB();
 
     const url = new URL(request.url);
@@ -52,9 +65,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new payment method
+// POST - Create new payment method (admin only)
+// API key WAJIB di setiap request
 export async function POST(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await connectDB();
 
     // Admin only

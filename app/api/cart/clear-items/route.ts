@@ -1,15 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Cart from "@/models/Cart";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 
 /**
  * POST - Clear multiple items from cart after successful checkout
- * This endpoint is called after checkout to remove purchased items from cart
+ * API key WAJIB di setiap request + valid user token (userId must match)
  */
 export async function POST(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     const body = await request.json();
     const { userId, itemIds } = body;
+
+    // Auth: user token harus valid dan userId harus sesuai
+    try {
+      const user = await authenticateToken(request);
+      if (user._id.toString() !== userId) {
+        return NextResponse.json(
+          { error: "Forbidden: userId tidak sesuai dengan token" },
+          { status: 403 },
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { error: "Unauthorized: Token diperlukan" },
+        { status: 401 },
+      );
+    }
 
     console.log("=== CLEAR CART ITEMS DEBUG ===");
     console.log("User ID:", userId);
@@ -19,14 +40,14 @@ export async function POST(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "User ID diperlukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
       return NextResponse.json(
         { error: "Item IDs array diperlukan dan tidak boleh kosong" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +60,7 @@ export async function POST(request: NextRequest) {
       console.log("Cart not found for user:", userId);
       return NextResponse.json(
         { error: "Keranjang tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -83,7 +104,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: "Gagal menghapus item dari keranjang",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

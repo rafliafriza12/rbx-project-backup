@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
+import { getPublicSettings } from "@/app/lib/actions";
 import {
   Gem,
   Rocket,
@@ -124,9 +125,8 @@ export default function Rbx5Page() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings/public");
-      const data = await response.json();
-      if (response.ok) {
+      const data = await getPublicSettings();
+      if (data.success) {
         setSettings({
           whatsappNumber: data.settings.whatsappNumber,
           instagramUrl: data.settings.instagramUrl,

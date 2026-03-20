@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Settings from "@/models/Settings";
+import { requireApiKey } from "@/lib/auth";
 
 // GET - Get public settings (safe to expose to client)
+// API key WAJIB di setiap request
 export async function GET(req: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(req);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const settings = await Settings.findOne({});

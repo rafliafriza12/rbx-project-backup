@@ -10,6 +10,7 @@ import {
   getPaymentFee,
   getTotalItemsCount,
 } from "@/lib/transaction-helpers";
+import { fetchTransactionsAdmin, updateTransactionStatus } from "./actions";
 
 interface Transaction {
   _id: string;
@@ -77,7 +78,7 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         page: currentPage.toString(),
         limit: "10",
         ...(filters.search && { search: filters.search }),
@@ -85,12 +86,11 @@ export default function TransactionsPage() {
         ...(filters.serviceType && { serviceType: filters.serviceType }),
         ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
         ...(filters.dateTo && { dateTo: filters.dateTo }),
-      });
+      };
 
-      const response = await fetch(`/api/transactions?${params}`);
-      const data = await response.json();
+      const { ok, data } = await fetchTransactionsAdmin(params);
 
-      if (response.ok) {
+      if (ok) {
         setTransactions(data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalTransactions(data.pagination?.total || 0);
@@ -106,12 +106,6 @@ export default function TransactionsPage() {
     }
   };
 
-  const getCookie = (name: string) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(";").shift();
-  };
-
   const handleUpdateStatus = async (
     transactionId: string,
     newStatus: string,
@@ -119,21 +113,14 @@ export default function TransactionsPage() {
   ) => {
     try {
       setIsUpdating(true);
-      const response = await fetch(`/api/transactions/${transactionId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          statusType,
-          newStatus,
-          notes: adminNotes || `Status updated by admin to ${newStatus}`,
-          updatedBy: "admin",
-        }),
+      const { ok, data } = await updateTransactionStatus(transactionId, {
+        statusType,
+        newStatus,
+        notes: adminNotes || `Status updated by admin to ${newStatus}`,
+        updatedBy: "admin",
       });
 
-      if (response.ok) {
-        // Show different message for settlement status update
+      if (ok) {
         if (statusType === "payment" && newStatus === "settlement") {
           toast.success(
             `Payment status updated to settlement. User's spent money has been updated.`,
@@ -146,7 +133,6 @@ export default function TransactionsPage() {
         setSelectedTransaction(null);
         setAdminNotes("");
       } else {
-        const data = await response.json();
         toast.error(data.error || "Failed to update status");
       }
     } catch (error) {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { fetchTransactionsList } from "./actions";
 
 interface Transaction {
   _id: string;
@@ -54,10 +55,9 @@ export default function TransactionsPage() {
         ...(filter !== "all" && { status: filter }),
       });
 
-      const response = await fetch(`/api/transactions?${params}`);
-      const data = await response.json();
+      const data = await fetchTransactionsList(params.toString());
 
-      if (response.ok) {
+      if (data.success !== false) {
         setTransactions(data.data);
         setTotalPages(data.pagination.totalPages);
       } else {

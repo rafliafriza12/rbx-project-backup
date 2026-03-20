@@ -5,7 +5,7 @@ import StockAccount from "@/models/StockAccount";
 import Rbx5Stats from "@/models/Rbx5Stats";
 import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
 import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -198,6 +198,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     try {

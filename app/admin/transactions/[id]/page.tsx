@@ -10,6 +10,10 @@ import {
   getTotalItemsCount,
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
+import {
+  fetchTransactionById,
+  triggerManualGamepassPurchase,
+} from "../actions";
 
 interface Transaction {
   _id: string;
@@ -94,10 +98,9 @@ export default function TransactionDetailPage() {
   const fetchTransaction = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/transactions/${id}`);
-      const data = await response.json();
+      const { ok, data } = await fetchTransactionById(id);
 
-      if (response.ok) {
+      if (ok) {
         setTransaction(data.data);
       } else {
         toast.error(data.error || "Failed to fetch transaction");
@@ -170,21 +173,10 @@ export default function TransactionDetailPage() {
 
     setProcessingPurchase(true);
     try {
-      const response = await fetch(
-        `/api/transactions/${transaction._id}/manual-gamepass-purchase`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
+      const { ok, data } = await triggerManualGamepassPurchase(transaction._id);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         toast.success("Gamepass purchase completed successfully!");
-        // Refresh transaction data
         fetchTransaction(transaction._id);
       } else {
         toast.error(data.error || "Failed to process gamepass purchase");

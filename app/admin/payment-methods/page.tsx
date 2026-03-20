@@ -3,6 +3,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";
+import {
+  fetchPaymentMethodsAdmin,
+  savePaymentMethod,
+  deletePaymentMethod,
+  togglePaymentMethodActive,
+} from "./actions";
 
 interface PaymentMethod {
   _id: string;
@@ -187,8 +193,7 @@ export default function PaymentMethodsPage() {
   const fetchPaymentMethods = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/payment-methods");
-      const result = await response.json();
+      const result = await fetchPaymentMethodsAdmin();
 
       if (result.success) {
         setPaymentMethods(result.data || []);
@@ -359,36 +364,7 @@ export default function PaymentMethodsPage() {
 
       const method = selectedMethod ? "PUT" : "POST";
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submitData),
-      });
-
-      // Check if response is OK
-      if (!response.ok) {
-        // Try to get error message from response
-        let errorMessage = `Server error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If JSON parsing fails, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Parse JSON response
-      let result;
-      try {
-        const responseText = await response.text();
-        result = JSON.parse(responseText);
-      } catch (jsonError) {
-        throw new Error("Server mengembalikan response yang tidak valid");
-      }
+      const result = await savePaymentMethod(submitData, selectedMethod?._id);
 
       if (result.success) {
         toast.success(
@@ -415,11 +391,7 @@ export default function PaymentMethodsPage() {
     }
 
     try {
-      const response = await fetch(`/api/payment-methods/${id}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
+      const result = await deletePaymentMethod(id);
 
       if (result.success) {
         toast.success("Payment method berhasil dihapus!");
@@ -434,18 +406,7 @@ export default function PaymentMethodsPage() {
 
   const handleToggleActive = async (method: PaymentMethod) => {
     try {
-      const response = await fetch(`/api/payment-methods/${method._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...method,
-          isActive: !method.isActive,
-        }),
-      });
-
-      const result = await response.json();
+      const result = await togglePaymentMethodActive(method);
 
       if (result.success) {
         toast.success(

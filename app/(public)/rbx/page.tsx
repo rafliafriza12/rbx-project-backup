@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { getPublicSettings } from "@/app/lib/actions";
 
 interface Banner {
   _id: string;
@@ -112,12 +113,9 @@ export default function RBXLandingPage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings/public");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setSettings(data.data);
-        }
+      const data = await getPublicSettings();
+      if (data.success && data.data) {
+        setSettings(data.data);
       }
     } catch (error) {}
   };

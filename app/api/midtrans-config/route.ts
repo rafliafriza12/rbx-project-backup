@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Settings from "@/models/Settings";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Get current Midtrans settings
-export async function GET() {
+// API key WAJIB di setiap request
+export async function GET(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      return NextResponse.json(
+        { error: "Unauthorized: Admin token required" },
+        { status: 401 },
+      );
+    }
+
     await dbConnect();
 
     const settings = await Settings.getSiteSettings();
@@ -29,9 +44,16 @@ export async function GET() {
 }
 
 // POST - Set Midtrans configuration
+// API key WAJIB di setiap request
 export async function POST(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
+    // Admin only
     await requireAdmin(request);
+
     await dbConnect();
 
     const body = await request.json();

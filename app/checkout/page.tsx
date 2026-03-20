@@ -28,6 +28,13 @@ import {
   Shield,
   DollarSign,
 } from "lucide-react";
+import {
+  fetchPaymentSettings,
+  fetchPaymentMethods,
+  createTransaction,
+  createMultiTransaction,
+  clearCartItems,
+} from "./actions";
 
 interface CheckoutItem {
   serviceType: string;
@@ -522,10 +529,9 @@ function CheckoutContent() {
 
   // Fetch active payment gateway FIRST
   useEffect(() => {
-    const fetchPaymentSettings = async () => {
+    const loadPaymentSettings = async () => {
       try {
-        const response = await fetch("/api/settings/public");
-        const result = await response.json();
+        const result = await fetchPaymentSettings();
 
         if (result.success && result.data) {
           setActivePaymentGateway(
@@ -538,7 +544,7 @@ function CheckoutContent() {
       }
     };
 
-    fetchPaymentSettings();
+    loadPaymentSettings();
   }, []);
 
   // Fetch payment methods AFTER gateway is known (filtered by active gateway)
@@ -546,14 +552,11 @@ function CheckoutContent() {
     // Wait until we know which gateway is active
     if (!activePaymentGateway) return;
 
-    const fetchPaymentMethods = async () => {
+    const loadPaymentMethods = async () => {
       setPaymentMethodsLoading(true);
       try {
-        // Fetch payment methods filtered by active gateway
-        const response = await fetch(
-          `/api/payment-methods?active=true&gateway=${activePaymentGateway}`,
-        );
-        const result = await response.json();
+        // Fetch payment methods filtered by active gateway via server action
+        const result = await fetchPaymentMethods(activePaymentGateway);
 
         if (result.success && result.data) {
           // Group payment methods by category
@@ -610,7 +613,7 @@ function CheckoutContent() {
       }
     };
 
-    fetchPaymentMethods();
+    loadPaymentMethods();
   }, [activePaymentGateway]); // Re-fetch when gateway changes
 
   // Helper functions for category mapping
@@ -910,11 +913,8 @@ function CheckoutContent() {
     };
 
     try {
-      // Determine which API endpoint to use
+      // Determine if this is a multi-transaction
       const isMultiTransaction = itemsWithCredentials.length > 1;
-      const apiEndpoint = isMultiTransaction
-        ? "/api/transactions/multi"
-        : "/api/transactions";
 
       // Helper: strip sensitive price fields from rbx5Details before sending
       // Server will recalculate: unitPrice, gamepassAmount, pricePerRobux from DB
@@ -996,15 +996,10 @@ function CheckoutContent() {
             // finalAmount, paymentFee, gamepass.price → NOT sent
           };
 
-      const response = await fetch(apiEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(finalRequestData),
-      });
-
-      const result = await response.json();
+      // Call server action based on transaction type
+      const result = isMultiTransaction
+        ? await createMultiTransaction(finalRequestData)
+        : await createTransaction(finalRequestData);
 
       if (result.success) {
         // Clear cart items if checkout was from cart
@@ -1014,18 +1009,7 @@ function CheckoutContent() {
 
         if (cartItemIds.length > 0 && user?.id) {
           try {
-            const clearResponse = await fetch("/api/cart/clear-items", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                userId: user.id,
-                itemIds: cartItemIds,
-              }),
-            });
-
-            const clearResult = await clearResponse.json();
+            await clearCartItems(user.id, cartItemIds);
           } catch (clearError) {
             // Don't block the checkout flow if cart clear fails
           }

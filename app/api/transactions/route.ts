@@ -5,7 +5,7 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
-import { authenticateToken, requireAdmin } from "@/lib/auth";
+import { authenticateToken, requireAdmin, requireApiKey } from "@/lib/auth";
 import {
   validateSingleTransaction,
   validateMultiTransactionItem,
@@ -65,14 +65,17 @@ function isTxRateLimited(identifier: string): {
 }
 
 // GET - Ambil semua transaksi (ADMIN ONLY)
+// API key WAJIB di setiap request
 // User harus menggunakan /api/transactions/user/[userId] untuk melihat transaksinya sendiri
 export async function GET(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
-    // ============================================================
-    // ADMIN ONLY: Semua GET ke /api/transactions harus admin
-    // ============================================================
+    // Admin only
     try {
       await requireAdmin(request);
     } catch (authError: any) {
@@ -292,9 +295,14 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Buat transaksi baru (single item atau multiple items dari beli langsung)
+// API key WAJIB di setiap request
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
+
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
 
     // Auth check: require login OR valid guest checkout data
     const token = request.cookies.get("token")?.value;
