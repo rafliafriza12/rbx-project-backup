@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import { requireAdmin, hashPassword } from "@/lib/auth";
+import { requireAdmin, requireApiKey, hashPassword } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -138,6 +141,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

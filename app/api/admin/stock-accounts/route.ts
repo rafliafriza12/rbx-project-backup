@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await connectDB();
 
@@ -31,6 +34,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
+
   try {
     // Auth check - hanya admin
     try {

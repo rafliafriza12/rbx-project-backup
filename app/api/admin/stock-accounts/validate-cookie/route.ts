@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
+
   try {
     // Auth check - hanya admin
     try {

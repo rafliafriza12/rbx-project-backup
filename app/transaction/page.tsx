@@ -21,6 +21,7 @@ import {
   getTotalItemsCount,
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
+import { getTransactionByInvoice } from "@/app/lib/actions";
 
 interface Transaction {
   _id: string;
@@ -99,10 +100,8 @@ function TransactionResultContent() {
 
   const fetchTransaction = async (orderId: string) => {
     try {
-      const response = await fetch(`/api/transactions/invoice/${orderId}`);
-      const data = await response.json();
-
-      if (response.ok) {
+      const { ok, data } = await getTransactionByInvoice(orderId);
+      if (ok) {
         setTransaction(data.data);
       } else {
         toast.error(data.error || "Transaksi tidak ditemukan");

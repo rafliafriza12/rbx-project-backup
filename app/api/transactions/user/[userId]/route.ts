@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 import { maskEmail, maskUsername, maskName } from "@/lib/mask";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> },
 ) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

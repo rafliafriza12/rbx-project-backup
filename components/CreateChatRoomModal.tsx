@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { searchTransactions } from "@/app/lib/actions";
 
 interface Transaction {
   _id: string;
@@ -61,12 +62,9 @@ export default function CreateChatRoomModal({
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         setIsSearching(true);
-        const response = await fetch(
-          `/api/transactions/search?q=${encodeURIComponent(searchQuery)}`,
-        );
-        const data = await response.json();
+        const { ok, data } = await searchTransactions(searchQuery);
 
-        if (data.success) {
+        if (ok && data.success) {
           setSearchResults(data.data);
           setShowDropdown(true);
         }

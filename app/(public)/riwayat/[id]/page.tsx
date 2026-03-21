@@ -34,6 +34,7 @@ import {
   getCheckoutDisplayName,
   getPaymentFee,
 } from "@/lib/transaction-helpers";
+import { getTransactionById } from "@/app/lib/actions";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -65,10 +66,9 @@ export default function TransactionDetailPage() {
   const fetchTransactionDetail = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/transactions/${params.id}`);
-      const data: ApiResponse<any> = await response.json();
+      const { ok, data } = await getTransactionById(params.id as string);
 
-      if (response.ok && data.data) {
+      if (ok && data.data) {
         // Verify that this transaction belongs to the current user
         if (data.data.customerInfo?.userId?._id !== user?.id) {
           toast.error("Anda tidak memiliki akses ke transaksi ini");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import { maskEmail, maskPhone, maskUsername, maskName } from "@/lib/mask";
+import { requireApiKey } from "@/lib/auth";
 
 /**
  * Transform transaction to safe public response.
@@ -74,6 +75,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ invoiceId: string }> },
 ) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -149,6 +153,9 @@ export async function GET(
 
 // POST method untuk pencarian dengan body (opsional)
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

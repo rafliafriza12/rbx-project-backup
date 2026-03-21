@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 /**
  * Fetch with retry & timeout - handles Roblox socket errors
@@ -46,16 +46,21 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    // Allow admin OR internal server calls (from webhooks)
-    const internalSecret = req.headers.get("x-internal-secret");
-    const expectedSecret = process.env.INTERNAL_API_SECRET;
-    const isInternalCall = expectedSecret && internalSecret === expectedSecret;
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
 
-    if (!isInternalCall) {
-      try {
-        await requireAdmin(req);
-      } catch (authError: any) {
+  try {
+    // Require admin auth
+    try {
+      await requireAdmin(req);
+    } catch (authError: any) {
+      // Allow internal server calls (from webhooks) to bypass admin check
+      const internalSecret = req.headers.get("x-internal-secret");
+      const expectedSecret = process.env.INTERNAL_API_SECRET;
+      const isInternalCall =
+        expectedSecret && internalSecret === expectedSecret;
+
+      if (!isInternalCall) {
         const status = authError.message.includes("Forbidden") ? 403 : 401;
         return NextResponse.json({ error: authError.message }, { status });
       }
@@ -151,6 +156,9 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
+
   try {
     // Auth check - hanya admin
     try {

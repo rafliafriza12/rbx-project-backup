@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import MidtransService from "@/lib/midtrans";
-import { authenticateToken, requireAdmin } from "@/lib/auth";
+import { authenticateToken, requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await connectDB();
     try {

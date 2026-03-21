@@ -4,6 +4,15 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getResellerPackages } from "@/app/lib/actions";
+import {
+  fetchUsersAdmin,
+  saveUser,
+  deleteUserAdmin,
+  fetchStockAccountsAdmin,
+  saveStockAccount,
+  deleteStockAccountAdmin,
+  triggerAutoPurchase,
+} from "./actions";
 
 interface User {
   _id: string;
@@ -94,10 +103,8 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setTableLoading(true);
     try {
-      const response = await fetch("/api/admin/users");
-      if (response.ok) {
-        const data = await response.json();
-
+      const { ok, data } = await fetchUsersAdmin();
+      if (ok) {
         if (data.users) {
           let filteredUsers = data.users;
 
@@ -117,8 +124,7 @@ export default function UsersPage() {
           toast.error(data.error || "No users data found");
         }
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to fetch users");
+        toast.error(data.error || "Failed to fetch users");
       }
     } catch (error) {
       toast.error("Error fetching users");
@@ -139,17 +145,14 @@ export default function UsersPage() {
 
   const fetchStockAccounts = async () => {
     try {
-      const response = await fetch("/api/admin/stock-accounts");
-      if (response.ok) {
-        const data = await response.json();
-
+      const { ok, data } = await fetchStockAccountsAdmin();
+      if (ok) {
         if (data.stockAccounts) {
           setStockAccounts(data.stockAccounts);
         } else {
           setStockAccounts([]);
         }
       } else {
-        const errorData = await response.json();
         setStockAccounts([]);
       }
     } catch (error) {
@@ -184,15 +187,12 @@ export default function UsersPage() {
     }
     if (confirm("Are you sure you want to delete this user?")) {
       try {
-        const response = await fetch(`/api/admin/users/${userId}`, {
-          method: "DELETE",
-        });
+        const { ok, data } = await deleteUserAdmin(userId);
 
-        if (response.ok) {
+        if (ok) {
           toast.success("User deleted successfully");
           fetchUsers(); // Refresh the list
         } else {
-          const data = await response.json();
           toast.error(data.error || "Failed to delete user");
         }
       } catch (error) {
@@ -226,22 +226,9 @@ export default function UsersPage() {
       setShowAutoPurchaseConfirm(false);
       toast.info("Starting auto-purchase for pending transactions...");
 
-      const response = await fetch(
-        "/api/admin/stock-accounts/trigger-auto-purchase",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            stockAccountId: pendingStockAccountId,
-          }),
-        },
-      );
+      const { ok, data } = await triggerAutoPurchase(pendingStockAccountId);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         // Save session ID to localStorage for global monitoring
         if (data.autoPurchase?.sessionId) {
           localStorage.setItem(
@@ -275,15 +262,12 @@ export default function UsersPage() {
   const handleDeleteStockAccount = async (accountId: string) => {
     if (confirm("Are you sure you want to delete this stock account?")) {
       try {
-        const response = await fetch(`/api/admin/stock-accounts/${accountId}`, {
-          method: "DELETE",
-        });
+        const { ok, data } = await deleteStockAccountAdmin(accountId);
 
-        if (response.ok) {
+        if (ok) {
           toast.success("Stock account deleted successfully");
           fetchStockAccounts();
         } else {
-          const data = await response.json();
           toast.error(data.message || "Failed to delete stock account");
         }
       } catch (error) {
@@ -299,25 +283,16 @@ export default function UsersPage() {
     try {
       if (activeTab === "stock") {
         // Handle stock account creation/update
-        const url = selectedStockAccount
-          ? `/api/admin/stock-accounts/${selectedStockAccount._id}`
-          : "/api/admin/stock-accounts";
-        const method = selectedStockAccount ? "PUT" : "POST";
-
         const payload = {
           robloxCookie: formData.robloxCookie,
         };
 
-        const response = await fetch(url, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+        const { ok, data } = await saveStockAccount(
+          selectedStockAccount ? selectedStockAccount._id : null,
+          payload,
+        );
 
-        if (response.ok) {
-          const data = await response.json();
+        if (ok) {
           toast.success(
             selectedStockAccount
               ? "Stock account updated successfully"
@@ -344,16 +319,10 @@ export default function UsersPage() {
           setPendingStockAccountId(data.stockAccount._id);
           setShowAutoPurchaseConfirm(true);
         } else {
-          const data = await response.json();
           toast.error(data.message || "Failed to save stock account");
         }
       } else {
         // Handle user creation/update
-        const url = selectedUser
-          ? `/api/admin/users/${selectedUser._id}`
-          : "/api/admin/users";
-        const method = selectedUser ? "PUT" : "POST";
-
         const payload = {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -367,15 +336,12 @@ export default function UsersPage() {
           ...(formData.password && { password: formData.password }),
         };
 
-        const response = await fetch(url, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+        const { ok, data } = await saveUser(
+          selectedUser ? selectedUser._id : null,
+          payload,
+        );
 
-        if (response.ok) {
+        if (ok) {
           toast.success(
             selectedUser
               ? "User updated successfully"
@@ -398,7 +364,6 @@ export default function UsersPage() {
           });
           fetchUsers();
         } else {
-          const data = await response.json();
           toast.error(data.error || "Failed to save user");
         }
       }
@@ -827,8 +792,8 @@ export default function UsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 flex items-center justify-center text-[#f1f5f9] font-semibold">
-                              {user.firstName.charAt(0)}
-                              {user.lastName.charAt(0)}
+                              {user?.firstName?.charAt(0)}
+                              {user?.lastName?.charAt(0)}
                             </div>
                             <div className="ml-3">
                               <p className="text-sm font-medium text-[#f1f5f9]">

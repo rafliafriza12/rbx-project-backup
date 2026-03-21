@@ -1,5 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
+
 /**
  * Shared server actions for fetching public data
  * All fetch calls go through server with INTERNAL_API_SECRET
@@ -20,6 +22,12 @@ function getInternalHeaders(): Record<string, string> {
     "Content-Type": "application/json",
     "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
   };
+}
+
+async function getAuthCookie(): Promise<string> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token");
+  return token ? `token=${token.value}` : "";
 }
 
 /**
@@ -168,5 +176,97 @@ export async function getResellerPackages() {
   } catch (error) {
     console.error("[Server Action] Error fetching reseller packages:", error);
     return { success: false, data: [] };
+  }
+}
+
+/**
+ * Server Action: Fetch transaction by invoice ID (public)
+ */
+export async function getTransactionByInvoice(invoiceId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(
+      `${BASE_URL}/api/transactions/invoice/${invoiceId}`,
+      {
+        headers: getInternalHeaders(),
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error(
+      "[Server Action] Error fetching transaction by invoice:",
+      error,
+    );
+    return { ok: false, data: { error: "Gagal mengambil data transaksi" } };
+  }
+}
+
+/**
+ * Server Action: Fetch transaction by ID (public, user-facing)
+ */
+export async function getTransactionById(id: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/transactions/${id}`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching transaction:", error);
+    return { ok: false, data: { error: "Gagal mengambil data transaksi" } };
+  }
+}
+
+/**
+ * Server Action: Fetch user transactions (public, user-facing)
+ */
+export async function getUserTransactions(userId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/transactions/user/${userId}`,
+      {
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching user transactions:", error);
+    return { ok: false, data: { error: "Gagal mengambil riwayat transaksi" } };
+  }
+}
+
+/**
+ * Server Action: Search transactions (authenticated user)
+ */
+export async function searchTransactions(query: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/transactions/search?q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error searching transactions:", error);
+    return { ok: false, data: { success: false, data: [] } };
   }
 }

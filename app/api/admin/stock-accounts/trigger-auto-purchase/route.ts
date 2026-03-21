@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 /**
  * Trigger auto-purchase for pending transactions
  * Called after admin confirms they want to run auto-purchase
  */
 export async function POST(req: NextRequest) {
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
+
   try {
     // Auth check - hanya admin
     try {

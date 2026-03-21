@@ -17,6 +17,7 @@ import {
   getTotalItemsCount,
   getPaymentFee,
 } from "@/lib/transaction-helpers";
+import { getUserTransactions } from "@/app/lib/actions";
 import {
   Clock,
   CheckCircle,
@@ -68,17 +69,9 @@ export default function RiwayatPage() {
 
     try {
       setLoading(true);
-      const url = `/api/transactions/user/${user.id}`;
+      const { ok, data } = await getUserTransactions(user.id);
 
-      const response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const data: ApiResponse<Transaction[]> = await response.json();
-
+      if (ok) {
         // Debug: Log first transaction details
         if (data.data && data.data.length > 0) {
           const firstTx = data.data[0];
@@ -92,8 +85,9 @@ export default function RiwayatPage() {
 
         setTransactions(data.data || []);
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Gagal memuat riwayat transaksi");
+        toast.error(
+          data.message || data.error || "Gagal memuat riwayat transaksi",
+        );
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat memuat riwayat transaksi");
