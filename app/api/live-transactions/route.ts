@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiKey } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -15,7 +19,7 @@ export async function GET() {
       .lean();
 
     console.log(
-      `[Live Transactions] Found ${transactions.length} transactions`
+      `[Live Transactions] Found ${transactions.length} transactions`,
     );
 
     // Format data untuk ditampilkan
@@ -82,7 +86,7 @@ export async function GET() {
       console.log(
         "[Live Transactions] Adding dummy data for better UX (found only " +
           formattedTransactions.length +
-          " real transactions)"
+          " real transactions)",
       );
 
       const dummyTransactions = [
@@ -176,7 +180,7 @@ export async function GET() {
         error: "Gagal mengambil data transaksi",
         message: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

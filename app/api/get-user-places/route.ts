@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiKey } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
+
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
 
   if (!userId) {
     return NextResponse.json(
       { success: false, message: "UserId wajib diisi" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
     // 🔹 ambil daftar place user
     const placeRes = await fetch(
-      `https://games.roblox.com/v2/users/${userId}/games?accessFilter=2&sortOrder=Asc&limit=10`
+      `https://games.roblox.com/v2/users/${userId}/games?accessFilter=2&sortOrder=Asc&limit=10`,
     );
 
     if (!placeRes.ok) {
@@ -23,7 +27,7 @@ export async function GET(req: NextRequest) {
           success: false,
           message: "Gagal mengambil data place",
         },
-        { status: placeRes.status }
+        { status: placeRes.status },
       );
     }
 
@@ -37,7 +41,7 @@ export async function GET(req: NextRequest) {
     // 🔹 ambil semua thumbnail sekaligus
     const placeIds = places.map((p: any) => p.id).join(",");
     const thumbRes = await fetch(
-      `https://thumbnails.roblox.com/v1/places/gameicons?placeIds=${placeIds}&size=512x512&format=Png&isCircular=false`
+      `https://thumbnails.roblox.com/v1/places/gameicons?placeIds=${placeIds}&size=512x512&format=Png&isCircular=false`,
     );
 
     let thumbsMap: Record<number, string> = {};
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
         success: false,
         message: "Terjadi kesalahan saat mengambil data place",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

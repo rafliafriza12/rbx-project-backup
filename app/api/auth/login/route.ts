@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
-import { comparePassword, generateToken, validateEmail } from "@/lib/auth";
+import {
+  comparePassword,
+  generateToken,
+  validateEmail,
+  requireApiKey,
+} from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

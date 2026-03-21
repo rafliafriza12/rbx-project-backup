@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
-import { hashPassword, validatePassword } from "@/lib/auth";
+import { hashPassword, validatePassword, requireApiKey } from "@/lib/auth";
 import { forgotPasswordOtpStore } from "../send-otp/route";
 
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -15,21 +18,21 @@ export async function POST(request: NextRequest) {
     if (!email || !otp || !newPassword || !confirmPassword) {
       return NextResponse.json(
         { error: "Semua field harus diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!validatePassword(newPassword)) {
       return NextResponse.json(
         { error: "Password minimal 6 karakter" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (newPassword !== confirmPassword) {
       return NextResponse.json(
         { error: "Password dan konfirmasi password tidak cocok" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!storedOTP) {
       return NextResponse.json(
         { error: "Sesi reset password sudah kadaluarsa. Silakan mulai ulang." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,14 +50,14 @@ export async function POST(request: NextRequest) {
       forgotPasswordOtpStore.delete(email.toLowerCase());
       return NextResponse.json(
         { error: "Sesi reset password sudah kadaluarsa. Silakan mulai ulang." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (storedOTP.code !== otp) {
       return NextResponse.json(
         { error: "Verifikasi gagal. Silakan mulai ulang." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "User tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -83,13 +86,13 @@ export async function POST(request: NextRequest) {
         message:
           "Password berhasil direset. Silakan login dengan password baru.",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Reset password error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

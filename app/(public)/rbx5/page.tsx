@@ -8,6 +8,9 @@ import {
   getProductsByCategory,
   getRobuxPricing,
   getRbx5Stats,
+  getUserPlaces,
+  getUserInfo,
+  checkGamepass,
 } from "@/app/lib/actions";
 import {
   Gem,
@@ -153,8 +156,7 @@ export default function Rbx5Page() {
     setPlacesError(null);
 
     try {
-      const response = await fetch(`/api/get-user-places?userId=${userId}`);
-      const data = await response.json();
+      const { ok, data } = await getUserPlaces(userId);
 
       if (data.success) {
         setUserPlaces(data.data || []);
@@ -183,10 +185,7 @@ export default function Rbx5Page() {
     setUserSearchError(null);
 
     try {
-      const response = await fetch(
-        `/api/user-info?username=${encodeURIComponent(username.trim())}`,
-      );
-      const data = await response.json();
+      const { ok, data } = await getUserInfo(username.trim());
 
       if (data.success) {
         setUserInfo(data);
@@ -452,15 +451,11 @@ export default function Rbx5Page() {
 
       // Use Universe-based GamePass API with placeId
       // This endpoint returns all gamepasses for a specific universe/place
-      const response = await fetch(
-        `/api/check-gamepass?placeId=${placeId}&expectedRobux=${expectedRobux}`,
-      );
+      const { ok, data } = await checkGamepass(placeId, expectedRobux);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!ok) {
+        throw new Error(data.message || "Gagal memeriksa gamepass");
       }
-
-      const data = await response.json();
 
       // Log result
       if (data.success) {

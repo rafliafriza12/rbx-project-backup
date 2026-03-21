@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Settings from "@/models/Settings";
-import { validateEmail } from "@/lib/auth";
+import { validateEmail, requireApiKey } from "@/lib/auth";
 import nodemailer from "nodemailer";
 
 // Store OTPs temporarily (in production, use Redis or similar)
@@ -63,6 +63,9 @@ function generateOTP(): string {
 }
 
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

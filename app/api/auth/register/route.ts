@@ -7,6 +7,7 @@ import {
   validatePhone,
   validatePassword,
   generateToken,
+  requireApiKey,
 } from "@/lib/auth";
 
 // Force dynamic rendering for this API route
@@ -14,6 +15,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

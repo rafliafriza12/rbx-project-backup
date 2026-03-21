@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Token tidak ditemukan" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "User tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
     ) {
       console.log(
         `🔄 Auto-deactivating expired reseller for user ${user.email}: ` +
-          `Tier ${user.resellerTier} expired on ${user.resellerExpiry}`
+          `Tier ${user.resellerTier} expired on ${user.resellerExpiry}`,
       );
 
       user.resellerTier = null;
@@ -63,7 +66,7 @@ export async function GET(request: NextRequest) {
     ) {
       try {
         const resellerPackage = await ResellerPackage.findById(
-          user.resellerPackageId
+          user.resellerPackageId,
         );
         if (resellerPackage) {
           resellerDiscount = resellerPackage.discount;
@@ -96,14 +99,14 @@ export async function GET(request: NextRequest) {
         message: "User authenticated",
         user: userResponse,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Authentication check error:", error);
 
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

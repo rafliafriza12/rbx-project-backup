@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiKey } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import RobloxCache from "@/models/RobloxCache";
 
 export async function GET(req: NextRequest) {
+  const apiKeyError = requireApiKey(req);
+  if (apiKeyError) return apiKeyError;
+
   const { searchParams } = new URL(req.url);
   const username = searchParams.get("username")?.toLowerCase();
 
   if (!username) {
     return NextResponse.json(
       { success: false, message: "Username wajib diisi" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -32,7 +36,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(
-      `Cache miss for username: ${username}, fetching from Roblox API`
+      `Cache miss for username: ${username}, fetching from Roblox API`,
     );
 
     // 2️⃣ Fetch user info from Roblox API
@@ -51,7 +55,7 @@ export async function GET(req: NextRequest) {
           success: false,
           message: "Gagal mengambil data dari Roblox API",
         },
-        { status: userRes.status }
+        { status: userRes.status },
       );
     }
 
@@ -64,7 +68,7 @@ export async function GET(req: NextRequest) {
           success: false,
           message: "User tidak ditemukan",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -72,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     // 3️⃣ Fetch avatar
     const avatarRes = await fetch(
-      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=false`
+      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=false`,
     );
 
     let avatarUrl = "";
@@ -91,7 +95,7 @@ export async function GET(req: NextRequest) {
         avatarUrl,
         updatedAt: new Date(),
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
 
     console.log(`Cached new user data for: ${username}`);
@@ -108,7 +112,7 @@ export async function GET(req: NextRequest) {
     console.error("Error in user-info API:", error);
     return NextResponse.json(
       { success: false, message: "Terjadi kesalahan saat mencari user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

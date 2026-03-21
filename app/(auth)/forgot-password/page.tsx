@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import { Mail, Shield, Lock, CheckCircle, ArrowLeft } from "lucide-react";
+import {
+  sendForgotPasswordOtp,
+  verifyForgotPasswordOtp,
+  resetPassword,
+} from "../actions";
 
 type Step = "email" | "otp" | "reset" | "success";
 
@@ -52,15 +57,9 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/forgot-password/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const { ok, data } = await sendForgotPasswordOtp(email);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!ok) {
         throw new Error(data.error || "Gagal mengirim OTP");
       }
 
@@ -93,7 +92,7 @@ export default function ForgotPasswordPage() {
   // Handle OTP input keydown
   const handleOTPKeyDown = (
     index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
+    e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === "Backspace" && !otpCode[index] && index > 0) {
       const prevInput = document.getElementById(`otp-${index - 1}`);
@@ -126,15 +125,9 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/forgot-password/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: otpString }),
-      });
+      const { ok, data } = await verifyForgotPasswordOtp(email, otpString);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!ok) {
         throw new Error(data.error || "Kode OTP tidak valid");
       }
 
@@ -155,15 +148,9 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/forgot-password/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const { ok, data } = await sendForgotPasswordOtp(email);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!ok) {
         throw new Error(data.error || "Gagal mengirim ulang OTP");
       }
 
@@ -200,20 +187,14 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/forgot-password/reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          otp: otpCode.join(""),
-          newPassword,
-          confirmPassword,
-        }),
-      });
+      const { ok, data } = await resetPassword(
+        email,
+        otpCode.join(""),
+        newPassword,
+        confirmPassword,
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!ok) {
         throw new Error(data.error || "Gagal reset password");
       }
 

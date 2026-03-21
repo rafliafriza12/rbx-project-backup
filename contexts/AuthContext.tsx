@@ -2,6 +2,13 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  loginAction,
+  googleLoginAction,
+  registerAction,
+  checkAuthAction,
+  logoutAction,
+} from "@/app/(auth)/actions";
 
 interface MemberRole {
   _id: string;
@@ -89,13 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/me", {
-        method: "GET",
-        credentials: "include",
-      });
+      const { ok, data } = await checkAuthAction();
 
-      if (response.ok) {
-        const data = await response.json();
+      if (ok) {
         setUser(data.user);
       } else {
         setUser(null);
@@ -114,18 +117,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     try {
       setLoading(true);
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+      const { ok, data } = await loginAction(email, password, rememberMe);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         setUser(data.user);
         // Redirect to home or dashboard
         router.push("/");
@@ -156,23 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const googleUser = JSON.parse(jsonPayload);
 
-      const response = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email: googleUser.email,
-          name: googleUser.name,
-          picture: googleUser.picture,
-          sub: googleUser.sub,
-        }),
+      const { ok, data } = await googleLoginAction({
+        email: googleUser.email,
+        name: googleUser.name,
+        picture: googleUser.picture,
+        sub: googleUser.sub,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         setUser(data.user);
         // Redirect to home or dashboard
         router.push("/");
@@ -193,18 +178,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     try {
       setLoading(true);
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+      const { ok, data } = await loginAction(email, password, rememberMe);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         setUser(data.user);
 
         // Check if user is admin
@@ -229,18 +205,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const register = async (userData: RegisterData) => {
     try {
       setLoading(true);
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(userData),
-      });
+      const { ok, data } = await registerAction(userData);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         setUser(data.user);
         // Redirect to home or dashboard
         router.push("/");
@@ -256,12 +223,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = async () => {
     try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      const { ok } = await logoutAction();
 
-      if (response.ok) {
+      if (ok) {
         setUser(null);
         router.push("/");
       }

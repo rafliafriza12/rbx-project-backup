@@ -270,3 +270,148 @@ export async function searchTransactions(query: string) {
     return { ok: false, data: { success: false, data: [] } };
   }
 }
+
+/**
+ * Server Action: Get user places from Roblox
+ */
+export async function getUserPlaces(userId: number) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(
+      `${BASE_URL}/api/get-user-places?userId=${userId}`,
+      {
+        headers: getInternalHeaders(),
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching user places:", error);
+    return {
+      ok: false,
+      data: {
+        success: false,
+        message: "Terjadi kesalahan saat mengambil data place",
+      },
+    };
+  }
+}
+
+/**
+ * Server Action: Get user info from Roblox by username
+ */
+export async function getUserInfo(username: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(
+      `${BASE_URL}/api/user-info?username=${encodeURIComponent(username)}`,
+      {
+        headers: getInternalHeaders(),
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching user info:", error);
+    return {
+      ok: false,
+      data: { success: false, message: "Terjadi kesalahan saat mencari user" },
+    };
+  }
+}
+
+/**
+ * Server Action: Check gamepass for a place
+ */
+export async function checkGamepass(placeId: number, expectedRobux: number) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(
+      `${BASE_URL}/api/check-gamepass?placeId=${placeId}&expectedRobux=${expectedRobux}`,
+      {
+        headers: getInternalHeaders(),
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error checking gamepass:", error);
+    return {
+      ok: false,
+      data: {
+        success: false,
+        message: "Terjadi kesalahan saat memeriksa gamepass",
+      },
+    };
+  }
+}
+
+/**
+ * Server Action: Fetch live transactions for homepage
+ */
+export async function getLiveTransactions() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/live-transactions`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching live transactions:", error);
+    return {
+      ok: false,
+      data: { success: false, data: [] },
+    };
+  }
+}
+
+/**
+ * Server Action: Fetch live reviews for homepage
+ */
+export async function getLiveReviews() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/reviews/live`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching live reviews:", error);
+    return {
+      ok: false,
+      data: { success: false, data: [] },
+    };
+  }
+}
+
+/**
+ * Server Action: Get current user data (authenticated)
+ */
+export async function getCurrentUser() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) {
+      return { ok: false, data: null };
+    }
+    const response = await fetch(`${BASE_URL}/api/auth/me`, {
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching current user:", error);
+    return { ok: false, data: null };
+  }
+}

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiKey } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -74,7 +78,7 @@ export async function GET() {
       console.log(
         "[Live Reviews] Adding dummy data for better UX (found only " +
           formattedReviews.length +
-          " real reviews)"
+          " real reviews)",
       );
 
       const dummyReviews = [
@@ -171,7 +175,7 @@ export async function GET() {
         error: "Gagal mengambil data review",
         message: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

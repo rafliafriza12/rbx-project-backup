@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiKey } from "@/lib/auth";
 import { forgotPasswordOtpStore } from "../send-otp/route";
 
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     const body = await request.json();
     const { email, otp } = body;
@@ -10,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!email || !otp) {
       return NextResponse.json(
         { error: "Email dan kode OTP harus diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (!storedOTP) {
       return NextResponse.json(
         { error: "Kode OTP tidak ditemukan atau sudah kadaluarsa" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,7 +33,7 @@ export async function POST(request: NextRequest) {
       forgotPasswordOtpStore.delete(email.toLowerCase());
       return NextResponse.json(
         { error: "Kode OTP sudah kadaluarsa" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (storedOTP.code !== otp) {
       return NextResponse.json(
         { error: "Kode OTP tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,13 +57,13 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Kode OTP valid",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Verify forgot password OTP error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan server" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

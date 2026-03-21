@@ -8,6 +8,7 @@ import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Gem, CheckCircle, Mail, Shield, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import { sendOtp, verifyOtp } from "../actions";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -51,7 +52,7 @@ export default function RegisterPage() {
   ];
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type, checked } = e.target as HTMLInputElement;
     setFormData((prev) => ({
@@ -79,18 +80,9 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          firstName: formData.firstName,
-        }),
-      });
+      const { ok, data } = await sendOtp(formData.email, formData.firstName);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!ok) {
         throw new Error(data.error || "Gagal mengirim OTP");
       }
 
@@ -140,7 +132,7 @@ export default function RegisterPage() {
   // Handle OTP input keydown
   const handleOTPKeyDown = (
     index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
+    e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === "Backspace" && !otpCode[index] && index > 0) {
       const prevInput = document.getElementById(`otp-${index - 1}`);
@@ -162,19 +154,10 @@ export default function RegisterPage() {
 
     try {
       // Verify OTP
-      const verifyResponse = await fetch("/api/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: otpString,
-        }),
-      });
+      const { ok, data } = await verifyOtp(formData.email, otpString);
 
-      const verifyData = await verifyResponse.json();
-
-      if (!verifyResponse.ok) {
-        throw new Error(verifyData.error || "Kode OTP tidak valid");
+      if (!ok) {
+        throw new Error(data.error || "Kode OTP tidak valid");
       }
 
       // OTP verified, now register user
@@ -196,18 +179,9 @@ export default function RegisterPage() {
     setOtpError("");
 
     try {
-      const response = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          firstName: formData.firstName,
-        }),
-      });
+      const { ok, data } = await sendOtp(formData.email, formData.firstName);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!ok) {
         throw new Error(data.error || "Gagal mengirim ulang OTP");
       }
 

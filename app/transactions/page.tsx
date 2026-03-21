@@ -4,6 +4,7 @@ import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { fetchTransactionsList } from "./actions";
+import { checkAuthAction } from "@/app/(auth)/actions";
 
 interface Transaction {
   _id: string;
@@ -32,8 +33,8 @@ export default function TransactionsPage() {
     // Check if user is logged in (simplified version)
     const checkAuth = async () => {
       try {
-        const response = await fetch("/api/auth/check");
-        if (response.ok) {
+        const { ok } = await checkAuthAction();
+        if (ok) {
           setIsAuthenticated(true);
           fetchTransactions();
         } else {

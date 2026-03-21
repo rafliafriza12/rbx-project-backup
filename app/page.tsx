@@ -12,6 +12,9 @@ import {
   getActiveBanners,
   getGamepasses,
   getRbx5Stats,
+  getLiveTransactions,
+  getLiveReviews,
+  getCurrentUser,
 } from "@/app/lib/actions";
 import {
   Gem,
@@ -132,25 +135,17 @@ export default function HomePage() {
   const [totalPrice, setTotalPrice] = useState<number>(0);
 
   useEffect(() => {
-    // Check if user logged in
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      // Get user data to check discount
-      fetch("/api/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
+    // Check if user logged in via server action
+    getCurrentUser()
+      .then(({ ok, data }) => {
+        if (ok && data?.data) {
           setUser(data.data);
           setDiscount(data.data?.discount_percentage || 0);
-        })
-        .catch(() => {
-          // Token invalid, clear it
-          localStorage.removeItem("auth_token");
-        });
-    }
+        }
+      })
+      .catch(() => {
+        // Token invalid
+      });
 
     // Fetch RBX5 statistics
     fetchRbx5Stats();
@@ -295,13 +290,9 @@ export default function HomePage() {
   // Function to fetch live transactions
   const fetchLiveTransactions = async () => {
     try {
-      const response = await fetch("/api/live-transactions");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setLiveTransactions(data.data);
-        }
-      } else {
+      const { ok, data } = await getLiveTransactions();
+      if (ok && data.success && data.data) {
+        setLiveTransactions(data.data);
       }
     } catch (error) {
     } finally {
@@ -312,13 +303,9 @@ export default function HomePage() {
   // Function to fetch live reviews
   const fetchLiveReviews = async () => {
     try {
-      const response = await fetch("/api/reviews/live");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setLiveReviews(data.data);
-        }
-      } else {
+      const { ok, data } = await getLiveReviews();
+      if (ok && data.success && data.data) {
+        setLiveReviews(data.data);
       }
     } catch (error) {
     } finally {
