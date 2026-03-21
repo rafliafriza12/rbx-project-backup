@@ -3,7 +3,12 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
-import { getPublicSettings } from "@/app/lib/actions";
+import {
+  getPublicSettings,
+  getProductsByCategory,
+  getRobuxPricing,
+  getRbx5Stats,
+} from "@/app/lib/actions";
 import {
   Gem,
   Rocket,
@@ -299,51 +304,31 @@ export default function Rbx5Page() {
 
     const fetchProducts = async () => {
       try {
-        const response = await fetch("/api/products?category=robux_5_hari");
-        if (response.ok) {
-          const data = await response.json();
-          // Sort products by robuxAmount ascending
-          const sortedProducts = (data.products || []).sort(
-            (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
-          );
-          setProducts(sortedProducts);
-
-          // Only set to 0 if no robux amount was set from homepage
-          if (sortedProducts && sortedProducts.length > 0 && robux === 0) {
-            // Don't override robux if it was set from homepage
-            // setRobux(0); - Remove this line to avoid resetting homepage value
-          }
-        } else {
-        }
+        const result = await getProductsByCategory("robux_5_hari");
+        const sortedProducts = (result.products || []).sort(
+          (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
+        );
+        setProducts(sortedProducts);
       } catch (error) {
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchRobuxPricing = async () => {
+    const fetchRobuxPricingData = async () => {
       try {
-        const response = await fetch("/api/robux-pricing");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setCurrentRobuxPricing(data.data);
-          }
+        const result = await getRobuxPricing();
+        if (result.success && result.data) {
+          setCurrentRobuxPricing(result.data);
         }
       } catch (error) {}
     };
 
     const fetchStats = async () => {
       try {
-        const response = await fetch("/api/rbx5-stats");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setStats(data.data);
-          } else {
-          }
-        } else {
-          const errorData = await response.json().catch(() => null);
+        const result = await getRbx5Stats();
+        if (result.success && result.data) {
+          setStats(result.data);
         }
       } catch (error) {
       } finally {
@@ -352,7 +337,7 @@ export default function Rbx5Page() {
     };
 
     fetchProducts();
-    fetchRobuxPricing();
+    fetchRobuxPricingData();
     fetchStats();
   }, [homepageDataProcessed, robux]); // Wait for homepage data and depend on robux value
 
@@ -657,15 +642,10 @@ export default function Rbx5Page() {
   const refreshStats = async () => {
     setLoadingStats(true);
     try {
-      const statsResponse = await fetch("/api/rbx5-stats");
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        if (statsData.success && statsData.data) {
-          setStats(statsData.data);
-        }
+      const result = await getRbx5Stats();
+      if (result.success && result.data) {
+        setStats(result.data);
       }
-
       toast.success("Statistik berhasil diperbarui!", {
         position: "top-right",
         autoClose: 2000,

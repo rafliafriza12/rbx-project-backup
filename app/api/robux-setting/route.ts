@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import RobuxSetting from "@/models/RobuxSetting";
 import Gamepass from "@/models/Gamepass";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Ambil setting harga Robux
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     let setting = await RobuxSetting.findOne();
@@ -38,6 +41,9 @@ export async function GET() {
 // PUT - Update setting harga Robux
 export async function PUT(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Admin only

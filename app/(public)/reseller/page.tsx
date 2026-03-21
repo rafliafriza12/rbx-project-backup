@@ -15,6 +15,7 @@ import {
   Award,
   Gem,
 } from "lucide-react";
+import { getResellerPackages } from "@/app/lib/actions";
 
 interface ResellerPackage {
   _id: string;
@@ -76,13 +77,11 @@ export default function ResellerPage() {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/reseller-packages");
-      const data = await response.json();
-
-      if (data.success) {
-        setPackages(data.data);
+      const result = await getResellerPackages();
+      if (result.success) {
+        setPackages(result.data);
       } else {
-        setError(data.error || "Gagal memuat paket reseller");
+        setError(result.error || "Gagal memuat paket reseller");
       }
     } catch (error) {
     } finally {

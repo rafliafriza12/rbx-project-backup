@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { getResellerPackages } from "@/app/lib/actions";
 
 interface User {
   _id: string;
@@ -128,18 +129,9 @@ export default function UsersPage() {
 
   const fetchResellerPackages = async () => {
     try {
-      const response = await fetch("/api/reseller-packages");
-      if (response.ok) {
-        const result = await response.json();
-
-        // Handle both response formats: {data: [...]} or {packages: [...]}
-        const packagesData = result.data || result.packages || [];
-
-        setResellerPackages(packagesData);
-      } else {
-        const errorData = await response.json();
-        setResellerPackages([]);
-      }
+      const result = await getResellerPackages();
+      const packagesData = result.data || result.packages || [];
+      setResellerPackages(packagesData);
     } catch (error) {
       setResellerPackages([]);
     }

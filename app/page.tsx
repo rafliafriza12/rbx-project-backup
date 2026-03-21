@@ -7,7 +7,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import Marquee from "react-fast-marquee";
-import { getPublicSettings } from "@/app/lib/actions";
+import {
+  getPublicSettings,
+  getActiveBanners,
+  getGamepasses,
+  getRbx5Stats,
+} from "@/app/lib/actions";
 import {
   Gem,
   Rocket,
@@ -222,13 +227,9 @@ export default function HomePage() {
   // Function to fetch RBX5 statistics
   const fetchRbx5Stats = async () => {
     try {
-      const response = await fetch("/api/rbx5-stats");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setRbx5Stats(data.data);
-        }
-      } else {
+      const result = await getRbx5Stats();
+      if (result.success && result.data) {
+        setRbx5Stats(result.data);
       }
     } catch (error) {
     } finally {
@@ -239,17 +240,13 @@ export default function HomePage() {
   // Function to fetch homepage gamepasses
   const fetchHomepageGamepasses = async () => {
     try {
-      const response = await fetch("/api/gamepass");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          // Filter only gamepasses that should be shown on homepage
-          const homepageGamepasses = data.data.filter(
-            (gamepass: Gamepass) => gamepass.showOnHomepage,
-          );
-          setGamepasses(homepageGamepasses);
-        }
-      } else {
+      const data = await getGamepasses();
+      if (data.success && data.data) {
+        // Filter only gamepasses that should be shown on homepage
+        const homepageGamepasses = data.data.filter(
+          (gamepass: Gamepass) => gamepass.showOnHomepage,
+        );
+        setGamepasses(homepageGamepasses);
       }
     } catch (error) {
     } finally {
@@ -259,58 +256,37 @@ export default function HomePage() {
 
   // Function to fetch active banners
   const fetchActiveBanners = async () => {
+    const defaultBanners = [
+      {
+        id: 1,
+        imageUrl: "/banner.webp",
+        link: "/gamepass",
+        alt: "Banner Gamepass Terbaru",
+      },
+      {
+        id: 2,
+        imageUrl: "/banner2.png",
+        link: "/rbx5",
+        alt: "Banner RBX Promo",
+      },
+      {
+        id: 3,
+        imageUrl: "/banner.png",
+        link: "/joki",
+        alt: "Banner Joki Service",
+      },
+    ];
     try {
-      const response = await fetch("/api/banners?active=true");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data && data.data.length > 0) {
-          setBanners(data.data);
-        } else {
-          // Use default banners if no active banners from database
-          setBanners([
-            {
-              id: 1,
-              imageUrl: "/banner.webp",
-              link: "/gamepass",
-              alt: "Banner Gamepass Terbaru",
-            },
-            {
-              id: 2,
-              imageUrl: "/banner2.png",
-              link: "/rbx5",
-              alt: "Banner RBX Promo",
-            },
-            {
-              id: 3,
-              imageUrl: "/banner.png",
-              link: "/joki",
-              alt: "Banner Joki Service",
-            },
-          ]);
-        }
+      const data = await getActiveBanners();
+      if (data.success && data.data && data.data.length > 0) {
+        setBanners(data.data);
+      } else {
+        // Use default banners if no active banners from database
+        setBanners(defaultBanners);
       }
     } catch (error) {
       // Use default banners on error
-      setBanners([
-        {
-          id: 1,
-          imageUrl: "/banner.webp",
-          link: "/gamepass",
-          alt: "Banner Gamepass Terbaru",
-        },
-        {
-          id: 2,
-          imageUrl: "/banner2.png",
-          link: "/rbx5",
-          alt: "Banner RBX Promo",
-        },
-        {
-          id: 3,
-          imageUrl: "/banner.png",
-          link: "/joki",
-          alt: "Banner Joki Service",
-        },
-      ]);
+      setBanners(defaultBanners);
     } finally {
       setLoadingBanners(false);
     }

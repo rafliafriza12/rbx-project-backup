@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { getPublicSettings } from "@/app/lib/actions";
+import { getPublicSettings, getActiveBanners } from "@/app/lib/actions";
 
 interface Banner {
   _id: string;
@@ -42,70 +42,42 @@ export default function RBXLandingPage() {
   }, []);
 
   const fetchActiveBanners = async () => {
+    const defaultBanners = [
+      {
+        _id: "1",
+        imageUrl: "/banner.webp",
+        link: "/gamepass",
+        alt: "Banner Gamepass Terbaru",
+        isActive: true,
+        order: 1,
+      },
+      {
+        _id: "2",
+        imageUrl: "/banner2.png",
+        link: "/rbx5",
+        alt: "Banner RBX Promo",
+        isActive: true,
+        order: 2,
+      },
+      // JOKI BANNER - TEMPORARILY DISABLED
+      // {
+      //   _id: "3",
+      //   imageUrl: "/banner.png",
+      //   link: "/joki",
+      //   alt: "Banner Joki Service",
+      //   isActive: true,
+      //   order: 3,
+      // },
+    ];
     try {
-      const response = await fetch("/api/banners?active=true");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data && data.data.length > 0) {
-          setBanners(data.data);
-        } else {
-          setBanners([
-            {
-              _id: "1",
-              imageUrl: "/banner.webp",
-              link: "/gamepass",
-              alt: "Banner Gamepass Terbaru",
-              isActive: true,
-              order: 1,
-            },
-            {
-              _id: "2",
-              imageUrl: "/banner2.png",
-              link: "/rbx5",
-              alt: "Banner RBX Promo",
-              isActive: true,
-              order: 2,
-            },
-            // JOKI BANNER - TEMPORARILY DISABLED
-            // {
-            //   _id: "3",
-            //   imageUrl: "/banner.png",
-            //   link: "/joki",
-            //   alt: "Banner Joki Service",
-            //   isActive: true,
-            //   order: 3,
-            // },
-          ]);
-        }
+      const data = await getActiveBanners();
+      if (data.success && data.data && data.data.length > 0) {
+        setBanners(data.data);
+      } else {
+        setBanners(defaultBanners);
       }
     } catch (error) {
-      setBanners([
-        {
-          _id: "1",
-          imageUrl: "/banner.webp",
-          link: "/gamepass",
-          alt: "Banner Gamepass Terbaru",
-          isActive: true,
-          order: 1,
-        },
-        {
-          _id: "2",
-          imageUrl: "/banner2.png",
-          link: "/rbx5",
-          alt: "Banner RBX Promo",
-          isActive: true,
-          order: 2,
-        },
-        // JOKI BANNER - TEMPORARILY DISABLED
-        // {
-        //   _id: "3",
-        //   imageUrl: "/banner.png",
-        //   link: "/joki",
-        //   alt: "Banner Joki Service",
-        //   isActive: true,
-        //   order: 3,
-        // },
-      ]);
+      setBanners(defaultBanners);
     } finally {
       setLoadingBanners(false);
     }

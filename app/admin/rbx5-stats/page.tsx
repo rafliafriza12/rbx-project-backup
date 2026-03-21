@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
+import {
+  fetchRbx5StatsConfig,
+  fetchRbx5StatsLive,
+  updateRbx5StatsConfig,
+} from "./actions";
 
 interface StatsConfig {
   mode: "auto" | "manual";
@@ -43,27 +48,21 @@ export default function AdminRbx5StatsPage() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const [configRes, liveRes] = await Promise.all([
-        fetch("/api/admin/rbx5-stats"),
-        fetch("/api/rbx5-stats"),
+      const [configResult, liveResult] = await Promise.all([
+        fetchRbx5StatsConfig(),
+        fetchRbx5StatsLive(),
       ]);
 
-      if (configRes.ok) {
-        const configData = await configRes.json();
-        if (configData.success) {
-          setConfig(configData.data);
-          setMode(configData.data.mode);
-          setManualTotalStok(configData.data.manualTotalStok);
-          setManualTotalTerjual(configData.data.manualTotalTerjual);
-          setManualTotalCustomers(configData.data.manualTotalCustomers);
-        }
+      if (configResult.ok && configResult.data.success) {
+        setConfig(configResult.data.data);
+        setMode(configResult.data.data.mode);
+        setManualTotalStok(configResult.data.data.manualTotalStok);
+        setManualTotalTerjual(configResult.data.data.manualTotalTerjual);
+        setManualTotalCustomers(configResult.data.data.manualTotalCustomers);
       }
 
-      if (liveRes.ok) {
-        const liveData = await liveRes.json();
-        if (liveData.success) {
-          setLiveStats(liveData.data);
-        }
+      if (liveResult.ok && liveResult.data.success) {
+        setLiveStats(liveResult.data.data);
       }
     } catch (error) {
       toast.error("Gagal memuat konfigurasi statistik");
@@ -79,31 +78,25 @@ export default function AdminRbx5StatsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/rbx5-stats", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode,
-          manualTotalStok,
-          manualTotalTerjual,
-          manualTotalCustomers,
-        }),
+      const result = await updateRbx5StatsConfig({
+        mode,
+        manualTotalStok,
+        manualTotalTerjual,
+        manualTotalCustomers,
       });
 
-      const data = await res.json();
-      if (data.success) {
+      if (result.ok && result.data.success) {
         toast.success("Konfigurasi statistik berhasil disimpan");
-        setConfig(data.data);
+        setConfig(result.data.data);
         // Refresh live stats
-        const liveRes = await fetch("/api/rbx5-stats");
-        if (liveRes.ok) {
-          const liveData = await liveRes.json();
-          if (liveData.success) {
-            setLiveStats(liveData.data);
-          }
+        const liveResult = await fetchRbx5StatsLive();
+        if (liveResult.ok && liveResult.data.success) {
+          setLiveStats(liveResult.data.data);
         }
       } else {
-        toast.error(data.message || "Gagal menyimpan");
+        toast.error(
+          result.data.message || result.data.error || "Gagal menyimpan",
+        );
       }
     } catch (error) {
       toast.error("Gagal menyimpan konfigurasi");

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Banner from "@/models/Banner";
 import mongoose from "mongoose";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Fetch single banner
 export async function GET(
@@ -10,6 +10,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;
@@ -58,6 +62,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Admin only
@@ -139,6 +147,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Admin only

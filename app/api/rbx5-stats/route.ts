@@ -4,8 +4,12 @@ import Transaction from "@/models/Transaction";
 import Product from "@/models/Product";
 import StockAccount from "@/models/StockAccount";
 import Rbx5Stats from "@/models/Rbx5Stats";
+import { requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

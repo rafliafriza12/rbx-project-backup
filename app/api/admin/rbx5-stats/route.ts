@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Rbx5Stats from "@/models/Rbx5Stats";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Ambil konfigurasi stats (untuk admin panel)
 export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -42,6 +45,9 @@ export async function GET(request: NextRequest) {
 
 // PUT - Update konfigurasi stats (admin set mode & manual values)
 export async function PUT(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 

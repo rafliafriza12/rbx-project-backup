@@ -10,7 +10,12 @@ import {
   getPaymentFee,
   getTotalItemsCount,
 } from "@/lib/transaction-helpers";
-import { fetchTransactionsAdmin, updateTransactionStatus } from "./actions";
+import {
+  fetchTransactionsAdmin,
+  updateTransactionStatus,
+  deleteTransaction,
+  exportTransactionsAdmin,
+} from "./actions";
 
 interface Transaction {
   _id: string;
@@ -182,15 +187,11 @@ export default function TransactionsPage() {
       return;
 
     try {
-      const response = await fetch(`/api/transactions/${transactionId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
+      const { ok, data } = await deleteTransaction(transactionId);
+      if (ok) {
         toast.success("Transaction deleted successfully");
         fetchTransactions();
       } else {
-        const data = await response.json();
         toast.error(data.error || "Failed to delete transaction");
       }
     } catch (error) {
@@ -200,32 +201,29 @@ export default function TransactionsPage() {
 
   const handleExportData = async () => {
     try {
-      const params = new URLSearchParams({
-        export: "true",
+      const params: Record<string, string> = {
         ...(filters.search && { search: filters.search }),
         ...(filters.status && { status: filters.status }),
         ...(filters.serviceType && { serviceType: filters.serviceType }),
         ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
         ...(filters.dateTo && { dateTo: filters.dateTo }),
-      });
+      };
 
-      const response = await fetch(`/api/transactions?${params}`);
+      const result = await exportTransactionsAdmin(params);
 
-      if (response.ok) {
-        const blob = await response.blob();
+      if (result.ok && result.csv) {
+        const blob = new Blob([result.csv], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `transactions-${
-          new Date().toISOString().split("T")[0]
-        }.csv`;
+        a.download = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         toast.success("Data exported successfully");
       } else {
-        toast.error("Failed to export data");
+        toast.error(result.error || "Failed to export data");
       }
     } catch (error) {
       toast.error("Failed to export data");

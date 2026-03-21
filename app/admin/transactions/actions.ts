@@ -133,3 +133,54 @@ export async function triggerManualGamepassPurchase(transactionId: string) {
     };
   }
 }
+
+/**
+ * Server Action: Delete transaction (admin)
+ */
+export async function deleteTransaction(transactionId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/transactions/${transactionId}`,
+      {
+        method: "DELETE",
+        headers: getInternalHeaders({
+          ...(authCookie ? { Cookie: authCookie } : {}),
+        }),
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error deleting transaction:", error);
+    return { ok: false, data: { error: "Gagal menghapus transaksi" } };
+  }
+}
+
+/**
+ * Server Action: Export transactions as CSV data (admin)
+ */
+export async function exportTransactionsAdmin(
+  params: Record<string, string>,
+): Promise<{ ok: boolean; csv?: string; error?: string }> {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const query = new URLSearchParams({ ...params, export: "true" }).toString();
+    const response = await fetch(`${BASE_URL}/api/transactions?${query}`, {
+      headers: getInternalHeaders({
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      }),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return { ok: false, error: "Gagal mengekspor data" };
+    }
+    const csv = await response.text();
+    return { ok: true, csv };
+  } catch (error) {
+    console.error("[Server Action] Error exporting transactions:", error);
+    return { ok: false, error: "Gagal mengekspor data transaksi" };
+  }
+}

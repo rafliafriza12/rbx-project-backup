@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { resendInvoiceEmail } from "./actions";
 
 interface ResendInvoiceForm {
   transactionId: string;
@@ -38,21 +39,13 @@ export default function EmailManagementPage() {
     setIsResending(true);
 
     try {
-      const response = await fetch("/api/email/invoice", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          transactionId: form.transactionId || undefined,
-          invoiceId: form.invoiceId || undefined,
-          email: form.email || undefined,
-        }),
+      const { ok, data } = await resendInvoiceEmail({
+        transactionId: form.transactionId || undefined,
+        invoiceId: form.invoiceId || undefined,
+        email: form.email || undefined,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         toast.success(`Email invoice berhasil dikirim ke ${data.sentTo}`);
         // Reset form
         setForm({

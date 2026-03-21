@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Gamepass from "@/models/Gamepass";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
 // GET - Ambil semua gamepass
 export async function GET(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -45,6 +48,9 @@ export async function GET(request: NextRequest) {
 // POST - Buat gamepass baru (Admin only)
 export async function POST(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Admin only

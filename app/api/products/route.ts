@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
 import RobuxPricing from "@/models/RobuxPricing";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Ambil semua produk dengan filtering
 export async function GET(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -56,6 +59,9 @@ export async function GET(request: NextRequest) {
 // POST - Buat produk baru (Admin only)
 export async function POST(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Admin only

@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import {
+  fetchRobuxPricing,
+  fetchProductsAdmin,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "./actions";
 
 interface Product {
   _id: string;
@@ -64,14 +71,11 @@ export default function ProductsPage() {
   }, [user, authLoading, router]);
 
   // Fetch current robux pricing
-  const fetchRobuxPricing = async () => {
+  const fetchRobuxPricingData = async () => {
     try {
-      const response = await fetch("/api/robux-pricing");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setCurrentRobuxPricing(data.data);
-        }
+      const { ok, data } = await fetchRobuxPricing();
+      if (ok && data.success && data.data) {
+        setCurrentRobuxPricing(data.data);
       }
     } catch (error) {}
   };
@@ -86,13 +90,10 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/products?admin=true");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch products");
+      const { ok, data } = await fetchProductsAdmin();
+      if (!ok) {
+        throw new Error(data.error || "Failed to fetch products");
       }
-
-      const data = await response.json();
       const sortedProducts = (data.products || []).sort(
         (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
       );
@@ -107,7 +108,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (user && user.accessRole === "admin") {
       fetchProducts();
-      fetchRobuxPricing();
+      fetchRobuxPricingData();
     }
   }, [user]);
 
@@ -115,7 +116,7 @@ export default function ProductsPage() {
   useEffect(() => {
     const handleFocus = () => {
       if (user && user.accessRole === "admin") {
-        fetchRobuxPricing(); // Refresh pricing in case it was updated
+        fetchRobuxPricingData(); // Refresh pricing in case it was updated
       }
     };
 
@@ -219,23 +220,15 @@ export default function ProductsPage() {
         category: formData.category,
       };
 
-      const url = selectedProduct
-        ? `/api/products/${selectedProduct._id}`
-        : "/api/products";
+      let result;
+      if (selectedProduct) {
+        result = await updateProduct(selectedProduct._id, submitData);
+      } else {
+        result = await createProduct(submitData);
+      }
 
-      const method = selectedProduct ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submitData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Gagal menyimpan produk");
+      if (!result.ok) {
+        throw new Error(result.data?.error || "Gagal menyimpan produk");
       }
 
       toast.success(
@@ -260,13 +253,10 @@ export default function ProductsPage() {
     }
 
     try {
-      const response = await fetch(`/api/products/${productId}`, {
-        method: "DELETE",
-      });
+      const result = await deleteProduct(productId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Gagal menghapus produk");
+      if (!result.ok) {
+        throw new Error(result.data?.error || "Gagal menghapus produk");
       }
 
       toast.success("Produk berhasil dihapus");
@@ -281,20 +271,13 @@ export default function ProductsPage() {
   // Toggle product status
   const toggleProductStatus = async (product: Product) => {
     try {
-      const response = await fetch(`/api/products/${product._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...product,
-          isActive: !product.isActive,
-        }),
+      const result = await updateProduct(product._id, {
+        ...product,
+        isActive: !product.isActive,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Gagal mengubah status produk");
+      if (!result.ok) {
+        throw new Error(result.data?.error || "Gagal mengubah status produk");
       }
 
       fetchProducts();

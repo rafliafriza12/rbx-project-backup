@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import ReviewSection from "@/components/ReviewSection";
+import { getGamepasses } from "@/app/lib/actions";
 
 interface Gamepass {
   _id: string;
@@ -36,9 +37,7 @@ export default function GamepassPage() {
   const fetchGamepasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/gamepass");
-      const data = await response.json();
-
+      const data = await getGamepasses();
       if (data.success) {
         setGamepasses(data.data);
       } else {
@@ -57,7 +56,7 @@ export default function GamepassPage() {
       gamepass.gameName.toLowerCase().includes(searchLower) ||
       gamepass.developer.toLowerCase().includes(searchLower) ||
       gamepass.item.some((item) =>
-        item.itemName.toLowerCase().includes(searchLower)
+        item.itemName.toLowerCase().includes(searchLower),
       )
     );
   });
@@ -230,7 +229,7 @@ export default function GamepassPage() {
                             </span>
                             Rp{" "}
                             {Math.min(
-                              ...gamepass.item.map((item) => item.price)
+                              ...gamepass.item.map((item) => item.price),
                             ).toLocaleString()}
                           </div>
                         </div>

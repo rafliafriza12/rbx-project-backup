@@ -28,6 +28,7 @@ import {
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
+import { getGamepassById } from "@/app/lib/actions";
 
 interface GamepassItem {
   itemName: string;
@@ -267,9 +268,7 @@ export default function GamepassDetailPage() {
   const fetchGamepass = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/gamepass/${gamepassId}`);
-      const data = await response.json();
-
+      const data = await getGamepassById(gamepassId);
       if (data.success) {
         setGamepass(data.data);
       } else {

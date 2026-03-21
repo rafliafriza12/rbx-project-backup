@@ -6,6 +6,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import GamepassManager from "@/components/admin/GamepassManager";
 import Link from "next/link";
 import { Settings } from "lucide-react";
+import {
+  fetchRobuxSetting,
+  fetchGamepassesAdmin,
+  createGamepass,
+  updateGamepass,
+  deleteGamepass,
+  toggleGamepassHomepage,
+} from "./actions";
 
 interface GamepassItem {
   itemName: string;
@@ -38,11 +46,10 @@ export default function AdminGamepassPage() {
   const { user } = useAuth();
 
   // Fetch robux setting
-  const fetchRobuxSetting = async () => {
+  const fetchRobuxSettingData = async () => {
     try {
-      const response = await fetch("/api/robux-setting");
-      const data = await response.json();
-      if (data.success) {
+      const { ok, data } = await fetchRobuxSetting();
+      if (ok && data.success) {
         setPricePerRobux(data.data.pricePerRobux);
       }
     } catch (error) {}
@@ -52,10 +59,8 @@ export default function AdminGamepassPage() {
   const fetchGamepasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/gamepass?admin=true");
-      const data = await response.json();
-
-      if (data.success) {
+      const { ok, data } = await fetchGamepassesAdmin();
+      if (ok && data.success) {
         setGamepasses(data.data);
       } else {
         setError(data.error || "Gagal memuat gamepass");
@@ -69,7 +74,7 @@ export default function AdminGamepassPage() {
 
   useEffect(() => {
     if (user?.accessRole === "admin") {
-      fetchRobuxSetting(); // Fetch robux setting first
+      fetchRobuxSettingData();
       fetchGamepasses();
     }
   }, [user]);
@@ -77,17 +82,8 @@ export default function AdminGamepassPage() {
   // Create gamepass
   const handleCreate = async (gamepassData: GamepassData) => {
     try {
-      const response = await fetch("/api/gamepass", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(gamepassData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const { ok, data } = await createGamepass(gamepassData);
+      if (ok && data.success) {
         setGamepasses([data.data, ...gamepasses]);
         setShowCreateModal(false);
         toast.success("Gamepass berhasil dibuat!");
@@ -102,17 +98,11 @@ export default function AdminGamepassPage() {
   // Update gamepass
   const handleUpdate = async (updatedGamepass: GamepassData) => {
     try {
-      const response = await fetch(`/api/gamepass/${updatedGamepass._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedGamepass),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const { ok, data } = await updateGamepass(
+        updatedGamepass._id!,
+        updatedGamepass,
+      );
+      if (ok && data.success) {
         setGamepasses(
           gamepasses.map((gp) =>
             gp._id === updatedGamepass._id ? data.data : gp,
@@ -135,13 +125,8 @@ export default function AdminGamepassPage() {
     }
 
     try {
-      const response = await fetch(`/api/gamepass/${id}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const { ok, data } = await deleteGamepass(id);
+      if (ok && data.success) {
         setGamepasses(gamepasses.filter((gp) => gp._id !== id));
         toast.success("Gamepass berhasil dihapus!");
       } else {
@@ -164,17 +149,8 @@ export default function AdminGamepassPage() {
     }
 
     try {
-      const response = await fetch(`/api/gamepass/${id}/homepage`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ showOnHomepage: !currentStatus }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const { ok, data } = await toggleGamepassHomepage(id, !currentStatus);
+      if (ok && data.success) {
         setGamepasses(
           gamepasses.map((gp) =>
             gp._id === id ? { ...gp, showOnHomepage: !currentStatus } : gp,

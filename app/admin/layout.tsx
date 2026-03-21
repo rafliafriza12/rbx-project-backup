@@ -858,24 +858,6 @@ export default function AdminLayout({
                 </button>
               </div>
 
-              {/* User Info */}
-              <div className="px-6 py-4 border-b border-[#334155]">
-                <p
-                  className={`text-sm text-[#94a3b8] ${
-                    !sidebarOpen && "hidden"
-                  }`}
-                >
-                  Welcome back,
-                </p>
-                <p
-                  className={`font-semibold text-[#f1f5f9] ${
-                    !sidebarOpen && "hidden"
-                  }`}
-                >
-                  {userName || "Admin"}
-                </p>
-              </div>
-
               {/* Navigation */}
               <nav className="flex-1 px-3 py-4 overflow-y-auto">
                 {menuItems.map((item) => (

@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import RobuxPricing from "@/models/RobuxPricing";
 import Product from "@/models/Product";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await connectDB();
 
     // Get the single pricing record
@@ -29,6 +32,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await connectDB();
 
     // Admin only
@@ -115,6 +121,9 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await connectDB();
 
     // Admin only

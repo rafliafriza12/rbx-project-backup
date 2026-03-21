@@ -3,6 +3,13 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import {
+  fetchBannersAdmin,
+  createBanner,
+  updateBanner,
+  deleteBanner,
+  uploadBannerImage,
+} from "./actions";
 
 interface Banner {
   _id: string;
@@ -40,10 +47,9 @@ export default function BannersManagement() {
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/banners");
-      const data = await response.json();
+      const { ok, data } = await fetchBannersAdmin();
 
-      if (data.success) {
+      if (ok && data.success) {
         setBanners(data.data);
       } else {
         toast.error(data.error || "Gagal mengambil data banner");
@@ -89,17 +95,12 @@ export default function BannersManagement() {
     setUploadingImage(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", imageFile);
+      const fd = new FormData();
+      fd.append("file", imageFile);
 
-      const response = await fetch("/api/upload/banner", {
-        method: "POST",
-        body: formData,
-      });
+      const { ok, data } = await uploadBannerImage(fd);
 
-      const data = await response.json();
-
-      if (!data.success) {
+      if (!ok || !data.success) {
         throw new Error(data.error || "Gagal mengupload gambar");
       }
 
@@ -164,23 +165,11 @@ export default function BannersManagement() {
         imageUrl,
       };
 
-      const url = selectedBanner
-        ? `/api/banners/${selectedBanner._id}`
-        : "/api/banners";
+      const { ok, data: result } = selectedBanner
+        ? await updateBanner(selectedBanner._id, submitData)
+        : await createBanner(submitData);
 
-      const method = selectedBanner ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submitData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
+      if (ok && result.success) {
         toast.success(
           selectedBanner
             ? "Banner berhasil diupdate!"
@@ -205,13 +194,9 @@ export default function BannersManagement() {
     }
 
     try {
-      const response = await fetch(`/api/banners/${id}`, {
-        method: "DELETE",
-      });
+      const { ok, data: result } = await deleteBanner(id);
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (ok && result.success) {
         toast.success("Banner berhasil dihapus!");
         fetchBanners();
       } else {
@@ -224,20 +209,15 @@ export default function BannersManagement() {
 
   const handleToggleActive = async (banner: Banner) => {
     try {
-      const response = await fetch(`/api/banners/${banner._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...banner,
-          isActive: !banner.isActive,
-        }),
+      const { ok, data: result } = await updateBanner(banner._id, {
+        imageUrl: banner.imageUrl,
+        link: banner.link,
+        alt: banner.alt,
+        isActive: !banner.isActive,
+        order: banner.order,
       });
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (ok && result.success) {
         toast.success(
           `Banner ${!banner.isActive ? "diaktifkan" : "dinonaktifkan"}!`,
         );

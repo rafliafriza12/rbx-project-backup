@@ -25,6 +25,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import { getProductsByCategory } from "@/app/lib/actions";
+
 interface Product {
   _id: string;
   name: string;
@@ -96,20 +98,17 @@ const RobuxInstan: React.FC = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("/api/products?category=robux_instant");
-        if (response.ok) {
-          const data = await response.json();
-          // Sort products by robuxAmount ascending
-          const sortedProducts = (data.products || []).sort(
-            (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
-          );
-          setProducts(sortedProducts);
+        const result = await getProductsByCategory("robux_instant");
+        // Sort products by robuxAmount ascending
+        const sortedProducts = (result.products || []).sort(
+          (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
+        );
+        setProducts(sortedProducts);
 
-          // Set default values from first product
-          if (sortedProducts && sortedProducts.length > 0) {
-            setRobux(sortedProducts[0].robuxAmount);
-            setSelectedProduct(sortedProducts[0]);
-          }
+        // Set default values from first product
+        if (sortedProducts && sortedProducts.length > 0) {
+          setRobux(sortedProducts[0].robuxAmount);
+          setSelectedProduct(sortedProducts[0]);
         }
       } catch (error) {
         // Error fetching products

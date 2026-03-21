@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { requireApiKey } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -12,7 +17,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "No file provided",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -23,7 +28,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "File must be an image",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "File size must be less than 5MB",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: result.error || "Failed to upload image",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -65,7 +70,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error.message || "Failed to upload image",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

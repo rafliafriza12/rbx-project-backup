@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Ambil produk berdasarkan ID
 export async function GET(
@@ -9,6 +9,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;
@@ -48,6 +51,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;
@@ -118,6 +124,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;

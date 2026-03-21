@@ -4,10 +4,13 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import Gamepass from "@/models/Gamepass";
 import Settings from "@/models/Settings";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Auth check - hanya admin

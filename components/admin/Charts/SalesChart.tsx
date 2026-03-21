@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   Line,
   LineChart,
@@ -41,41 +40,16 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   return null;
 };
 
-export default function SalesChart() {
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SalesChartProps {
+  data: ChartData[];
+}
 
-  useEffect(() => {
-    fetchChartData();
-  }, []);
-
-  const fetchChartData = async () => {
-    try {
-      const response = await fetch("/api/admin/dashboard");
-      const data = await response.json();
-
-      if (data.success && data.salesChartData) {
-        setChartData(data.salesChartData);
-      }
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="h-64 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-      </div>
-    );
-  }
-
+export default function SalesChart({ data }: SalesChartProps) {
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
-          data={chartData}
+          data={data}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

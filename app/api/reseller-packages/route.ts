@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import ResellerPackage from "@/models/ResellerPackage";
 import User from "@/models/User";
-import { requireAdmin, verifyToken } from "@/lib/auth";
+import { requireAdmin, verifyToken, requireApiKey } from "@/lib/auth";
 
 // GET - Ambil semua reseller packages
 export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
 
@@ -66,6 +69,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Buat reseller package baru (Admin only)
 export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
   try {
     await dbConnect();
     try {

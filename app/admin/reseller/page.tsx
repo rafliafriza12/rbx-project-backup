@@ -13,6 +13,12 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import {
+  fetchResellerPackagesAdmin,
+  createResellerPackage,
+  updateResellerPackage,
+  deleteResellerPackage,
+} from "./actions";
 
 interface ResellerPackage {
   _id: string;
@@ -60,13 +66,11 @@ export default function AdminResellerPage() {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/reseller-packages?admin=true");
-      const data = await response.json();
-
-      if (data.success) {
-        setPackages(data.data);
+      const result = await fetchResellerPackagesAdmin();
+      if (result.ok && result.data.success) {
+        setPackages(result.data.data);
       } else {
-        toast.error(data.error || "Gagal memuat paket reseller");
+        toast.error(result.data.error || "Gagal memuat paket reseller");
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat memuat data");
@@ -107,26 +111,19 @@ export default function AdminResellerPage() {
     e.preventDefault();
 
     try {
-      const url = editingPackage
-        ? `/api/reseller-packages/${editingPackage._id}`
-        : "/api/reseller-packages";
+      const payload = {
+        ...formData,
+        features: formData.features.filter((f) => f.trim() !== ""),
+      };
 
-      const method = editingPackage ? "PUT" : "POST";
+      let result;
+      if (editingPackage) {
+        result = await updateResellerPackage(editingPackage._id, payload);
+      } else {
+        result = await createResellerPackage(payload);
+      }
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          features: formData.features.filter((f) => f.trim() !== ""),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      if (result.ok && result.data.success) {
         toast.success(
           editingPackage
             ? "Paket berhasil diperbarui!"
@@ -135,7 +132,7 @@ export default function AdminResellerPage() {
         setShowModal(false);
         fetchPackages();
       } else {
-        toast.error(data.error || "Gagal menyimpan paket");
+        toast.error(result.data.error || "Gagal menyimpan paket");
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat menyimpan");
@@ -148,17 +145,12 @@ export default function AdminResellerPage() {
     }
 
     try {
-      const response = await fetch(`/api/reseller-packages/${id}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const result = await deleteResellerPackage(id);
+      if (result.ok && result.data.success) {
         toast.success("Paket berhasil dihapus!");
         fetchPackages();
       } else {
-        toast.error(data.error || "Gagal menghapus paket");
+        toast.error(result.data.error || "Gagal menghapus paket");
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat menghapus");

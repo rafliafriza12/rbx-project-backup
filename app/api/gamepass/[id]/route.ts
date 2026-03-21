@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Gamepass from "@/models/Gamepass";
 import User from "@/models/User";
-import { requireAdmin, verifyToken } from "@/lib/auth";
+import { requireAdmin, verifyToken, requireApiKey } from "@/lib/auth";
 
 // GET - Ambil gamepass berdasarkan ID
 export async function GET(
@@ -10,6 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;
@@ -53,6 +56,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;
@@ -167,6 +173,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { id } = await params;

@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Gamepass from "@/models/Gamepass";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const apiKeyError = await requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
+
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
 
     const { id: gamepassId } = await params;
     const { showOnHomepage } = await request.json();
@@ -21,7 +32,7 @@ export async function PATCH(
             success: false,
             message: "Maksimal 3 gamepass yang dapat ditampilkan di homepage",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -30,13 +41,13 @@ export async function PATCH(
     const updatedGamepass = await Gamepass.findByIdAndUpdate(
       gamepassId,
       { showOnHomepage },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedGamepass) {
       return NextResponse.json(
         { success: false, message: "Gamepass tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -55,7 +66,7 @@ export async function PATCH(
         message: "Internal server error",
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

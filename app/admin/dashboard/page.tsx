@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import StatsCard from "@/components/admin/StatsCard";
 import SalesChart from "@/components/admin/Charts/SalesChart";
 import DataTable, { Column } from "@/components/admin/DataTable";
+import { fetchDashboardData } from "./actions";
 
 interface Stats {
   todaySales: number;
@@ -43,10 +44,25 @@ export default function DashboardPage() {
   }, [user, loading, isAdmin, router]);
 
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [salesChartData, setSalesChartData] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
+  const fetchDashboard = async () => {
+    try {
+      const { ok, data } = await fetchDashboardData();
+      if (ok && data.success) {
+        setStats(data.stats);
+        setRecentTransactions(data.recentTransactions);
+        setSalesChartData(data.salesChartData || []);
+      }
+    } catch (error) {
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboard();
   }, []);
 
   // Helper functions for percentage calculations
@@ -61,25 +77,6 @@ export default function DashboardPage() {
   const calculatePercentage = (value: number, total: number) => {
     if (total === 0) return 0;
     return Math.round((value / total) * 100);
-  };
-
-  const fetchDashboardData = async () => {
-    try {
-      const response = await fetch("/api/admin/dashboard");
-      const data = await response.json();
-
-      setStats(data.stats);
-      setRecentTransactions(data.recentTransactions);
-    } catch (error) {
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  const getCookie = (name: string) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(";").shift();
   };
 
   const statsCards = [
@@ -209,7 +206,7 @@ export default function DashboardPage() {
           <h3 className="text-lg font-semibold mb-4 text-[#f1f5f9]">
             Sales Overview
           </h3>
-          <SalesChart />
+          <SalesChart data={salesChartData} />
         </div>
 
         <div className="bg-[#1e293b] border border-[#334155] rounded-lg shadow-lg p-6">

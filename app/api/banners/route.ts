@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Banner from "@/models/Banner";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // GET - Fetch all banners
 export async function GET(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -37,6 +41,10 @@ export async function GET(request: NextRequest) {
 // POST - Create new banner
 export async function POST(request: NextRequest) {
   try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Admin only
