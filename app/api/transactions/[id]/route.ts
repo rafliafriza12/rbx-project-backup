@@ -22,9 +22,38 @@ async function processGamepassPurchase(transaction: any) {
       "Processing gamepass purchase for transaction:",
       transaction.invoiceId,
     );
-    console.log("Gamepass data:", transaction.gamepass);
 
-    const gamepassPrice = transaction.gamepass.price;
+    // Ambil gamepass data dari root level, fallback ke rbx5Details.gamepass
+    const gamepassData =
+      (transaction.gamepass?.id ? transaction.gamepass : null) ||
+      (transaction.rbx5Details?.gamepass?.id
+        ? transaction.rbx5Details.gamepass
+        : null);
+
+    console.log("Gamepass data (resolved):", gamepassData);
+
+    if (!gamepassData || !gamepassData.id || !gamepassData.price) {
+      console.error(
+        "❌ Gamepass data tidak lengkap! Tidak bisa proses purchase.",
+      );
+      console.log(
+        "transaction.gamepass:",
+        JSON.stringify(transaction.gamepass),
+      );
+      console.log(
+        "transaction.rbx5Details?.gamepass:",
+        JSON.stringify(transaction.rbx5Details?.gamepass),
+      );
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        `Pesanan gagal: Data gamepass tidak lengkap`,
+        null,
+      );
+      return;
+    }
+
+    const gamepassPrice = gamepassData.price;
 
     // Cari akun yang memiliki robux sama atau lebih dari price gamepass
     const suitableAccount = await StockAccount.findOne({
@@ -110,10 +139,10 @@ async function processGamepassPurchase(transaction: any) {
       },
       body: JSON.stringify({
         robloxCookie: suitableAccount.robloxCookie,
-        gamepassId: transaction.gamepass.id,
-        gamepassName: transaction.gamepass.name,
-        price: transaction.gamepass.price,
-        sellerId: transaction.gamepass.sellerId,
+        gamepassId: gamepassData.id,
+        gamepassName: gamepassData.name,
+        price: gamepassData.price,
+        sellerId: gamepassData.sellerId,
       }),
     });
 
@@ -134,20 +163,17 @@ async function processGamepassPurchase(transaction: any) {
       // Update account data setelah purchase - langsung kurangi robux di database
       // Tidak perlu fetch ke Roblox lagi (menghindari socket error / rate limit)
       console.log("🔄 Updating stock account robux in database...");
-      const gamepassPrice = transaction.gamepass?.price || 0;
-      suitableAccount.robux = Math.max(
-        0,
-        suitableAccount.robux - gamepassPrice,
-      );
+      const deductPrice = gamepassData.price || 0;
+      suitableAccount.robux = Math.max(0, suitableAccount.robux - deductPrice);
       suitableAccount.lastChecked = new Date();
       await suitableAccount.save();
       console.log(
-        `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${gamepassPrice})`,
+        `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${deductPrice})`,
       );
 
       // Record purchase di stats (untuk mode manual & tracking)
       try {
-        await Rbx5Stats.recordPurchase(gamepassPrice, 1);
+        await Rbx5Stats.recordPurchase(deductPrice, 1);
         console.log("📊 Rbx5Stats updated after purchase");
       } catch (statsError) {
         console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
@@ -462,13 +488,35 @@ export async function PUT(
     }
 
     // Khusus untuk robux_5_hari: proses gamepass purchase saat payment status diubah ke settlement
+    // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
+    const hasValidGamepass =
+      (transaction.gamepass?.id && transaction.gamepass?.price) ||
+      (transaction.rbx5Details?.gamepass?.id &&
+        transaction.rbx5Details?.gamepass?.price);
+
+    console.log("=== Debug gamepass purchase conditions ===");
+    console.log("statusType === 'payment':", statusType === "payment");
+    console.log("newStatus === 'settlement':", newStatus === "settlement");
+    console.log(
+      "oldPaymentStatus !== 'settlement':",
+      oldPaymentStatus !== "settlement",
+    );
+    console.log("serviceType:", transaction.serviceType);
+    console.log("serviceCategory:", transaction.serviceCategory);
+    console.log("transaction.gamepass:", JSON.stringify(transaction.gamepass));
+    console.log(
+      "transaction.rbx5Details?.gamepass:",
+      JSON.stringify(transaction.rbx5Details?.gamepass),
+    );
+    console.log("hasValidGamepass:", hasValidGamepass);
+
     if (
       statusType === "payment" &&
       newStatus === "settlement" &&
       oldPaymentStatus !== "settlement" &&
       transaction.serviceType === "robux" &&
       transaction.serviceCategory === "robux_5_hari" &&
-      transaction.gamepass
+      hasValidGamepass
     ) {
       console.log(
         "Admin changed payment to settlement - processing gamepass purchase",

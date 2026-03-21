@@ -5,7 +5,12 @@ import Settings from "@/models/Settings";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
-import { authenticateToken, requireAdmin, requireApiKey } from "@/lib/auth";
+import {
+  authenticateToken,
+  requireAdmin,
+  requireApiKey,
+  requirePayloadSignature,
+} from "@/lib/auth";
 import {
   validateSingleTransaction,
   validateMultiTransactionItem,
@@ -307,6 +312,10 @@ export async function POST(request: NextRequest) {
     // Auth check: require login OR valid guest checkout data
     const token = request.cookies.get("token")?.value;
     const body = await request.json();
+
+    // WAJIB: Validasi payload signature (HMAC-SHA256)
+    const signatureError = requirePayloadSignature(request, body);
+    if (signatureError) return signatureError;
 
     const isGuestCheckout = !body.userId;
     if (!isGuestCheckout && !token) {

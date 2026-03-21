@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { generatePayloadSignature } from "@/lib/auth";
 
 function getBaseUrl(): string {
   // Server-side: use internal URL
@@ -78,10 +79,12 @@ export async function createTransaction(requestData: any) {
   try {
     const BASE_URL = getBaseUrl();
     const authCookie = await getAuthCookie();
+    const signature = generatePayloadSignature(requestData);
     const response = await fetch(`${BASE_URL}/api/transactions`, {
       method: "POST",
       headers: getInternalHeaders({
         ...(authCookie ? { Cookie: authCookie } : {}),
+        "x-payload-signature": signature,
       }),
       body: JSON.stringify(requestData),
     });
@@ -100,10 +103,12 @@ export async function createMultiTransaction(requestData: any) {
   try {
     const BASE_URL = getBaseUrl();
     const authCookie = await getAuthCookie();
+    const signature = generatePayloadSignature(requestData);
     const response = await fetch(`${BASE_URL}/api/transactions/multi`, {
       method: "POST",
       headers: getInternalHeaders({
         ...(authCookie ? { Cookie: authCookie } : {}),
+        "x-payload-signature": signature,
       }),
       body: JSON.stringify(requestData),
     });

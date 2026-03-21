@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import connectDB from "@/lib/mongodb";
@@ -125,4 +126,61 @@ export const validatePhone = (phone: string): boolean => {
 
 export const validatePassword = (password: string): boolean => {
   return password.length >= 6;
+};
+
+/**
+ * Generate HMAC-SHA256 signature of a payload using INTERNAL_API_SECRET.
+ * Used by server actions to sign the request body before sending to API routes.
+ */
+export const generatePayloadSignature = (payload: any): string => {
+  const secret = process.env.INTERNAL_API_SECRET || "";
+  const jsonString = JSON.stringify(payload);
+  return crypto.createHmac("sha256", secret).update(jsonString).digest("hex");
+};
+
+/**
+ * Validate HMAC-SHA256 payload signature from request header.
+ * Compares the x-payload-signature header against a freshly computed hash of the body.
+ * Returns null if valid, or a 401 NextResponse if invalid/missing.
+ */
+export const requirePayloadSignature = (
+  request: NextRequest,
+  body: any,
+): NextResponse | null => {
+  const signature = request.headers.get("x-payload-signature");
+  if (!signature) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Missing payload signature" },
+      { status: 401 },
+    );
+  }
+
+  const secret = process.env.INTERNAL_API_SECRET || "";
+  const jsonString = JSON.stringify(body);
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(jsonString)
+    .digest("hex");
+
+  // Use timingSafeEqual to prevent timing attacks
+  try {
+    const sigBuffer = Buffer.from(signature, "hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Invalid payload signature" },
+        { status: 401 },
+      );
+    }
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Invalid payload signature" },
+      { status: 401 },
+    );
+  }
+
+  return null; // Signature valid, continue
 };

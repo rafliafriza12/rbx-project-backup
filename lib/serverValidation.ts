@@ -467,8 +467,11 @@ export async function getVerifiedUnitPrice(
         (robuxAmount / 100) * pricing.pricePerHundred,
       );
 
-      // gamepassAmount ALWAYS calculated server-side (Roblox 30% tax = ×1.43)
-      const gamepassAmount = Math.ceil(robuxAmount * 1.43);
+      // gamepassAmount ALWAYS calculated server-side (Roblox 30% tax)
+      const gamepassFeeMultiplier = parseFloat(
+        process.env.NEXT_PUBLIC_GAMEPASS_FEE_MULTIPLIER || "1.43",
+      );
+      const gamepassAmount = Math.ceil(robuxAmount * gamepassFeeMultiplier);
 
       return {
         valid: true,

@@ -435,10 +435,13 @@ export default function Rbx5Page() {
     return 0;
   };
 
-  // Calculate gamepass amount (robux + 43% fee)
+  // Calculate gamepass amount (robux + Roblox tax fee)
   const getGamepassAmount = () => {
     if (robux <= 0) return 0;
-    return Math.ceil(robux * 1.43); // Add 43% fee
+    const feeMultiplier = parseFloat(
+      process.env.NEXT_PUBLIC_GAMEPASS_FEE_MULTIPLIER || "1.43",
+    );
+    return Math.ceil(robux * feeMultiplier);
   };
 
   // Function to check if gamepass exists
@@ -1719,7 +1722,7 @@ export default function Rbx5Page() {
                   </div>
                 </div>
                 <div className="bg-gradient-to-r from-primary-600/30 to-primary-700/20 rounded-lg px-2 py-1 text-xs text-white/80 inline-block">
-                  {robux.toLocaleString()} R$ + 43% fee
+                  {robux.toLocaleString()} R$
                 </div>
               </div>
 
