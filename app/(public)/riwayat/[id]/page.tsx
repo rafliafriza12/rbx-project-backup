@@ -34,7 +34,7 @@ import {
   getCheckoutDisplayName,
   getPaymentFee,
 } from "@/lib/transaction-helpers";
-import { getTransactionById } from "@/app/lib/actions";
+import { getTransactionById, createChatRoom } from "@/app/lib/actions";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -239,25 +239,19 @@ export default function TransactionDetailPage() {
       if (!transaction) return;
 
       // Create order support chat room
-      const response = await fetch("/api/chat/rooms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          roomType: "order",
-          transactionCode: transaction.invoiceId,
-          transactionTitle: `Order Support - ${transaction.invoiceId}`,
-        }),
+      const result = await createChatRoom({
+        roomType: "order",
+        transactionCode: transaction.invoiceId,
+        transactionTitle: `Order Support - ${transaction.invoiceId}`,
       });
 
-      const data = await response.json();
+      const data = result.data;
 
-      if (data.success) {
+      if (data?.success) {
         // Redirect to chat page
         router.push("/chat");
       } else {
-        toast.error(data.error || "Gagal membuat ruang chat");
+        toast.error(data?.error || "Gagal membuat ruang chat");
       }
     } catch (error) {
       toast.error("Gagal menghubungi CS");

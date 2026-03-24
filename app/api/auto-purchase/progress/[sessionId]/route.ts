@@ -2,12 +2,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import AutoPurchaseProgress from "@/models/AutoPurchaseProgress";
+import { requireApiKey } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    requireApiKey(request);
     await dbConnect();
     const { sessionId } = await params;
 
@@ -16,7 +18,7 @@ export async function GET(
     if (!progress) {
       return NextResponse.json(
         { success: false, message: "Progress not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -28,7 +30,7 @@ export async function GET(
     console.error("Error fetching auto-purchase progress:", error);
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

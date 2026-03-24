@@ -209,8 +209,13 @@ export async function getTransactionByInvoice(invoiceId: string) {
 export async function getTransactionById(id: string) {
   try {
     const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: { error: "Unauthorized" } };
     const response = await fetch(`${BASE_URL}/api/transactions/${id}`, {
-      headers: getInternalHeaders(),
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
       cache: "no-store",
     });
     const result = await response.json();
@@ -986,6 +991,39 @@ export async function uploadFile(formData: FormData) {
     return { ok: response.ok, data: result };
   } catch (error) {
     console.error("[Server Action] Error uploading file:", error);
+    return { ok: false, data: null };
+  }
+}
+
+// =====================================================
+// AUTO-PURCHASE ACTIONS (ADMIN)
+// =====================================================
+
+/**
+ * Server Action: Get auto-purchase progress
+ */
+export async function getAutoPurchaseProgress(sessionId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(
+      `${BASE_URL}/api/auto-purchase/progress/${sessionId}`,
+      {
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        cache: "no-store",
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error(
+      "[Server Action] Error fetching auto-purchase progress:",
+      error,
+    );
     return { ok: false, data: null };
   }
 }

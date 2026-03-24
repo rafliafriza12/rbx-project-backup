@@ -1610,12 +1610,6 @@ function CheckoutContent() {
                       <Gamepad2 className="w-4 h-4 text-neon-purple" />
                     </div>
                     Data Akun Roblox
-                    {isMultiCheckoutFromCart && (
-                      <span className="ml-auto text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        Data dari Cart
-                      </span>
-                    )}
                   </h3>
 
                   {/* Info jika multi-checkout dari cart */}

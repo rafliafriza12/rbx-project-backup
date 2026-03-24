@@ -25,7 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { getProductsByCategory } from "@/app/lib/actions";
+import { getProductsByCategory, getUserInfo } from "@/app/lib/actions";
 
 interface Product {
   _id: string;
@@ -74,10 +74,7 @@ const RobuxInstan: React.FC = () => {
     setUserSearchError(null);
 
     try {
-      const response = await fetch(
-        `/api/user-info?username=${encodeURIComponent(username.trim())}`,
-      );
-      const data = await response.json();
+      const { ok, data } = await getUserInfo(username.trim());
 
       if (data.success) {
         setUserInfo(data);

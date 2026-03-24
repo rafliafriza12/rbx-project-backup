@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
+import { getAutoPurchaseProgress } from "@/app/lib/actions";
 
 // Admin-specific styles - Clean Dark Theme
 const adminStyles = `
@@ -716,12 +717,10 @@ export default function AdminLayout({
         }
 
         // Poll the progress API
-        const response = await fetch(
-          `/api/auto-purchase/progress/${activeSession}`,
-        );
+        const result = await getAutoPurchaseProgress(activeSession);
 
-        if (response.ok) {
-          const data = await response.json();
+        if (result.ok) {
+          const data = result.data;
 
           // Update progress state
           if (data.status === "running") {
@@ -786,7 +785,7 @@ export default function AdminLayout({
             );
             localStorage.removeItem("autoPurchaseSessionId");
           }
-        } else if (response.status === 404) {
+        } else if (!result.ok && result.data === null) {
           // Session not found, clear it
           setIsAutoPurchaseRunning(false);
           setAutoPurchaseProgress(null);

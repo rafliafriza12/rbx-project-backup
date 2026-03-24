@@ -23,7 +23,7 @@ import {
 } from "@/lib/transaction-helpers";
 import { Transaction } from "@/types";
 import Link from "next/link";
-import { getPublicSettings } from "@/app/lib/actions";
+import { getPublicSettings, getTransactionByInvoice } from "@/app/lib/actions";
 
 interface SiteSettings {
   whatsappNumber?: string;
@@ -68,16 +68,16 @@ export default function TrackOrderPage() {
     setSearched(true);
 
     try {
-      const response = await fetch(
-        `/api/transactions/invoice/${encodeURIComponent(invoiceId)}`,
-      );
+      const result = await getTransactionByInvoice(invoiceId.trim());
 
-      const data = await response.json();
-      if (response.ok && data.data) {
+      if (result.ok && result.data?.data) {
         // Debug each item
-        const allItems = [data.data, ...(data.data.relatedTransactions || [])];
+        const allItems = [
+          result.data.data,
+          ...(result.data.data.relatedTransactions || []),
+        ];
 
-        setTransaction(data.data);
+        setTransaction(result.data.data);
       } else {
         setTransaction(null);
       }

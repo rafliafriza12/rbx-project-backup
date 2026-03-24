@@ -28,7 +28,8 @@ import {
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
-import { getGamepassById } from "@/app/lib/actions";
+import { getGamepassById, addToCartAction } from "@/app/lib/actions";
+import { getUserInfo } from "@/app/lib/actions";
 
 interface GamepassItem {
   itemName: string;
@@ -94,11 +95,7 @@ export default function GamepassDetailPage() {
     setUserSearchError(null);
 
     try {
-      const response = await fetch(
-        `/api/user-info?username=${encodeURIComponent(username.trim())}`,
-      );
-      const data = await response.json();
-
+      const { ok, data } = await getUserInfo(username.trim());
       if (data.success) {
         setUserInfo(data);
         setUserSearchError(null);
@@ -322,18 +319,11 @@ export default function GamepassDetailPage() {
           },
         };
 
-        const response = await fetch("/api/cart", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(cartItem),
-        });
+        const result = await addToCartAction(cartItem);
+        const data = result.data;
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Gagal menambahkan ke keranjang");
+        if (!result.ok) {
+          throw new Error(data?.error || "Gagal menambahkan ke keranjang");
         }
       }
 

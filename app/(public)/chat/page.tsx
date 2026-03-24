@@ -8,6 +8,7 @@ import CreateChatRoomModal from "@/components/CreateChatRoomModal";
 import NotificationPrompt from "@/components/NotificationPrompt";
 import { format } from "date-fns";
 import Pusher from "pusher-js";
+import { getChatRooms, createChatRoom } from "@/app/lib/actions";
 
 interface ChatRoom {
   _id: string;
@@ -147,10 +148,10 @@ export default function UserChatPage() {
     try {
       setLoadingRooms(true);
 
-      const response = await fetch("/api/chat/rooms");
-      const data = await response.json();
+      const result = await getChatRooms();
+      const data = result.data;
 
-      if (data.success) {
+      if (data?.success) {
         setChatRooms(data.data || []);
 
         // Auto-select first room if available
@@ -171,22 +172,16 @@ export default function UserChatPage() {
     transactionTitle?: string,
   ) => {
     try {
-      const response = await fetch("/api/chat/rooms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          roomType,
-          transactionCode: roomType === "order" ? transactionCode : null,
-          transactionTitle: roomType === "order" ? transactionTitle : null,
-        }),
+      const result = await createChatRoom({
+        roomType,
+        transactionCode: roomType === "order" ? transactionCode : null,
+        transactionTitle: roomType === "order" ? transactionTitle : null,
       });
 
-      const data = await response.json();
+      const data = result.data;
 
-      if (!data.success) {
-        throw new Error(data.error || "Gagal membuat ruang chat");
+      if (!data?.success) {
+        throw new Error(data?.error || "Gagal membuat ruang chat");
       }
 
       // Refresh rooms list

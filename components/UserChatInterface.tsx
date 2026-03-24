@@ -540,23 +540,16 @@ export default function UserChatInterface({
     }
 
     try {
-      const response = await fetch(`/api/chat/rooms/${roomId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: messageText || (selectedImage ? "📷 Image" : ""),
-          type: selectedImage ? "image" : "text",
-          fileUrl: fileUrl || undefined,
-          fileName: fileName || undefined,
-        }),
-        signal: abortController.signal,
+      const result = await sendChatMessage(roomId, {
+        message: messageText || (selectedImage ? "📷 Image" : ""),
+        type: selectedImage ? "image" : "text",
+        fileUrl: fileUrl || undefined,
+        fileName: fileName || undefined,
       });
 
-      const data = await response.json();
+      const data = result.data;
 
-      if (!data.success) {
+      if (!data?.success) {
         setNewMessage(messageText);
         // Restore textarea height on error
         if (textareaRef.current && messageText) {
@@ -573,12 +566,15 @@ export default function UserChatInterface({
         }
 
         // Handle room deleted (404 Not Found)
-        if (response.status === 404) {
+        if (!result.ok && data?.error?.includes("not found")) {
           setIsRoomDeleted(true);
           return;
         }
 
-        if (response.status === 429) {
+        if (
+          data?.error?.includes("rate") ||
+          data?.error?.includes("Too many")
+        ) {
           alert("Terlalu banyak pesan. Mohon tunggu sebentar.");
         }
       } else {
