@@ -4,7 +4,7 @@ import connectDB from "@/lib/mongodb";
 import ChatRoom from "@/models/ChatRoom";
 import Message from "@/models/Message";
 import User from "@/models/User"; // ✅ Import User model explicitly
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 import { getPusherInstance } from "@/lib/pusher";
 import PushSubscription from "@/models/PushSubscription";
 import { sendPushNotificationToMany } from "@/lib/webpush";
@@ -74,9 +74,10 @@ function setIdempotency(key: string, messageId: string): void {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ roomId: string }> }
+  { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
+    requireApiKey(request);
     const user = await authenticateToken(request);
 
     if (!user) {
@@ -97,7 +98,7 @@ export async function GET(
     if (!chatRoom) {
       return NextResponse.json(
         { error: "Chat room not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -180,13 +181,13 @@ export async function GET(
     if (isAdmin) {
       await Message.updateMany(
         { roomId, senderRole: "user", isRead: false },
-        { isRead: true, readAt: new Date() }
+        { isRead: true, readAt: new Date() },
       );
       await ChatRoom.findByIdAndUpdate(roomId, { unreadCountAdmin: 0 });
     } else {
       await Message.updateMany(
         { roomId, senderRole: "admin", isRead: false },
-        { isRead: true, readAt: new Date() }
+        { isRead: true, readAt: new Date() },
       );
       await ChatRoom.findByIdAndUpdate(roomId, { unreadCountUser: 0 });
     }
@@ -209,17 +210,18 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ roomId: string }> }
+  { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
     postRequestCount++;
     console.log("");
     console.log("========================================================");
     console.log(
-      `[POST /messages] 🔵 REQUEST #${postRequestCount} - New message request`
+      `[POST /messages] 🔵 REQUEST #${postRequestCount} - New message request`,
     );
     console.log("========================================================");
 
+    requireApiKey(request);
     const user = await authenticateToken(request);
 
     if (!user) {
@@ -231,11 +233,11 @@ export async function POST(
     // Rate limiting check
     if (!checkRateLimit(user._id.toString())) {
       console.log(
-        `[POST /messages] ⚠️ Rate limit exceeded for user ${user._id}`
+        `[POST /messages] ⚠️ Rate limit exceeded for user ${user._id}`,
       );
       return NextResponse.json(
         { error: "Too many messages. Please wait a moment." },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -247,7 +249,7 @@ export async function POST(
     if (!message || message.trim() === "") {
       return NextResponse.json(
         { error: "Message is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -260,15 +262,15 @@ export async function POST(
     if (existingMessageId) {
       // Return existing message instead of creating duplicate
       const existingMessage = await Message.findById(
-        existingMessageId
+        existingMessageId,
       ).populate("senderId", "username fullName avatar");
 
       if (existingMessage) {
         console.log(
-          `[POST /messages] 🔁 DUPLICATE DETECTED! Returning existing message: ${existingMessageId}`
+          `[POST /messages] 🔁 DUPLICATE DETECTED! Returning existing message: ${existingMessageId}`,
         );
         console.log(
-          `[POST /messages] 📊 Pusher events triggered: 0 (duplicate prevented)`
+          `[POST /messages] 📊 Pusher events triggered: 0 (duplicate prevented)`,
         );
         return NextResponse.json({
           success: true,
@@ -284,7 +286,7 @@ export async function POST(
     if (!chatRoom) {
       return NextResponse.json(
         { error: "Chat room not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -405,7 +407,7 @@ export async function POST(
         updateData.deactivatedBy = null;
         roomActivated = true;
         console.log(
-          `[POST /messages] 🟢 Room ${roomId} auto-activated by user message`
+          `[POST /messages] 🟢 Room ${roomId} auto-activated by user message`,
         );
       }
     }
@@ -437,7 +439,7 @@ export async function POST(
             status: "active",
             activatedBy: "user-message",
             message: "Chat telah diaktifkan.",
-          }
+          },
         );
 
         // Notify admin channel about room activation
@@ -451,7 +453,7 @@ export async function POST(
       } catch (activationPusherError) {
         console.error(
           `[POST /messages] ⚠️ Room activation Pusher error:`,
-          activationPusherError
+          activationPusherError,
         );
       }
     }
@@ -468,7 +470,7 @@ export async function POST(
 
       console.log(`[POST /messages] 🚀 Triggering Pusher event...`);
       console.log(
-        `[POST /messages] 🔐 Channel: private-chat-room-${roomId} (PRIVATE CHANNEL)`
+        `[POST /messages] 🔐 Channel: private-chat-room-${roomId} (PRIVATE CHANNEL)`,
       );
       console.log(`[POST /messages] 📡 Event: new-message`);
       console.log(`[POST /messages] 📦 Pusher payload:`, {
@@ -497,7 +499,7 @@ export async function POST(
 
       pusherEventCount = 1;
       console.log(
-        `[POST /messages] ✅ Pusher event sent successfully to private channel`
+        `[POST /messages] ✅ Pusher event sent successfully to private channel`,
       );
 
       // If message from USER, notify all ADMINS via admin-notifications channel
@@ -534,22 +536,22 @@ export async function POST(
             roomType: chatRoom.roomType,
             transactionCode: chatRoom.transactionCode,
             timestamp: new Date().toISOString(),
-          }
+          },
         );
         pusherEventCount = 2;
         console.log(`[POST /messages] ✅ User notification sent successfully`);
       }
 
       console.log(
-        `[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount}`
+        `[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount}`,
       );
       console.log(
-        `[POST /messages] ================================================`
+        `[POST /messages] ================================================`,
       );
     } catch (pusherError) {
       console.error(`[POST /messages] ❌ Pusher error:`, pusherError);
       console.log(
-        `[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount} (failed)`
+        `[POST /messages] 📊 TOTAL PUSHER EVENTS TRIGGERED: ${pusherEventCount} (failed)`,
       );
       // Continue even if Pusher fails - message already saved
     }
@@ -571,7 +573,7 @@ export async function POST(
 
         if (subscriptions.length > 0) {
           console.log(
-            `[POST /messages] 📱 Found ${subscriptions.length} active subscription(s) for receiver`
+            `[POST /messages] 📱 Found ${subscriptions.length} active subscription(s) for receiver`,
           );
 
           // Prepare push notification payload
@@ -601,15 +603,15 @@ export async function POST(
           // Send to all devices
           const result = await sendPushNotificationToMany(
             subscriptions.map((s) => s.subscription),
-            pushPayload
+            pushPayload,
           );
 
           console.log(
-            `[POST /messages] ✅ Web push sent: ${result.success} succeeded, ${result.failed} failed`
+            `[POST /messages] ✅ Web push sent: ${result.success} succeeded, ${result.failed} failed`,
           );
         } else {
           console.log(
-            `[POST /messages] ℹ️ No active push subscriptions found for receiver`
+            `[POST /messages] ℹ️ No active push subscriptions found for receiver`,
           );
         }
       }

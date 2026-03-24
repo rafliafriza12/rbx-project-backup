@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // PUT - Update single review status
 export async function PUT(
@@ -9,6 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Auth check - hanya admin
@@ -63,6 +64,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Auth check - hanya admin

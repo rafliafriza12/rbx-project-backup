@@ -415,3 +415,577 @@ export async function getCurrentUser() {
     return { ok: false, data: null };
   }
 }
+
+// =====================================================
+// LEADERBOARD ACTIONS
+// =====================================================
+
+/**
+ * Server Action: Get leaderboard data
+ */
+export async function getLeaderboardData(params: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/leaderboard?${params}`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("[Server Action] Error fetching leaderboard:", error);
+    return { success: false, message: "Gagal memuat data leaderboard" };
+  }
+}
+
+// =====================================================
+// MAINTENANCE ACTIONS
+// =====================================================
+
+/**
+ * Server Action: Check maintenance status
+ */
+export async function checkMaintenanceStatus() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/maintenance`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return { maintenanceMode: false, maintenanceMessage: "" };
+  } catch (error) {
+    return { maintenanceMode: false, maintenanceMessage: "" };
+  }
+}
+
+// =====================================================
+// PUSH NOTIFICATION ACTIONS
+// =====================================================
+
+/**
+ * Server Action: Get VAPID public key
+ */
+export async function getVapidPublicKey() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/push/vapid-public-key`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("[Server Action] Error fetching VAPID key:", error);
+    return { success: false, error: "Failed to get VAPID key" };
+  }
+}
+
+/**
+ * Server Action: Subscribe to push notifications
+ */
+export async function subscribePush(subscription: any, userAgent: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(`${BASE_URL}/api/push/subscribe`, {
+      method: "POST",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify({ subscription, userAgent }),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error subscribing push:", error);
+    return {
+      ok: false,
+      data: { success: false, error: "Failed to subscribe" },
+    };
+  }
+}
+
+// =====================================================
+// REVIEW ACTIONS (PUBLIC)
+// =====================================================
+
+/**
+ * Server Action: Get public reviews
+ */
+export async function getPublicReviews(params: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/reviews?${params}`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("[Server Action] Error fetching reviews:", error);
+    return { success: false, data: [] };
+  }
+}
+
+/**
+ * Server Action: Submit a review
+ */
+export async function submitReview(payload: any) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/reviews`, {
+      method: "POST",
+      headers: getInternalHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("[Server Action] Error submitting review:", error);
+    return { success: false, error: "Terjadi kesalahan saat mengirim review" };
+  }
+}
+
+// =====================================================
+// PROFILE ACTIONS
+// =====================================================
+
+/**
+ * Server Action: Get user profile
+ */
+export async function getUserProfile() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: { success: false } };
+    const response = await fetch(`${BASE_URL}/api/user/profile`, {
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching profile:", error);
+    return { ok: false, data: { success: false } };
+  }
+}
+
+/**
+ * Server Action: Update user profile
+ */
+export async function updateUserProfile(formData: any) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: { success: false } };
+    const response = await fetch(`${BASE_URL}/api/user/profile`, {
+      method: "PUT",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify(formData),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error updating profile:", error);
+    return {
+      ok: false,
+      data: { success: false, error: "Gagal memperbarui profil" },
+    };
+  }
+}
+
+/**
+ * Server Action: Get user stats
+ */
+export async function getUserStats(userId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/user/stats?userId=${encodeURIComponent(userId)}`,
+      {
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        cache: "no-store",
+      },
+    );
+    if (response.ok) {
+      const result = await response.json();
+      return result;
+    }
+    return { success: false };
+  } catch (error) {
+    console.error("[Server Action] Error fetching user stats:", error);
+    return { success: false };
+  }
+}
+
+// =====================================================
+// CART ACTIONS
+// =====================================================
+
+/**
+ * Server Action: Get cart items
+ */
+export async function getCartItems() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: { items: [], total: 0 } };
+    const response = await fetch(`${BASE_URL}/api/cart`, {
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching cart:", error);
+    return { ok: false, data: { items: [], total: 0 } };
+  }
+}
+
+/**
+ * Server Action: Add item to cart
+ */
+export async function addToCartAction(item: any) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/cart`, {
+      method: "POST",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify(item),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error adding to cart:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Update cart item quantity
+ */
+export async function updateCartQuantity(
+  userId: string,
+  itemId: string,
+  quantity: number,
+) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/cart/update`, {
+      method: "PUT",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify({ userId, itemId, quantity }),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error updating cart:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Remove item from cart
+ */
+export async function removeCartItem(itemId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(
+      `${BASE_URL}/api/cart?itemId=${encodeURIComponent(itemId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error removing from cart:", error);
+    return { ok: false, data: null };
+  }
+}
+
+// =====================================================
+// CHAT ACTIONS
+// =====================================================
+
+/**
+ * Server Action: Get chat rooms
+ */
+export async function getChatRooms(params?: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const url = params
+      ? `${BASE_URL}/api/chat/rooms?${params}`
+      : `${BASE_URL}/api/chat/rooms`;
+    const response = await fetch(url, {
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching chat rooms:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Create chat room
+ */
+export async function createChatRoom(body: any) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/chat/rooms`, {
+      method: "POST",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify(body),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error creating chat room:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Delete chat room(s)
+ */
+export async function deleteChatRooms(roomIds: string[]) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/chat/rooms`, {
+      method: "DELETE",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify({ roomIds }),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error deleting chat rooms:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Delete single chat room
+ */
+export async function deleteSingleChatRoom(roomId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/chat/rooms/${roomId}`, {
+      method: "DELETE",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error deleting chat room:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Toggle chat room status (PATCH)
+ */
+export async function toggleChatRoomStatus(roomId: string, body: any) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/chat/rooms/${roomId}`, {
+      method: "PATCH",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify(body),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error toggling chat room:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Mark messages as read
+ */
+export async function markMessagesRead(roomId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/chat/rooms/${roomId}/read`, {
+      method: "PUT",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error marking read:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Get chat messages
+ */
+export async function getChatMessages(roomId: string, params?: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const url = params
+      ? `${BASE_URL}/api/chat/rooms/${roomId}/messages?${params}`
+      : `${BASE_URL}/api/chat/rooms/${roomId}/messages`;
+    const response = await fetch(url, {
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching messages:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Send chat message
+ */
+export async function sendChatMessage(roomId: string, body: any) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(
+      `${BASE_URL}/api/chat/rooms/${roomId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error sending message:", error);
+    return { ok: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Upload chat image
+ */
+export async function uploadChatImage(formData: FormData) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/chat/upload-image`, {
+      method: "POST",
+      headers: {
+        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+        Cookie: authCookie,
+      },
+      body: formData,
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error uploading chat image:", error);
+    return { ok: false, data: null };
+  }
+}
+
+// =====================================================
+// UPLOAD ACTIONS (ADMIN)
+// =====================================================
+
+/**
+ * Server Action: Upload file (admin)
+ */
+export async function uploadFile(formData: FormData) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    if (!authCookie) return { ok: false, data: null };
+    const response = await fetch(`${BASE_URL}/api/upload`, {
+      method: "POST",
+      headers: {
+        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+        Cookie: authCookie,
+      },
+      body: formData,
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error uploading file:", error);
+    return { ok: false, data: null };
+  }
+}

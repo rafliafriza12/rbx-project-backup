@@ -89,18 +89,14 @@ export default function GamepassManager({
     formData.append("file", file);
     formData.append("folder", folder);
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
+    const { uploadFile } = await import("@/app/lib/actions");
+    const result = await uploadFile(formData);
 
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || "Failed to upload image");
+    if (!result.ok || !result.data?.success) {
+      throw new Error(result.data?.error || "Failed to upload image");
     }
 
-    return data.url;
+    return result.data.url;
   };
 
   // Handle game image file change

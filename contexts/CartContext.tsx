@@ -1,6 +1,12 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  getCartItems,
+  addToCartAction,
+  updateCartQuantity,
+  removeCartItem,
+} from "@/app/lib/actions";
 
 interface CartItem {
   _id: string;
@@ -136,15 +142,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      const response = await fetch(`/api/cart?userId=${userId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const result = await getCartItems();
 
-      if (response.ok) {
-        const data = await response.json();
+      if (result.ok) {
+        const data = result.data;
         setItems(data.items || []);
         setItemCount(
           data.items?.reduce(
@@ -171,22 +172,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
 
-      const response = await fetch("/api/cart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...item,
-          userId,
-        }),
+      const result = await addToCartAction({
+        ...item,
+        userId,
       });
 
-      if (response.ok) {
+      if (result.ok) {
         await refreshCart();
         return true;
       } else {
-        const errorData = await response.json();
         return false;
       }
     } catch (error) {
@@ -194,7 +188,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const updateQuantity = async (
+  const updateQuantityFn = async (
     itemId: string,
     quantity: number,
   ): Promise<boolean> => {
@@ -206,19 +200,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
 
-      const response = await fetch("/api/cart/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId, itemId, quantity }),
-      });
+      const result = await updateCartQuantity(userId, itemId, quantity);
 
-      if (response.ok) {
+      if (result.ok) {
         await refreshCart();
         return true;
       } else {
-        const errorData = await response.json();
         return false;
       }
     } catch (error) {
@@ -226,7 +213,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const removeItem = async (itemId: string): Promise<boolean> => {
+  const removeItemFn = async (itemId: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
@@ -235,23 +222,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
 
-      const response = await fetch(
-        `/api/cart?userId=${encodeURIComponent(
-          userId,
-        )}&itemId=${encodeURIComponent(itemId)}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
+      const result = await removeCartItem(itemId);
 
-      if (response.ok) {
+      if (result.ok) {
         await refreshCart();
         return true;
       } else {
-        const errorData = await response.json();
         return false;
       }
     } catch (error) {
@@ -268,8 +244,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     itemCount,
     loading,
     addToCart,
-    updateQuantity,
-    removeItem,
+    updateQuantity: updateQuantityFn,
+    removeItem: removeItemFn,
     refreshCart,
   };
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVapidPublicKey, isWebPushConfigured } from "@/lib/webpush";
+import { requireApiKey } from "@/lib/auth";
 
 /**
  * GET /api/push/vapid-public-key
@@ -7,14 +8,16 @@ import { getVapidPublicKey, isWebPushConfigured } from "@/lib/webpush";
  */
 export async function GET(request: NextRequest) {
   try {
+    requireApiKey(request);
     // Check if web push is configured
     if (!isWebPushConfigured()) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: "Web push is not configured. Please set VAPID keys in environment variables." 
+        {
+          success: false,
+          error:
+            "Web push is not configured. Please set VAPID keys in environment variables.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
     console.error("[VAPID Public Key] Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

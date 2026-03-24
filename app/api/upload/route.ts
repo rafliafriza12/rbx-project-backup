@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    requireApiKey(request);
     // Admin only
     try {
       await requireAdmin(request);

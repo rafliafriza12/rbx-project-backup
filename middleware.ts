@@ -23,7 +23,7 @@ const RATE_LIMIT_TIERS: { prefix: string; max: number; windowMs: number }[] = [
   // Auth - ketat (anti brute force)
   { prefix: "/api/auth/login", max: 5, windowMs: 60_000 },
   { prefix: "/api/auth/register", max: 3, windowMs: 60_000 },
-  { prefix: "/api/auth/send-otp", max: 3, windowMs: 60_000 },
+  { prefix: "/api/auth/send-otp", max: 1, windowMs: 60_000 },
   { prefix: "/api/auth/verify-otp", max: 5, windowMs: 60_000 },
   { prefix: "/api/auth/forgot-password", max: 3, windowMs: 60_000 },
   { prefix: "/api/auth/google", max: 10, windowMs: 60_000 },
@@ -32,7 +32,7 @@ const RATE_LIMIT_TIERS: { prefix: string; max: number; windowMs: number }[] = [
   // Checkout/Payment - ketat (anti abuse)
   { prefix: "/api/checkout", max: 10, windowMs: 60_000 },
   { prefix: "/api/orders/create", max: 5, windowMs: 60_000 },
-  { prefix: "/api/buy-pass", max: 120, windowMs: 60_000 },
+  // { prefix: "/api/buy-pass", max: 120, windowMs: 60_000 },
 
   // Transaction - sedang
   { prefix: "/api/transactions", max: 20, windowMs: 60_000 },
@@ -90,6 +90,7 @@ const RATE_LIMIT_EXCLUDED = [
   "/api/transactions/webhook/duitku",
   "/api/cron",
   "/api/auto-purchase",
+  "/api/buy-pass",
 ];
 
 // Cleanup expired entries every 2 minutes

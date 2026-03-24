@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // Helper auth guard for admin
 async function checkAdmin(request: NextRequest) {
@@ -17,6 +17,7 @@ async function checkAdmin(request: NextRequest) {
 // GET - Get all reviews for admin (including unapproved)
 export async function GET(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Auth check
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
 // PUT - Approve/Reject multiple reviews
 export async function PUT(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Auth check
@@ -144,6 +146,7 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete multiple reviews
 export async function DELETE(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Auth check

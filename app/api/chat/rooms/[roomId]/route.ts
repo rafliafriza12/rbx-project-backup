@@ -3,15 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import ChatRoom from "@/models/ChatRoom";
 import Message from "@/models/Message";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 import { getPusherInstance } from "@/lib/pusher";
 
 // DELETE - Delete a single chat room and its messages
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ roomId: string }> }
+  { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
+    requireApiKey(request);
     const user = await authenticateToken(request);
 
     if (
@@ -28,20 +29,20 @@ export async function DELETE(
     // Find the room first to get user info for notifications
     const chatRoom = await ChatRoom.findById(roomId).populate(
       "userId",
-      "username email fullName"
+      "username email fullName",
     );
 
     if (!chatRoom) {
       return NextResponse.json(
         { error: "Chat room not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Delete all messages in this room
     const deletedMessages = await Message.deleteMany({ roomId });
     console.log(
-      `[Room Delete] 🗑️ Deleted ${deletedMessages.deletedCount} messages from room ${roomId}`
+      `[Room Delete] 🗑️ Deleted ${deletedMessages.deletedCount} messages from room ${roomId}`,
     );
 
     // Delete the room itself
@@ -74,7 +75,7 @@ export async function DELETE(
           {
             roomId,
             message: "Chat room telah dihapus.",
-          }
+          },
         );
       }
     } catch (pusherError) {
@@ -94,9 +95,10 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ roomId: string }> }
+  { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
+    requireApiKey(request);
     const user = await authenticateToken(request);
 
     if (
@@ -128,7 +130,7 @@ export async function PATCH(
       updateData.unreadCountUser = 0;
 
       console.log(
-        `[Room Deactivation] 🔒 Room ${roomId} closed (messages preserved)`
+        `[Room Deactivation] 🔒 Room ${roomId} closed (messages preserved)`,
       );
     } else if (status === "active") {
       // Reactivating - clear deactivation info
@@ -143,7 +145,7 @@ export async function PATCH(
     if (!chatRoom) {
       return NextResponse.json(
         { error: "Chat room not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -165,7 +167,7 @@ export async function PATCH(
             status === "closed"
               ? "Chat ini telah dinonaktifkan oleh admin."
               : "Chat ini telah diaktifkan kembali oleh admin.",
-        }
+        },
       );
 
       // Notify admin channel (without message to avoid duplicate)
@@ -187,12 +189,12 @@ export async function PATCH(
             roomId,
             status,
             messagesCleared: false,
-          }
+          },
         );
       }
 
       console.log(
-        `[Room Status] ✅ Status changed to '${status}' for room ${roomId}`
+        `[Room Status] ✅ Status changed to '${status}' for room ${roomId}`,
       );
     } catch (pusherError) {
       console.error("[Room Status] ❌ Pusher error:", pusherError);

@@ -1,28 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { authenticateToken } from '@/lib/auth';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(request: NextRequest) {
   try {
+    requireApiKey(request);
     const user = await authenticateToken(request);
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     // Validate file type (only images)
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only images are allowed.' },
-        { status: 400 }
+        { error: "Invalid file type. Only images are allowed." },
+        { status: 400 },
       );
     }
 
@@ -30,18 +37,18 @@ export async function POST(request: NextRequest) {
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 5MB.' },
-        { status: 400 }
+        { error: "File too large. Maximum size is 5MB." },
+        { status: 400 },
       );
     }
 
     // Upload to Cloudinary
-    const uploadResult = await uploadToCloudinary(file, 'chat-images');
+    const uploadResult = await uploadToCloudinary(file, "chat-images");
 
     if (!uploadResult.success) {
       return NextResponse.json(
-        { error: uploadResult.error || 'Failed to upload image' },
-        { status: 500 }
+        { error: uploadResult.error || "Failed to upload image" },
+        { status: 500 },
       );
     }
 
@@ -54,10 +61,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error uploading image:', error);
+    console.error("Error uploading image:", error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+      { error: error.message || "Internal server error" },
+      { status: 500 },
     );
   }
 }

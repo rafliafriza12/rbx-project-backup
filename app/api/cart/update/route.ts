@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Cart, { ICartItem } from "@/models/Cart";
+import { requireApiKey } from "@/lib/auth";
 
 export async function PUT(request: NextRequest) {
   try {
+    requireApiKey(request);
     const body = await request.json();
     const { userId, itemId, quantity } = body;
 
@@ -17,17 +19,17 @@ export async function PUT(request: NextRequest) {
     if (!cart) {
       return NextResponse.json(
         { error: "Keranjang tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const itemIndex = cart.items.findIndex(
-      (item: ICartItem) => item._id?.toString() === itemId
+      (item: ICartItem) => item._id?.toString() === itemId,
     );
     if (itemIndex === -1) {
       return NextResponse.json(
         { error: "Item tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -44,7 +46,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating cart:", error);
     return NextResponse.json(
       { error: "Gagal memperbarui keranjang" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Settings from "@/models/Settings";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // Sensitive fields that should NEVER be exposed in GET response
 const SENSITIVE_FIELDS = [
@@ -30,6 +30,9 @@ function maskValue(val: string): string {
 // GET - Retrieve settings (Admin only - sensitive fields masked)
 export async function GET(request: NextRequest) {
   try {
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Auth check - hanya admin
@@ -66,6 +69,9 @@ export async function GET(request: NextRequest) {
 // PUT - Update settings (Admin only)
 export async function PUT(request: NextRequest) {
   try {
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Auth check - hanya admin
@@ -125,6 +131,9 @@ export async function PUT(request: NextRequest) {
 // POST - Reset settings to default (Admin only)
 export async function POST(request: NextRequest) {
   try {
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
     await dbConnect();
 
     // Auth check - hanya admin

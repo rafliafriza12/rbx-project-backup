@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import User, { IUser } from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
 import dbConnect from "@/lib/mongodb";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Authenticate user from token — never trust userId from query params
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Authenticate user from token

@@ -7,6 +7,11 @@ import { toast } from "react-hot-toast";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  getUserProfile,
+  updateUserProfile,
+  getUserStats,
+} from "@/app/lib/actions";
+import {
   User,
   Mail,
   Phone,
@@ -98,18 +103,15 @@ export default function ProfilePage() {
       setLoading(true);
 
       // Fetch profile data from API with actual User model
-      const profileResponse = await fetch(
-        `/api/user/profile?email=${encodeURIComponent(user?.email || "")}`,
-      );
-      const profileResult = await profileResponse.json();
+      const profileRes = await getUserProfile();
 
-      if (profileResult.success) {
-        setProfileData(profileResult.data);
+      if (profileRes.ok && profileRes.data.success) {
+        setProfileData(profileRes.data.data);
         setEditForm({
-          firstName: profileResult.data.firstName || "",
-          lastName: profileResult.data.lastName || "",
-          phone: profileResult.data.phone || "",
-          countryCode: profileResult.data.countryCode || "+62",
+          firstName: profileRes.data.data.firstName || "",
+          lastName: profileRes.data.data.lastName || "",
+          phone: profileRes.data.data.phone || "",
+          countryCode: profileRes.data.data.countryCode || "+62",
         });
       } else {
         // Fallback to AuthContext data if API fails
@@ -157,21 +159,16 @@ export default function ProfilePage() {
         return;
       }
 
-      const statsResponse = await fetch(
-        `/api/user/stats?userId=${encodeURIComponent(userId)}`,
-      );
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        if (statsData.success) {
-          setStats(statsData.data);
+      const statsData = await getUserStats(userId);
+      if (statsData.success) {
+        setStats(statsData.data);
 
-          // Update totalTransactions in profile data
-          if (profileData) {
-            setProfileData({
-              ...profileData,
-              totalTransactions: statsData.data.totalOrders || 0,
-            });
-          }
+        // Update totalTransactions in profile data
+        if (profileData) {
+          setProfileData({
+            ...profileData,
+            totalTransactions: statsData.data.totalOrders || 0,
+          });
         }
       }
     } catch (error) {
@@ -186,18 +183,12 @@ export default function ProfilePage() {
     setSubmitting(true);
 
     try {
-      const response = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...editForm,
-          email: user?.email, // Send email to identify user
-        }),
+      const response = await updateUserProfile({
+        ...editForm,
+        email: user?.email, // Send email to identify user
       });
 
-      const result = await response.json();
+      const result = response.data;
 
       if (result.success) {
         toast.success("Profil berhasil diperbarui");

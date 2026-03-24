@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import {
+  fetchSettingsAdmin,
+  sendTestEmail,
+} from "@/app/admin/settings/actions";
 
 interface EmailSettings {
   emailNotifications: boolean;
@@ -44,9 +48,8 @@ const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch("/api/settings");
-        if (response.ok) {
-          const data = await response.json();
+        const { ok, data } = await fetchSettingsAdmin();
+        if (ok) {
           setSettings((prev) => ({ ...prev, ...data.settings }));
         }
       } catch (error) {}
@@ -83,17 +86,9 @@ const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
       await onSave(settings);
 
       // Then test email
-      const response = await fetch("/api/email/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ testEmail }),
-      });
+      const { ok, data } = await sendTestEmail(testEmail);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         setTestResult({ success: true, message: data.message });
       } else {
         setTestResult({

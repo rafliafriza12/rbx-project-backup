@@ -6,6 +6,14 @@ import { useRouter } from "next/navigation";
 import ChatMessages from "@/components/admin/ChatMessages";
 import NotificationPrompt from "@/components/NotificationPrompt";
 import Pusher from "pusher-js";
+import {
+  getChatRooms,
+  createChatRoom,
+  deleteSingleChatRoom,
+  deleteChatRooms,
+  toggleChatRoomStatus,
+  markMessagesRead,
+} from "@/app/lib/actions";
 
 interface User {
   _id: string;
@@ -346,10 +354,10 @@ export default function AdminChatPage() {
         limit: "100",
       });
 
-      const response = await fetch(`/api/chat/rooms?${params}`);
-      const data = await response.json();
+      const result = await getChatRooms(params.toString());
 
-      if (data.success) {
+      if (result.ok && result.data?.success) {
+        const data = result.data;
         setChatRooms(data.data);
 
         const userMap = new Map<string, UserWithRooms>();
@@ -451,22 +459,15 @@ export default function AdminChatPage() {
     // If room doesn't exist yet, create it
     if (!room._id) {
       try {
-        const response = await fetch("/api/chat/rooms", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: room.userId._id,
-            roomType: room.roomType || "general",
-            transactionCode: room.transactionCode,
-            transactionTitle: room.transactionTitle,
-          }),
+        const result = await createChatRoom({
+          userId: room.userId._id,
+          roomType: room.roomType || "general",
+          transactionCode: room.transactionCode,
+          transactionTitle: room.transactionTitle,
         });
 
-        const data = await response.json();
-
-        if (data.success) {
+        if (result.ok && result.data?.success) {
+          const data = result.data;
           const newRoom = { ...room, ...data.data };
           setSelectedRoom(newRoom);
           setSelectedRoomId(data.data._id);
@@ -528,17 +529,11 @@ export default function AdminChatPage() {
     setTogglingStatus(true);
 
     try {
-      const response = await fetch(`/api/chat/rooms/${selectedRoomId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
+      const result = await toggleChatRoomStatus(selectedRoomId, {
+        status: newStatus,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (result.ok && result.data?.success) {
         // Update selected room state
         setSelectedRoom((prev) =>
           prev
@@ -589,7 +584,7 @@ export default function AdminChatPage() {
           })),
         );
       } else {
-        alert(data.error || "Gagal mengubah status chat");
+        alert(result.data?.error || "Gagal mengubah status chat");
       }
     } catch (error) {
       alert("Terjadi kesalahan saat mengubah status chat");
@@ -604,11 +599,9 @@ export default function AdminChatPage() {
 
     setMarkingAsRead(true);
     try {
-      const response = await fetch(`/api/chat/rooms/${selectedRoomId}/read`, {
-        method: "PUT",
-      });
+      const result = await markMessagesRead(selectedRoomId);
 
-      if (response.ok) {
+      if (result.ok) {
         // Update local state
         setSelectedRoom((prev) =>
           prev ? { ...prev, unreadCountAdmin: 0 } : null,
@@ -668,11 +661,9 @@ export default function AdminChatPage() {
 
     setDeletingRoom(roomId);
     try {
-      const response = await fetch(`/api/chat/rooms/${roomId}`, {
-        method: "DELETE",
-      });
+      const result = await deleteSingleChatRoom(roomId);
 
-      if (response.ok) {
+      if (result.ok) {
         // If deleted room was selected, clear selection
         if (selectedRoomId === roomId) {
           setSelectedRoom(null);
@@ -699,8 +690,9 @@ export default function AdminChatPage() {
           }),
         );
       } else {
-        const data = await response.json();
-        alert(`Gagal menghapus chat room: ${data.error || "Unknown error"}`);
+        alert(
+          `Gagal menghapus chat room: ${result.data?.error || "Unknown error"}`,
+        );
       }
     } catch (error) {
       alert("Terjadi kesalahan saat menghapus chat room");
@@ -715,22 +707,17 @@ export default function AdminChatPage() {
 
     setDeletingAll(true);
     try {
-      const response = await fetch("/api/chat/rooms", {
-        method: "DELETE",
-      });
+      const result = await deleteChatRooms([]);
 
-      if (response.ok) {
-        const data = await response.json();
-
-        console.log(
-          `[Admin Chat] ✅ Deleted ${data.deletedRoomsCount} rooms and ${data.deletedMessagesCount} messages`,
-        );
+      if (result.ok) {
+        console.log(`[Admin Chat] ✅ Deleted all rooms`);
 
         // Refresh the page to show updated user list
         window.location.reload();
       } else {
-        const data = await response.json();
-        alert(`Gagal menghapus semua chat: ${data.error || "Unknown error"}`);
+        alert(
+          `Gagal menghapus semua chat: ${result.data?.error || "Unknown error"}`,
+        );
       }
     } catch (error) {
       console.error("[Admin Chat] ❌ Error deleting all rooms:", error);

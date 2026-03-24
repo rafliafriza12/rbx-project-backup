@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import { requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Get user ID from query params
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: "User ID is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,26 +31,29 @@ export async function GET(request: NextRequest) {
     const totalOrders = userTransactions.length;
     const pendingOrders = userTransactions.filter(
       (t) =>
-        t.orderStatus === "waiting_payment" || t.orderStatus === "processing"
+        t.orderStatus === "waiting_payment" || t.orderStatus === "processing",
     ).length;
     const completedOrders = userTransactions.filter(
-      (t) => t.orderStatus === "completed"
+      (t) => t.orderStatus === "completed",
     ).length;
     const cancelledOrders = userTransactions.filter(
-      (t) => t.orderStatus === "cancelled" || t.orderStatus === "failed"
+      (t) => t.orderStatus === "cancelled" || t.orderStatus === "failed",
     ).length;
 
     // Service breakdown
-    const serviceBreakdown = userTransactions.reduce((acc, transaction) => {
-      const service = transaction.serviceType;
-      acc[service] = (acc[service] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const serviceBreakdown = userTransactions.reduce(
+      (acc, transaction) => {
+        const service = transaction.serviceType;
+        acc[service] = (acc[service] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     // Find most used service
     const favoriteService =
       Object.entries(serviceBreakdown).sort(
-        ([, a], [, b]) => (b as number) - (a as number)
+        ([, a], [, b]) => (b as number) - (a as number),
       )[0]?.[0] || "robux";
 
     // Monthly spending (last 6 months)
@@ -58,7 +63,7 @@ export async function GET(request: NextRequest) {
     const recentTransactions = userTransactions.filter(
       (t) =>
         new Date(t.createdAt) >= sixMonthsAgo &&
-        t.paymentStatus === "settlement"
+        t.paymentStatus === "settlement",
     );
 
     const monthlySpending = [];
@@ -77,7 +82,7 @@ export async function GET(request: NextRequest) {
 
       const totalAmount = monthTransactions.reduce(
         (sum, t) => sum + t.totalAmount,
-        0
+        0,
       );
       monthlySpending.push({ month: monthName, amount: totalAmount });
     }
@@ -89,8 +94,8 @@ export async function GET(request: NextRequest) {
         transaction.serviceType === "robux"
           ? "Membeli Robux"
           : transaction.serviceType === "gamepass"
-          ? "Membeli Gamepass"
-          : "Joki Level Up"
+            ? "Membeli Gamepass"
+            : "Joki Level Up"
       } - ${transaction.serviceName}`,
       date: transaction.createdAt,
       amount: transaction.totalAmount,
@@ -120,7 +125,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: "Failed to fetch user statistics",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

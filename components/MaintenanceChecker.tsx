@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { checkMaintenanceStatus } from "@/app/lib/actions";
 
 /**
  * MaintenanceChecker component
@@ -20,27 +21,17 @@ export default function MaintenanceChecker() {
     }
 
     try {
-      const response = await fetch("/api/maintenance", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      });
+      const data = await checkMaintenanceStatus();
 
-      if (response.ok) {
-        const data = await response.json();
-
-        if (data.maintenanceMode === true) {
-          // Redirect to maintenance page if not already there
-          if (pathname !== "/maintenance") {
-            router.replace("/maintenance");
-          }
-        } else {
-          // If we're on maintenance page but maintenance is off, redirect to home
-          if (pathname === "/maintenance") {
-            router.replace("/");
-          }
+      if (data.maintenanceMode === true) {
+        // Redirect to maintenance page if not already there
+        if (pathname !== "/maintenance") {
+          router.replace("/maintenance");
+        }
+      } else {
+        // If we're on maintenance page but maintenance is off, redirect to home
+        if (pathname === "/maintenance") {
+          router.replace("/");
         }
       }
     } catch (error) {

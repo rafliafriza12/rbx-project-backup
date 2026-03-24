@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import PushSubscription from "@/models/PushSubscription";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 
 /**
  * POST /api/push/subscribe
@@ -9,6 +9,7 @@ import { authenticateToken } from "@/lib/auth";
  */
 export async function POST(request: NextRequest) {
   try {
+    requireApiKey(request);
     await connectDB();
 
     // Authenticate user
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!subscription || !subscription.endpoint || !subscription.keys) {
       return NextResponse.json(
         { success: false, error: "Invalid subscription data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
       existingSubscription.lastUsed = new Date();
       await existingSubscription.save();
 
-      console.log(`[Push Subscribe] ✅ Updated subscription for user ${user._id}`);
+      console.log(
+        `[Push Subscribe] ✅ Updated subscription for user ${user._id}`,
+      );
 
       return NextResponse.json({
         success: true,
@@ -65,7 +68,9 @@ export async function POST(request: NextRequest) {
 
     await newSubscription.save();
 
-    console.log(`[Push Subscribe] ✅ New subscription created for user ${user._id}`);
+    console.log(
+      `[Push Subscribe] ✅ New subscription created for user ${user._id}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -76,7 +81,7 @@ export async function POST(request: NextRequest) {
     console.error("[Push Subscribe] Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -87,6 +92,7 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    requireApiKey(request);
     await connectDB();
 
     // Authenticate user
@@ -94,7 +100,7 @@ export async function DELETE(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -104,7 +110,7 @@ export async function DELETE(request: NextRequest) {
     if (!endpoint) {
       return NextResponse.json(
         { success: false, error: "Endpoint required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -116,7 +122,7 @@ export async function DELETE(request: NextRequest) {
       },
       {
         isActive: false,
-      }
+      },
     );
 
     console.log(`[Push Unsubscribe] ✅ Unsubscribed user ${user._id}`);
@@ -129,7 +135,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Push Unsubscribe] Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

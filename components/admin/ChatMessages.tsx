@@ -7,6 +7,12 @@ import {
   shouldShowNotification,
   getNotificationPreference,
 } from "@/lib/notifications";
+import {
+  markMessagesRead,
+  getChatMessages,
+  sendChatMessage,
+  uploadChatImage,
+} from "@/app/lib/actions";
 
 // Helper function to check if message is an invoice message
 function isInvoiceMessage(message: string): boolean {
@@ -232,20 +238,18 @@ export default function ChatMessages({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  const markAsRead = useCallback(async () => {
+  const markAsReadFn = useCallback(async () => {
     if (!roomId) return;
 
     try {
-      await fetch(`/api/chat/rooms/${roomId}/read`, {
-        method: "PUT",
-      });
+      await markMessagesRead(roomId);
     } catch (error) {}
   }, [roomId]);
 
   useEffect(() => {
     if (roomId) {
       fetchMessages();
-      markAsRead();
+      markAsReadFn();
     }
   }, [roomId]);
 
@@ -424,12 +428,10 @@ export default function ChatMessages({
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch(
-        `/api/chat/rooms/${roomId}/messages?page=${page}&limit=50`,
-      );
-      const data = await response.json();
+      const result = await getChatMessages(roomId, `page=${page}&limit=50`);
+      const data = result.data;
 
-      if (data.success) {
+      if (data?.success) {
         setMessages(data.data);
         setHasMore(data.pagination.page < data.pagination.totalPages);
       }
@@ -474,15 +476,11 @@ export default function ChatMessages({
         const uploadFormData = new FormData();
         uploadFormData.append("file", selectedImage);
 
-        const uploadResponse = await fetch("/api/chat/upload-image", {
-          method: "POST",
-          body: uploadFormData,
-        });
+        const uploadResult = await uploadChatImage(uploadFormData);
+        const uploadData = uploadResult.data;
 
-        const uploadData = await uploadResponse.json();
-
-        if (!uploadData.success) {
-          throw new Error(uploadData.error || "Failed to upload image");
+        if (!uploadData?.success) {
+          throw new Error(uploadData?.error || "Failed to upload image");
         }
 
         fileUrl = uploadData.data.url;
@@ -490,28 +488,22 @@ export default function ChatMessages({
         setUploading(false);
       }
 
-      const response = await fetch(`/api/chat/rooms/${roomId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: messageText,
-          type: selectedImage ? "image" : "text",
-          fileUrl: fileUrl || undefined,
-          fileName: fileName || undefined,
-        }),
-        signal: abortController.signal,
-      });
+      const body: Record<string, any> = {
+        message: messageText,
+        type: selectedImage ? "image" : "text",
+        fileUrl: fileUrl || undefined,
+        fileName: fileName || undefined,
+      };
 
-      const data = await response.json();
+      const result = await sendChatMessage(roomId, body);
+      const data = result.data;
 
-      if (!data.success) {
+      if (!data?.success) {
         // Show user-friendly error for rate limiting
-        if (response.status === 429) {
-          alert("Terlalu banyak pesan. Mohon tunggu sebentar.");
-        } else {
+        if (!result.ok && data?.error) {
           alert(data.error || "Failed to send message");
+        } else {
+          alert(data?.error || "Failed to send message");
         }
       } else {
         // Clear inputs on success
@@ -519,7 +511,7 @@ export default function ChatMessages({
         setSelectedImage(null);
         setImagePreview(null);
 
-        if (data.duplicate) {
+        if (data?.duplicate) {
         }
       }
     } catch (error: any) {

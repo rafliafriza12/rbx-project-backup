@@ -2,6 +2,12 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import {
+  fetchRobuxPricingAdmin,
+  saveRobuxPricing,
+  fetchRobuxSettingAdmin,
+  saveRobuxSetting,
+} from "./actions";
+import {
   Settings,
   DollarSign,
   TrendingUp,
@@ -44,8 +50,7 @@ export default function RobuxPricingPage() {
 
   const fetchPricing = async () => {
     try {
-      const response = await fetch("/api/robux-pricing");
-      const data = await response.json();
+      const { ok, data } = await fetchRobuxPricingAdmin();
 
       if (data.success) {
         setPricing(data.data);
@@ -68,8 +73,7 @@ export default function RobuxPricingPage() {
   const fetchGamepassSetting = async () => {
     try {
       setGamepassLoading(true);
-      const response = await fetch("/api/robux-setting");
-      const data = await response.json();
+      const { ok, data } = await fetchRobuxSettingAdmin();
 
       if (data.success) {
         setGamepassSetting(data.data);
@@ -94,25 +98,20 @@ export default function RobuxPricingPage() {
 
     setIsSaving(true);
     try {
-      const method = pricing ? "PUT" : "POST";
+      const isUpdate = !!pricing;
 
-      const response = await fetch("/api/robux-pricing", {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const { ok, data } = await saveRobuxPricing(
+        {
           pricePerHundred: Number(formData.pricePerHundred),
           description:
-            formData.description || "Harga per 100 Robux untuk Robux Instant",
-        }),
-      });
-
-      const data = await response.json();
+            formData.description || "Harga per 100 Robux untuk Robux 5 hari",
+        },
+        isUpdate,
+      );
 
       if (data.success) {
         toast.success(
-          "Setting Robux Instant berhasil diperbarui! Semua harga produk telah diupdate.",
+          "Setting Robux 5 hari berhasil diperbarui! Semua harga produk telah diupdate.",
           {
             autoClose: 5000,
           },
@@ -137,18 +136,10 @@ export default function RobuxPricingPage() {
 
     setIsGamepassSaving(true);
     try {
-      const response = await fetch("/api/robux-setting", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pricePerRobux: Number(gamepassPrice),
-          updatedBy: "admin",
-        }),
+      const { ok, data } = await saveRobuxSetting({
+        pricePerRobux: Number(gamepassPrice),
+        updatedBy: "admin",
       });
-
-      const data = await response.json();
 
       if (data.success) {
         toast.success(
@@ -191,7 +182,7 @@ export default function RobuxPricingPage() {
           Pengaturan Harga Robux
         </h1>
         <p className="text-[#cbd5e1] mt-2">
-          Kelola harga Robux untuk produk Robux instant dan gamepass. Setiap
+          Kelola harga Robux untuk produk Robux 5 hari dan gamepass. Setiap
           kategori memiliki pengaturan harga yang terpisah.
         </p>
       </div>
@@ -204,13 +195,13 @@ export default function RobuxPricingPage() {
             <div className="flex items-center gap-2 mb-2">
               <Settings className="w-6 h-6 text-blue-400" />
               <h2 className="text-xl font-bold text-[#f1f5f9]">
-                � Harga per 100 Robux (Robux Instant)
+                Harga per 100 Robux (Robux 5 hari)
               </h2>
             </div>
             <div className="p-3 bg-blue-900/20 border-l-4 border-blue-400 rounded-md">
               <p className="text-blue-200 text-xs">
                 <strong>Catatan:</strong> Mengubah harga akan otomatis
-                memperbarui semua produk Robux Instant.
+                memperbarui semua produk Robux 5 hari.
               </p>
             </div>
           </div>
@@ -304,7 +295,7 @@ export default function RobuxPricingPage() {
                 <div className="text-[#94a3b8]">
                   <p className="mb-4 text-sm">
                     Belum ada pengaturan harga. Silakan atur harga per 100 Robux
-                    untuk Robux Instant.
+                    untuk Robux 5 hari.
                   </p>
                 </div>
               )}
@@ -351,7 +342,7 @@ export default function RobuxPricingPage() {
                       <p className="text-sm text-yellow-200">
                         Mengubah harga per 100 Robux akan{" "}
                         <strong>secara otomatis memperbarui</strong> harga semua
-                        item robux instant yang ada di database. Pastikan nilai
+                        item Robux 5 hari yang ada di database. Pastikan nilai
                         yang dimasukkan sudah benar.
                       </p>
                     </div>

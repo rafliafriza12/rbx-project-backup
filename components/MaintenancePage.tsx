@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Wrench, Clock, Mail, MessageCircle } from "lucide-react";
+import { checkMaintenanceStatus } from "@/app/lib/actions";
 
 interface MaintenancePageProps {
   message?: string;
@@ -21,20 +22,12 @@ export default function MaintenancePage({ message }: MaintenancePageProps) {
 
   // Check if maintenance mode is still active, if not redirect to home
   useEffect(() => {
-    const checkMaintenanceStatus = async () => {
+    const checkMaintenanceStatusPoll = async () => {
       try {
-        const response = await fetch("/api/maintenance", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-        });
+        const data = await checkMaintenanceStatus();
 
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.maintenanceMode === false) {
-            router.replace("/");
-          }
+        if (data.maintenanceMode === false) {
+          router.replace("/");
         }
       } catch (error) {
         // Silently fail
@@ -42,10 +35,10 @@ export default function MaintenancePage({ message }: MaintenancePageProps) {
     };
 
     // Check immediately
-    checkMaintenanceStatus();
+    checkMaintenanceStatusPoll();
 
     // Check every 5 seconds for faster response when maintenance is turned off
-    const interval = setInterval(checkMaintenanceStatus, 5000);
+    const interval = setInterval(checkMaintenanceStatusPoll, 5000);
 
     return () => clearInterval(interval);
   }, [router]);

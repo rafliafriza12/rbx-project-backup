@@ -3,6 +3,13 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Review } from "@/types";
+import {
+  fetchAdminReviews,
+  bulkReviewAction,
+  bulkDeleteReviews,
+  singleReviewAction,
+  deleteSingleReview,
+} from "./actions";
 
 interface ReviewStats {
   total: number;
@@ -54,12 +61,11 @@ export default function AdminReviewsPage() {
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (serviceFilter) params.append("serviceType", serviceFilter);
 
-      const response = await fetch(`/api/admin/reviews?${params}`);
-      const data: AdminReviewsResponse = await response.json();
+      const result = await fetchAdminReviews(params.toString());
 
-      if (data.success) {
-        setReviews(data.data);
-        setStats(data.stats);
+      if (result.ok && result.data.success) {
+        setReviews(result.data.data);
+        setStats(result.data.stats);
       }
     } catch (error) {
     } finally {
@@ -100,20 +106,14 @@ export default function AdminReviewsPage() {
 
     setActionLoading(true);
     try {
-      const endpoint = "/api/admin/reviews";
-      const method = action === "delete" ? "DELETE" : "PUT";
-      const body =
-        action === "delete"
-          ? { reviewIds: selectedReviews }
-          : { reviewIds: selectedReviews, action };
+      let result;
+      if (action === "delete") {
+        result = await bulkDeleteReviews(selectedReviews);
+      } else {
+        result = await bulkReviewAction(selectedReviews, action);
+      }
 
-      const response = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
+      const data = result.data;
 
       if (data.success) {
         toast.success(data.message);
@@ -141,17 +141,14 @@ export default function AdminReviewsPage() {
     if (!confirm(confirmMessage)) return;
 
     try {
-      const endpoint = `/api/admin/reviews/${reviewId}`;
-      const method = action === "delete" ? "DELETE" : "PUT";
-      const body = action === "delete" ? {} : { action };
+      let result;
+      if (action === "delete") {
+        result = await deleteSingleReview(reviewId);
+      } else {
+        result = await singleReviewAction(reviewId, action);
+      }
 
-      const response = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
+      const data = result.data;
 
       if (data.success) {
         toast.success(data.message);

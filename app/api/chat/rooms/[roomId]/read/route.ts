@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import ChatRoom from "@/models/ChatRoom";
 import Message from "@/models/Message";
-import { authenticateToken } from "@/lib/auth";
+import { authenticateToken, requireApiKey } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ roomId: string }> }
+  { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
+    requireApiKey(request);
     const user = await authenticateToken(request);
 
     if (!user) {
@@ -26,7 +27,7 @@ export async function PUT(
     if (!chatRoom) {
       return NextResponse.json(
         { error: "Chat room not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -43,13 +44,13 @@ export async function PUT(
     if (isAdmin) {
       await Message.updateMany(
         { roomId, senderRole: "user", isRead: false },
-        { isRead: true, readAt: new Date() }
+        { isRead: true, readAt: new Date() },
       );
       await ChatRoom.findByIdAndUpdate(roomId, { unreadCountAdmin: 0 });
     } else {
       await Message.updateMany(
         { roomId, senderRole: "admin", isRead: false },
-        { isRead: true, readAt: new Date() }
+        { isRead: true, readAt: new Date() },
       );
       await ChatRoom.findByIdAndUpdate(roomId, { unreadCountUser: 0 });
     }

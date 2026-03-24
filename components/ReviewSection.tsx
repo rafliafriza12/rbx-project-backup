@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Star } from "lucide-react";
 import { Review, ReviewApiResponse } from "@/types";
+import {
+  getPublicReviews,
+  submitReview as submitReviewAction,
+} from "@/app/lib/actions";
 
 interface ReviewSectionProps {
   serviceType: "robux" | "gamepass" | "joki";
@@ -44,8 +48,7 @@ export default function ReviewSection({
       if (serviceCategory) params.append("serviceCategory", serviceCategory);
       if (serviceId) params.append("serviceId", serviceId);
 
-      const response = await fetch(`/api/reviews?${params}`);
-      const data: ReviewApiResponse = await response.json();
+      const data: ReviewApiResponse = await getPublicReviews(params.toString());
 
       if (data.success && data.data) {
         setReviews(data.data);
@@ -85,15 +88,7 @@ export default function ReviewSection({
         payload.serviceName = serviceName;
       }
 
-      const response = await fetch("/api/reviews", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
+      const data = await submitReviewAction(payload);
 
       if (data.success) {
         toast.success("Review berhasil dikirim dan menunggu persetujuan admin");

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { getLeaderboardData } from "@/app/lib/actions";
 import {
   Trophy,
   Medal,
@@ -125,15 +126,14 @@ export default function LeaderboardPage() {
         params.append("year", selectedYear);
       }
 
-      const response = await fetch(`/api/leaderboard?${params.toString()}`);
-      const result: LeaderboardResponse = await response.json();
+      const response = await getLeaderboardData(params.toString());
 
-      if (result.success) {
-        setLeaderboard(result.data);
-        setPagination(result.pagination);
-        setStatistics(result.statistics);
+      if (response.success) {
+        setLeaderboard(response.data);
+        setPagination(response.pagination);
+        setStatistics(response.statistics);
       } else {
-        toast.error(result.message || "Gagal memuat data leaderboard");
+        toast.error(response.message || "Gagal memuat data leaderboard");
         setLeaderboard([]);
       }
     } catch (error) {
@@ -383,13 +383,13 @@ export default function LeaderboardPage() {
                 {statistics?.avgTransactionValue
                   ? formatCurrency(statistics.avgTransactionValue)
                   : leaderboard.length > 0
-                  ? formatCurrency(
-                      leaderboard.reduce(
-                        (total, entry) => total + entry.avgOrderValue,
-                        0
-                      ) / leaderboard.length
-                    )
-                  : "Rp 0"}
+                    ? formatCurrency(
+                        leaderboard.reduce(
+                          (total, entry) => total + entry.avgOrderValue,
+                          0,
+                        ) / leaderboard.length,
+                      )
+                    : "Rp 0"}
               </div>
               <div className="text-sm text-white/60">Per transaksi</div>
             </div>
@@ -498,7 +498,7 @@ export default function LeaderboardPage() {
                     Menampilkan {(pagination.page - 1) * pagination.limit + 1} -{" "}
                     {Math.min(
                       pagination.page * pagination.limit,
-                      pagination.total
+                      pagination.total,
                     )}{" "}
                     dari {pagination.total} top spenders
                   </div>

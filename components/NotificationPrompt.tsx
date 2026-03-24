@@ -6,6 +6,7 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
 } from "@/lib/notifications";
+import { getVapidPublicKey, subscribePush } from "@/app/lib/actions";
 
 interface NotificationPromptProps {
   onPermissionGranted?: () => void;
@@ -84,12 +85,12 @@ export default function NotificationPrompt({
 
       // Step 3: Get VAPID public key from server
       setCurrentStep("Mengambil kunci enkripsi...");
-      const vapidResponse = await fetch("/api/push/vapid-public-key");
-      if (!vapidResponse.ok) {
+      const vapidResult = await getVapidPublicKey();
+      if (!vapidResult.success) {
         throw new Error("Failed to get VAPID public key");
       }
 
-      const { publicKey } = await vapidResponse.json();
+      const { publicKey } = vapidResult;
 
       // Step 4: Subscribe to push notifications
       setCurrentStep("Mendaftar push notification...");
@@ -100,22 +101,14 @@ export default function NotificationPrompt({
 
       // Step 5: Send subscription to server
       setCurrentStep("Menyimpan ke server...");
-      const subscribeResponse = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subscription: subscription.toJSON(),
-          userAgent: navigator.userAgent,
-        }),
-      });
+      const subscribeResult = await subscribePush(
+        subscription.toJSON(),
+        navigator.userAgent,
+      );
 
-      if (!subscribeResponse.ok) {
+      if (!subscribeResult.ok) {
         throw new Error("Failed to save subscription");
       }
-
-      const result = await subscribeResponse.json();
 
       // Show success message
       alert(

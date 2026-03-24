@@ -46,7 +46,7 @@ export default function GamepassManager({
       features: [""],
       showOnHomepage: false,
       item: [{ itemName: "", imgUrl: "", price: 0, developer: "" }],
-    }
+    },
   );
 
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +58,7 @@ export default function GamepassManager({
     [index: number]: File;
   }>({});
   const [gameImagePreview, setGameImagePreview] = useState(
-    gamepass?.imgUrl || ""
+    gamepass?.imgUrl || "",
   );
   const [itemImagePreviews, setItemImagePreviews] = useState<{
     [index: number]: string;
@@ -81,24 +81,20 @@ export default function GamepassManager({
   // Upload image to cloudinary
   const uploadImage = async (
     file: File,
-    folder: string = "gamepass"
+    folder: string = "gamepass",
   ): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("folder", folder);
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
+    const { uploadFile } = await import("@/app/lib/actions");
+    const result = await uploadFile(formData);
 
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || "Failed to upload image");
+    if (!result.ok || !result.data?.success) {
+      throw new Error(result.data?.error || "Failed to upload image");
     }
 
-    return data.url;
+    return result.data.url;
   };
 
   // Handle game image file change
@@ -114,7 +110,7 @@ export default function GamepassManager({
   // Handle item image file change
   const handleItemImageChange = (
     index: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -147,13 +143,13 @@ export default function GamepassManager({
           if (itemImageFiles[index]) {
             const itemImageUrl = await uploadImage(
               itemImageFiles[index],
-              "gamepass/items"
+              "gamepass/items",
             );
             itemData.imgUrl = itemImageUrl;
           }
 
           return itemData;
-        })
+        }),
       );
 
       gamepassData.item = updatedItems;
@@ -569,8 +565,8 @@ export default function GamepassManager({
             {isLoading
               ? "Menyimpan..."
               : isCreate
-              ? "Buat Gamepass"
-              : "Simpan Perubahan"}
+                ? "Buat Gamepass"
+                : "Simpan Perubahan"}
           </button>
         </div>
       </form>

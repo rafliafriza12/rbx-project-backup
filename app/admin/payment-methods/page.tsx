@@ -321,18 +321,14 @@ export default function PaymentMethodsPage() {
         uploadFormData.append("file", formData.iconFile);
         uploadFormData.append("folder", "payment-methods");
 
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
+        const { uploadFile } = await import("@/app/lib/actions");
+        const uploadResult = await uploadFile(uploadFormData);
 
-        const uploadResult = await uploadResponse.json();
-
-        if (!uploadResult.success) {
-          throw new Error(uploadResult.error || "Gagal upload icon");
+        if (!uploadResult.ok || !uploadResult.data?.success) {
+          throw new Error(uploadResult.data?.error || "Gagal upload icon");
         }
 
-        iconUrl = uploadResult.url;
+        iconUrl = uploadResult.data.url;
         setUploadingIcon(false);
       }
 

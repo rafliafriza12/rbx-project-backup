@@ -7,6 +7,12 @@ import {
   shouldShowNotification,
   getNotificationPreference,
 } from "@/lib/notifications";
+import {
+  markMessagesRead,
+  getChatMessages,
+  sendChatMessage,
+  uploadChatImage,
+} from "@/app/lib/actions";
 
 // Helper function to check if message is an invoice message
 function isInvoiceMessage(message: string): boolean {
@@ -252,9 +258,7 @@ export default function UserChatInterface({
     if (!roomId) return;
 
     try {
-      await fetch(`/api/chat/rooms/${roomId}/read`, {
-        method: "PUT",
-      });
+      await markMessagesRead(roomId);
     } catch (error) {
       // Error marking messages as read
     }
@@ -266,11 +270,9 @@ export default function UserChatInterface({
 
     setMarkingAsRead(true);
     try {
-      const response = await fetch(`/api/chat/rooms/${roomId}/read`, {
-        method: "PUT",
-      });
+      const result = await markMessagesRead(roomId);
 
-      if (response.ok) {
+      if (result.ok) {
         setLocalUnreadCount(0);
         // Notify parent component
         if (onMarkAsReadRef.current) {
@@ -469,12 +471,10 @@ export default function UserChatInterface({
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch(
-        `/api/chat/rooms/${roomId}/messages?page=1&limit=50`,
-      );
-      const data = await response.json();
+      const result = await getChatMessages(roomId, `page=1&limit=50`);
+      const data = result.data;
 
-      if (data.success) {
+      if (data?.success) {
         setMessages(data.data);
       }
     } catch (error) {
@@ -511,14 +511,10 @@ export default function UserChatInterface({
         const uploadFormData = new FormData();
         uploadFormData.append("file", selectedImage);
 
-        const uploadResponse = await fetch("/api/chat/upload-image", {
-          method: "POST",
-          body: uploadFormData,
-        });
+        const uploadResult = await uploadChatImage(uploadFormData);
+        const uploadData = uploadResult.data;
 
-        const uploadData = await uploadResponse.json();
-
-        if (!uploadData.success) {
+        if (!uploadData?.success) {
           alert("Gagal upload gambar. Silakan coba lagi.");
           setUploading(false);
           return;

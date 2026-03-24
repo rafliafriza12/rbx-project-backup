@@ -3,9 +3,11 @@ import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import Role from "@/models/Role";
+import { requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -216,6 +218,7 @@ export async function GET(request: NextRequest) {
 // GET endpoint untuk top spender (untuk homepage atau widget)
 export async function POST(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     const { limit: rawLimit = 5, period = "all" } = await request.json();

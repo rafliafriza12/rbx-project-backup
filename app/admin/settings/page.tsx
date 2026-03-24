@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";
+import {
+  fetchSettingsAdmin,
+  updateSettingsAdmin,
+  resetSettingsAdmin,
+} from "./actions";
 
 interface TabContent {
   id: string;
@@ -176,10 +181,9 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/settings");
-      const data = await response.json();
+      const { ok, data } = await fetchSettingsAdmin();
 
-      if (response.ok) {
+      if (ok) {
         setSettings(data.settings);
       } else {
         toast.error("Error loading settings: " + data.error);
@@ -206,17 +210,9 @@ export default function SettingsPage() {
 
     try {
       setSaving(true);
-      const response = await fetch("/api/settings", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(settings),
-      });
+      const { ok, data } = await updateSettingsAdmin(settings);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         toast.success("Settings berhasil disimpan!");
         setHasChanges(false);
         setSettings(data.settings);
@@ -241,13 +237,9 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch("/api/settings", {
-        method: "POST",
-      });
+      const { ok, data } = await resetSettingsAdmin();
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         toast.success("Settings berhasil direset!");
         setSettings(data.settings);
         setHasChanges(false);

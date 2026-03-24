@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
+import { requireApiKey } from "@/lib/auth";
 
 // Simple in-memory rate limiter for review submissions
 const reviewRateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -28,8 +29,9 @@ function isReviewRateLimited(identifier: string): boolean {
 }
 
 // GET - Get all approved reviews
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -83,12 +85,13 @@ export async function GET(request: Request) {
 }
 
 // POST - Create new review
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    requireApiKey(request);
     await dbConnect();
 
     // Rate limit by IP
-    const forwarded = (request as any).headers?.get?.("x-forwarded-for");
+    const forwarded = request.headers?.get?.("x-forwarded-for");
     const ip = forwarded?.split(",")[0]?.trim() || "unknown";
     if (isReviewRateLimited(ip)) {
       return NextResponse.json(
