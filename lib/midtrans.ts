@@ -272,7 +272,7 @@ class MidtransService {
       seabank_va: ["other_va"],
 
       // QRIS - include both qris and gopay for maximum compatibility
-      qris: ["qris", "gopay"],
+      qris: ["other_qris"],
 
       // Retail
       indomaret: ["indomaret"],

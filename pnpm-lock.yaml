@@ -110,6 +110,9 @@ importers:
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
+      streamifier:
+        specifier: ^0.1.1
+        version: 0.1.1
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
@@ -147,6 +150,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.1.9(@types/react@19.1.13)
+      '@types/streamifier':
+        specifier: ^0.1.2
+        version: 0.1.2
       '@types/web-push':
         specifier: ^3.6.4
         version: 3.6.4
@@ -957,6 +963,9 @@ packages:
 
   '@types/react@19.1.13':
     resolution: {integrity: sha512-hHkbU/eoO3EG5/MZkuFSKmYqPbSVk5byPFa3e7y/8TybHiLMACgI8seVYlicwk7H5K/rI2px9xrQp/C+AUDTiQ==}
+
+  '@types/streamifier@0.1.2':
+    resolution: {integrity: sha512-W53GwxY5Tunz3JUoP1YWDidrAadenSZKOBKMRl6RO3yThOFd03w7yx3HypI8ABGuUCGDHCHUml/5e45FWRt1TQ==}
 
   '@types/uuid@9.0.8':
     resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
@@ -3059,6 +3068,10 @@ packages:
   stream-length@1.0.2:
     resolution: {integrity: sha512-aI+qKFiwoDV4rsXiS7WRoCt+v2RX1nUj17+KJC5r2gfh5xoSJIfP6Y3Do/HtvesFcTSWthIuJ3l1cvKQY/+nZg==}
 
+  streamifier@0.1.1:
+    resolution: {integrity: sha512-zDgl+muIlWzXNsXeyUfOk9dChMjlpkq0DRsxujtYPgyJ676yQ8jEm6zzaaWHFDg5BNcLuif0eD2MTyJdZqXpdg==}
+    engines: {node: '>=0.10'}
+
   streamx@2.23.0:
     resolution: {integrity: sha512-kn+e44esVfn2Fa/O0CPFcex27fjIL6MkVae0Mm6q+E6f0hWv578YCERbv+4m02cjxvDsPKLnmxral/rR6lBMAg==}
 
@@ -4512,6 +4525,10 @@ snapshots:
   '@types/react@19.1.13':
     dependencies:
       csstype: 3.1.3
+
+  '@types/streamifier@0.1.2':
+    dependencies:
+      '@types/node': 20.19.17
 
   '@types/uuid@9.0.8': {}
 
@@ -6868,6 +6885,8 @@ snapshots:
   stream-length@1.0.2:
     dependencies:
       bluebird: 2.11.0
+
+  streamifier@0.1.1: {}
 
   streamx@2.23.0:
     dependencies:

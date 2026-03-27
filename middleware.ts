@@ -32,7 +32,7 @@ const RATE_LIMIT_TIERS: { prefix: string; max: number; windowMs: number }[] = [
   // Checkout/Payment - ketat (anti abuse)
   { prefix: "/api/checkout", max: 10, windowMs: 60_000 },
   { prefix: "/api/orders/create", max: 5, windowMs: 60_000 },
-  // { prefix: "/api/buy-pass", max: 120, windowMs: 60_000 },
+  { prefix: "/api/buy-pass", max: 120, windowMs: 60_000 },
 
   // Transaction - sedang
   { prefix: "/api/transactions", max: 20, windowMs: 60_000 },
@@ -90,7 +90,6 @@ const RATE_LIMIT_EXCLUDED = [
   "/api/transactions/webhook/duitku",
   "/api/cron",
   "/api/auto-purchase",
-  "/api/buy-pass",
 ];
 
 // Cleanup expired entries every 2 minutes
