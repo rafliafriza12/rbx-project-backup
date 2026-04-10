@@ -253,13 +253,6 @@ export async function POST(
       );
     }
 
-    if (message.length > 5000) {
-      return NextResponse.json(
-        { error: "Pesan terlalu panjang. Maksimal 5000 karakter." },
-        { status: 400 },
-      );
-    }
-
     // Check for duplicate message using idempotency key
     const idempotencyKey = `${user._id}-${roomId}-${message
       .trim()

@@ -4,9 +4,6 @@ export interface IRbx5Stats extends Document {
   // Mode: "auto" = hitung dari database realtime, "manual" = admin set manual
   mode: "auto" | "manual";
 
-  // Unlimited stock flag
-  unlimitedStock: boolean;
-
   // Manual values - digunakan saat mode "manual"
   manualTotalStok: number;
   manualTotalTerjual: number;
@@ -37,11 +34,6 @@ const Rbx5StatsSchema: Schema<IRbx5Stats> = new Schema(
       enum: ["auto", "manual"],
       default: "auto",
       required: true,
-    },
-
-    unlimitedStock: {
-      type: Boolean,
-      default: false,
     },
 
     // Manual override values

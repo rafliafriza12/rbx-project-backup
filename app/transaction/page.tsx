@@ -13,7 +13,6 @@ import {
   Receipt,
   Package,
   ShoppingBag,
-  MessageCircle,
 } from "lucide-react";
 import {
   isMultiCheckout,
@@ -22,8 +21,7 @@ import {
   getTotalItemsCount,
   getCheckoutDisplayName,
 } from "@/lib/transaction-helpers";
-import { getTransactionByInvoice, createChatRoom } from "@/app/lib/actions";
-import { useAuth } from "@/contexts/AuthContext";
+import { getTransactionByInvoice } from "@/app/lib/actions";
 
 interface Transaction {
   _id: string;
@@ -51,10 +49,8 @@ interface Transaction {
 function TransactionResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
-  const [claimLoading, setClaimLoading] = useState(false);
 
   const orderId = searchParams.get("order_id");
 
@@ -115,35 +111,6 @@ function TransactionResultContent() {
       router.push("/");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleClaimGamepass = async () => {
-    if (!transaction || claimLoading) return;
-    if (!user) {
-      toast.info("Silakan login terlebih dahulu untuk klaim gamepass kamu ya!");
-      const currentUrl = `/transaction?order_id=${orderId}&transaction_status=${transactionStatus}`;
-      setTimeout(() => {
-        router.push(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-      }, 2000);
-      return;
-    }
-    setClaimLoading(true);
-    try {
-      const { ok, data } = await createChatRoom({
-        roomType: "order",
-        transactionCode: transaction.invoiceId,
-        transactionTitle: transaction.serviceName,
-      });
-      if (ok) {
-        router.push("/chat");
-      } else {
-        toast.error(data?.error || "Gagal membuat ruang chat. Coba lagi.");
-      }
-    } catch (error) {
-      toast.error("Terjadi kesalahan. Coba lagi.");
-    } finally {
-      setClaimLoading(false);
     }
   };
 
@@ -373,29 +340,29 @@ function TransactionResultContent() {
 
                     {/* Grand Total Section */}
                     <div className="pt-4 border-t-2 border-primary-100/30">
-                      <div className="mb-3">
-                        <span className="text-primary-200 font-medium text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-primary-200 font-medium">
                           Invoice ID:
                         </span>
-                        <span className="block font-mono font-semibold text-primary-100 text-sm mt-1 break-all">
+                        <span className="font-mono font-semibold text-primary-100 text-sm">
                           {transaction.invoiceId}
                         </span>
                       </div>
-                      <div className="mb-3">
-                        <span className="text-primary-200 font-medium text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-primary-200 font-medium">
                           Order ID:
                         </span>
-                        <span className="block font-mono font-semibold text-primary-100 text-xs mt-1 break-all">
+                        <span className="font-mono font-semibold text-primary-100 text-xs">
                           {transaction.midtransOrderId}
                         </span>
                       </div>
                       {/* Show Duitku Reference if available */}
                       {transaction.duitkuReference && (
-                        <div className="mb-4">
-                          <span className="text-primary-200 font-medium text-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-primary-200 font-medium">
                             Reference:
                           </span>
-                          <span className="block font-mono font-semibold text-primary-100 text-xs mt-1 break-all">
+                          <span className="font-mono font-semibold text-primary-100 text-xs">
                             {transaction.duitkuReference}
                           </span>
                         </div>
@@ -418,48 +385,48 @@ function TransactionResultContent() {
                   </div>
                 ) : (
                   /* Single Transaction Info */
-                  <div className="space-y-4">
-                    <div className="py-3 border-b border-primary-100/20">
-                      <span className="text-primary-200 font-medium text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex justify-between sm:col-span-2 py-3 border-b border-primary-100/20">
+                      <span className="text-primary-200 font-medium">
                         Invoice ID:
                       </span>
-                      <span className="block font-mono font-semibold text-primary-100 text-sm mt-1 break-all">
+                      <span className="font-mono font-semibold text-primary-100">
                         {transaction.invoiceId}
                       </span>
                     </div>
-                    <div className="py-3 border-b border-primary-100/20">
-                      <span className="text-primary-200 font-medium text-sm">
+                    <div className="flex justify-between sm:col-span-2 py-3 border-b border-primary-100/20">
+                      <span className="text-primary-200 font-medium">
                         Order ID:
                       </span>
-                      <span className="block font-mono font-semibold text-primary-100 text-xs mt-1 break-all">
+                      <span className="font-mono font-semibold text-primary-100 text-sm">
                         {transaction.midtransOrderId}
                       </span>
                     </div>
                     {/* Show Duitku Reference if available */}
                     {transaction.duitkuReference && (
-                      <div className="py-3 border-b border-primary-100/20">
-                        <span className="text-primary-200 font-medium text-sm">
+                      <div className="flex justify-between sm:col-span-2 py-3 border-b border-primary-100/20">
+                        <span className="text-primary-200 font-medium">
                           Reference:
                         </span>
-                        <span className="block font-mono font-semibold text-primary-100 text-xs mt-1 break-all">
+                        <span className="font-mono font-semibold text-primary-100 text-sm">
                           {transaction.duitkuReference}
                         </span>
                       </div>
                     )}
-                    <div className="flex justify-between py-3 border-b border-primary-100/20">
-                      <span className="text-primary-200 font-medium flex items-center gap-2 text-sm">
+                    <div className="flex justify-between sm:col-span-2 py-3 border-b border-primary-100/20">
+                      <span className="text-primary-200 font-medium flex items-center gap-2">
                         <Package className="w-4 h-4" />
                         Layanan:
                       </span>
-                      <span className="font-semibold text-white text-right max-w-[200px] truncate text-sm">
+                      <span className="font-semibold text-white text-right max-w-[200px] truncate">
                         {transaction.serviceName}
                       </span>
                     </div>
-                    <div className="flex justify-between py-3 border-t-2 border-primary-100/30 mt-2">
-                      <span className="text-base sm:text-lg font-bold text-white">
+                    <div className="flex justify-between sm:col-span-2 py-3 border-t-2 border-primary-100/30 mt-2">
+                      <span className="text-lg font-bold text-white">
                         Total Pembayaran:
                       </span>
-                      <span className="text-lg sm:text-xl font-bold text-primary-100">
+                      <span className="text-xl font-bold text-primary-100">
                         Rp {transaction.finalAmount.toLocaleString("id-ID")}
                       </span>
                     </div>
@@ -467,23 +434,8 @@ function TransactionResultContent() {
                 )}
               </div>
 
-              {/* Klaim Gamepass Button - Only for gamepass + settlement */}
-              {transactionStatus === "settlement" && transaction.serviceType === "gamepass" && (
-                <button
-                  onClick={handleClaimGamepass}
-                  disabled={claimLoading}
-                  className="group/btn relative w-full overflow-hidden flex items-center justify-center gap-3 px-6 py-4 mt-8 bg-gradient-to-r from-neon-pink via-neon-purple to-neon-pink text-white rounded-xl transition-all duration-300 hover:scale-105 font-bold text-lg backdrop-blur-sm border border-neon-pink/40 hover:border-neon-pink/60 shadow-lg shadow-neon-pink/20 hover:shadow-neon-pink/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
-                  <MessageCircle className="relative w-5 h-5 group-hover/btn:scale-110 transition-transform duration-200" />
-                  <span className="relative">
-                    {claimLoading ? "Memproses..." : "Klaim Gamepass"}
-                  </span>
-                </button>
-              )}
-
               {/* Action Buttons */}
-              <div className={`flex flex-col sm:flex-row gap-4 ${transactionStatus === "settlement" && transaction.serviceType === "gamepass" ? "mt-4" : "mt-8"}`}>
+              <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <button
                   onClick={() => router.push("/")}
                   className="group/btn relative flex-1 overflow-hidden flex items-center justify-center gap-3 px-6 py-4 bg-primary-100/20 hover:bg-primary-100/30 text-white rounded-xl transition-all duration-300 hover:scale-105 font-semibold backdrop-blur-sm border border-primary-100/40 hover:border-primary-100/60"

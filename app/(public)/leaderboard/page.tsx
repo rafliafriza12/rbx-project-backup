@@ -3,20 +3,20 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getLeaderboardData } from "@/app/lib/actions";
-import { motion } from "framer-motion";
-import Link from "next/link";
 import {
   Trophy,
   Medal,
   Award,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Calendar,
   ChevronLeft,
   ChevronRight,
+  Star,
   Crown,
+  Shield,
   RotateCcw,
-  ShoppingBag,
-  Sparkles,
-  Calendar,
-  Flame,
 } from "lucide-react";
 
 interface LeaderboardEntry {
@@ -33,7 +33,6 @@ interface LeaderboardEntry {
   discount: number;
   spendedMoney: number;
   isVerified: boolean;
-  profilePicture?: string;
 }
 
 interface LeaderboardResponse {
@@ -88,6 +87,7 @@ export default function LeaderboardPage() {
   });
 
   const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
 
   const months = [
     { value: "1", label: "Januari" },
@@ -115,7 +115,7 @@ export default function LeaderboardPage() {
       setLoading(true);
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        limit: "20",
+        limit: "10",
         filterType: filterType,
       });
 
@@ -151,24 +151,44 @@ export default function LeaderboardPage() {
     }).format(amount);
   };
 
-  const maskUsername = (name: string) => {
-    if (name.length <= 4) return name;
-    const first = name.slice(0, 2);
-    const last = name.slice(-1);
-    const masked = "*".repeat(Math.min(name.length - 3, 4));
-    return `${first}${masked}${last}`;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return <Trophy className="w-8 h-8 text-yellow-400" />;
+      case 2:
+        return <Medal className="w-8 h-8 text-gray-400" />;
+      case 3:
+        return <Award className="w-8 h-8 text-amber-600" />;
+      default:
+        return <span className="text-xl font-bold text-white/70">#{rank}</span>;
+    }
   };
 
   const getRoleBadge = (entry: LeaderboardEntry) => {
     if (!entry.roleName || entry.roleName === "Regular") {
-      return null;
+      return (
+        <span className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 text-xs font-medium rounded-full flex items-center gap-1">
+          No Tier
+        </span>
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-start gap-1">
+          <span className="px-3 py-1.5 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 text-primary-100 text-xs font-bold rounded-full backdrop-blur-sm flex items-center gap-1">
+            <Crown className="w-3 h-3" />
+            {entry.roleName}
+          </span>
+        </div>
+      );
     }
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-primary-100/25 to-primary-200/25 border border-primary-100/40 text-primary-100 text-xs font-bold rounded-full">
-        <Crown className="w-3 h-3" />
-        {entry.roleName}
-      </span>
-    );
   };
 
   const resetFilters = () => {
@@ -178,110 +198,77 @@ export default function LeaderboardPage() {
     setCurrentPage(1);
   };
 
-  const isFirstPage = currentPage === 1;
-  const top3 = isFirstPage ? leaderboard.slice(0, 3) : [];
-  const restOfLeaderboard = isFirstPage ? leaderboard.slice(3) : leaderboard;
-
-  // Podium order: [2nd, 1st, 3rd]
-  const podiumOrder =
-    top3.length === 3
-      ? [top3[1], top3[0], top3[2]]
-      : top3.length === 2
-        ? [top3[1], top3[0]]
-        : top3;
-
-  const podiumConfig = [
-    // 2nd place (left)
-    {
-      borderColor: "border-slate-400/40",
-      glowShadow: "",
-      avatarRing: "ring-slate-400/60",
-      avatarSize: "w-20 h-20 md:w-24 md:h-24",
-      icon: <Medal className="w-8 h-8 text-slate-300" />,
-      label: "TOP 2",
-      labelColor: "text-slate-400",
-      amountColor: "text-white font-bold",
-      nameSize: "text-sm md:text-base",
-      amountSize: "text-base md:text-lg",
-      topOffset: "mt-10",
-    },
-    // 1st place (center)
-    {
-      borderColor: "border-yellow-400/50",
-      glowShadow: "shadow-[0_0_40px_rgba(246,58,230,0.15)]",
-      avatarRing: "ring-yellow-400/80",
-      avatarSize: "w-28 h-28 md:w-36 md:h-36",
-      icon: <Crown className="w-10 h-10 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" />,
-      label: "TOP 1",
-      labelColor: "text-yellow-400",
-      amountColor: "text-primary-100 font-extrabold",
-      nameSize: "text-base md:text-lg",
-      amountSize: "text-xl md:text-2xl",
-      topOffset: "mt-0",
-    },
-    // 3rd place (right)
-    {
-      borderColor: "border-amber-600/40",
-      glowShadow: "",
-      avatarRing: "ring-amber-500/60",
-      avatarSize: "w-20 h-20 md:w-24 md:h-24",
-      icon: <Award className="w-8 h-8 text-amber-500" />,
-      label: "TOP 3",
-      labelColor: "text-amber-500",
-      amountColor: "text-amber-300 font-bold",
-      nameSize: "text-sm md:text-base",
-      amountSize: "text-base md:text-lg",
-      topOffset: "mt-10",
-    },
-  ];
-
   return (
     <div className="min-h-screen relative">
-      {/* Background glow blobs */}
+      {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-32 left-1/4 w-72 h-72 bg-primary-100/8 rounded-full blur-[100px]" />
-        <div className="absolute bottom-40 right-1/4 w-60 h-60 bg-primary-200/6 rounded-full blur-[100px]" />
+        <div className="absolute top-20 left-10 w-32 h-32 bg-primary-100/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-40 right-20 w-40 h-40 bg-primary-200/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 left-1/3 w-36 h-36 bg-primary-100/5 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-                <Trophy className="w-7 h-7 text-primary-100" />
-                Top Spenders
+      <div className="relative z-10">
+        {/* Header Section */}
+        <div className=" p-8 mb-8  relative overflow-hidden">
+          {/* Glow effect */}
+
+          <div className="relative">
+            <div className="text-center mb-8">
+              {/* Badge */}
+              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 rounded-2xl text-sm text-white/80 font-semibold mb-6 backdrop-blur-sm shadow-lg hover:shadow-primary-100/20 transition-all duration-300">
+                <Trophy className="w-4 h-4 text-primary-100 mr-2" />
+                Top Spenders Leaderboard
+              </div>
+
+              <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary-100 via-white to-primary-200 bg-clip-text text-transparent flex items-center justify-center gap-4">
+                <Trophy className="w-12 h-12 text-primary-100" />
+                Leaderboard
               </h1>
-              <p className="text-white/40 mt-1 text-sm">
-                Ranking berdasarkan total pembelian
+              <p className="text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+                Peringkat customer terbaik berdasarkan{" "}
+                <span className="text-primary-100 font-medium">
+                  total pembelian
+                </span>{" "}
+                dan aktivitas
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <Calendar className="w-4 h-4 text-white/30" />
-              <select
-                value={filterType}
-                onChange={(e) => {
-                  setFilterType(e.target.value as any);
-                  setCurrentPage(1);
-                }}
-                className="px-3.5 py-2 bg-bg-secondary/60 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-primary-100/50 transition-all"
-              >
-                <option value="all" style={{ backgroundColor: "#22102A", color: "white" }}>Semua Waktu</option>
-                <option value="month" style={{ backgroundColor: "#22102A", color: "white" }}>Per Bulan</option>
-                <option value="year" style={{ backgroundColor: "#22102A", color: "white" }}>Per Tahun</option>
-              </select>
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex items-center gap-2">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as any)}
+                  className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
+                >
+                  <option value="all" className="bg-gray-800 text-white">
+                    Semua Waktu
+                  </option>
+                  <option value="month" className="bg-gray-800 text-white">
+                    Per Bulan
+                  </option>
+                  <option value="year" className="bg-gray-800 text-white">
+                    Per Tahun
+                  </option>
+                </select>
+              </div>
 
               {filterType === "month" && (
                 <>
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="px-3.5 py-2 bg-bg-secondary/60 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-primary-100/50 transition-all"
+                    className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
                   >
-                    <option value="" style={{ backgroundColor: "#22102A", color: "white" }}>Bulan</option>
+                    <option value="" className="bg-gray-800 text-white">
+                      Pilih Bulan
+                    </option>
                     {months.map((month) => (
-                      <option key={month.value} value={month.value} style={{ backgroundColor: "#22102A", color: "white" }}>
+                      <option
+                        key={month.value}
+                        value={month.value}
+                        className="bg-gray-800 text-white"
+                      >
                         {month.label}
                       </option>
                     ))}
@@ -289,11 +276,17 @@ export default function LeaderboardPage() {
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
-                    className="px-3.5 py-2 bg-bg-secondary/60 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-primary-100/50 transition-all"
+                    className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
                   >
-                    <option value="" style={{ backgroundColor: "#22102A", color: "white" }}>Tahun</option>
+                    <option value="" className="bg-gray-800 text-white">
+                      Pilih Tahun
+                    </option>
                     {years.map((year) => (
-                      <option key={year} value={year.toString()} style={{ backgroundColor: "#22102A", color: "white" }}>
+                      <option
+                        key={year}
+                        value={year.toString()}
+                        className="bg-gray-800 text-white"
+                      >
                         {year}
                       </option>
                     ))}
@@ -305,262 +298,238 @@ export default function LeaderboardPage() {
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-3.5 py-2 bg-bg-secondary/60 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-primary-100/50 transition-all"
+                  className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-transparent transition-all duration-300"
                 >
-                  <option value="" style={{ backgroundColor: "#22102A", color: "white" }}>Tahun</option>
+                  <option value="" className="bg-gray-800 text-white">
+                    Pilih Tahun
+                  </option>
                   {years.map((year) => (
-                    <option key={year} value={year.toString()} style={{ backgroundColor: "#22102A", color: "white" }}>
+                    <option
+                      key={year}
+                      value={year.toString()}
+                      className="bg-gray-800 text-white"
+                    >
                       {year}
                     </option>
                   ))}
                 </select>
               )}
 
-              {filterType !== "all" && (
-                <button
-                  onClick={resetFilters}
-                  className="p-2 bg-bg-secondary/60 border border-white/10 rounded-lg text-white/50 hover:text-white hover:border-primary-100/30 transition-all"
-                  title="Reset"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                onClick={resetFilters}
+                className="px-6 py-3 bg-gradient-to-r from-primary-200/20 to-primary-300/20 border border-primary-200/40 text-white rounded-xl hover:from-primary-200/30 hover:to-primary-300/30 transition-all duration-300 backdrop-blur-sm font-medium flex items-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset Filter
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Loading */}
-        {loading ? (
-          <div className="text-center py-24">
-            <div className="relative mx-auto mb-6 w-14 h-14">
-              <div className="absolute inset-0 rounded-full border-3 border-primary-100/20"></div>
-              <div className="absolute inset-0 rounded-full border-3 border-primary-100 border-t-transparent animate-spin"></div>
+        {/* Statistics Cards */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-lg hover:shadow-primary-100/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-primary-100" />
+                </div>
+                <span className="text-xs text-white/50 uppercase tracking-wider">
+                  Total Orders (Leaderboard)
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {leaderboard.length > 0
+                  ? leaderboard
+                      .reduce((total, entry) => total + entry.totalOrders, 0)
+                      .toLocaleString()
+                  : "0"}
+              </div>
+              <div className="text-sm text-white/60">
+                Dari {leaderboard.length} top spenders
+              </div>
             </div>
-            <p className="text-white/50">Memuat leaderboard...</p>
+
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-lg hover:shadow-primary-100/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary-100" />
+                </div>
+                <span className="text-xs text-white/50 uppercase tracking-wider">
+                  Total Customers
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {statistics?.uniqueCustomerCount
+                  ? statistics.uniqueCustomerCount.toLocaleString()
+                  : leaderboard.length.toLocaleString()}
+              </div>
+              <div className="text-sm text-white/60">
+                {statistics?.vipMembers || 0} Reseller •{" "}
+                {statistics?.regularMembers || 0} No Tier
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-lg hover:shadow-primary-100/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-primary-100" />
+                </div>
+                <span className="text-xs text-white/50 uppercase tracking-wider">
+                  Avg Order Value
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {statistics?.avgTransactionValue
+                  ? formatCurrency(statistics.avgTransactionValue)
+                  : leaderboard.length > 0
+                    ? formatCurrency(
+                        leaderboard.reduce(
+                          (total, entry) => total + entry.avgOrderValue,
+                          0,
+                        ) / leaderboard.length,
+                      )
+                    : "Rp 0"}
+              </div>
+              <div className="text-sm text-white/60">Per transaksi</div>
+            </div>
           </div>
-        ) : (
-          <>
-            {/* === TOP 3 PODIUM === */}
-            {isFirstPage && top3.length > 0 && (
-              <div className="grid grid-cols-3 gap-3 md:gap-6 mb-12 items-end">
-                {podiumOrder.map((entry, index) => {
-                  if (!entry) return null;
-                  const config = podiumConfig[index];
-                  const isFirst = index === 1;
-
-                  return (
-                    <motion.div
-                      key={entry._id}
-                      initial={{ opacity: 0, y: 25, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{
-                        duration: 0.5,
-                        delay: isFirst ? 0 : 0.1 + index * 0.08,
-                      }}
-                      className={`${config.topOffset}`}
-                    >
-                      <div
-                        className={`relative rounded-2xl border ${config.borderColor} bg-white/[0.03] backdrop-blur-sm ${config.glowShadow} py-8 px-3 md:px-5 flex flex-col items-center text-center`}
-                      >
-                        {/* Icon */}
-                        <motion.div
-                          animate={isFirst ? { y: [0, -4, 0] } : {}}
-                          transition={isFirst ? { repeat: Infinity, duration: 2.5, ease: "easeInOut" } : {}}
-                          className="mb-1"
-                        >
-                          {config.icon}
-                        </motion.div>
-
-                        {/* Label */}
-                        <p className={`text-[10px] md:text-xs font-bold ${config.labelColor} tracking-widest mb-4 uppercase`}>
-                          {config.label}
-                        </p>
-
-                        {/* Avatar */}
-                        <div className={`${config.avatarSize} rounded-full ring-3 ${config.avatarRing} bg-bg-secondary flex items-center justify-center mb-4 overflow-hidden`}>
-                          {entry.profilePicture ? (
-                            <img
-                              src={entry.profilePicture}
-                              alt={entry.username}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span className={`${isFirst ? "text-3xl md:text-4xl" : "text-xl md:text-2xl"} font-bold text-white/90`}>
-                              {entry.username.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Username */}
-                        <h3 className={`${config.nameSize} font-bold text-white mb-2 truncate max-w-full`}>
-                          {maskUsername(entry.username)}
-                        </h3>
-
-                        {/* Role */}
-                        <div className="mb-3 min-h-[24px]">
-                          {getRoleBadge(entry) || (
-                            <span className="inline-flex items-center px-2.5 py-0.5 bg-white/5 border border-white/10 text-white/40 text-xs rounded-full">
-                              Member
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Amount */}
-                        <p className={`${config.amountSize} ${config.amountColor}`}>
-                          {formatCurrency(entry.totalSpent)}
-                        </p>
-
-                        {/* Orders */}
-                        <div className="flex items-center gap-1 mt-2 text-white/30 text-xs">
-                          <ShoppingBag className="w-3 h-3" />
-                          {entry.totalOrders} pesanan
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* === PERINGKAT LAINNYA === */}
-            {restOfLeaderboard.length > 0 && (
-              <div>
-                <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">
-                  Peringkat Lainnya
-                </h2>
-
-                <div className="flex flex-col gap-2">
-                  {restOfLeaderboard.map((entry, index) => (
-                    <motion.div
-                      key={entry._id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.25, delay: index * 0.025 }}
-                      className="flex items-center gap-3 md:gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/10 rounded-xl px-4 py-3 transition-all duration-200 group"
-                    >
-                      {/* Rank */}
-                      <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-white/40">
-                          {entry.rank}
-                        </span>
-                      </div>
-
-                      {/* Avatar */}
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {entry.profilePicture ? (
-                          <img
-                            src={entry.profilePicture}
-                            alt={entry.username}
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-white">
-                            {entry.username.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">
-                            {maskUsername(entry.username)}
-                          </span>
-                          {getRoleBadge(entry)}
-                        </div>
-                        <p className="text-[11px] text-white/25 mt-0.5">
-                          {entry.totalOrders} pesanan
-                        </p>
-                      </div>
-
-                      {/* Amount */}
-                      <p className="text-sm font-bold text-primary-100 flex-shrink-0">
-                        {formatCurrency(entry.totalSpent)}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {pagination.pages > 1 && (
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-white/30">
-                  Halaman {pagination.page} dari {pagination.pages}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={!pagination.hasPrev}
-                    className="px-3.5 py-2 bg-white/[0.05] border border-white/10 rounded-lg text-white text-sm hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Prev
-                  </button>
-                  <span className="px-3.5 py-2 bg-primary-100/10 border border-primary-100/30 text-white rounded-lg font-semibold text-sm">
-                    {pagination.page} / {pagination.pages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={!pagination.hasNext}
-                    className="px-3.5 py-2 bg-white/[0.05] border border-white/10 rounded-lg text-white text-sm hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Empty */}
-            {leaderboard.length === 0 && (
-              <div className="text-center py-24">
-                <Trophy className="w-14 h-14 text-white/10 mx-auto mb-4" />
-                <p className="text-white/30">Belum ada data leaderboard</p>
-              </div>
-            )}
-
-            {/* === CTA SECTION === */}
-            <div className="mt-16 relative rounded-2xl overflow-hidden">
-              {/* Purple gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-400/30 via-bg-secondary to-primary-200/20" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(246,58,230,0.12),transparent_70%)]" />
-
-              <div className="relative py-14 px-6 text-center">
-                <Flame className="w-8 h-8 text-primary-100/60 mx-auto mb-4" />
-                <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-3">
-                  Mau Masuk{" "}
-                  <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent italic">
-                    Leaderboard
-                  </span>
-                  ?
-                </h2>
-                <p className="text-white/40 mb-8 text-base">
-                  Belanja sekarang, nanti nama kamu bakal muncul di sini!
-                </p>
-                <div className="flex items-center justify-center gap-3 flex-wrap">
-                  <Link
-                    href="/rbx"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 hover:bg-primary-100/90 text-white font-bold rounded-xl transition-all shadow-lg shadow-primary-100/25"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Top Up RBX
-                  </Link>
-                  <Link
-                    href="/gamepass"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 text-white font-bold rounded-xl transition-all"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Beli Produk
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </>
         )}
+
+        {/* Leaderboard Table */}
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="relative mx-auto mb-8 w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-4 border-primary-100/20"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-primary-100 border-t-transparent animate-spin"></div>
+              </div>
+              <p className="text-white/70 text-lg">
+                Memuat data leaderboard...
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gradient-to-r from-primary-900/30 via-primary-800/40 to-primary-900/30 backdrop-blur-sm">
+                    <tr>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Peringkat
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Username
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Total Pembelian
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Jumlah Order
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Terakhir Order
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-bold uppercase tracking-wider text-white/90">
+                        Tier
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {leaderboard.map((entry, index) => (
+                      <tr
+                        key={entry._id}
+                        className={`hover:bg-white/5 transition-all duration-300 group ${
+                          entry.rank <= 3
+                            ? "bg-gradient-to-r from-primary-900/20 via-primary-800/10 to-primary-900/20"
+                            : ""
+                        }`}
+                      >
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="mr-3">
+                              {getRankIcon(entry.rank)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full flex items-center justify-center text-white font-bold mr-4 shadow-lg shadow-primary-100/20">
+                              {entry.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-lg font-semibold text-white group-hover:text-primary-100 transition-colors duration-300">
+                                {entry.username}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="text-xl font-bold text-primary-100">
+                            {formatCurrency(entry.totalSpent)}
+                          </div>
+                          <div className="text-sm text-white/60 mt-1">
+                            Avg: {formatCurrency(entry.avgOrderValue)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="text-lg text-white/90 font-medium">
+                            {entry.totalOrders} order
+                            {entry.totalOrders > 1 ? "s" : ""}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="text-sm text-white/70">
+                            {formatDate(entry.lastOrderDate)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          {getRoleBadge(entry)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="bg-white/5 backdrop-blur-sm px-6 py-6 border-t border-white/10">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
+                  <div className="text-sm text-white/70">
+                    Menampilkan {(pagination.page - 1) * pagination.limit + 1} -{" "}
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total,
+                    )}{" "}
+                    dari {pagination.total} top spenders
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() =>
+                        setCurrentPage(Math.max(1, currentPage - 1))
+                      }
+                      disabled={!pagination.hasPrev}
+                      className="px-3 lg:px-5 lg:py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className="hidden lg:block">Previous</span>
+                    </button>
+                    <span className="px-5 py-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 border border-primary-100/40 text-white rounded-xl font-semibold backdrop-blur-sm">
+                      {pagination.page} / {pagination.pages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={!pagination.hasNext}
+                      className="px-3 lg:px-5 lg:py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium flex items-center gap-2"
+                    >
+                      <span className="hidden lg:block">Next</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

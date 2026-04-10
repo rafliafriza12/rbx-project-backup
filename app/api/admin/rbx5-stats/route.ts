@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         mode: stats.mode,
-        unlimitedStock: stats.unlimitedStock || false,
         manualTotalStok: stats.manualTotalStok,
         manualTotalTerjual: stats.manualTotalTerjual,
         manualTotalCustomers: stats.manualTotalCustomers,
@@ -69,11 +68,6 @@ export async function PUT(request: NextRequest) {
       stats.mode = body.mode;
     }
 
-    // Update unlimited stock flag
-    if (body.unlimitedStock !== undefined) {
-      stats.unlimitedStock = Boolean(body.unlimitedStock);
-    }
-
     // Update manual values jika diberikan
     if (body.manualTotalStok !== undefined) {
       stats.manualTotalStok = Math.max(0, Number(body.manualTotalStok));
@@ -110,7 +104,6 @@ export async function PUT(request: NextRequest) {
       message: "Statistik berhasil diperbarui",
       data: {
         mode: stats.mode,
-        unlimitedStock: stats.unlimitedStock || false,
         manualTotalStok: stats.manualTotalStok,
         manualTotalTerjual: stats.manualTotalTerjual,
         manualTotalCustomers: stats.manualTotalCustomers,

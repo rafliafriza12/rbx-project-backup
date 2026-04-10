@@ -35,7 +35,6 @@ export default function AdminRbx5StatsPage() {
 
   // Form state
   const [mode, setMode] = useState<"auto" | "manual">("auto");
-  const [unlimitedStock, setUnlimitedStock] = useState(false);
   const [manualTotalStok, setManualTotalStok] = useState(0);
   const [manualTotalTerjual, setManualTotalTerjual] = useState(0);
   const [manualTotalCustomers, setManualTotalCustomers] = useState(0);
@@ -57,7 +56,6 @@ export default function AdminRbx5StatsPage() {
       if (configResult.ok && configResult.data.success) {
         setConfig(configResult.data.data);
         setMode(configResult.data.data.mode);
-        setUnlimitedStock(configResult.data.data.unlimitedStock || false);
         setManualTotalStok(configResult.data.data.manualTotalStok);
         setManualTotalTerjual(configResult.data.data.manualTotalTerjual);
         setManualTotalCustomers(configResult.data.data.manualTotalCustomers);
@@ -82,7 +80,6 @@ export default function AdminRbx5StatsPage() {
     try {
       const result = await updateRbx5StatsConfig({
         mode,
-        unlimitedStock,
         manualTotalStok,
         manualTotalTerjual,
         manualTotalCustomers,
@@ -170,30 +167,6 @@ export default function AdminRbx5StatsPage() {
             </div>
             <div className="text-sm text-gray-400 mt-1">Per 100 R$</div>
           </div>
-        </div>
-      </div>
-
-      {/* Unlimited Stock Toggle */}
-      <div className="admin-card">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Unlimited Stock</h2>
-            <p className="text-gray-400 text-sm mt-1">
-              Aktifkan untuk menampilkan &quot;Unlimited Stock&quot; di homepage, bukan angka stok
-            </p>
-          </div>
-          <button
-            onClick={() => setUnlimitedStock(!unlimitedStock)}
-            className={`relative w-14 h-7 rounded-full transition-colors ${
-              unlimitedStock ? "bg-green-500" : "bg-slate-600"
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
-                unlimitedStock ? "translate-x-7" : "translate-x-0.5"
-              }`}
-            />
-          </button>
         </div>
       </div>
 

@@ -233,7 +233,7 @@ export default function ForgotPasswordPage() {
         >
           <Link href="/" className="inline-block">
             <Image
-              src="/logo.webp"
+              src="/logo.png"
               alt="RBXNET Logo"
               width={80}
               height={32}

@@ -81,7 +81,6 @@ export async function fetchRbx5StatsLive() {
  */
 export async function updateRbx5StatsConfig(payload: {
   mode: "auto" | "manual";
-  unlimitedStock?: boolean;
   manualTotalStok: number;
   manualTotalTerjual: number;
   manualTotalCustomers: number;
