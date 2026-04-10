@@ -1,0 +1,652 @@
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import Transaction from "@/models/Transaction";
+import User from "@/models/User";
+import StockAccount from "@/models/StockAccount";
+import ResellerPackage from "@/models/ResellerPackage";
+import Rbx5Stats from "@/models/Rbx5Stats";
+import { duitkuService } from "@/lib/duitku";
+import EmailService from "@/lib/email";
+import { POST as buyPassHandler } from "@/app/api/buy-pass/route";
+import { PUT as updateStockAccountHandler } from "@/app/api/admin/stock-accounts/[id]/route";
+import {
+  notifyPaymentStatusChange,
+  notifyOrderStatusChange,
+} from "@/lib/discord";
+
+// Activate reseller package for user after payment settlement
+async function activateResellerPackage(transaction: any) {
+  try {
+    if (!transaction.customerInfo?.userId || !transaction.serviceId) {
+      console.log("Missing userId or serviceId for reseller activation");
+      return null;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) {
+      console.log("User not found for reseller activation");
+      return null;
+    }
+
+    const resellerPackage = await ResellerPackage.findById(
+      transaction.serviceId,
+    );
+    if (!resellerPackage) {
+      console.log("Reseller package not found:", transaction.serviceId);
+      return null;
+    }
+
+    // Calculate expiry date
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + resellerPackage.duration);
+
+    // Update user with reseller info
+    const previousTier = user.resellerTier || 0;
+    user.resellerTier = resellerPackage.tier;
+    user.resellerExpiry = expiryDate;
+    user.resellerPackageId = resellerPackage._id;
+    await user.save();
+
+    console.log(
+      `✅ Reseller activated for user ${user.email}: Tier ${
+        resellerPackage.tier
+      } (${resellerPackage.name}), Expires: ${expiryDate.toLocaleDateString(
+        "id-ID",
+      )}`,
+    );
+
+    return {
+      previousTier,
+      newTier: resellerPackage.tier,
+      packageName: resellerPackage.name,
+      discount: resellerPackage.discount,
+      expiryDate,
+    };
+  } catch (error) {
+    console.error("Error in activateResellerPackage:", error);
+    return null;
+  }
+}
+
+// Function to process gamepass purchase for robux_5_hari
+async function processGamepassPurchase(transaction: any) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+    console.log(
+      "Processing gamepass purchase for transaction:",
+      transaction.invoiceId,
+    );
+
+    // Ambil gamepass data dari root level, fallback ke rbx5Details.gamepass
+    const gamepassData =
+      (transaction.gamepass?.id ? transaction.gamepass : null) ||
+      (transaction.rbx5Details?.gamepass?.id
+        ? transaction.rbx5Details.gamepass
+        : null);
+
+    console.log("Gamepass data (resolved):", gamepassData);
+
+    if (!gamepassData || !gamepassData.id || !gamepassData.price) {
+      console.error(
+        "❌ Gamepass data tidak lengkap! Tidak bisa proses purchase.",
+      );
+      console.log(
+        "transaction.gamepass:",
+        JSON.stringify(transaction.gamepass),
+      );
+      console.log(
+        "transaction.rbx5Details?.gamepass:",
+        JSON.stringify(transaction.rbx5Details?.gamepass),
+      );
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        `Pesanan gagal: Data gamepass tidak lengkap`,
+        null,
+      );
+      return;
+    }
+
+    const gamepassPrice = gamepassData.price;
+
+    // Cari akun yang memiliki robux sama atau lebih dari price gamepass
+    const suitableAccount = await StockAccount.findOne({
+      robux: { $gte: gamepassPrice },
+      status: "active",
+    }).sort({ robux: 1 });
+
+    if (!suitableAccount) {
+      console.log("No suitable account found for gamepass purchase");
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        `Pesanan sedang diproses`,
+        null,
+      );
+      return;
+    }
+
+    console.log("Suitable account found:", suitableAccount.username);
+
+    // Validate dan update account data terlebih dahulu
+    console.log("🔄 Updating stock account data...");
+    const updateRequest = new NextRequest(
+      `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+        },
+        body: JSON.stringify({
+          robloxCookie: suitableAccount.robloxCookie,
+        }),
+      },
+    );
+
+    const updateAccountResponse = await updateStockAccountHandler(
+      updateRequest,
+      { params: Promise.resolve({ id: suitableAccount._id.toString() }) },
+    );
+
+    if (!updateAccountResponse.ok) {
+      console.error("Failed to update account data");
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        "Pesanan sedang diproses",
+        null,
+      );
+      return;
+    }
+
+    const updatedAccountData = await updateAccountResponse.json();
+
+    if (!updatedAccountData.success) {
+      console.error("Account validation failed:", updatedAccountData.message);
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        `Pesanan sedang diproses`,
+        null,
+      );
+      return;
+    }
+
+    // Cek apakah robux masih mencukupi setelah update
+    if (updatedAccountData.stockAccount.robux < gamepassPrice) {
+      console.log("Account robux insufficient after update");
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        `Pesanan sedang diproses`,
+        null,
+      );
+      return;
+    }
+
+    // Lakukan purchase gamepass (using direct import with Puppeteer)
+    console.log("🎯 Purchasing gamepass via Puppeteer...");
+    const purchaseRequest = new NextRequest(`${apiUrl}/api/buy-pass`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+      },
+      body: JSON.stringify({
+        robloxCookie: suitableAccount.robloxCookie,
+        gamepassId: gamepassData.id,
+        gamepassName: gamepassData.name,
+        price: gamepassData.price,
+        sellerId: gamepassData.sellerId,
+      }),
+    });
+
+    const purchaseResponse = await buyPassHandler(purchaseRequest);
+    const purchaseResult = await purchaseResponse.json();
+
+    if (purchaseResult.success) {
+      console.log("Gamepass purchase successful");
+
+      // Update order status to completed
+      await transaction.updateStatus(
+        "order",
+        "completed",
+        `Gamepass berhasil dibeli `,
+        null,
+      );
+
+      // Update account data setelah purchase - langsung kurangi robux di database
+      // Tidak perlu fetch ke Roblox lagi (menghindari socket error / rate limit)
+      console.log("🔄 Updating stock account robux in database...");
+      const deductPrice = gamepassData.price || 0;
+      suitableAccount.robux = Math.max(0, suitableAccount.robux - deductPrice);
+      suitableAccount.lastChecked = new Date();
+      await suitableAccount.save();
+      console.log(
+        `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${deductPrice})`,
+      );
+
+      // Record purchase di stats (untuk mode manual & tracking)
+      try {
+        await Rbx5Stats.recordPurchase(deductPrice, 1);
+        console.log("📊 Rbx5Stats updated after purchase");
+      } catch (statsError) {
+        console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+      }
+    } else {
+      console.error("Gamepass purchase failed:", purchaseResult.message);
+
+      // Check if it's a price mismatch error
+      const isPriceMismatch =
+        purchaseResult.message?.includes("Harga gamepass tidak sesuai") ||
+        purchaseResult.expectedPrice !== undefined;
+
+      if (isPriceMismatch) {
+        // Price mismatch - set to pending with detailed message
+        await transaction.updateStatus(
+          "order",
+          "pending",
+          `Pembelian ditunda: ${purchaseResult.message || "Harga gamepass berubah"}. Harga database: ${purchaseResult.expectedPrice || gamepassData.price} Robux, Harga di Roblox: ${purchaseResult.actualPrice || "tidak diketahui"} Robux. Silakan hubungi admin.`,
+          null,
+        );
+      } else {
+        // Other errors - set to pending with generic message
+        await transaction.updateStatus(
+          "order",
+          "pending",
+          `Pesanan sedang diproses. ${purchaseResult.message || ""}`,
+          null,
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error in processGamepassPurchase:", error);
+    await transaction.updateStatus(
+      "order",
+      "failed",
+      `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      null,
+    );
+  }
+}
+
+// Function to send email notification
+async function sendPaymentNotification(transaction: any, status: string) {
+  try {
+    if (status === "settlement" && transaction.customerInfo?.email) {
+      await EmailService.sendInvoiceEmail(transaction);
+      console.log(`Invoice email sent to ${transaction.customerInfo.email}`);
+    }
+  } catch (error) {
+    console.error("Error sending payment notification email:", error);
+    // Don't fail the webhook if email fails
+  }
+}
+
+/**
+ * Duitku Webhook Handler
+ * Endpoint: POST /api/transactions/webhook/duitku
+ *
+ * Duitku will send callback with the following payload:
+ * - merchantCode: Merchant code
+ * - amount: Transaction amount
+ * - merchantOrderId: Our order ID
+ * - productDetail: Product description
+ * - additionalParam: Additional parameters (if any)
+ * - paymentCode: Payment code used
+ * - resultCode: Transaction result (00=Success, 01=Pending, 02=Cancelled/Failed)
+ * - merchantUserId: User ID (if provided)
+ * - reference: Duitku reference number
+ * - signature: MD5 signature for verification
+ * - publisherOrderId: Publisher order ID
+ * - spUserHash: SP user hash (if applicable)
+ * - settlementDate: Settlement date (if applicable)
+ * - issuerCode: Issuer code (if applicable)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Parse callback data - Duitku sends as application/x-www-form-urlencoded
+    let callbackData: Record<string, any> = {};
+
+    const contentType = request.headers.get("content-type") || "";
+    console.log("📥 Duitku Webhook Content-Type:", contentType);
+
+    try {
+      if (contentType.includes("application/json")) {
+        // JSON format
+        callbackData = await request.json();
+      } else if (contentType.includes("application/x-www-form-urlencoded")) {
+        // URL-encoded form data
+        const formData = await request.formData();
+        formData.forEach((value, key) => {
+          callbackData[key] = value;
+        });
+      } else {
+        // Try to parse as text and determine format
+        const bodyText = await request.text();
+        console.log("📥 Duitku Webhook Raw Body:", bodyText);
+
+        // Try JSON first
+        try {
+          callbackData = JSON.parse(bodyText);
+        } catch {
+          // Try URL-encoded format
+          const params = new URLSearchParams(bodyText);
+          params.forEach((value, key) => {
+            callbackData[key] = value;
+          });
+        }
+      }
+    } catch (parseError) {
+      console.error("Error parsing Duitku webhook data:", parseError);
+
+      // Last resort: try to get raw body and parse as URL-encoded
+      try {
+        const clonedRequest = request.clone();
+        const bodyText = await clonedRequest.text();
+        console.log("📥 Duitku Webhook Raw Body (fallback):", bodyText);
+
+        const params = new URLSearchParams(bodyText);
+        params.forEach((value, key) => {
+          callbackData[key] = value;
+        });
+      } catch (fallbackError) {
+        console.error("Fallback parsing also failed:", fallbackError);
+        return NextResponse.json(
+          { error: "Failed to parse webhook data" },
+          { status: 400 },
+        );
+      }
+    }
+
+    console.log(
+      "📥 Duitku Webhook received:",
+      JSON.stringify(callbackData, null, 2),
+    );
+
+    const {
+      merchantCode,
+      amount,
+      merchantOrderId,
+      productDetail,
+      paymentCode,
+      resultCode,
+      reference,
+      signature,
+      settlementDate,
+    } = callbackData;
+
+    // Validate required fields
+    if (!merchantOrderId || !resultCode || !signature) {
+      console.error("Missing required fields in Duitku callback");
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
+    }
+
+    // Initialize Duitku service and verify signature
+    await duitkuService.initializeConfig();
+
+    const isValidSignature = await duitkuService.verifyCallbackSignature(
+      merchantCode,
+      amount,
+      merchantOrderId,
+      signature,
+    );
+
+    if (!isValidSignature) {
+      console.error("Invalid signature from Duitku webhook");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    console.log("✅ Duitku signature verified successfully");
+
+    // Find all transactions with this order ID
+    const transactions = await Transaction.find({
+      duitkuOrderId: merchantOrderId,
+    });
+
+    if (!transactions || transactions.length === 0) {
+      // Try to find by midtransOrderId as fallback (same field might be used)
+      const fallbackTransactions = await Transaction.find({
+        midtransOrderId: merchantOrderId,
+      });
+
+      if (!fallbackTransactions || fallbackTransactions.length === 0) {
+        console.error("Transaction not found for order_id:", merchantOrderId);
+        return NextResponse.json(
+          { error: "Transaction not found" },
+          { status: 404 },
+        );
+      }
+    }
+
+    const targetTransactions =
+      transactions.length > 0
+        ? transactions
+        : await Transaction.find({ midtransOrderId: merchantOrderId });
+
+    console.log(
+      `Found ${targetTransactions.length} transaction(s) with order_id: ${merchantOrderId}`,
+    );
+
+    // Update Duitku reference for all transactions
+    const updateReferencePromises = targetTransactions
+      .filter((t) => reference && !t.duitkuReference)
+      .map((t) => {
+        t.duitkuReference = reference;
+        return t.save();
+      });
+
+    await Promise.all(updateReferencePromises);
+
+    // Map Duitku status to application status
+    const statusMapping = duitkuService.mapDuitkuStatus(resultCode);
+
+    // Process each transaction
+    const updatedTransactions = [];
+    const rbx5TransactionsToProcess = [];
+
+    for (const transaction of targetTransactions) {
+      const previousPaymentStatus = transaction.paymentStatus;
+      const previousOrderStatus = transaction.orderStatus;
+
+      // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan webhook mengubah status lagi
+      if (transaction.paymentStatus === "settlement") {
+        console.log(
+          `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update dari webhook Duitku (incoming: ${statusMapping.paymentStatus})`,
+        );
+        updatedTransactions.push({
+          invoiceId: transaction.invoiceId,
+          previousStatus: previousPaymentStatus,
+          newStatus: transaction.paymentStatus,
+          orderStatus: transaction.orderStatus,
+          skipped: true,
+          reason: "Already settled",
+        });
+        continue;
+      }
+
+      // Update payment status jika berubah
+      if (transaction.paymentStatus !== statusMapping.paymentStatus) {
+        const statusMessage = settlementDate
+          ? `Payment ${statusMapping.paymentStatus} via Duitku (${paymentCode}). Reference: ${reference}. Settlement: ${settlementDate}`
+          : `Payment ${statusMapping.paymentStatus} via Duitku (${paymentCode}). Reference: ${reference}`;
+
+        await transaction.updateStatus(
+          "payment",
+          statusMapping.paymentStatus,
+          statusMessage,
+          null,
+        );
+
+        // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.customerInfo?.userId
+        ) {
+          try {
+            // Update spendedMoney user (hanya sekali per user per order)
+            const isFirstTransaction =
+              targetTransactions.findIndex((t) =>
+                t._id.equals(transaction._id),
+              ) === 0;
+
+            if (isFirstTransaction) {
+              const user = await User.findById(transaction.customerInfo.userId);
+              if (user) {
+                const totalOrderAmount = targetTransactions.reduce(
+                  (sum, t) => sum + (t.finalAmount || t.totalAmount),
+                  0,
+                );
+
+                user.spendedMoney += totalOrderAmount;
+                await user.save();
+
+                console.log(
+                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`,
+                );
+              }
+            }
+          } catch (userUpdateError) {
+            console.error("Error updating user spendedMoney:", userUpdateError);
+          }
+        }
+
+        // Activate reseller package if this is a reseller purchase
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.serviceType === "reseller_package"
+        ) {
+          const resellerResult = await activateResellerPackage(transaction);
+          if (resellerResult) {
+            console.log("Reseller package activated:", resellerResult);
+          }
+        }
+
+        // Check if this is a robux_5_hari transaction that needs processing
+        // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
+        const hasValidGamepassData =
+          (transaction.gamepass?.id && transaction.gamepass?.price) ||
+          (transaction.rbx5Details?.gamepass?.id &&
+            transaction.rbx5Details?.gamepass?.price);
+
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.serviceType === "robux" &&
+          transaction.serviceCategory === "robux_5_hari" &&
+          hasValidGamepassData
+        ) {
+          rbx5TransactionsToProcess.push(transaction);
+        }
+
+        // Send email notification
+        await sendPaymentNotification(transaction, statusMapping.paymentStatus);
+      }
+
+      // Update order status jika ada dan berubah
+      if (
+        statusMapping.orderStatus &&
+        transaction.orderStatus !== statusMapping.orderStatus
+      ) {
+        await transaction.updateStatus(
+          "order",
+          statusMapping.orderStatus,
+          `Order status updated from Duitku callback`,
+          null,
+        );
+      }
+
+      updatedTransactions.push({
+        invoiceId: transaction.invoiceId,
+        previousStatus: previousPaymentStatus,
+        newStatus: statusMapping.paymentStatus,
+        orderStatus: transaction.orderStatus,
+      });
+
+      // Send Discord notifications only for settlement (payment) and completed (order)
+      try {
+        if (
+          previousPaymentStatus !== statusMapping.paymentStatus &&
+          statusMapping.paymentStatus === "settlement"
+        ) {
+          await notifyPaymentStatusChange(
+            transaction,
+            previousPaymentStatus,
+            statusMapping.paymentStatus,
+            `Webhook Duitku: ${paymentCode}, Reference: ${reference}`,
+          );
+        }
+        if (
+          previousOrderStatus !== transaction.orderStatus &&
+          transaction.orderStatus === "completed"
+        ) {
+          await notifyOrderStatusChange(
+            transaction,
+            previousOrderStatus,
+            transaction.orderStatus,
+            `Order updated from Duitku webhook`,
+          );
+        }
+      } catch (discordError) {
+        console.error("Error sending Discord notification:", discordError);
+      }
+    }
+
+    // Process robux_5_hari transactions sequentially
+    for (const transaction of rbx5TransactionsToProcess) {
+      console.log(
+        `Processing robux_5_hari transaction: ${transaction.invoiceId}`,
+      );
+      await processGamepassPurchase(transaction);
+    }
+
+    console.log("✅ Duitku Webhook processed successfully:", {
+      merchantOrderId,
+      resultCode,
+      reference,
+      transactionsUpdated: updatedTransactions.length,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Webhook processed successfully",
+      data: {
+        merchantOrderId,
+        resultCode,
+        reference,
+        statusMapping,
+        transactionsUpdated: updatedTransactions,
+      },
+    });
+  } catch (error) {
+    console.error("Error in Duitku webhook:", error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET handler for Duitku webhook verification
+ * Some payment gateways send GET requests to verify the endpoint
+ */
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    status: "ok",
+    message: "Duitku webhook endpoint is active",
+    timestamp: new Date().toISOString(),
+  });
+}

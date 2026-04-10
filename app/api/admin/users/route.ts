@@ -1,0 +1,206 @@
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import User from "@/models/User";
+import ResellerPackage from "@/models/ResellerPackage";
+import { requireAdmin, requireApiKey, hashPassword } from "@/lib/auth";
+
+export async function GET(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
+  try {
+    await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
+    // Get URL params for pagination and search
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const search = url.searchParams.get("search") || "";
+    const role = url.searchParams.get("role") || "";
+
+    // Build query
+    const query: any = {};
+
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (role) {
+      query.accessRole = role;
+    }
+
+    // Calculate skip value for pagination
+    const skip = (page - 1) * limit;
+
+    // Get users with pagination
+    const users = await User.find(query)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Get total count for pagination
+    const totalUsers = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    const usersResponse = users.map((user) => ({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      countryCode: user.countryCode,
+      accessRole: user.accessRole,
+      resellerTier: user.resellerTier,
+      resellerExpiry: user.resellerExpiry,
+      resellerPackageId: user.resellerPackageId,
+      spendedMoney: user.spendedMoney,
+      isVerified: user.isVerified,
+      googleId: user.googleId,
+      profilePicture: user.profilePicture,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }));
+
+    return NextResponse.json(
+      {
+        message: "Data pengguna berhasil diambil",
+        users: usersResponse,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalUsers,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+      { status: 200 },
+    );
+  } catch (error: any) {
+    console.error("Get users error:", error);
+
+    return NextResponse.json(
+      { error: "Terjadi kesalahan server" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const apiKeyError = requireApiKey(request);
+  if (apiKeyError) return apiKeyError;
+
+  try {
+    await dbConnect();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      countryCode,
+      password,
+      accessRole,
+      resellerTier,
+      resellerExpiry,
+      resellerPackageId,
+    } = await request.json();
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password) {
+      return NextResponse.json(
+        { error: "Semua field wajib harus diisi" },
+        { status: 400 },
+      );
+    }
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Email sudah terdaftar" },
+        { status: 400 },
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Create user data
+    const userData: any = {
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      accessRole: accessRole || "user",
+    };
+
+    // Add optional fields if provided
+    if (phone) userData.phone = phone;
+    if (countryCode) userData.countryCode = countryCode;
+    if (resellerTier) userData.resellerTier = resellerTier;
+    if (resellerExpiry) userData.resellerExpiry = new Date(resellerExpiry);
+    if (resellerPackageId) userData.resellerPackageId = resellerPackageId;
+
+    // Create new user
+    const newUser = new User(userData);
+    await newUser.save();
+
+    const userResponse = {
+      _id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      phone: newUser.phone,
+      countryCode: newUser.countryCode,
+      accessRole: newUser.accessRole,
+      resellerTier: newUser.resellerTier,
+      resellerExpiry: newUser.resellerExpiry,
+      resellerPackageId: newUser.resellerPackageId,
+      spendedMoney: newUser.spendedMoney,
+      isVerified: newUser.isVerified,
+      createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt,
+    };
+
+    return NextResponse.json(
+      {
+        message: "Pengguna berhasil dibuat",
+        user: userResponse,
+      },
+      { status: 201 },
+    );
+  } catch (error: any) {
+    console.error("Create user error:", error);
+
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err: any) => err.message);
+      return NextResponse.json({ error: errors.join(", ") }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      { error: "Terjadi kesalahan server" },
+      { status: 500 },
+    );
+  }
+}

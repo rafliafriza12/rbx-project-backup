@@ -1,0 +1,2029 @@
+"use client";
+
+// Force dynamic rendering to avoid suspense issues
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-toastify";
+import Link from "next/link";
+import {
+  Wallet,
+  QrCode,
+  Building2,
+  Store,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  ShoppingCart,
+  User,
+  Gamepad2,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  CheckCircle,
+  Gem,
+  Sparkles,
+  Shield,
+  DollarSign,
+} from "lucide-react";
+import {
+  fetchPaymentSettings,
+  fetchPaymentMethods,
+  createTransaction,
+  createMultiTransaction,
+  clearCartItems,
+} from "./actions";
+
+interface CheckoutItem {
+  serviceType: string;
+  serviceId: string;
+  serviceName: string;
+  serviceImage: string;
+  serviceCategory?: string;
+  description?: string;
+  gameType?: string;
+  quantity: number;
+  unitPrice: number;
+  robloxUsername?: string;
+  robloxPassword?: string | null;
+  // Service-specific details
+  gamepassDetails?: any;
+  jokiDetails?: any;
+  robuxInstantDetails?: any;
+  rbx5Details?: any;
+  resellerDetails?: {
+    tier: number;
+    duration: number;
+    discount: number;
+    features: string[];
+  };
+}
+
+interface CheckoutData {
+  items: CheckoutItem[];
+  totalAmount: number;
+  discountPercentage?: number;
+  discountAmount?: number;
+  finalAmount?: number;
+}
+
+interface PaymentMethod {
+  id: string;
+  name: string;
+  icon: string;
+  fee: number;
+  feeType: "fixed" | "percentage";
+  description: string;
+  minimumAmount?: number;
+  maximumAmount?: number;
+}
+
+interface PaymentCategory {
+  id: string;
+  name: string;
+  icon: any;
+  description: string;
+  methods: PaymentMethod[];
+}
+
+function CheckoutContent() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Track if this is a multi-checkout from cart with different credentials per item
+  const [isMultiCheckoutFromCart, setIsMultiCheckoutFromCart] = useState(false);
+
+  // Form data
+  const [robloxUsername, setRobloxUsername] = useState("");
+  const [robloxPassword, setRobloxPassword] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
+  const [customerInfo, setCustomerInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+
+  // Debug render for customerInfo changes
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<string>("");
+  const [expandedCategory, setExpandedCategory] = useState<string>("ewallet");
+
+  // Phone validation state
+  const [phoneError, setPhoneError] = useState("");
+
+  // Check if this is guest checkout - user bisa checkout tanpa login
+  const isGuestCheckout = !user;
+
+  // Check if form is valid (untuk disable button)
+  const isFormValid = () => {
+    // Check basic requirements
+    if (!acceptTerms || !selectedPaymentMethod) return false;
+
+    // Check phone number
+    if (!customerInfo.phone || !customerInfo.phone.trim()) return false;
+
+    // Check if there's phone error
+    if (phoneError) return false;
+
+    // Validate phone format
+    const phoneValidationError = validatePhoneNumber(customerInfo.phone);
+    if (phoneValidationError) return false;
+
+    // Check guest checkout fields
+    if (isGuestCheckout) {
+      if (!customerInfo.name.trim() || !customerInfo.email.trim()) return false;
+    }
+
+    // Check Roblox credentials (jika bukan multi-checkout dan bukan reseller)
+    if (!isMultiCheckoutFromCart && checkoutData) {
+      const isResellerPurchase = checkoutData.items.some(
+        (item) => item.serviceType === "reseller",
+      );
+
+      if (!isResellerPurchase && !robloxUsername.trim()) return false;
+
+      // Check password requirement
+      const requiresPassword = checkoutData.items.some((item) => {
+        return (
+          item.serviceType === "joki" ||
+          (item.serviceType === "robux" && item.robuxInstantDetails)
+        );
+      });
+
+      if (requiresPassword && !robloxPassword.trim()) return false;
+    }
+
+    return true;
+  };
+
+  // Payment methods state - fetch from database
+  const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>(
+    [],
+  );
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
+
+  // Active payment gateway - only need to know which one is active
+  // All configs (keys, URLs) are handled by libs on server-side
+  const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+
+  // Fungsi untuk mengecek apakah payment method tersedia berdasarkan amount
+  const isPaymentMethodAvailable = (
+    method: PaymentMethod,
+    amount: number,
+  ): boolean => {
+    // Check minimum amount
+    if (method.minimumAmount && method.minimumAmount > 0) {
+      if (amount < method.minimumAmount) {
+        return false;
+      }
+    }
+
+    // Check maximum amount (0 means unlimited)
+    if (method.maximumAmount && method.maximumAmount > 0) {
+      if (amount > method.maximumAmount) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Fungsi untuk mendapatkan pesan error transaksi limit
+  const getTransactionLimitMessage = (
+    method: PaymentMethod,
+    amount: number,
+  ): string | null => {
+    if (method.minimumAmount && method.minimumAmount > 0) {
+      if (amount < method.minimumAmount) {
+        return `Min. Rp ${method.minimumAmount.toLocaleString("id-ID")}`;
+      }
+    }
+
+    if (method.maximumAmount && method.maximumAmount > 0) {
+      if (amount > method.maximumAmount) {
+        return `Maks. Rp ${method.maximumAmount.toLocaleString("id-ID")}`;
+      }
+    }
+
+    return null;
+  };
+
+  // Fungsi untuk menghitung biaya payment method
+  const calculatePaymentFee = (baseAmount: number, method: PaymentMethod) => {
+    if (method.feeType === "percentage") {
+      return Math.round((baseAmount * method.fee) / 100);
+    }
+    return method.fee;
+  };
+
+  // Fungsi untuk mendapatkan method dari semua kategori
+  const getAllMethods = (): PaymentMethod[] => {
+    return paymentCategories.flatMap((category) => category.methods);
+  };
+
+  // Fungsi untuk menghitung total dengan biaya payment method
+  const calculateFinalAmount = () => {
+    const baseAmount =
+      checkoutData?.finalAmount || checkoutData?.totalAmount || 0;
+    if (!selectedPaymentMethod) return baseAmount;
+
+    const allMethods = getAllMethods();
+    const paymentMethod = allMethods.find(
+      (pm) => pm.id === selectedPaymentMethod,
+    );
+    if (!paymentMethod) return baseAmount;
+
+    const paymentFee = calculatePaymentFee(baseAmount, paymentMethod);
+    return baseAmount + paymentFee;
+  };
+
+  // Fungsi untuk menghitung diskon
+  const calculateDiscount = (amount: number) => {
+    if (!user) {
+      return {
+        discountPercentage: 0,
+        discountAmount: 0,
+        finalAmount: amount,
+      };
+    }
+
+    const discountPercentage = user.diskon || 0;
+    const discountAmount = Math.round((amount * discountPercentage) / 100);
+    const finalAmount = amount - discountAmount;
+
+    return {
+      discountPercentage,
+      discountAmount,
+      finalAmount,
+    };
+  };
+
+  // Recalculate discount when user login status changes
+  useEffect(() => {
+    if (checkoutData && checkoutData.items && checkoutData.items.length > 0) {
+      // Recalculate base amount
+      const baseAmount = checkoutData.items.reduce((sum: number, item: any) => {
+        return sum + item.quantity * item.unitPrice;
+      }, 0);
+
+      // Recalculate discount based on current user
+      const discount = calculateDiscount(baseAmount);
+
+      // Update checkoutData with new discount
+      setCheckoutData({
+        ...checkoutData,
+        discountPercentage: discount.discountPercentage,
+        discountAmount: discount.discountAmount,
+        finalAmount: discount.finalAmount,
+      });
+    }
+  }, [user]); // Trigger when user changes (login/logout)
+
+  // Helper function to detect and format phone number with country code
+  const formatPhoneNumber = (phone: string, countryCode?: string) => {
+    if (!phone) return "";
+
+    // If phone already starts with +, return as is
+    if (phone.startsWith("+")) {
+      return phone;
+    }
+
+    // Clean the phone number (remove all non-digit characters)
+    let cleanPhone = phone.replace(/\D/g, "");
+
+    // Auto-detect country code from phone number pattern
+    let detectedCountryCode = countryCode || "+62"; // Default to Indonesia
+
+    // Indonesia: starts with 62 or 0
+    if (cleanPhone.startsWith("62")) {
+      detectedCountryCode = "+62";
+      cleanPhone = cleanPhone.substring(2); // Remove 62
+    } else if (cleanPhone.startsWith("0")) {
+      detectedCountryCode = "+62";
+      cleanPhone = cleanPhone.substring(1); // Remove leading 0
+    }
+    // Malaysia: starts with 60
+    else if (cleanPhone.startsWith("60")) {
+      detectedCountryCode = "+60";
+      cleanPhone = cleanPhone.substring(2);
+    }
+    // Singapore: starts with 65
+    else if (cleanPhone.startsWith("65")) {
+      detectedCountryCode = "+65";
+      cleanPhone = cleanPhone.substring(2);
+    }
+
+    const formatted = `${detectedCountryCode}${cleanPhone}`;
+    return formatted;
+  };
+
+  // Validate phone number format
+  const validatePhoneNumber = (phone: string): string => {
+    if (!phone || !phone.trim()) {
+      return "Nomor WhatsApp wajib diisi";
+    }
+
+    const cleanPhone = phone.replace(/\D/g, "");
+
+    if (cleanPhone.length < 8) {
+      return "Nomor WhatsApp minimal 8 digit";
+    }
+
+    if (cleanPhone.length > 15) {
+      return "Nomor WhatsApp maksimal 15 digit";
+    }
+
+    const validPatterns = [
+      /^\+?62[0-9]{9,13}$/, // Indonesia
+      /^0[0-9]{9,12}$/, // Indonesia local
+      /^\+?60[0-9]{9,10}$/, // Malaysia
+      /^\+?65[0-9]{8}$/, // Singapore
+      /^\+?[1-9][0-9]{7,14}$/, // Other countries
+    ];
+
+    const isValidFormat = validPatterns.some((pattern) =>
+      pattern.test(phone.replace(/[\s-]/g, "")),
+    );
+
+    if (!isValidFormat) {
+      return "Format nomor tidak valid. Contoh: +6281234567890";
+    }
+
+    return ""; // No error
+  };
+
+  // Handle phone input change with validation
+  const handlePhoneChange = (value: string) => {
+    setCustomerInfo((prev) => ({ ...prev, phone: value }));
+
+    // Only validate if user has typed something
+    if (value.trim()) {
+      const error = validatePhoneNumber(value);
+      setPhoneError(error);
+    } else {
+      setPhoneError(""); // Clear error if field is empty (will be caught on submit)
+    }
+  };
+
+  // Note: Midtrans/Duitku scripts are NOT loaded here
+  // Payment redirect URLs are provided by API transaction response
+  // All payment gateway configs are handled server-side by libs
+
+  useEffect(() => {
+    // Pre-fill customer info if user is logged in
+    if (user && !isGuestCheckout) {
+      // Format phone with auto-detection
+      const formattedPhone = formatPhoneNumber(
+        user.phone || "",
+        user.countryCode,
+      );
+
+      const newCustomerInfo = {
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
+        email: user.email || "",
+        phone: formattedPhone,
+      };
+
+      setCustomerInfo(newCustomerInfo);
+
+      // Check if user doesn't have phone number - will show editable field
+      if (!user.phone || user.phone.trim() === "") {
+      }
+
+      // Verify state after update with setTimeout
+      setTimeout(() => {}, 100);
+    } else {
+    }
+
+    // Get checkout data from sessionStorage
+    const sessionData = sessionStorage.getItem("checkoutData");
+
+    if (sessionData) {
+      try {
+        const parsedData = JSON.parse(sessionData);
+
+        // Handle both old single object and new array format
+        const itemsArray = Array.isArray(parsedData)
+          ? parsedData
+          : [parsedData];
+
+        // Check if this is multi-checkout from cart with different credentials
+        // Multi-checkout from cart: items already have robloxUsername/Password
+        const hasItemCredentials = itemsArray.some(
+          (item: any) => item.robloxUsername || item.robloxPassword,
+        );
+        const isMultiCheckout = itemsArray.length > 1 && hasItemCredentials;
+
+        setIsMultiCheckoutFromCart(isMultiCheckout);
+
+        // Calculate total amount from all items
+        const baseAmount = itemsArray.reduce((sum: number, item: any) => {
+          return sum + item.quantity * item.unitPrice;
+        }, 0);
+
+        const discount = calculateDiscount(baseAmount);
+
+        setCheckoutData({
+          items: itemsArray,
+          totalAmount: baseAmount,
+          discountPercentage: discount.discountPercentage,
+          discountAmount: discount.discountAmount,
+          finalAmount: discount.finalAmount,
+        });
+
+        // // DEBUG: Check backup code in loaded data
+        // itemsArray.forEach((item: any, index: number) => {
+        //     serviceType: item.serviceType,
+        //     robloxUsername: item.robloxUsername,
+        //     hasPassword: !!item.robloxPassword,
+        //     jokiDetails: item.jokiDetails,
+        //     robuxInstantDetails: item.robuxInstantDetails,
+        //     jokiNotes: item.jokiDetails?.notes,
+        //     jokiAdditionalInfo: item.jokiDetails?.additionalInfo,
+        //     robuxNotes: item.robuxInstantDetails?.notes,
+        //     robuxAdditionalInfo: item.robuxInstantDetails?.additionalInfo,
+        //   });
+        // });
+
+        // Pre-fill form data ONLY if NOT multi-checkout from cart
+        // Multi-checkout dari cart: setiap item sudah punya data sendiri
+        // Single checkout langsung: pakai form global
+        if (!isMultiCheckout) {
+          const firstItem = itemsArray[0];
+          if (firstItem.robloxUsername) {
+            setRobloxUsername(firstItem.robloxUsername);
+          }
+
+          // Only set password for services that require it (not for gamepass, rbx5, or reseller)
+          if (
+            firstItem.serviceType !== "gamepass" &&
+            firstItem.serviceType !== "reseller" &&
+            !(firstItem.serviceType === "robux" && firstItem.rbx5Details)
+          ) {
+            if (firstItem.robloxPassword) {
+              setRobloxPassword(firstItem.robloxPassword);
+            }
+          } else {
+            setRobloxPassword("");
+          }
+        } else {
+        }
+
+        // Data loaded successfully
+        // Backup code for Joki and Robux Instant will stay in item.jokiDetails and item.robuxInstantDetails
+        // Additional notes field is separate and universal for all services
+      } catch (error) {
+        toast.error("Data checkout tidak valid");
+        router.push("/");
+      }
+    } else {
+      // Fallback ke URL params
+      const serviceType = searchParams.get("serviceType");
+      const serviceId = searchParams.get("serviceId");
+      const serviceName = searchParams.get("serviceName");
+      const serviceImage = searchParams.get("serviceImage");
+      const quantity = parseInt(searchParams.get("quantity") || "1");
+      const unitPrice = parseInt(searchParams.get("unitPrice") || "0");
+
+      if (serviceType && serviceId && serviceName && unitPrice) {
+        const baseAmount = quantity * unitPrice;
+        const discount = calculateDiscount(baseAmount);
+
+        // Convert URL params to items array format
+        setCheckoutData({
+          items: [
+            {
+              serviceType,
+              serviceId,
+              serviceName,
+              serviceImage: serviceImage || "",
+              quantity,
+              unitPrice,
+            },
+          ],
+          totalAmount: baseAmount,
+          discountPercentage: discount.discountPercentage,
+          discountAmount: discount.discountAmount,
+          finalAmount: discount.finalAmount,
+        });
+      } else {
+        toast.error(
+          "Data checkout tidak ditemukan. Silakan pilih produk terlebih dahulu.",
+        );
+        router.push("/");
+      }
+    }
+
+    setLoading(false);
+  }, [user, router, searchParams]);
+
+  // Fetch active payment gateway FIRST
+  useEffect(() => {
+    const loadPaymentSettings = async () => {
+      try {
+        const result = await fetchPaymentSettings();
+
+        if (result.success && result.data) {
+          setActivePaymentGateway(
+            result.data.activePaymentGateway || "midtrans",
+          );
+        }
+      } catch (error) {
+        // Default to midtrans if fetch fails
+        setActivePaymentGateway("midtrans");
+      }
+    };
+
+    loadPaymentSettings();
+  }, []);
+
+  // Fetch payment methods AFTER gateway is known (filtered by active gateway)
+  useEffect(() => {
+    // Wait until we know which gateway is active
+    if (!activePaymentGateway) return;
+
+    const loadPaymentMethods = async () => {
+      setPaymentMethodsLoading(true);
+      try {
+        // Fetch payment methods filtered by active gateway via server action
+        const result = await fetchPaymentMethods(activePaymentGateway);
+
+        if (result.success && result.data) {
+          // Group payment methods by category
+          const groupedMethods: { [key: string]: any } = {};
+
+          result.data.forEach((method: any) => {
+            if (!groupedMethods[method.category]) {
+              groupedMethods[method.category] = {
+                id: method.category,
+                name: getCategoryName(method.category),
+                icon: getCategoryIcon(method.category),
+                description: getCategoryDescription(method.category),
+                methods: [],
+              };
+            }
+
+            groupedMethods[method.category].methods.push({
+              id: method.code.toLowerCase(),
+              name: method.name,
+              icon: method.icon,
+              fee: method.fee,
+              feeType: method.feeType,
+              description: method.description,
+              minimumAmount: method.minimumAmount || 0,
+              maximumAmount: method.maximumAmount || 0,
+              // Include gateway-specific codes
+              duitkuCode: method.duitkuCode,
+              midtransEnabled: method.midtransEnabled,
+              duitkuEnabled: method.duitkuEnabled,
+            });
+          });
+
+          // Sort methods by display order within each category
+          Object.values(groupedMethods).forEach((category: any) => {
+            category.methods.sort((a: any, b: any) => {
+              const methodA = result.data.find(
+                (m: any) => m.code.toLowerCase() === a.id,
+              );
+              const methodB = result.data.find(
+                (m: any) => m.code.toLowerCase() === b.id,
+              );
+              return (
+                (methodA?.displayOrder || 0) - (methodB?.displayOrder || 0)
+              );
+            });
+          });
+
+          setPaymentCategories(Object.values(groupedMethods));
+        }
+      } catch (error) {
+        setPaymentCategories([]);
+      } finally {
+        setPaymentMethodsLoading(false);
+      }
+    };
+
+    loadPaymentMethods();
+  }, [activePaymentGateway]); // Re-fetch when gateway changes
+
+  // Helper functions for category mapping
+  const getCategoryName = (category: string) => {
+    const names: { [key: string]: string } = {
+      ewallet: "E-Wallet",
+      bank_transfer: "Virtual Account",
+      qris: "QRIS",
+      retail: "Minimarket",
+      credit_card: "Credit Card",
+      other: "Lainnya",
+    };
+    return names[category] || category;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: { [key: string]: any } = {
+      ewallet: Wallet,
+      bank_transfer: Building2,
+      qris: QrCode,
+      retail: Store,
+      credit_card: CreditCard,
+      other: Wallet,
+    };
+    return icons[category] || Wallet;
+  };
+
+  const getCategoryDescription = (category: string) => {
+    const descriptions: { [key: string]: string } = {
+      ewallet: "Transfer langsung ke e-wallet",
+      bank_transfer: "Transfer melalui ATM/Mobile Banking",
+      qris: "Scan QR Code untuk pembayaran instant",
+      retail: "Bayar di kasir minimarket terdekat",
+      credit_card: "Pembayaran dengan kartu kredit",
+      other: "Metode pembayaran lainnya",
+    };
+    return descriptions[category] || "";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!checkoutData) {
+      toast.error("Data checkout tidak valid");
+      return;
+    }
+
+    // Validation - hanya cek form jika bukan multi-checkout dari cart
+    // Multi-checkout dari cart: data sudah ada di setiap item
+    if (!isMultiCheckoutFromCart) {
+      // Reseller packages don't need Roblox credentials
+      const isResellerPurchase = checkoutData.items.some(
+        (item) => item.serviceType === "reseller",
+      );
+
+      if (!isResellerPurchase && !robloxUsername.trim()) {
+        toast.error("Username Roblox harus diisi");
+        return;
+      }
+
+      // Check if any item requires password
+      const requiresPassword = checkoutData.items.some((item) => {
+        return (
+          item.serviceType === "joki" ||
+          (item.serviceType === "robux" && item.robuxInstantDetails)
+        );
+      });
+
+      if (requiresPassword && !robloxPassword.trim()) {
+        toast.error("Password Roblox harus diisi untuk layanan ini");
+        return;
+      }
+    } else {
+      // Multi-checkout: validasi setiap item punya credentials (kecuali reseller)
+      const missingCredentials = checkoutData.items.some(
+        (item) => item.serviceType !== "reseller" && !item.robloxUsername,
+      );
+
+      if (missingCredentials) {
+        toast.error(
+          "Ada item yang belum memiliki data Roblox. Silakan lengkapi di halaman cart.",
+        );
+        return;
+      }
+    }
+
+    // Guest checkout validation
+    if (isGuestCheckout) {
+      if (
+        !customerInfo.name.trim() ||
+        !customerInfo.email.trim() ||
+        !customerInfo.phone.trim()
+      ) {
+        toast.error("Semua field customer harus diisi untuk guest checkout");
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(customerInfo.email)) {
+        toast.error("Format email tidak valid");
+        return;
+      }
+    }
+
+    // For logged in users, ensure we have user data
+    if (!isGuestCheckout && !user) {
+      toast.error("Data user tidak ditemukan. Silakan login kembali.");
+      return;
+    }
+
+    // Validate phone number for all users (logged in and guest)
+    if (!customerInfo.phone || !customerInfo.phone.trim()) {
+      toast.error("Nomor WhatsApp wajib diisi!");
+      setPhoneError("Nomor WhatsApp wajib diisi"); // Set error state untuk visual feedback
+      return;
+    }
+
+    // Run full validation on phone number
+    const phoneValidationError = validatePhoneNumber(customerInfo.phone);
+    if (phoneValidationError) {
+      toast.error(phoneValidationError);
+      setPhoneError(phoneValidationError); // Set error state untuk visual feedback
+      return;
+    }
+
+    // Double check: Validate phone number format (redundant but safe)
+    const cleanPhone = customerInfo.phone.replace(/\D/g, ""); // Remove non-digits
+
+    // Phone number must be at least 8 digits and max 15 digits
+    if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+      const errorMsg =
+        "Nomor WhatsApp tidak valid. Minimal 8 digit, maksimal 15 digit.";
+      toast.error(errorMsg);
+      setPhoneError(errorMsg);
+      return;
+    }
+
+    // Check if phone starts with valid country code or local format
+    const validPatterns = [
+      /^\+?62[0-9]{9,13}$/, // Indonesia: +62 or 62, followed by 9-13 digits
+      /^0[0-9]{9,12}$/, // Indonesia: 0 followed by 9-12 digits
+      /^\+?60[0-9]{9,10}$/, // Malaysia: +60 or 60
+      /^\+?65[0-9]{8}$/, // Singapore: +65 or 65
+      /^\+?[1-9][0-9]{7,14}$/, // Other countries: + or digit, followed by 7-14 digits
+    ];
+
+    const isValidFormat = validPatterns.some((pattern) =>
+      pattern.test(customerInfo.phone.replace(/[\s-]/g, "")),
+    );
+
+    if (!isValidFormat) {
+      const errorMsg =
+        "Format nomor WhatsApp tidak valid. Contoh: +6281234567890 atau 081234567890";
+      toast.error(errorMsg);
+      setPhoneError(errorMsg);
+      // Scroll to phone input field
+      setTimeout(() => {
+        const phoneInput = document.querySelector('input[type="tel"]');
+        if (phoneInput) {
+          phoneInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          (phoneInput as HTMLInputElement).focus();
+        }
+      }, 100);
+      return;
+    }
+
+    // Clear phone error if validation passed
+    setPhoneError("");
+
+    if (!selectedPaymentMethod) {
+      toast.error("Pilih metode pembayaran terlebih dahulu");
+      return;
+    }
+
+    // Validate payment method availability based on amount
+    const allMethods = getAllMethods();
+    const selectedPayment = allMethods.find(
+      (pm) => pm.id === selectedPaymentMethod,
+    );
+
+    if (!selectedPayment) {
+      toast.error("Metode pembayaran tidak valid");
+      return;
+    }
+
+    const baseAmountAfterDiscount =
+      checkoutData.finalAmount || checkoutData.totalAmount;
+
+    if (!isPaymentMethodAvailable(selectedPayment, baseAmountAfterDiscount)) {
+      const limitMessage = getTransactionLimitMessage(
+        selectedPayment,
+        baseAmountAfterDiscount,
+      );
+      toast.error(
+        `Metode pembayaran ${selectedPayment.name} tidak tersedia. ${
+          limitMessage || ""
+        }`,
+      );
+      return;
+    }
+
+    if (!acceptTerms) {
+      toast.error("Anda harus menyetujui syarat dan ketentuan");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const paymentFee = calculatePaymentFee(
+      baseAmountAfterDiscount,
+      selectedPayment,
+    );
+
+    // Calculate final amount (after discount + payment fee)
+    const finalAmountWithFee = baseAmountAfterDiscount + paymentFee;
+
+    // Prepare items for transaction
+    // Multi-checkout dari cart: gunakan data dari setiap item
+    // Single checkout langsung: gunakan data dari form global
+    const itemsWithCredentials = checkoutData.items.map((item) => {
+      // Jika multi-checkout dari cart, gunakan credentials dari item
+      // Jika single checkout, gunakan credentials dari form
+      const itemUsername = isMultiCheckoutFromCart
+        ? item.robloxUsername
+        : robloxUsername;
+      const itemPassword = isMultiCheckoutFromCart
+        ? item.robloxPassword
+        : item.serviceType === "gamepass" || item.rbx5Details
+          ? ""
+          : robloxPassword;
+
+      return {
+        ...item,
+        robloxUsername: itemUsername,
+        robloxPassword: itemPassword,
+        // Preserve joki details dengan backup code
+        jokiDetails:
+          item.serviceType === "joki" && item.jokiDetails
+            ? {
+                ...item.jokiDetails,
+                notes:
+                  item.jokiDetails.notes ||
+                  item.jokiDetails.additionalInfo ||
+                  "",
+                additionalInfo:
+                  item.jokiDetails.additionalInfo ||
+                  item.jokiDetails.notes ||
+                  "",
+              }
+            : item.jokiDetails,
+        // Preserve robux instant details dengan backup code
+        robuxInstantDetails: item.robuxInstantDetails
+          ? {
+              ...item.robuxInstantDetails,
+              additionalInfo:
+                item.robuxInstantDetails.additionalInfo ||
+                item.robuxInstantDetails.notes ||
+                "",
+              notes:
+                item.robuxInstantDetails.notes ||
+                item.robuxInstantDetails.additionalInfo ||
+                "",
+            }
+          : undefined,
+        // Preserve rbx5 details dengan backup code
+        rbx5Details: item.rbx5Details
+          ? {
+              ...item.rbx5Details,
+              backupCode: item.rbx5Details.backupCode || "",
+            }
+          : undefined,
+      };
+    });
+
+    const requestData = {
+      items: itemsWithCredentials,
+      totalAmount: checkoutData.totalAmount,
+      discountPercentage: checkoutData.discountPercentage || 0,
+      discountAmount: checkoutData.discountAmount || 0,
+      finalAmount: finalAmountWithFee, // This includes payment fee
+      paymentMethodId: selectedPaymentMethod, // Send as paymentMethodId (API can handle both code and ObjectId)
+      paymentFee: paymentFee,
+      additionalNotes: additionalNotes.trim() || undefined, // Universal additional notes from checkout
+      customerInfo: isGuestCheckout
+        ? {
+            name: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+          }
+        : {
+            name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+            email: user.email,
+            phone: user.phone,
+            userId: user.id,
+          },
+      userId: isGuestCheckout ? null : user.id,
+    };
+
+    try {
+      // Determine if this is a multi-transaction
+      const isMultiTransaction = itemsWithCredentials.length > 1;
+
+      // Helper: strip sensitive price fields from rbx5Details before sending
+      // Server will recalculate: unitPrice, gamepassAmount, pricePerRobux from DB
+      const sanitizeRbx5Details = (rbx5: any) => {
+        if (!rbx5) return undefined;
+        return {
+          robuxAmount: rbx5.robuxAmount, // needed for custom orders
+          packageName: rbx5.packageName,
+          selectedPlace: rbx5.selectedPlace
+            ? {
+                placeId: rbx5.selectedPlace.placeId,
+                name: rbx5.selectedPlace.name,
+              }
+            : undefined,
+          gamepassCreated: rbx5.gamepassCreated,
+          backupCode: rbx5.backupCode || "",
+          // Gamepass: only send identifiers, server recalculates price
+          gamepass: rbx5.gamepass
+            ? {
+                id: rbx5.gamepass.id,
+                name: rbx5.gamepass.name,
+                productId: rbx5.gamepass.productId,
+                sellerId: rbx5.gamepass.sellerId,
+                // price, pricePerRobux, gamepassAmount → server-side only
+              }
+            : undefined,
+          // DO NOT send: gamepassAmount, pricePerRobux, price
+        };
+      };
+
+      // Prepare request data based on transaction type
+      const finalRequestData: any = isMultiTransaction
+        ? {
+            // Multi-checkout format — strip all price fields, server recalculates
+            items: itemsWithCredentials.map((item) => ({
+              serviceType: item.serviceType,
+              serviceId: item.serviceId,
+              serviceName: item.serviceName,
+              serviceImage: item.serviceImage || "",
+              serviceCategory: item.serviceCategory,
+              quantity: item.quantity,
+              robloxUsername: item.robloxUsername,
+              robloxPassword: item.robloxPassword || null,
+              jokiDetails: item.jokiDetails,
+              robuxInstantDetails: item.robuxInstantDetails,
+              rbx5Details: sanitizeRbx5Details(item.rbx5Details),
+              gamepassDetails: item.gamepassDetails,
+              resellerDetails: item.resellerDetails,
+              // unitPrice, totalAmount, discountAmount, paymentFee → NOT sent
+            })),
+            paymentMethodId: selectedPaymentMethod,
+            additionalNotes: additionalNotes.trim() || undefined,
+            customerInfo: requestData.customerInfo,
+            userId: requestData.userId,
+            // totalAmount, discountPercentage, discountAmount, finalAmount, paymentFee → NOT sent
+          }
+        : {
+            // Single checkout format — strip all price fields, server recalculates
+            serviceType: itemsWithCredentials[0].serviceType,
+            serviceId: itemsWithCredentials[0].serviceId,
+            serviceName: itemsWithCredentials[0].serviceName,
+            serviceImage: itemsWithCredentials[0].serviceImage || "",
+            serviceCategory: itemsWithCredentials[0].serviceCategory,
+            quantity: itemsWithCredentials[0].quantity,
+            robloxUsername: itemsWithCredentials[0].robloxUsername,
+            robloxPassword: itemsWithCredentials[0].robloxPassword || null,
+            jokiDetails: itemsWithCredentials[0].jokiDetails,
+            robuxInstantDetails: itemsWithCredentials[0].robuxInstantDetails,
+            rbx5Details: sanitizeRbx5Details(
+              itemsWithCredentials[0].rbx5Details,
+            ),
+            gamepassDetails: itemsWithCredentials[0].gamepassDetails,
+            resellerDetails: itemsWithCredentials[0].resellerDetails,
+            paymentMethodId: selectedPaymentMethod,
+            additionalNotes: additionalNotes.trim() || undefined,
+            customerInfo: requestData.customerInfo,
+            userId: requestData.userId,
+            // unitPrice, totalAmount, discountPercentage, discountAmount,
+            // finalAmount, paymentFee, gamepass.price → NOT sent
+          };
+
+      // Call server action based on transaction type
+      const result = isMultiTransaction
+        ? await createMultiTransaction(finalRequestData)
+        : await createTransaction(finalRequestData);
+
+      if (result.success) {
+        // Clear cart items if checkout was from cart
+        const cartItemIds = itemsWithCredentials
+          .map((item: any) => item.cartItemId)
+          .filter((id: any) => id); // Filter out undefined/null IDs
+
+        if (cartItemIds.length > 0 && user?.id) {
+          try {
+            await clearCartItems(user.id, cartItemIds);
+          } catch (clearError) {
+            // Don't block the checkout flow if cart clear fails
+          }
+        }
+
+        // Clear sessionStorage on successful transaction
+        sessionStorage.removeItem("checkoutData");
+
+        toast.success("Transaksi berhasil dibuat!");
+
+        // Redirect to payment page based on response from API
+        // Check if QR code is available (GoPay/QRIS Core API)
+        if (result.data?.qrCodeUrl) {
+          // Redirect to transaction detail page to show QR code
+          if (result.data?.transactions?.[0]?._id) {
+            router.push(`/riwayat/${result.data.transactions[0]._id}`);
+          } else if (result.data?.transaction?._id) {
+            router.push(`/riwayat/${result.data.transaction._id}`);
+          } else {
+            router.push("/riwayat");
+          }
+        } else if (result.data?.redirectUrl) {
+          // Use redirect URL from API (works for both Midtrans and Duitku)
+          window.location.href = result.data.redirectUrl;
+        } else if (result.data?.duitkuPaymentUrl) {
+          // Duitku specific payment URL
+          window.location.href = result.data.duitkuPaymentUrl;
+        } else if (result.data?.transaction?._id) {
+          // Fallback to transaction detail
+          router.push(`/transaction/${result.data.transaction._id}`);
+        } else if (result.data?.transactions?.[0]?._id) {
+          // Multi-transaction: redirect to first transaction
+          router.push(`/transaction/${result.data.transactions[0]._id}`);
+        } else {
+          router.push("/riwayat");
+        }
+      } else {
+        toast.error(
+          result.error ||
+            result.message ||
+            "Terjadi kesalahan saat membuat transaksi",
+        );
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat membuat transaksi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#22102A]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-pink mx-auto mb-4"></div>
+          <p className="text-primary-100 font-medium">
+            Memuat halaman checkout...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!checkoutData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#22102A]">
+        <div className="text-center max-w-md mx-auto p-8 neon-card rounded-xl">
+          <div className="text-neon-pink mb-6">
+            <AlertTriangle className="w-20 h-20 mx-auto" />
+          </div>
+          <h1 className="text-2xl font-bold text-primary-100 mb-4">
+            Data Checkout Tidak Ditemukan
+          </h1>
+          <p className="text-primary-200 mb-6">
+            Tidak dapat menemukan data checkout yang diperlukan.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push("/")}
+              className="w-full btn-neon-primary px-6 py-3 rounded-lg font-medium"
+            >
+              🏠 Pilih Produk dari Beranda
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="w-full btn-neon-secondary px-6 py-3 rounded-lg font-medium"
+            >
+              ← Kembali ke Halaman Sebelumnya
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#22102A] py-8">
+      {/* Background Effects */}
+      <div className="absolute top-20 left-10 w-20 h-20 bg-neon-pink/20 rounded-full blur-xl animate-pulse"></div>
+      <div className="absolute bottom-20 right-10 w-32 h-32 bg-neon-purple/20 rounded-full blur-xl animate-pulse"></div>
+
+      <div className="max-w-7xl mx-auto px-4 relative">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-black text-white mb-3">
+            Selesaikan <span className="text-neon-pink">Pesanan</span>
+          </h1>
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+            Lengkapi data untuk melanjutkan pembayaran dengan aman
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Order Summary & Payment - Left Column */}
+          <div className="lg:col-span-1 space-y-5">
+            {/* Order Summary */}
+            <div className="neon-card rounded-2xl p-5">
+              <h2 className="text-lg font-bold text-white mb-4 flex items-center">
+                <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
+                  <Gem className="w-4 h-4 text-neon-pink" />
+                </div>
+                Ringkasan Pesanan
+              </h2>
+
+              <div className="neon-card-secondary rounded-xl p-6 mb-6 text-white">
+                {/* Display all items */}
+                <div className="space-y-4 mb-4">
+                  {checkoutData.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-4 pb-4 border-b border-neon-purple/20 last:border-0 last:pb-0"
+                    >
+                      {/* Show dollar icon for rbx5 and robux instant, otherwise show image */}
+                      {item.rbx5Details || item.robuxInstantDetails ? (
+                        <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg border-2 border-green-500/30">
+                          <DollarSign className="w-8 h-8 text-green-400" />
+                        </div>
+                      ) : (
+                        item.serviceImage && (
+                          <img
+                            src={item.serviceImage}
+                            alt={item.serviceName}
+                            className="w-16 h-16 object-cover rounded-lg border-2 border-neon-purple/30"
+                          />
+                        )
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white mb-1">
+                          {item.serviceName}
+                        </h3>
+
+                        {/* Show gamepassDetails if available */}
+                        {item.gamepassDetails && (
+                          <div className="text-xs text-white/70 mt-1">
+                            <div>Game: {item.gamepassDetails.gameName}</div>
+                            <div>Item: {item.gamepassDetails.itemName}</div>
+                          </div>
+                        )}
+
+                        {/* Show jokiDetails if available */}
+                        {item.jokiDetails && (
+                          <div className="text-xs text-white/70 mt-1">
+                            <div>Game: {item.jokiDetails.gameName}</div>
+                            <div>Item: {item.jokiDetails.itemName}</div>
+                          </div>
+                        )}
+
+                        <p className="text-sm text-white capitalize mb-2">
+                          {item.serviceType}
+                          {item.rbx5Details && (
+                            <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              5 Hari
+                            </span>
+                          )}
+                          {item.robuxInstantDetails && (
+                            <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              Instant
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-white">
+                            Qty: {item.quantity}
+                          </span>
+                          <span className="font-medium text-white">
+                            Rp {item.unitPrice.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-neon-purple/20 pt-4 space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-white">Subtotal:</span>
+                    <span className="text-white">
+                      Rp {checkoutData.totalAmount.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+
+                  {(checkoutData.discountPercentage || 0) > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-green-400">
+                        Diskon ({checkoutData.discountPercentage}%):
+                      </span>
+                      <span className="text-green-400">
+                        - Rp{" "}
+                        {(checkoutData.discountAmount || 0).toLocaleString(
+                          "id-ID",
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedPaymentMethod && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-white">Biaya Admin:</span>
+                      <span className="text-white">
+                        + Rp{" "}
+                        {(() => {
+                          const allMethods = getAllMethods();
+                          const method = allMethods.find(
+                            (pm) => pm.id === selectedPaymentMethod,
+                          );
+                          return method
+                            ? calculatePaymentFee(
+                                checkoutData.finalAmount ||
+                                  checkoutData.totalAmount,
+                                method,
+                              ).toLocaleString("id-ID")
+                            : "0";
+                        })()}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center border-t border-neon-purple/20 pt-3">
+                    <span className="font-bold text-white">Total Bayar:</span>
+                    <span className="font-bold text-xl text-neon-pink">
+                      Rp {calculateFinalAmount().toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Notice */}
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                <div className="flex">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 mr-3 mt-0.5" />
+                  <div className="text-sm text-amber-300">
+                    <p className="font-medium">🔐 Keamanan Data Terjamin</p>
+                    <p className="text-amber-400 mt-1">
+                      Kami tidak menyimpan password Roblox Anda. Data hanya
+                      digunakan untuk proses transaksi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="neon-card rounded-2xl p-5">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                <div className="w-7 h-7 bg-neon-purple/20 rounded-lg flex items-center justify-center mr-3">
+                  <CreditCard className="w-4 h-4 text-neon-purple" />
+                </div>
+                Pilih Metode Pembayaran
+              </h3>
+
+              {paymentMethodsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-pink"></div>
+                  <span className="ml-3 text-primary-300">
+                    Memuat metode pembayaran...
+                  </span>
+                </div>
+              ) : paymentCategories.length === 0 ? (
+                <div className="text-center py-8 text-primary-300">
+                  <p>Tidak ada metode pembayaran tersedia.</p>
+                  <p className="text-sm mt-1">Silakan hubungi admin.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paymentCategories.map((category) => {
+                    const baseAmount =
+                      checkoutData.finalAmount || checkoutData.totalAmount;
+                    const availableMethodsCount = category.methods.filter(
+                      (method) => isPaymentMethodAvailable(method, baseAmount),
+                    ).length;
+                    const totalMethodsCount = category.methods.length;
+
+                    return (
+                      <div
+                        key={category.id}
+                        className="neon-card-secondary rounded-xl overflow-hidden"
+                      >
+                        {/* Category Header */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedCategory(
+                              expandedCategory === category.id
+                                ? ""
+                                : category.id,
+                            )
+                          }
+                          className="w-full p-4 flex items-center justify-between text-left hover:bg-primary-600/20 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-neon-pink/10 rounded-lg flex items-center justify-center mr-3">
+                              <category.icon className="w-4 h-4 text-neon-pink" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-white">
+                                {category.name}
+                                {availableMethodsCount < totalMethodsCount && (
+                                  <span className="ml-2 text-xs font-normal text-primary-400">
+                                    ({availableMethodsCount}/{totalMethodsCount}{" "}
+                                    tersedia)
+                                  </span>
+                                )}
+                              </h4>
+                              <p className="text-xs text-white">
+                                {category.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-neon-purple">
+                            {expandedCategory === category.id ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Category Methods */}
+                        {expandedCategory === category.id && (
+                          <div className="border-t border-neon-purple/20 p-4 pt-3">
+                            <div className="grid grid-cols-1 gap-3">
+                              {category.methods.map((method) => {
+                                const baseAmount =
+                                  checkoutData.finalAmount ||
+                                  checkoutData.totalAmount;
+                                const fee = calculatePaymentFee(
+                                  baseAmount,
+                                  method,
+                                );
+                                const isAvailable = isPaymentMethodAvailable(
+                                  method,
+                                  baseAmount,
+                                );
+                                const limitMessage = getTransactionLimitMessage(
+                                  method,
+                                  baseAmount,
+                                );
+
+                                return (
+                                  <div
+                                    key={method.id}
+                                    onClick={() =>
+                                      isAvailable &&
+                                      setSelectedPaymentMethod(method.id)
+                                    }
+                                    className={`p-3 rounded-lg border-2 transition-all duration-300 ${
+                                      !isAvailable
+                                        ? "border-primary-600/30 bg-primary-800/30 cursor-not-allowed opacity-60"
+                                        : selectedPaymentMethod === method.id
+                                          ? "border-neon-pink bg-neon-pink/10 shadow-lg glow-neon-pink cursor-pointer"
+                                          : "border-primary-600/50 bg-primary-700/20 hover:border-neon-purple/50 hover:bg-primary-600/20 cursor-pointer"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center">
+                                        {method.icon &&
+                                        method.icon.startsWith("http") ? (
+                                          <img
+                                            src={method.icon}
+                                            alt={method.name}
+                                            className={`w-6 h-6 object-cover rounded mr-2 ${
+                                              !isAvailable ? "grayscale" : ""
+                                            }`}
+                                          />
+                                        ) : (
+                                          <span
+                                            className={`text-lg mr-2 ${
+                                              !isAvailable ? "opacity-50" : ""
+                                            }`}
+                                          >
+                                            {method.icon}
+                                          </span>
+                                        )}
+                                        <span
+                                          className={`font-semibold text-sm ${
+                                            !isAvailable
+                                              ? "text-white/50"
+                                              : "text-white"
+                                          }`}
+                                        >
+                                          {method.name}
+                                        </span>
+                                      </div>
+                                      <div className="text-right">
+                                        {!isAvailable && limitMessage ? (
+                                          <div className="text-xs text-red-400 font-medium">
+                                            {limitMessage}
+                                          </div>
+                                        ) : (
+                                          <div className="text-xs text-white">
+                                            +{" "}
+                                            {method.feeType === "percentage"
+                                              ? `${method.fee}%`
+                                              : `Rp ${fee.toLocaleString(
+                                                  "id-ID",
+                                                )}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <p
+                                      className={`text-xs ${
+                                        !isAvailable
+                                          ? "text-white/40"
+                                          : "text-white"
+                                      }`}
+                                    >
+                                      {method.description}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Form - Right Column */}
+          <div className="lg:col-span-1">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Customer Information */}
+              {isGuestCheckout && (
+                <div className="neon-card rounded-2xl p-5">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                    <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
+                      <User className="w-4 h-4 text-neon-pink" />
+                    </div>
+                    Informasi Pelanggan
+                  </h3>
+                  <div className="grid gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-primary-200 mb-2">
+                        Nama Lengkap <span className="text-neon-pink">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customerInfo.name}
+                        onChange={(e) =>
+                          setCustomerInfo((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        placeholder="Masukkan nama lengkap Anda"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-200 mb-2">
+                        Email <span className="text-neon-pink">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={customerInfo.email}
+                        onChange={(e) =>
+                          setCustomerInfo((prev) => ({
+                            ...prev,
+                            email: e.target.value,
+                          }))
+                        }
+                        className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                        placeholder="contoh@email.com"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-200 mb-2">
+                        Nomor WhatsApp <span className="text-neon-pink">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        className={`w-full p-3 border-2 rounded-lg backdrop-blur-md text-white placeholder-white/50 focus:bg-white/10 focus:outline-none transition-all duration-300 ${
+                          phoneError
+                            ? "border-red-500/50 bg-red-500/5 focus:border-red-500"
+                            : "border-white/20 bg-white/5 focus:border-neon-pink"
+                        }`}
+                        placeholder="Contoh: +6281234567890 atau 081234567890"
+                        required
+                      />
+                      {phoneError && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                          <AlertTriangle className="w-4 h-4" />
+                          {phoneError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Customer Information for Logged In Users (Read-only display with editable phone) */}
+              {!isGuestCheckout && user && (
+                <div className="neon-card rounded-2xl p-5">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                    <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
+                      <User className="w-4 h-4 text-neon-pink" />
+                    </div>
+                    Informasi Pelanggan
+                    <span className="ml-auto text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
+                      Auto-filled
+                    </span>
+                  </h3>
+                  <div className="grid gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-primary-200 mb-2">
+                        Nama Lengkap
+                      </label>
+                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white">
+                        {`${user.firstName || ""} ${
+                          user.lastName || ""
+                        }`.trim() || "Tidak tersedia"}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-200 mb-2">
+                        Email
+                      </label>
+                      <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white">
+                        {user.email || "Tidak tersedia"}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-200 mb-2">
+                        Nomor WhatsApp <span className="text-neon-pink">*</span>
+                        {(!user.phone || user.phone.trim() === "") && (
+                          <span className="ml-2 text-xs text-yellow-400">
+                            (Harap isi nomor HP)
+                          </span>
+                        )}
+                      </label>
+                      {user.phone && user.phone.trim() !== "" ? (
+                        <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-mono">
+                          {customerInfo.phone}
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="tel"
+                            value={customerInfo.phone}
+                            onChange={(e) => handlePhoneChange(e.target.value)}
+                            className={`w-full p-3 border-2 rounded-lg backdrop-blur-md text-white placeholder-white/50 focus:bg-white/10 focus:outline-none transition-all duration-300 ${
+                              phoneError
+                                ? "border-red-500/50 bg-red-500/5 focus:border-red-500"
+                                : "border-yellow-500/50 bg-yellow-500/5 focus:border-neon-pink"
+                            }`}
+                            placeholder="Contoh: +6281234567890 atau 081234567890"
+                            required
+                          />
+                          {phoneError && (
+                            <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                              <AlertTriangle className="w-4 h-4" />
+                              {phoneError}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Roblox Account - Hide for Reseller packages */}
+              {!checkoutData.items.some(
+                (item) => item.serviceType === "reseller",
+              ) && (
+                <div className="neon-card rounded-2xl p-5">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                    <div className="w-7 h-7 bg-neon-purple/20 rounded-lg flex items-center justify-center mr-3">
+                      <Gamepad2 className="w-4 h-4 text-neon-purple" />
+                    </div>
+                    Data Akun Roblox
+                  </h3>
+
+                  {/* Info jika multi-checkout dari cart */}
+                  {isMultiCheckoutFromCart ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                        <p className="text-sm text-blue-200 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>
+                            Anda checkout multiple items dari keranjang. Data
+                            Roblox (username, password, backup code) untuk
+                            setiap item sudah disimpan saat menambahkan ke
+                            keranjang.
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* Show items dengan credentials */}
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-primary-200">
+                          Items dengan Data Roblox:
+                        </p>
+                        {checkoutData.items.map((item, index) => {
+                          // Extract backup code from different sources
+                          const backupCode =
+                            item.jokiDetails?.notes ||
+                            item.jokiDetails?.additionalInfo ||
+                            item.robuxInstantDetails?.notes ||
+                            item.robuxInstantDetails?.additionalInfo ||
+                            item.rbx5Details?.backupCode;
+
+                          return (
+                            <div
+                              key={index}
+                              className="bg-white/5 border border-white/10 rounded-lg p-3"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-neon-pink/20 to-neon-purple/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-bold text-white">
+                                    #{index + 1}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-white truncate">
+                                    {item.serviceName}
+                                  </p>
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-xs text-primary-300">
+                                      Username:{" "}
+                                      <span className="text-green-400 font-medium">
+                                        {item.robloxUsername || "Belum diisi"}
+                                      </span>
+                                    </p>
+                                    {item.robloxPassword && (
+                                      <p className="text-xs text-primary-300">
+                                        Password:{" "}
+                                        <span className="text-yellow-400 font-mono">
+                                          ••••••••
+                                        </span>
+                                      </p>
+                                    )}
+                                    {backupCode && backupCode.trim() !== "" && (
+                                      <p className="text-xs text-primary-300">
+                                        Backup Code:{" "}
+                                        <span className="text-blue-400 font-medium">
+                                          {backupCode}
+                                        </span>
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    // Form untuk single checkout
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-primary-200 mb-2">
+                          Username Roblox{" "}
+                          <span className="text-neon-pink">*</span>
+                        </label>
+                        {robloxUsername ? (
+                          <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-medium">
+                            {robloxUsername}
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            value={robloxUsername}
+                            onChange={(e) => setRobloxUsername(e.target.value)}
+                            className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                            placeholder="Masukkan username Roblox"
+                            required
+                          />
+                        )}
+                      </div>
+                      {/* Password hanya diperlukan untuk robux instant dan joki */}
+                      {checkoutData.items.some(
+                        (item) =>
+                          item.serviceType === "joki" ||
+                          (item.serviceType === "robux" &&
+                            item.robuxInstantDetails),
+                      ) && (
+                        <div>
+                          <label className="block text-sm font-medium text-primary-200 mb-2">
+                            Password Roblox{" "}
+                            <span className="text-neon-pink">*</span>
+                          </label>
+                          {robloxPassword ? (
+                            <div className="w-full p-3 border-2 border-green-500/30 rounded-lg bg-green-500/5 backdrop-blur-md text-white font-mono flex items-center justify-between">
+                              <span>••••••••••••</span>
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={robloxPassword}
+                                onChange={(e) =>
+                                  setRobloxPassword(e.target.value)
+                                }
+                                className="w-full p-3 pr-12 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                                placeholder="Masukkan password Roblox"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-neon-pink transition-colors"
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Display Backup Code if exists (read-only) */}
+                      {checkoutData.items.some((item) => {
+                        const backupCode =
+                          item.jokiDetails?.notes ||
+                          item.jokiDetails?.additionalInfo ||
+                          item.robuxInstantDetails?.notes ||
+                          item.robuxInstantDetails?.additionalInfo;
+                        return backupCode && backupCode.trim() !== "";
+                      }) && (
+                        <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border-2 border-green-500/30 rounded-xl p-4">
+                          <label className="text-sm font-medium text-green-300 mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Backup Code (2FA)
+                            <span className="text-xs text-green-400/70 font-normal">
+                              - Dari halaman pemesanan
+                            </span>
+                          </label>
+                          {(() => {
+                            // Get backup code from first item that has it
+                            const itemWithBackup = checkoutData.items.find(
+                              (item) => {
+                                const backupCode =
+                                  item.jokiDetails?.notes ||
+                                  item.jokiDetails?.additionalInfo ||
+                                  item.robuxInstantDetails?.notes ||
+                                  item.robuxInstantDetails?.additionalInfo;
+                                return backupCode && backupCode.trim() !== "";
+                              },
+                            );
+
+                            if (!itemWithBackup) return null;
+
+                            const backupCode =
+                              itemWithBackup.jokiDetails?.notes ||
+                              itemWithBackup.jokiDetails?.additionalInfo ||
+                              itemWithBackup.robuxInstantDetails?.notes ||
+                              itemWithBackup.robuxInstantDetails
+                                ?.additionalInfo;
+
+                            return (
+                              <div className="w-full p-3 border-2 border-green-500/40 rounded-lg bg-green-500/5 backdrop-blur-md text-green-200 font-mono">
+                                {backupCode}
+                              </div>
+                            );
+                          })()}
+                          <p className="text-xs text-green-400/70 mt-2">
+                            ℹ️ Backup code akan dikirim ke admin bersama pesanan
+                            Anda
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Universal Additional Notes for All Services */}
+              <div className="neon-card rounded-2xl p-5">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                  <div className="w-7 h-7 bg-neon-pink/20 rounded-lg flex items-center justify-center mr-3">
+                    <Sparkles className="w-4 h-4 text-neon-pink" />
+                  </div>
+                  Catatan Tambahan
+                  <span className="text-xs text-white/60 font-normal ml-2">
+                    (Opsional)
+                  </span>
+                </h3>
+                <div>
+                  {/* Info box berdasarkan service type */}
+                  <div className="bg-gradient-to-r from-primary-600/20 to-primary-700/20 border border-primary-200/30 rounded-xl p-4 mb-4">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-5 h-5 text-primary-200 mr-3 mt-0.5" />
+                      <div className="text-sm text-white/80">
+                        <p className="font-medium mb-2 text-white">
+                          � Tips Catatan Tambahan:
+                        </p>
+                        <ul className="text-white/70 space-y-1 text-xs">
+                          {checkoutData.items.some(
+                            (item) => item.serviceType === "joki",
+                          ) && (
+                            <>
+                              <li>• Target rank atau level yang diinginkan</li>
+                              <li>• Waktu pengerjaan yang diharapkan</li>
+                              <li>• Instruksi khusus untuk joki</li>
+                            </>
+                          )}
+                          {checkoutData.items.some(
+                            (item) => item.serviceType === "gamepass",
+                          ) && (
+                            <>
+                              <li>• Request untuk proses lebih cepat</li>
+                              <li>• Informasi tambahan tentang gamepass</li>
+                            </>
+                          )}
+                          {checkoutData.items.some(
+                            (item) =>
+                              item.serviceType === "robux" && item.rbx5Details,
+                          ) && (
+                            <>
+                              <li>• Informasi tentang gamepass yang dibuat</li>
+                              <li>• Instruksi khusus untuk proses</li>
+                            </>
+                          )}
+                          {checkoutData.items.some(
+                            (item) =>
+                              item.serviceType === "robux" &&
+                              item.robuxInstantDetails,
+                          ) && (
+                            <>
+                              <li>• Informasi akun tambahan</li>
+                              <li>• Request khusus untuk proses</li>
+                            </>
+                          )}
+                          <li>
+                            • Atau catatan lainnya yang perlu diketahui admin
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="block text-sm font-medium text-primary-200 mb-2">
+                    Catatan Tambahan
+                  </label>
+                  <textarea
+                    value={additionalNotes}
+                    onChange={(e) => setAdditionalNotes(e.target.value)}
+                    rows={4}
+                    className="w-full p-3 border-2 border-white/20 rounded-lg bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300"
+                    placeholder={
+                      checkoutData.items.some(
+                        (item) => item.serviceType === "joki",
+                      )
+                        ? "Contoh: Tolong dikerjakan malam hari, target Mythic dalam 3 hari, jangan gunakan voice chat..."
+                        : checkoutData.items.some(
+                              (item) => item.serviceType === "gamepass",
+                            )
+                          ? "Contoh: Mohon diproses secepatnya, saya akan online jam 8 malam..."
+                          : checkoutData.items.some(
+                                (item) =>
+                                  item.serviceType === "robux" &&
+                                  item.rbx5Details,
+                              )
+                            ? "Contoh: Gamepass sudah dibuat dengan harga yang sesuai, mohon segera diproses..."
+                            : "Tambahkan catatan atau instruksi khusus untuk pesanan Anda..."
+                    }
+                  />
+                  <p className="text-xs text-white/60 mt-2">
+                    💡 Catatan ini akan membantu kami memberikan layanan yang
+                    lebih baik sesuai kebutuhan Anda
+                  </p>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <div className="neon-card rounded-2xl p-5">
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-1 mr-3 w-4 h-4 text-neon-pink bg-primary-700 border-primary-600 rounded focus:ring-neon-pink focus:ring-2"
+                    required
+                  />
+                  <label className="text-sm text-white">
+                    Saya menyetujui{" "}
+                    <a
+                      href="#"
+                      className="text-neon-pink hover:text-neon-purple hover:underline transition-colors"
+                    >
+                      syarat dan ketentuan
+                    </a>{" "}
+                    serta{" "}
+                    <a
+                      href="#"
+                      className="text-neon-pink hover:text-neon-purple hover:underline transition-colors"
+                    >
+                      kebijakan privasi
+                    </a>{" "}
+                    yang berlaku.
+                  </label>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="text-center">
+                <button
+                  type="submit"
+                  disabled={submitting || !isFormValid()}
+                  className={`group relative px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 transform inline-flex items-center gap-3 w-full md:w-auto justify-center shadow-xl ${
+                    submitting || !isFormValid()
+                      ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600"
+                      : "btn-neon-primary hover:scale-105 glow-neon-pink active:scale-95"
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative flex items-center gap-3">
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <span>Memproses...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+                        <span>
+                          Bayar Sekarang - Rp{" "}
+                          {calculateFinalAmount().toLocaleString("id-ID")}
+                        </span>
+                        <Sparkles className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                      </>
+                    )}
+                  </div>
+                </button>
+
+                {/* Helper text jika form belum valid */}
+                {!isFormValid() && !submitting && (
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-yellow-400 flex items-center justify-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>
+                        {!acceptTerms
+                          ? "Harap setujui syarat dan ketentuan"
+                          : !selectedPaymentMethod
+                            ? "Pilih metode pembayaran terlebih dahulu"
+                            : phoneError
+                              ? "Perbaiki format nomor WhatsApp"
+                              : !customerInfo.phone ||
+                                  !customerInfo.phone.trim()
+                                ? "Nomor WhatsApp wajib diisi"
+                                : isGuestCheckout && !customerInfo.name.trim()
+                                  ? "Nama lengkap wajib diisi"
+                                  : isGuestCheckout &&
+                                      !customerInfo.email.trim()
+                                    ? "Email wajib diisi"
+                                    : !isMultiCheckoutFromCart &&
+                                        checkoutData &&
+                                        !checkoutData.items.some(
+                                          (item) =>
+                                            item.serviceType === "reseller",
+                                        ) &&
+                                        !robloxUsername.trim()
+                                      ? "Username Roblox wajib diisi"
+                                      : "Lengkapi semua field yang diperlukan"}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-pink mx-auto mb-4"></div>
+            <p className="text-primary-100">Memuat halaman checkout...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
+  );
+}

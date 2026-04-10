@@ -1,0 +1,177 @@
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/mongodb";
+import PaymentMethod from "@/models/PaymentMethod";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
+
+// GET - Fetch all payment methods atau active payment methods
+// API key WAJIB di setiap request
+export async function GET(request: NextRequest) {
+  try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
+    // Admin only
+    // try {
+    //   await requireAdmin(request);
+    // } catch (authError: any) {
+    //   const status = authError.message.includes("Forbidden") ? 403 : 401;
+    //   return NextResponse.json({ error: authError.message }, { status });
+    // }
+
+    await connectDB();
+
+    const url = new URL(request.url);
+    const activeOnly = url.searchParams.get("active") === "true";
+    const category = url.searchParams.get("category");
+    const gateway = url.searchParams.get("gateway"); // "midtrans" or "duitku"
+
+    let query: any = {};
+
+    if (activeOnly) {
+      query.isActive = true;
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    // Filter by payment gateway
+    if (gateway === "midtrans") {
+      query.midtransEnabled = true;
+    } else if (gateway === "duitku") {
+      query.duitkuEnabled = true;
+    }
+
+    const paymentMethods = await PaymentMethod.find(query).sort({
+      displayOrder: 1,
+      name: 1,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Payment methods berhasil diambil",
+      data: paymentMethods,
+    });
+  } catch (error: any) {
+    console.error("Error fetching payment methods:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Gagal mengambil data payment methods",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// POST - Create new payment method (admin only)
+// API key WAJIB di setiap request
+export async function POST(request: NextRequest) {
+  try {
+    // WAJIB: Validasi API key
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
+
+    await connectDB();
+
+    // Admin only
+    try {
+      await requireAdmin(request);
+    } catch (authError: any) {
+      const status = authError.message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: authError.message }, { status });
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error("JSON Parse Error:", jsonError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid JSON body",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Validation
+    if (!body.code || !body.name || !body.category) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Code, name, dan category wajib diisi",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Check if code already exists
+    const existingMethod = await PaymentMethod.findOne({
+      code: body.code.toUpperCase(),
+    });
+    if (existingMethod) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Kode payment method sudah digunakan",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Validate fee
+    if (body.feeType === "percentage" && body.fee > 100) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Fee percentage tidak boleh lebih dari 100%",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Create new payment method
+    const paymentMethod = new PaymentMethod({
+      code: body.code.toUpperCase(),
+      name: body.name,
+      category: body.category,
+      icon: body.icon || "💳",
+      fee: body.fee || 0,
+      feeType: body.feeType || "fixed",
+      description: body.description || "",
+      isActive: body.isActive !== undefined ? body.isActive : true,
+      displayOrder: body.displayOrder || 0,
+      midtransEnabled:
+        body.midtransEnabled !== undefined ? body.midtransEnabled : true,
+      duitkuEnabled:
+        body.duitkuEnabled !== undefined ? body.duitkuEnabled : false,
+      duitkuCode: body.duitkuCode || "",
+      minimumAmount: body.minimumAmount,
+      maximumAmount: body.maximumAmount,
+      instructions: body.instructions,
+    });
+
+    await paymentMethod.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Payment method berhasil dibuat",
+        data: paymentMethod,
+      },
+      { status: 201 },
+    );
+  } catch (error: any) {
+    console.error("Error creating payment method:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Gagal membuat payment method",
+      },
+      { status: 500 },
+    );
+  }
+}
