@@ -425,7 +425,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Always create a new chat room (allow multiple rooms per user/transaction)
+    // Check if a chat room already exists for this order/invoice
+    if (type === "order" && transactionCode) {
+      const existingRoom = await ChatRoom.findOne({
+        transactionCode: transactionCode,
+        userId: targetUserId,
+        status: "active",
+      });
+
+      if (existingRoom) {
+        console.log("[POST /rooms] ℹ️ Existing chat room found for invoice:", transactionCode);
+        return NextResponse.json({
+          success: true,
+          data: existingRoom,
+          existing: true,
+        });
+      }
+    }
+
+    // Limit general chat rooms to 2 active per user
+    if (type === "general") {
+      const activeGeneralRooms = await ChatRoom.countDocuments({
+        userId: targetUserId,
+        roomType: "general",
+        status: "active",
+      });
+
+      if (activeGeneralRooms >= 2) {
+        return NextResponse.json(
+          { error: "Maksimal 2 ruang chat umum aktif. Tutup salah satu untuk membuat yang baru." },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Create a new chat room
     // Default status is 'active' - user can start chatting immediately
     const chatRoom = await ChatRoom.create({
       userId: targetUserId,

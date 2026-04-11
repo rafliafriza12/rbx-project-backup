@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
-import User from "@/models/User";
-import Role from "@/models/Role";
 import { requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -109,6 +107,7 @@ export async function GET(request: NextRequest) {
           discount: 1,
           spendedMoney: "$userInfo.spendedMoney",
           isVerified: "$userInfo.isVerified",
+          profilePicture: "$userInfo.profilePicture",
         },
       },
       {
@@ -310,6 +309,7 @@ export async function POST(request: NextRequest) {
           totalOrders: 1,
           lastOrderDate: 1,
           roleName: 1,
+          profilePicture: "$userInfo.profilePicture",
         },
       },
       {

@@ -4,6 +4,7 @@ import PublicAppHeader from "@/components/header/public-app-header";
 import PublicAppFooter from "@/components/footer/public-app-footer";
 import SplashScreen from "@/components/SplashScreen";
 import FloatingCartButton from "@/components/FloatingCartButton";
+import BottomNav from "@/components/BottomNav";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -57,6 +58,12 @@ const PublicLayout: React.FC<ILayoutProps> = ({ children }) => {
 
       {/* Floating Cart Button */}
       <FloatingCartButton />
+
+      {/* Bottom Navigation - Mobile only */}
+      <BottomNav />
+
+      {/* Spacer for bottom nav on mobile */}
+      <div className="md:hidden h-16 flex-shrink-0" />
     </div>
   );
 };
