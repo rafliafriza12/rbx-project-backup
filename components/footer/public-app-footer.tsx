@@ -623,7 +623,7 @@ const PublicAppFooter: React.FC = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-neon-pink rounded-full animate-pulse"></div>
                 <p className="text-white/60 text-sm">
-                  © 2025 RBXNET - Platform RBX Terpercaya Indonesia
+                  © 2026 RBXNET - Platform RBX Terpercaya Indonesia
                 </p>
               </div>
               <div className="flex items-center gap-4 text-sm text-white/50">
