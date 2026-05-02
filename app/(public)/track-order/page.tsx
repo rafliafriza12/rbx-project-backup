@@ -24,8 +24,11 @@ import {
 } from "@/lib/transaction-helpers";
 import { Transaction } from "@/types";
 import Link from "next/link";
-import { getPublicSettings, getTransactionByInvoice } from "@/app/lib/actions";
+import { getPublicSettings, getTransactionByInvoice, createChatRoom } from "@/app/lib/actions";
 import StatusHistoryTimeline from "@/components/StatusHistoryTimeline";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SiteSettings {
   whatsappNumber?: string;
@@ -42,6 +45,71 @@ export default function TrackOrderPage() {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [searched, setSearched] = useState(false);
   const [settings, setSettings] = useState<SiteSettings>({});
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const handleContactCS = async () => {
+    if (!transaction) return;
+    
+    if (!user) {
+      toast.error("Silakan login terlebih dahulu untuk menghubungi CS via chat");
+      router.push("/login?redirect=/track-order");
+      return;
+    }
+
+    setIsCreatingChat(true);
+    try {
+      const result = await createChatRoom({
+        roomType: "order",
+        transactionCode: transaction.invoiceId,
+        transactionTitle: transaction.serviceName || getCheckoutDisplayName(transaction)
+      });
+      
+      if (result.ok && result.data?.success) {
+        toast.success("Chat berhasil dibuat!");
+        router.push("/chat");
+      } else if (result.ok && result.data?.existing) {
+        router.push("/chat");
+      } else {
+        toast.error(result.data?.error || "Gagal membuat chat");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
+
+  const handleClaimGamepass = async () => {
+    if (!transaction) return;
+    
+    if (!user) {
+      toast.error("Silakan login terlebih dahulu untuk klaim gamepass");
+      router.push("/login?redirect=/track-order");
+      return;
+    }
+
+    setIsCreatingChat(true);
+    try {
+      const result = await createChatRoom({
+        roomType: "order",
+        transactionCode: transaction.invoiceId,
+        transactionTitle: transaction.serviceName || getCheckoutDisplayName(transaction)
+      });
+      
+      if (result.ok && (result.data?.success || result.data?.existing)) {
+        toast.success("Mengarahkan ke halaman chat...");
+        router.push("/chat");
+      } else {
+        toast.error(result.data?.error || "Gagal membuka chat");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -440,10 +508,71 @@ export default function TrackOrderPage() {
                             <p className="text-red-400 font-bold text-base sm:text-lg">BERMASALAH</p>
                           </div>
                         </div>
+                        <button 
+                          onClick={handleContactCS}
+                          disabled={isCreatingChat}
+                          className="bg-neon-purple hover:bg-neon-pink disabled:opacity-50 text-white px-4 py-2 rounded-full font-medium text-sm transition-colors w-full sm:w-auto text-center flex-shrink-0 flex items-center justify-center gap-2 shadow-lg shadow-neon-purple/20"
+                        >
+                          {isCreatingChat ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Membuat...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              Chat via Web
+                            </>
+                          )}
+                        </button>
                       </div>
                       <div className="bg-red-900/30 px-4 py-3 sm:px-5 sm:py-4 mx-2 mb-2 rounded-lg border border-red-500/20">
                         <p className="text-red-200 text-xs sm:text-sm">
                           Pesanan ini sedang bermasalah. Yuk hubungi Customer Support biar kami bantu proses lanjutannya.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Klaim Gamepass Alert Layout */}
+                  {transaction.serviceType === "gamepass" && 
+                   transaction.paymentStatus === "settlement" && 
+                   transaction.orderStatus !== "completed" && 
+                   transaction.orderStatus !== "bermasalah" && (
+                    <div className="mb-6 bg-neon-purple/20 rounded-xl overflow-hidden shadow-lg border border-neon-purple/30">
+                      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-neon-purple/30 border border-neon-purple/50 flex items-center justify-center flex-shrink-0">
+                            <span className="text-neon-pink font-bold text-xl leading-none">🎮</span>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-xs sm:text-sm">Status pesanan</p>
+                            <p className="text-neon-pink font-bold text-base sm:text-lg">SIAP DIKLAIM</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={handleClaimGamepass}
+                          disabled={isCreatingChat}
+                          className="bg-neon-pink hover:bg-neon-pink/80 disabled:opacity-50 text-white px-4 py-2 rounded-full font-medium text-sm transition-colors w-full sm:w-auto text-center flex-shrink-0 flex items-center justify-center gap-2 shadow-lg shadow-neon-pink/20"
+                        >
+                          {isCreatingChat ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Memproses...
+                            </>
+                          ) : (
+                            <>
+                              <span>🎮</span>
+                              Klaim Gamepass
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="bg-neon-purple/30 px-4 py-3 sm:px-5 sm:py-4 mx-2 mb-2 rounded-lg border border-neon-purple/20">
+                        <p className="text-primary-100 text-xs sm:text-sm">
+                          Pembayaran berhasil! Silakan klik tombol <b>Klaim Gamepass</b> di atas untuk chat dengan Admin dan mengambil pesananmu.
                         </p>
                       </div>
                     </div>
