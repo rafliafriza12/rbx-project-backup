@@ -20,6 +20,7 @@ import {
   getTotalItemsCount,
   getCheckoutDisplayName,
   getPaymentFee,
+  formatAdminNote,
 } from "@/lib/transaction-helpers";
 import { Transaction } from "@/types";
 import Link from "next/link";
@@ -758,7 +759,7 @@ export default function TrackOrderPage() {
                               </div>
                               <div className="bg-amber-500/10 backdrop-blur-sm rounded-lg p-3 border border-amber-500/20">
                                 <p className="text-white/80 text-sm">
-                                  {transaction.adminNotes}
+                                  {formatAdminNote(transaction.adminNotes)}
                                 </p>
                               </div>
                             </>

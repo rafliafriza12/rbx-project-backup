@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Package, CreditCard, Clock, CheckCircle } from "lucide-react";
+import { formatAdminNote } from "@/lib/transaction-helpers";
 
 interface StatusHistoryTimelineProps {
   transaction: any;
@@ -124,7 +125,8 @@ export default function StatusHistoryTimeline({
 
   let finalLatestNote = latestNote;
   if (latestStatus.notes && !isSystemNote(latestStatus.notes) && latestStatus.notes !== latestNote) {
-    finalLatestNote = latestNote ? `${latestNote}\n\nCatatan Admin: ${latestStatus.notes}` : latestStatus.notes;
+    const formattedAdminNote = formatAdminNote(latestStatus.notes);
+    finalLatestNote = latestNote ? `${latestNote}\n\nCatatan Admin: ${formattedAdminNote}` : formattedAdminNote;
   }
 
   // The older statuses
@@ -192,7 +194,7 @@ export default function StatusHistoryTimeline({
                         )}
                         {history.notes && !isSystemNote(history.notes) && (
                           <p className="text-sm text-white/70 mt-1 mb-2 italic">
-                            Catatan Admin: {history.notes}
+                            Catatan Admin: {formatAdminNote(history.notes)}
                           </p>
                         )}
                         {history.imageUrl && (

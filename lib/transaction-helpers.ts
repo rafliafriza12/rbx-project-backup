@@ -157,3 +157,12 @@ export function getServiceTypes(transaction: Transaction): string[] {
   const types = new Set(allTransactions.map((t) => t.serviceType));
   return Array.from(types);
 }
+
+/**
+ * Format admin note to hide sensitive info like roblox username
+ */
+export function formatAdminNote(note?: string): string {
+  if (!note) return "";
+  // Hide account name from gamepass purchase note, e.g. "Gamepass berhasil dibeli menggunakan akun xyz123" -> "Gamepass berhasil dibeli"
+  return note.replace(/menggunakan akun \S+/gi, "").trim();
+}
