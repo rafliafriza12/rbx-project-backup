@@ -653,9 +653,23 @@ export default function RobuxInstan() {
                       <div className="text-center">
                         <div className="flex items-center gap-2 text-white/80 text-xs mb-2 justify-center">
                           {productType === "regular" ? (
-                            <Image src="/icon/icons8-robux-48 (2).png" alt="Robux" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
+                            <Image 
+                              src="/icon/icons8-robux-96.png" 
+                              alt="Robux" 
+                              width={20} 
+                              height={20} 
+                              className="w-5 h-5"
+                              style={{ filter: "brightness(0) saturate(100%) invert(43%) sepia(85%) saturate(2250%) hue-rotate(264deg) brightness(97%) contrast(106%) drop-shadow(0 0 4px rgba(246,58,230,0.5))" }}
+                            />
                           ) : (
-                            <Image src="/icon/RblxPlusLogo.webp" alt="Premium" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
+                            <Image 
+                              src="/icon/RblxPlusLogo.webp" 
+                              alt="Premium" 
+                              width={20} 
+                              height={20} 
+                              className="w-5 h-5"
+                              style={{ filter: "brightness(0) saturate(100%) invert(43%) sepia(85%) saturate(2250%) hue-rotate(264deg) brightness(97%) contrast(106%) drop-shadow(0 0 4px rgba(246,58,230,0.5))" }}
+                            />
                           )}
                           <span className="text-white font-medium">{product.robuxAmount} R$</span>
                         </div>

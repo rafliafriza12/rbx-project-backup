@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import Settings from "@/models/Settings";
-import Promo from "@/models/Promo";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
@@ -432,97 +431,29 @@ export async function POST(request: NextRequest) {
     const verifiedDiscountAmount = Math.round(
       (subtotal * verifiedDiscountPercentage) / 100,
     );
-
-    // Validasi Promo Code
-    let promoDiscountAmount = 0;
-    let appliedPromoCode = "";
-
-    if (body.promoCode && typeof body.promoCode === 'string') {
-      const promo = await Promo.findOne({ code: body.promoCode.toUpperCase(), isActive: true });
-      if (promo) {
-        let isPromoValidForItems = true;
-        if (promo.applicableTo && promo.applicableTo.length > 0) {
-          for (const item of createdTransactions) {
-            let currentService = "";
-            if (item.serviceCategory === "robux_5_hari") currentService = "rbx5";
-            else if (item.serviceCategory === "robux_instant") currentService = "robux_instant";
-            else if (item.serviceCategory === "gamepass" || item.serviceType === "gamepass") currentService = "gamepass";
-            
-            if (!currentService || !promo.applicableTo.includes(currentService)) {
-              isPromoValidForItems = false;
-              break;
-            }
-          }
-        }
-
-        if (!isPromoValidForItems) {
-          console.warn(`Promo not applicable for some items in cart: ${body.promoCode}`);
-        } else if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) {
-          console.warn(`Promo expired: ${body.promoCode}`);
-        } else if (promo.maxUses > 0 && promo.currentUses >= promo.maxUses) {
-          console.warn(`Promo max uses reached: ${body.promoCode}`);
-        } else if (promo.minPurchaseAmount > 0 && subtotal < promo.minPurchaseAmount) {
-          console.warn(`Promo min purchase not met: ${body.promoCode}`);
-        } else {
-          // Cek max uses per user if user logged in
-          let userUses = 0;
-          let userUsageIndex = -1;
-          if (userId) {
-            userUsageIndex = promo.usedBy.findIndex((u: any) => u.userId === userId.toString());
-            if (userUsageIndex !== -1) {
-              userUses = promo.usedBy[userUsageIndex].count;
-            }
-          }
-          if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
-            if (promo.discountType === "percentage") {
-              promoDiscountAmount = Math.round((subtotal * promo.discountValue) / 100);
-            } else {
-              promoDiscountAmount = promo.discountValue;
-            }
-            if (promoDiscountAmount > subtotal) promoDiscountAmount = subtotal;
-            appliedPromoCode = promo.code;
-            
-            // Add to promo usage
-            promo.currentUses += 1;
-            if (userId) {
-              if (userUsageIndex !== -1) {
-                promo.usedBy[userUsageIndex].count += 1;
-              } else {
-                promo.usedBy.push({ userId: userId.toString(), count: 1 });
-              }
-            }
-            await promo.save();
-          }
-        }
-      }
-    }
-
-    const totalDiscountAmount = verifiedDiscountAmount + promoDiscountAmount;
-    const verifiedFinalAmountBeforeFee = subtotal - totalDiscountAmount;
+    const verifiedFinalAmountBeforeFee = subtotal - verifiedDiscountAmount;
 
     console.log("=== TOTALS CALCULATION (VERIFIED) ===");
     console.log("Subtotal (verified):", subtotal);
     console.log("Discount % (verified from DB):", verifiedDiscountPercentage);
     console.log("Discount Amount (calculated):", verifiedDiscountAmount);
-    console.log("Promo Discount Amount:", promoDiscountAmount);
     console.log(
       "Final amount before fee (verified):",
       verifiedFinalAmountBeforeFee,
     );
 
     // Update transactions with VERIFIED proportional discount
-    if (totalDiscountAmount > 0 && createdTransactions.length > 0) {
+    if (verifiedDiscountAmount > 0 && createdTransactions.length > 0) {
       for (const transaction of createdTransactions) {
         const itemRatio = transaction.totalAmount / subtotal;
         const itemDiscountAmount = Math.round(
-          totalDiscountAmount * itemRatio,
+          verifiedDiscountAmount * itemRatio,
         );
         const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
 
         transaction.discountPercentage = verifiedDiscountPercentage;
         transaction.discountAmount = itemDiscountAmount;
         transaction.finalAmount = itemFinalAmount;
-        transaction.promoCode = appliedPromoCode || undefined;
         await transaction.save();
       }
     }
@@ -558,37 +489,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply VERIFIED discount to Midtrans items
-    if (totalDiscountAmount > 0 && midtransItems.length > 0) {
-      let remainingDiscount = totalDiscountAmount;
-      
-      for (let i = 0; i < midtransItems.length; i++) {
-        const item = midtransItems[i];
-        const originalItemTotal = item.price * item.quantity;
-        
-        let itemDiscountTotal = 0;
-        if (i === midtransItems.length - 1) {
-          itemDiscountTotal = remainingDiscount;
-        } else {
-          itemDiscountTotal = Math.round(totalDiscountAmount * (originalItemTotal / subtotal));
-          remainingDiscount -= itemDiscountTotal;
-        }
-        
+    if (verifiedDiscountAmount > 0 && midtransItems.length > 0) {
+      const discountMultiplier = 1 - verifiedDiscountPercentage / 100;
+      midtransItems.forEach((item) => {
         const originalPrice = item.price;
-        item.price = originalItemTotal - itemDiscountTotal;
-        item.quantity = 1; // Set quantity to 1 to avoid rounding errors
-        
-        if (!item.name.includes("Diskon") && !item.name.includes("Promo")) {
-          if (appliedPromoCode) {
-            item.name = `${item.name} (Promo)`;
-          } else if (verifiedDiscountPercentage > 0) {
-            item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
-          }
+        item.price = Math.round(item.price * discountMultiplier);
+        if (!item.name.includes("Diskon")) {
+          item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
         }
-        
         console.log(
-          `Item: ${item.name}, Original Total: ${originalItemTotal}, Discounted: ${item.price}`,
+          `Item: ${item.name}, Original: ${originalPrice}, Discounted: ${item.price}`,
         );
-      }
+      });
     }
 
     // Create a master order ID for grouping BEFORE saving transactions

@@ -236,6 +236,21 @@ export async function GET(request: NextRequest) {
       }),
     );
 
+    // Deduplicate so we only show 1 transaction per midtransOrderId in the table
+    const uniqueProcessedTransactions = [];
+    const seenMidtransOrderIds = new Set();
+    
+    for (const tx of processedTransactions) {
+      if (tx.midtransOrderId) {
+        if (!seenMidtransOrderIds.has(tx.midtransOrderId)) {
+           seenMidtransOrderIds.add(tx.midtransOrderId);
+           uniqueProcessedTransactions.push(tx);
+        }
+      } else {
+        uniqueProcessedTransactions.push(tx);
+      }
+    }
+
     // Get total count
     const total = await Transaction.countDocuments(query);
 
@@ -282,7 +297,7 @@ export async function GET(request: NextRequest) {
     // Admin-only endpoint — return full data without stripping
     return NextResponse.json({
       success: true,
-      data: processedTransactions,
+      data: uniqueProcessedTransactions,
       pagination: {
         page,
         limit,

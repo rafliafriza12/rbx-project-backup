@@ -115,6 +115,7 @@ export default function TrackOrderPage() {
       processing: "bg-blue-500/20 text-blue-300 border-blue-500/40",
       in_progress: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
       completed: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+      bermasalah: "bg-red-500/20 text-red-500 border-red-500/40",
 
       // Legacy support
       paid: "bg-green-500/20 text-green-300 border-green-500/40",
@@ -134,6 +135,7 @@ export default function TrackOrderPage() {
       processing: <Package className="w-3 h-3" />,
       in_progress: <TruckIcon className="w-3 h-3" />,
       completed: <CheckCircle className="w-3 h-3" />,
+      bermasalah: <AlertTriangle className="w-3 h-3" />,
 
       // Legacy support
       paid: <CheckCircle className="w-3 h-3" />,
@@ -153,6 +155,7 @@ export default function TrackOrderPage() {
       processing: "Sedang Diproses",
       in_progress: "Sedang Dikerjakan",
       completed: "Selesai",
+      bermasalah: "BERMASALAH",
 
       // Legacy support
       paid: "Dibayar",
@@ -405,9 +408,11 @@ export default function TrackOrderPage() {
                       </p>
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
-                      <div className="mb-3">
-                        {getStatusBadge(transaction.orderStatus)}
-                      </div>
+                      {transaction.orderStatus !== "bermasalah" && (
+                        <div className="mb-3">
+                          {getStatusBadge(transaction.orderStatus)}
+                        </div>
+                      )}
                       <div className="text-right">
                         <div className="text-xl sm:text-2xl font-bold text-primary-100">
                           Rp{" "}
@@ -421,6 +426,28 @@ export default function TrackOrderPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Bermasalah Alert Layout */}
+                  {transaction.orderStatus === "bermasalah" && (
+                    <div className="mb-6 bg-red-950/30 rounded-xl overflow-hidden shadow-lg border border-red-500/30">
+                      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center flex-shrink-0">
+                            <span className="text-red-400 font-bold text-xl leading-none">!</span>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-xs sm:text-sm">Status transaksi</p>
+                            <p className="text-red-400 font-bold text-base sm:text-lg">BERMASALAH</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-red-900/30 px-4 py-3 sm:px-5 sm:py-4 mx-2 mb-2 rounded-lg border border-red-500/20">
+                        <p className="text-red-200 text-xs sm:text-sm">
+                          Pesanan ini sedang bermasalah. Yuk hubungi Customer Support biar kami bantu proses lanjutannya.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Items List */}
                   <div className="space-y-4 mt-6">

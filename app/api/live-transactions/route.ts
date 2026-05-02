@@ -26,9 +26,8 @@ export async function GET(request: NextRequest) {
 
     // Format data untuk ditampilkan
     const formattedTransactions = await Promise.all(transactions.map(async (tx: any) => {
-      // Prioritaskan robloxUsername, jika tidak ada baru gunakan username User
-      const realUser = tx.customerInfo?.userId as any;
-      const actualUsername = tx.robloxUsername || realUser?.username || realUser?.firstName || "user";
+      // Prioritaskan robloxUsername, abaikan username Google
+      const actualUsername = tx.robloxUsername || "Roblox Player";
       
       let profilePicture = null;
       
@@ -38,18 +37,56 @@ export async function GET(request: NextRequest) {
           const cached = await RobloxCache.findOne({ username: tx.robloxUsername.toLowerCase() }).lean();
           if (cached && cached.avatarUrl) {
             profilePicture = cached.avatarUrl;
+          } else {
+            // Fetch dari Roblox API jika tidak ada di cache
+            const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                usernames: [tx.robloxUsername.toLowerCase()],
+                excludeBannedUsers: false,
+              }),
+            });
+            
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              if (userData.data && userData.data.length > 0) {
+                const user = userData.data[0];
+                const avatarRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=false`);
+                
+                if (avatarRes.ok) {
+                  const avatarData = await avatarRes.json();
+                  const avatarUrl = avatarData.data?.[0]?.imageUrl ?? "";
+                  
+                  if (avatarUrl) {
+                    profilePicture = avatarUrl;
+                    // Simpan ke cache untuk request berikutnya
+                    RobloxCache.findOneAndUpdate(
+                      { username: tx.robloxUsername.toLowerCase() },
+                      {
+                        username: user.name.toLowerCase(),
+                        userId: user.id,
+                        displayName: user.displayName,
+                        avatarUrl,
+                        updatedAt: new Date(),
+                      },
+                      { new: true, upsert: true }
+                    ).catch(e => console.error("Cache update error:", e));
+                  }
+                }
+              }
+            }
           }
         } catch (e) {
           console.error("Error fetching roblox cache:", e);
         }
       }
       
-      // Fallback ke profile picture user
+      // Jika tidak ada di cache, gunakan dummy avatar berdasarkan nama, bukan foto google
       if (!profilePicture) {
-        profilePicture = realUser?.profilePicture || null;
+        profilePicture = `https://api.dicebear.com/7.x/avataaars/svg?seed=${actualUsername}`;
       }
       
-      // Tampilkan username penuh, tidak perlu di mask jika itu username roblox
       const maskedUsername = actualUsername;
 
       // Tentukan nama service dan quantity

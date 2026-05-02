@@ -595,6 +595,12 @@ export default function TransactionsPage() {
             >
               Order: Cancelled
             </option>
+            <option
+              className="bg-[#334155] text-[#f1f5f9]"
+              value="order:bermasalah"
+            >
+              Order: Bermasalah
+            </option>
           </select>
           <select
             value={filters.serviceType}
@@ -1044,6 +1050,9 @@ export default function TransactionsPage() {
                   </option>
                   <option className="bg-[#334155]" value="failed">
                     Failed
+                  </option>
+                  <option className="bg-[#334155]" value="bermasalah">
+                    Bermasalah
                   </option>
                 </select>
               </div>

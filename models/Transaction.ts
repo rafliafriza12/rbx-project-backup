@@ -249,6 +249,7 @@ const transactionSchema = new mongoose.Schema(
         "in_progress", // Sedang dikerjakan (untuk joki)
         "completed", // Selesai
         "cancelled", // Dibatalkan
+        "bermasalah", // Bermasalah
         "failed", // Dikembalikan
       ],
       default: "waiting_payment",

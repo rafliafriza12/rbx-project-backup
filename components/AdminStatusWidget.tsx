@@ -97,44 +97,35 @@ export default function AdminStatusWidget() {
       lg:top-24 lg:left-8 lg:bottom-auto lg:right-auto 
       bottom-20 left-4 w-fit max-w-[calc(100vw-32px)]"
     >
-      <div className="bg-[#1a1f2e]/90 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex flex-col gap-2 shadow-xl">
-        <div className="flex items-center justify-between lg:justify-start gap-4">
-          {/* Status Section */}
-          <div className="flex items-center gap-3 sm:pr-4 sm:border-r border-white/10">
-            <div className="relative flex items-center justify-center">
-              {isOnline ? (
-                <>
-                  <div className="absolute w-3 h-3 bg-green-500 rounded-full animate-ping opacity-75"></div>
-                  <div className="relative w-3 h-3 bg-green-500 rounded-full border border-green-300"></div>
-                </>
-              ) : (
-                <div className="relative w-3 h-3 bg-gray-500 rounded-full border border-gray-400"></div>
-              )}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-white leading-tight">
-                Admin {isOnline ? "Online" : "Offline"}
-              </span>
-              <span className="text-[10px] text-white/60 font-medium">
-                {statusData.operationalHourStart} - {statusData.operationalHourEnd}
-              </span>
-            </div>
+      <div className="bg-[#1a1f2e]/90 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center justify-between lg:justify-start gap-4 shadow-xl">
+        {/* Status Section */}
+        <div className="flex items-center gap-3 sm:pr-4 sm:border-r border-white/10">
+          <div className="relative flex items-center justify-center">
+            {isOnline ? (
+              <>
+                <div className="absolute w-3 h-3 bg-green-500 rounded-full animate-ping opacity-75"></div>
+                <div className="relative w-3 h-3 bg-green-500 rounded-full border border-green-300"></div>
+              </>
+            ) : (
+              <div className="relative w-3 h-3 bg-gray-500 rounded-full border border-gray-400"></div>
+            )}
           </div>
-
-          {/* Clock Section */}
-          <div className="hidden sm:flex items-center gap-2 pl-2">
-            <Clock className="w-4 h-4 text-white/70" />
-            <span className="font-mono text-sm font-semibold tracking-wider text-white">
-              {formattedTime}
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-white leading-tight">
+              Admin {isOnline ? "Online" : "Offline"}
+            </span>
+            <span className="text-[10px] text-white/60 font-medium">
+              {statusData.operationalHourStart} - {statusData.operationalHourEnd}
             </span>
           </div>
         </div>
-        
-        {/* Status Description Message */}
-        <div className="text-[10px] sm:text-xs text-white/80 pt-1 border-t border-white/10 text-left mt-1">
-          {isOnline 
-            ? "Admin lagi online, pesanan akan segera di proses." 
-            : `Kita lagi tutup yah, kita bakal buka lagi jam ${statusData.operationalHourStart}.`}
+
+        {/* Clock Section */}
+        <div className="hidden sm:flex items-center gap-2 pl-2">
+          <Clock className="w-4 h-4 text-white/70" />
+          <span className="font-mono text-sm font-semibold tracking-wider text-white">
+            {formattedTime}
+          </span>
         </div>
       </div>
     </div>

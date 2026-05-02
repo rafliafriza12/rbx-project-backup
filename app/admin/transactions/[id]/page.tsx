@@ -151,6 +151,7 @@ export default function TransactionDetailPage() {
       completed: "bg-green-500/20 text-green-300 border border-green-500/50",
       cancelled: "bg-red-500/20 text-red-300 border border-red-500/50",
       failed: "bg-red-500/20 text-red-300 border border-red-500/50",
+      bermasalah: "bg-red-500/20 text-red-500 border border-red-500/50",
     };
 
     const styles = type === "payment" ? paymentStyles : orderStyles;
