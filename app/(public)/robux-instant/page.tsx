@@ -624,7 +624,7 @@ export default function RobuxInstan() {
                       }`}
                   >
                     <Sparkles className="w-4 h-4" />
-                    RBX Premium
+                    RBX Plus
                   </button>
                 </div>
 
