@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import "./globals.css";
 import PublicLayout from "@/app/(public)/layout";
+import PopupBanner from "@/components/PopupBanner";
 
 interface RBX5Stats {
   totalStok: number;
@@ -65,6 +66,7 @@ interface LiveTransaction {
   timeAgo: string;
   serviceType: string;
   colorScheme: string;
+  profilePicture?: string;
 }
 
 interface LiveReview {
@@ -86,9 +88,36 @@ interface SiteSettings {
   facebookUrl?: string;
   twitterUrl?: string;
   youtubeUrl?: string;
+  popupBannerEnabled?: boolean;
+  popupBannerImageUrl?: string;
+  popupBannerTargetUrl?: string;
 }
 
 export default function HomePage() {
+
+  // Drag to scroll states
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+  const onMouseLeave = () => setIsDragging(false);
+  const onMouseUp = () => setIsDragging(false);
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+
   //ini baru ditambahkan
   const [settings, setSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
@@ -211,6 +240,9 @@ export default function HomePage() {
           facebookUrl: data.settings.facebookUrl,
           twitterUrl: data.settings.twitterUrl,
           youtubeUrl: data.settings.youtubeUrl,
+          popupBannerEnabled: data.settings.popupBannerEnabled,
+          popupBannerImageUrl: data.settings.popupBannerImageUrl,
+          popupBannerTargetUrl: data.settings.popupBannerTargetUrl,
         });
       }
     } catch (error) {
@@ -394,149 +426,152 @@ export default function HomePage() {
 
   return (
     <PublicLayout>
+      {/* Popup Banner */}
+      <PopupBanner
+        enabled={settings.popupBannerEnabled || false}
+        imageUrl={settings.popupBannerImageUrl || ""}
+        targetUrl={settings.popupBannerTargetUrl || ""}
+      />
+
       {/* Banner Carousel Section */}
       {banners.length > 0 && (
-      <section className="relative w-full aspect-[16/4] lg:aspect-auto lg:h-60 overflow-hidden">
-        {loadingBanners ? (
-          <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
-          </div>
-        ) : (
-          <div className="relative w-full h-full">
-            <div className="absolute inset-0 flex items-center justify-center">
-              {banners.map((banner, index) => {
-                let position = index - currentBannerIndex;
-                if (position < -1) position = banners.length + position;
-                if (position > 1) position = position - banners.length;
+        <section className="relative w-full aspect-[16/4] lg:aspect-auto lg:h-60 overflow-hidden">
+          {loadingBanners ? (
+            <div className="w-full h-full flex items-center justify-center bg-gray-800/50">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
+            </div>
+          ) : (
+            <div className="relative w-full h-full">
+              <div className="absolute inset-0 flex items-center justify-center">
+                {banners.map((banner, index) => {
+                  let position = index - currentBannerIndex;
+                  if (position < -1) position = banners.length + position;
+                  if (position > 1) position = position - banners.length;
 
-                const getCardStyle = (pos: number) => {
-                  switch (pos) {
-                    case 0:
-                      return {
-                        transform: "translateX(0%) translateY(0%) scale(1)",
-                        zIndex: 30,
-                        opacity: 1,
-                        filter: "brightness(1)",
-                      };
-                    case -1:
-                      return {
-                        transform: "translateX(-20%) translateY(0%) scale(0.8)",
-                        zIndex: 10,
-                        opacity: 0.7,
-                        filter: "brightness(0.6)",
-                      };
-                    case 1:
-                      return {
-                        transform: "translateX(5.5%) translateY(0%) scale(0.8)",
-                        zIndex: 10,
-                        opacity: 0.7,
-                        filter: "brightness(0.6)",
-                      };
-                    default:
-                      return {
-                        transform: "translateX(0%) translateY(0%) scale(0.5)",
-                        zIndex: 0,
-                        opacity: 0,
-                        filter: "brightness(0.3)",
-                      };
-                  }
-                };
+                  const getCardStyle = (pos: number) => {
+                    switch (pos) {
+                      case 0:
+                        return {
+                          transform: "translateX(0%) translateY(0%) scale(1)",
+                          zIndex: 30,
+                          opacity: 1,
+                          filter: "brightness(1)",
+                        };
+                      case -1:
+                        return {
+                          transform: "translateX(-20%) translateY(0%) scale(0.8)",
+                          zIndex: 10,
+                          opacity: 0.7,
+                          filter: "brightness(0.6)",
+                        };
+                      case 1:
+                        return {
+                          transform: "translateX(5.5%) translateY(0%) scale(0.8)",
+                          zIndex: 10,
+                          opacity: 0.7,
+                          filter: "brightness(0.6)",
+                        };
+                      default:
+                        return {
+                          transform: "translateX(0%) translateY(0%) scale(0.5)",
+                          zIndex: 0,
+                          opacity: 0,
+                          filter: "brightness(0.3)",
+                        };
+                    }
+                  };
 
-                const cardStyle = getCardStyle(position);
+                  const cardStyle = getCardStyle(position);
 
-                // Position classes based on card position
-                const getPositionClasses = (pos: number) => {
-                  switch (pos) {
-                    case 0:
-                      // Active: Full width on mobile, 80% on desktop
-                      return "left-0 w-full lg:left-1/2 lg:-ml-[40%] lg:w-[80%]";
-                    case -1:
-                      // Left: Hidden on mobile, visible on desktop
-                      return "left-[10%] w-[70%] opacity-0 lg:opacity-70";
-                    case 1:
-                      // Right: Hidden on mobile, visible on desktop
-                      return "left-[30%] w-[70%] opacity-0 lg:opacity-70";
-                    default:
-                      return "left-0 w-full lg:left-1/2 lg:-ml-[35%] lg:w-[70%]";
-                  }
-                };
+                  // Position classes based on card position
+                  const getPositionClasses = (pos: number) => {
+                    switch (pos) {
+                      case 0:
+                        // Active: Full width on mobile, 80% on desktop
+                        return "left-0 w-full lg:left-1/2 lg:-ml-[40%] lg:w-[80%]";
+                      case -1:
+                        // Left: Hidden on mobile, visible on desktop
+                        return "left-[10%] w-[70%] opacity-0 lg:opacity-70";
+                      case 1:
+                        // Right: Hidden on mobile, visible on desktop
+                        return "left-[30%] w-[70%] opacity-0 lg:opacity-70";
+                      default:
+                        return "left-0 w-full lg:left-1/2 lg:-ml-[35%] lg:w-[70%]";
+                    }
+                  };
 
-                return (
-                  <div
-                    key={banner.id}
-                    className={`absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer ${getPositionClasses(
-                      position,
-                    )}`}
-                    style={{
-                      transform: cardStyle.transform,
-                      zIndex: cardStyle.zIndex,
-                      filter: cardStyle.filter,
-                    }}
-                    onClick={() => {
-                      if (position === 0) {
-                        window.location.href = banner.link;
-                      } else {
-                        setCurrentBannerIndex(index);
-                      }
-                    }}
-                  >
+                  return (
                     <div
-                      className={`relative w-full h-full group ${
-                        position === 0 ? "p-0 lg:p-4" : "p-2 sm:p-3 lg:p-4"
-                      }`}
+                      key={banner.id}
+                      className={`absolute top-0 bottom-0 transition-all duration-700 ease-out cursor-pointer ${getPositionClasses(
+                        position,
+                      )}`}
+                      style={{
+                        transform: cardStyle.transform,
+                        zIndex: cardStyle.zIndex,
+                        filter: cardStyle.filter,
+                      }}
+                      onClick={() => {
+                        if (position === 0) {
+                          window.location.href = banner.link;
+                        } else {
+                          setCurrentBannerIndex(index);
+                        }
+                      }}
                     >
-                      <div className="relative w-full h-full overflow-hidden rounded-lg lg:rounded-3xl">
-                        <Image
-                          src={banner.imageUrl}
-                          alt={banner.alt}
-                          fill
-                          className={`object-fill transition-transform duration-700 ${
-                            position === 0
+                      <div
+                        className={`relative w-full h-full group ${position === 0 ? "p-0 lg:p-4" : "p-2 sm:p-3 lg:p-4"
+                          }`}
+                      >
+                        <div className="relative w-full h-full overflow-hidden rounded-lg lg:rounded-3xl">
+                          <Image
+                            src={banner.imageUrl}
+                            alt={banner.alt}
+                            fill
+                            className={`object-fill transition-transform duration-700 ${position === 0
                               ? "group-hover:scale-110"
                               : "group-hover:scale-105"
-                          }`}
-                          priority={index === 0}
-                        />
-                        {/* Purple neon overlay - stronger for side cards */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ${
-                            position === 0
+                              }`}
+                            priority={index === 0}
+                          />
+                          {/* Purple neon overlay - stronger for side cards */}
+                          <div
+                            className={`absolute inset-0 transition-all duration-500 ${position === 0
                               ? "bg-gradient-to-r from-primary-900/10 via-transparent to-primary-800/10 group-hover:from-primary-900/5 group-hover:to-primary-800/5"
                               : "bg-gradient-to-r from-primary-900/40 via-primary-800/30 to-primary-900/40"
-                          }`}
-                        ></div>
-                        {/* Active card glow effect */}
-                        {position === 0 && (
-                          <>
-                            <div className="absolute inset-0 bg-primary-100/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <div className="absolute -inset-1 bg-gradient-to-r from-primary-100/20 via-primary-200/30 to-primary-100/20 rounded-2xl sm:rounded-3xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-                          </>
-                        )}
+                              }`}
+                          ></div>
+                          {/* Active card glow effect */}
+                          {position === 0 && (
+                            <>
+                              <div className="absolute inset-0 bg-primary-100/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              <div className="absolute -inset-1 bg-gradient-to-r from-primary-100/20 via-primary-200/30 to-primary-100/20 rounded-2xl sm:rounded-3xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {/* Navigation Dots - Hidden on mobile, visible on desktop */}
-            <div className="hidden lg:flex absolute bottom-4 left-1/2 transform -translate-x-1/2 gap-2 z-40">
-              {banners.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentBannerIndex(index)}
-                  className={`transition-all duration-300 rounded-full ${
-                    index === currentBannerIndex
+              {/* Navigation Dots - Hidden on mobile, visible on desktop */}
+              <div className="hidden lg:flex absolute bottom-4 left-1/2 transform -translate-x-1/2 gap-2 z-40">
+                {banners.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentBannerIndex(index)}
+                    className={`transition-all duration-300 rounded-full ${index === currentBannerIndex
                       ? "w-8 h-2 bg-gradient-to-r from-neon-pink to-neon-purple"
                       : "w-2 h-2 bg-white/40 hover:bg-white/60"
-                  }`}
-                  aria-label={`Go to banner ${index + 1}`}
-                />
-              ))}
+                      }`}
+                    aria-label={`Go to banner ${index + 1}`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
       )}
 
       {/* ============ MOBILE HERO ============ */}
@@ -769,7 +804,7 @@ export default function HomePage() {
                       className="py-5 overflow-hidden"
                       gradientWidth={80}
                     >
-                      {liveTransactions.map((tx) => {
+                      {liveTransactions.slice(0, 15).map((tx) => {
                         // Determine style based on colorScheme
                         const getCardStyle = () => {
                           switch (tx.colorScheme) {
@@ -850,11 +885,20 @@ export default function HomePage() {
                             key={tx.id}
                             className={`flex items-center ${style.cardClass} border ${style.borderColor} rounded-lg p-4 mx-3 min-w-[280px] ${style.hoverBorder} transition-all duration-300`}
                           >
-                            <div
-                              className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center mr-4`}
-                            >
-                              {getIcon()}
-                            </div>
+                            {tx.profilePicture ? (
+                              <img
+                                src={tx.profilePicture}
+                                alt={tx.username}
+                                className="w-10 h-10 rounded-full object-cover mr-4"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div
+                                className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center mr-4`}
+                              >
+                                {getIcon()}
+                              </div>
+                            )}
                             <div className="flex-1">
                               <div className="text-white font-semibold">
                                 {tx.username}
@@ -894,251 +938,154 @@ export default function HomePage() {
 
       </section>
 
-      {/* Premium Products Section */}
-      <section
-        ref={pembelianRef}
-        className="py-12 lg:py-16 relative overflow-hidden"
-      >
-        {/* Enhanced Background */}
 
+      {/* Customer Reviews Marquee Section - Neon Theme */}
+      <section className="py-12 relative bg-gradient-dark-secondary/30">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Enhanced Section Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-1 px-6 py-3 bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 border border-neon-pink/30 rounded-2xl text-sm text-neon-pink font-semibold mb-6 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 " />
-              RBX Premium Experience
+          {/* Section Header */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 rounded-full text-sm text-neon-pink font-medium mb-6">
+              Testimoni Pelanggan
             </div>
-            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
-              Pilih <span className="text-primary-100">RBX</span>
-              <br />
-              <span className="text-neon-purple">Terbaik</span> Untukmu
+            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+              Apa Kata <span className="text-neon-pink">Mereka?</span>
             </h2>
-            <p className="text-xl sm:text-lg text-white/80 max-w-4xl mx-auto  font-light">
-              Platform terdepan untuk mendapatkan RBX dengan{" "}
-              <span className="text-neon-pink font-medium">
-                harga terjangkau
-              </span>{" "}
-              dan{" "}
-              <span className="text-neon-purple font-medium">
-                proses 5 hari
-              </span>
-              .
-              <br className="hidden sm:block" />
-              Pilih paket yang sempurna untuk petualangan gaming kamu.
+            <p className="text-xl text-white/70 max-w-2xl mx-auto mb-8">
+              Ribuan gamer sudah merasakan pengalaman berbelanja terbaik bersama
+              kami
             </p>
           </div>
 
-          {/* Premium Purchase Card */}
-          <div className="group relative bg-gradient-to-br from-white/5 via-neon-purple/5 to-neon-pink/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 mb-10 max-w-5xl mx-auto hover:border-neon-pink/30 transition-all duration-700 hover:shadow-2xl hover:shadow-neon-pink/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-neon-pink/5 via-transparent to-neon-purple/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-            <div className="relative text-center mb-10">
-              <div className="inline-flex justify-center gap-1 items-center px-6 py-3 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 border border-neon-pink/40 rounded-2xl text-sm text-neon-pink font-bold mb-6 backdrop-blur-sm shadow-lg">
-                <div className="flex items-center ">
-                  <Gem className="w-4 h-4" />
-                </div>
-                RBX 5 hari
+          {/* Reviews Marquee */}
+          <div className="mb-8 py-4">
+            {loadingReviews ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-neon-pink/30 border-t-neon-pink"></div>
               </div>
-              <h3 className="text-4xl sm:text-5xl font-black text-white mb-4">
-                Beli <span className="text-primary-100">RBX</span> 5 Hari
-              </h3>
-              <p className="text-xl text-white/80 max-w-2xl mx-auto ">
-                RBX akan otomatis ditambahkan ke akun kamu dalam hitungan menit
-              </p>
-            </div>
-
-            {/* Premium Input Form */}
-            <div className="grid md:grid-cols-2 gap-10 mb-10">
-              <div className="space-y-6">
-                <label className="flex items-center gap-2 text-lg font-bold text-white">
-                  <Gem className="w-5 h-5 text-neon-pink" />
-                  Jumlah RBX
-                </label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Masukkan jumlah RBX"
-                    value={robuxAmount === 0 ? "" : robuxAmount.toString()}
-                    onChange={(e) =>
-                      handleRobuxChange(e.target.value.replace(/\D/g, ""))
-                    }
-                    onBlur={() => {
-                      if (!robuxAmount || robuxAmount < 25) {
-                        setRobuxAmount(25);
-                      }
-                    }}
-                    className="w-full px-6 py-5 border-2 border-white/20 rounded-2xl bg-white/5 backdrop-blur-md text-white text-xl placeholder-white/50 focus:border-neon-pink focus:bg-white/10 focus:outline-none transition-all duration-300 pr-16 group-hover:border-neon-purple/40"
-                  />
-
-                  <div className="absolute right-6 top-1/2 transform -translate-y-1/2 text-neon-pink font-bold text-lg">
-                    RBX
-                  </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-neon-pink/5 to-neon-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                </div>
+            ) : liveReviews.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-white/60">Belum ada review tersedia</p>
               </div>
-
-              <div className="space-y-6">
-                <label className="flex items-center gap-2 text-lg font-bold text-white">
-                  <Sparkles className="w-5 h-5 text-neon-purple" />
-                  Total Harga
-                </label>
-                <div className="relative bg-gradient-to-br from-neon-pink/10 to-neon-purple/10 backdrop-blur-md border-2 border-neon-pink/30 rounded-2xl py-5 px-6 hover:border-neon-pink/50 transition-all duration-300">
-                  <div className="text-xl font-black text-white">
-                    {loadingStats ? (
-                      <span className="text-xl text-white/70 font-medium">
-                        Menghitung...
-                      </span>
-                    ) : totalPrice > 0 ? (
-                      <>
-                        <span className="text-primary-50">
-                          Rp {totalPrice.toLocaleString()}
-                        </span>
-                        {discount > 0 && (
-                          <div className="text-sm text-neon-purple font-semibold mt-2 flex items-center gap-2">
-                            <Zap className="w-4 h-4" />
-                            Hemat {discount}% - Diskon diterapkan!
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-white/40">Rp 0</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Premium Action Button */}
-            <div className="text-center">
-              <button
-                onClick={handleBuyNow}
-                disabled={robuxAmount <= 0 || loadingStats}
-                className={`group relative px-16 py-6 rounded-3xl font-black text-xl transition-all duration-500 transform inline-flex items-center gap-4 w-full md:w-auto justify-center shadow-2xl ${
-                  robuxAmount <= 0 || loadingStats
-                    ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600"
-                    : "btn-neon-primary hover:scale-110 hover:shadow-neon-pink/50 active:scale-95"
-                }`}
+            ) : (
+              <div
+                ref={scrollRef}
+                onMouseDown={onMouseDown}
+                onMouseLeave={onMouseLeave}
+                onMouseUp={onMouseUp}
+                onMouseMove={onMouseMove}
+                className={`flex overflow-x-auto scrollbar-hide py-10 gap-4 px-4 sm:px-8 ${isDragging ? 'cursor-grabbing snap-none' : 'cursor-grab snap-x snap-mandatory scroll-smooth'}`}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex items-center gap-4">
-                  <span>
-                    {robuxAmount > 0
-                      ? `${robuxAmount.toLocaleString()} RBX`
-                      : "Beli RBX Sekarang"}
-                  </span>
-                  {/* <Rocket className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" /> */}
-                </div>
-              </button>
+                {[...liveReviews.slice(0, 20), ...liveReviews.slice(0, 20), ...liveReviews.slice(0, 20), ...liveReviews.slice(0, 20)].map((review, index) => {
+                  // Determine card style based on colorScheme
+                  const getCardStyle = () => {
+                    switch (review.colorScheme) {
+                      case "pink":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-neon-pink/40",
+                          hoverShadow: "hover:shadow-neon-pink",
+                          bgGradient: "bg-gradient-neon-primary",
+                          starColor: "text-neon-pink",
+                          checkColor: "text-neon-pink",
+                        };
+                      case "purple":
+                        return {
+                          cardClass: "neon-card-secondary",
+                          hoverBorder: "hover:border-neon-purple/40",
+                          hoverShadow: "hover:shadow-neon-purple",
+                          bgGradient: "bg-gradient-neon-secondary",
+                          starColor: "text-neon-purple",
+                          checkColor: "text-neon-purple",
+                        };
+                      case "amber":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-amber-400/40",
+                          hoverShadow: "hover:shadow-amber-400/20",
+                          bgGradient:
+                            "bg-gradient-to-br from-amber-400 to-yellow-500",
+                          starColor: "text-amber-300",
+                          checkColor: "text-amber-400",
+                        };
+                      case "teal":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-teal-400/40",
+                          hoverShadow: "hover:shadow-teal-400/20",
+                          bgGradient:
+                            "bg-gradient-to-br from-teal-400 to-cyan-500",
+                          starColor: "text-teal-300",
+                          checkColor: "text-teal-400",
+                        };
+                      case "indigo":
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-indigo-400/40",
+                          hoverShadow: "hover:shadow-indigo-400/20",
+                          bgGradient:
+                            "bg-gradient-to-br from-indigo-400 to-purple-500",
+                          starColor: "text-indigo-300",
+                          checkColor: "text-indigo-400",
+                        };
+                      default:
+                        return {
+                          cardClass: "neon-card",
+                          hoverBorder: "hover:border-neon-pink/40",
+                          hoverShadow: "hover:shadow-neon-pink",
+                          bgGradient: "bg-gradient-neon-primary",
+                          starColor: "text-neon-pink",
+                          checkColor: "text-neon-pink",
+                        };
+                    }
+                  };
 
-              {robuxAmount > 0 && (
-                <div className="mt-6 flex items-center justify-center gap-2 text-white/80">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-neon-purple/10 border border-neon-purple/30 rounded-full">
-                    <Zap className="w-4 h-4 text-neon-purple" />
-                    <span className="text-sm font-medium">
-                      Pengiriman dalam 5 hari kerja
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+                  const style = getCardStyle();
 
-            {/* Enhanced Mini Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
-              <div className="neon-card rounded-xl p-4 sm:p-5 shadow-neon-pink hover:shadow-neon-intense transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 bg-neon-pink rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Image
-                      src="/stk.png"
-                      alt="stok"
-                      width={16}
-                      height={16}
-                      className="sm:w-5 sm:h-5 brightness-0 invert"
-                    />
-                  </div>
-                  <div className="text-sm font-medium text-white/60">
-                    Total Stock
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-white">
-                  {loadingStats
-                    ? "..."
-                    : rbx5Stats.unlimitedStock ? "Unlimited Stock" : `${formatNumber(rbx5Stats.totalStok)} RBX`}
-                </div>
+                  return (
+                    <div
+                      key={`${review.id}-${index}`}
+                      className={`${style.cardClass} rounded-xl p-4 mx-3 min-w-[280px] sm:min-w-[320px] flex-shrink-0 snap-center ${style.hoverBorder} hover:-translate-y-2 transition-all duration-500 ${style.hoverShadow}`}
+                    >
+                      <div className="flex items-center mb-3">
+                        <div
+                          className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center font-bold text-white text-sm`}
+                        >
+                          {review.initial}
+                        </div>
+                        <div className="ml-3">
+                          <div className="font-semibold text-white text-sm">
+                            {review.username}
+                          </div>
+                          <div className={`flex gap-0.5 ${style.starColor}`}>
+                            {[...Array(review.rating)].map((_, index) => (
+                              <Star
+                                key={index}
+                                className="w-3 h-3 fill-current"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-white/70 italic mb-3 text-sm line-clamp-3">
+                        "{review.comment}"
+                      </p>
+                      <div className={`text-xs ${style.checkColor}`}>
+                        <CheckCircle
+                          className={`inline w-3 h-3 ${style.checkColor} mr-1`}
+                        />{" "}
+                        {review.serviceInfo.includes("Robux")
+                          ? review.serviceInfo.replace("Robux", "RBX")
+                          : review.serviceInfo}{" "}
+                        • {review.timeAgo}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className="neon-card-secondary rounded-xl p-4 sm:p-5 shadow-neon-purple hover:shadow-neon-intense transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 bg-neon-purple rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Image
-                      src="/tjl.png"
-                      alt="terjual"
-                      width={16}
-                      height={16}
-                      className="sm:w-5 sm:h-5 brightness-0 invert"
-                    />
-                  </div>
-                  <div className="text-sm font-medium text-white/60">
-                    Terjual
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-white">
-                  {loadingStats
-                    ? "..."
-                    : `${formatNumber(rbx5Stats.totalTerjual)} RBX`}
-                </div>
-              </div>
-
-              <div className="neon-card rounded-xl p-4 sm:p-5 shadow-neon-pink hover:shadow-neon-intense transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 bg-neon-pink rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Image
-                      src="/ord.png"
-                      alt="order"
-                      width={16}
-                      height={16}
-                      className="brightness-0 invert"
-                    />
-                  </div>
-                  <div className="text-sm font-medium text-white/60">
-                    Total Order
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-white">
-                  {loadingStats ? "..." : rbx5Stats.totalOrder.toLocaleString()}
-                </div>
-              </div>
-
-              <div className="neon-card-secondary rounded-xl p-4 sm:p-5 shadow-neon-purple hover:shadow-neon-intense transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 bg-neon-purple rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Image
-                      src="/rux.png"
-                      alt="harga rbx"
-                      width={16}
-                      height={16}
-                      className="brightness-0 invert"
-                    />
-                  </div>
-                  <div className="text-sm font-medium text-white/60">
-                    Harga RBX
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-white">
-                  {loadingStats ? (
-                    "..."
-                  ) : (
-                    <>
-                      Rp.{rbx5Stats.hargaPer100Robux.toLocaleString()}{" "}
-                      <span className="text-xs font-medium text-primary-300">
-                        / 100 RBX
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
+
+          {/* Trust Indicators - Neon Style */}
         </div>
       </section>
 
@@ -1424,90 +1371,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section - Neon Theme */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 via-transparent to-neon-pink/10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="neon-card rounded-3xl p-8 lg:p-16">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Content */}
-              <div className="text-center lg:text-left order-2 lg:order-1">
-                <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 text-neon-pink rounded-full text-sm font-medium mb-6">
-                  Siap Mulai Gaming?
-                </div>
-
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-                  <span className="text-neon-purple">Mulai</span> Petualangan{" "}
-                  <span className="text-neon-pink">RBX</span> Sekarang
-                </h2>
-
-                <p className="text-lg text-white/70 mb-8 ">
-                  Bergabung dengan ribuan player yang sudah mempercayai RBXNET.
-                  Dapatkan RBX dengan proses termudah, tercepat, dan teraman.
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Link
-                    href="/rbx"
-                    className="btn-neon-primary px-8 py-4 rounded-2xl font-semibold text-lg hover:-translate-y-2 transition-all duration-300 text-center"
-                  >
-                    Beli RBX Sekarang
-                  </Link>
-                  <Link
-                    href="/gamepass"
-                    className="btn-neon-secondary px-8 py-4 rounded-2xl font-semibold text-lg hover:-translate-y-2 transition-all duration-300 text-center"
-                  >
-                    Lihat Gamepass
-                  </Link>
-                </div>
-
-                {/* Trust indicators */}
-                <div className="flex items-center justify-center lg:justify-start gap-8 mt-8 text-sm text-white/60">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-neon-pink rounded-full"></div>
-                    Proses Instan
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-neon-purple rounded-full"></div>
-                    Aman & Terpercaya
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-neon-pink rounded-full"></div>
-                    Support 24/7
-                  </div>
-                </div>
-              </div>
-
-              {/* Character Image */}
-              <div className="order-1 lg:order-2">
-                <div className="relative">
-                  <Image
-                    src="/char3.webp"
-                    alt="RBXNET Character"
-                    width={500}
-                    height={400}
-                    className="mx-auto max-w-full h-auto"
-                  />
-
-                  {/* Floating badge - Neon Style */}
-                  {/* <div className="absolute hidden md:block top-8 -left-4 neon-card border-2 border-neon-pink rounded-xl p-3 text-sm font-medium text-neon-pink transform rotate-12 shadow-neon-pink">
-                    <div className="flex items-center gap-2">
-                      <Rocket className="w-6 h-6" />
-                      <div>
-                        <div className="font-bold">Super Fast!</div>
-                        <div className="text-xs text-white/50">
-                          Delivery in seconds
-                        </div>
-                      </div>
-                    </div>
-                  </div> */}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Support Section - Minimal Clean Design */}
       <section id="support" className="py-20 bg-gradient-dark-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1694,153 +1557,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Customer Reviews Marquee Section - Neon Theme */}
-      <section className="py-12 relative bg-gradient-dark-secondary/30">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center px-4 py-2 neon-card-secondary border border-neon-pink/30 rounded-full text-sm text-neon-pink font-medium mb-6">
-              Testimoni Pelanggan
-            </div>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-              Apa Kata <span className="text-neon-pink">Mereka?</span>
-            </h2>
-            <p className="text-xl text-white/70 max-w-2xl mx-auto mb-8">
-              Ribuan gamer sudah merasakan pengalaman berbelanja terbaik bersama
-              kami
-            </p>
-          </div>
 
-          {/* Reviews Marquee */}
-          <div className="mb-8 py-4">
-            {loadingReviews ? (
-              <div className="flex justify-center items-center py-10">
-                <div className="animate-spin rounded-full h-10 w-10 border-2 border-neon-pink/30 border-t-neon-pink"></div>
-              </div>
-            ) : liveReviews.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-white/60">Belum ada review tersedia</p>
-              </div>
-            ) : (
-              <Marquee
-                speed={35}
-                pauseOnHover={true}
-                gradient={false}
-                className="py-10"
-              >
-                {liveReviews.map((review) => {
-                  // Determine card style based on colorScheme
-                  const getCardStyle = () => {
-                    switch (review.colorScheme) {
-                      case "pink":
-                        return {
-                          cardClass: "neon-card",
-                          hoverBorder: "hover:border-neon-pink/40",
-                          hoverShadow: "hover:shadow-neon-pink",
-                          bgGradient: "bg-gradient-neon-primary",
-                          starColor: "text-neon-pink",
-                          checkColor: "text-neon-pink",
-                        };
-                      case "purple":
-                        return {
-                          cardClass: "neon-card-secondary",
-                          hoverBorder: "hover:border-neon-purple/40",
-                          hoverShadow: "hover:shadow-neon-purple",
-                          bgGradient: "bg-gradient-neon-secondary",
-                          starColor: "text-neon-purple",
-                          checkColor: "text-neon-purple",
-                        };
-                      case "amber":
-                        return {
-                          cardClass: "neon-card",
-                          hoverBorder: "hover:border-amber-400/40",
-                          hoverShadow: "hover:shadow-amber-400/20",
-                          bgGradient:
-                            "bg-gradient-to-br from-amber-400 to-yellow-500",
-                          starColor: "text-amber-300",
-                          checkColor: "text-amber-400",
-                        };
-                      case "teal":
-                        return {
-                          cardClass: "neon-card",
-                          hoverBorder: "hover:border-teal-400/40",
-                          hoverShadow: "hover:shadow-teal-400/20",
-                          bgGradient:
-                            "bg-gradient-to-br from-teal-400 to-cyan-500",
-                          starColor: "text-teal-300",
-                          checkColor: "text-teal-400",
-                        };
-                      case "indigo":
-                        return {
-                          cardClass: "neon-card",
-                          hoverBorder: "hover:border-indigo-400/40",
-                          hoverShadow: "hover:shadow-indigo-400/20",
-                          bgGradient:
-                            "bg-gradient-to-br from-indigo-400 to-purple-500",
-                          starColor: "text-indigo-300",
-                          checkColor: "text-indigo-400",
-                        };
-                      default:
-                        return {
-                          cardClass: "neon-card",
-                          hoverBorder: "hover:border-neon-pink/40",
-                          hoverShadow: "hover:shadow-neon-pink",
-                          bgGradient: "bg-gradient-neon-primary",
-                          starColor: "text-neon-pink",
-                          checkColor: "text-neon-pink",
-                        };
-                    }
-                  };
-
-                  const style = getCardStyle();
-
-                  return (
-                    <div
-                      key={review.id}
-                      className={`${style.cardClass} rounded-xl p-4 mx-3 min-w-[280px] ${style.hoverBorder} hover:-translate-y-2 transition-all duration-500 ${style.hoverShadow}`}
-                    >
-                      <div className="flex items-center mb-3">
-                        <div
-                          className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center font-bold text-white text-sm`}
-                        >
-                          {review.initial}
-                        </div>
-                        <div className="ml-3">
-                          <div className="font-semibold text-white text-sm">
-                            {review.username}
-                          </div>
-                          <div className={`flex gap-0.5 ${style.starColor}`}>
-                            {[...Array(review.rating)].map((_, index) => (
-                              <Star
-                                key={index}
-                                className="w-3 h-3 fill-current"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-white/70 italic mb-3 text-sm line-clamp-3">
-                        "{review.comment}"
-                      </p>
-                      <div className={`text-xs ${style.checkColor}`}>
-                        <CheckCircle
-                          className={`inline w-3 h-3 ${style.checkColor} mr-1`}
-                        />{" "}
-                        {review.serviceInfo.includes("Robux")
-                          ? review.serviceInfo.replace("Robux", "RBX")
-                          : review.serviceInfo}{" "}
-                        • {review.timeAgo}
-                      </div>
-                    </div>
-                  );
-                })}
-              </Marquee>
-            )}
-          </div>
-
-          {/* Trust Indicators - Neon Style */}
-        </div>
-      </section>
 
       {/* Interactive FAQ Section - Neon Theme */}
       <section

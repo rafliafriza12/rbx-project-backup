@@ -209,10 +209,10 @@ async function processGamepassPurchase(transaction: any) {
     if (purchaseResult.success) {
       console.log("Gamepass purchase successful");
 
-      // Update order status to completed
+      // Update order status to processing
       await transaction.updateStatus(
         "order",
-        "completed",
+        "processing",
         `Gamepass berhasil dibeli `,
         null,
       );
@@ -552,14 +552,19 @@ export async function POST(request: NextRequest) {
         await sendPaymentNotification(transaction, statusMapping.paymentStatus);
       }
 
+      let targetOrderStatus = statusMapping.orderStatus;
+      if (targetOrderStatus === "processing" && (transaction.serviceType === "gamepass" || transaction.serviceCategory === "gamepass" || transaction.serviceCategory === "robux_5_hari")) {
+        targetOrderStatus = "pending";
+      }
+
       // Update order status jika ada dan berubah
       if (
-        statusMapping.orderStatus &&
-        transaction.orderStatus !== statusMapping.orderStatus
+        targetOrderStatus &&
+        transaction.orderStatus !== targetOrderStatus
       ) {
         await transaction.updateStatus(
           "order",
-          statusMapping.orderStatus,
+          targetOrderStatus,
           `Order status updated from Duitku callback`,
           null,
         );

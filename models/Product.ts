@@ -7,6 +7,7 @@ export interface IProduct extends Document {
   price: number;
   isActive: boolean;
   category: "robux_5_hari" | "robux_instant";
+  productType?: "regular" | "premium"; // newly added
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,9 +45,15 @@ const ProductSchema: Schema = new Schema(
       enum: ["robux_5_hari", "robux_instant"],
       required: [true, "Kategori produk diperlukan"],
     },
+    productType: {
+      type: String,
+      enum: ["regular", "premium"],
+      default: "regular",
+    },
   },
   {
     timestamps: true,
+    strict: false,
   }
 );
 
@@ -54,5 +61,8 @@ const ProductSchema: Schema = new Schema(
 ProductSchema.index({ category: 1, isActive: 1 });
 ProductSchema.index({ robuxAmount: 1 });
 
-export default mongoose.models.Product ||
-  mongoose.model<IProduct>("Product", ProductSchema);
+if (mongoose.models.ProductV4) {
+  delete mongoose.models.ProductV4;
+}
+
+export default mongoose.model<IProduct>("ProductV4", ProductSchema, "products");

@@ -8,6 +8,8 @@ export interface IReview extends Document {
   serviceName?: string; // Nama joki atau gamepass yang direview
   rating: number;
   comment: string;
+  transactionId?: string; // Menyimpan ID transaksi agar satu transaksi hanya bisa diulas 1 kali
+  profilePicture?: string; // URL foto profil Google (jika ada)
   isApproved: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +63,14 @@ const reviewSchema = new Schema<IReview>(
       required: true,
       trim: true,
       maxlength: 500,
+    },
+    transactionId: {
+      type: String,
+      trim: true,
+    },
+    profilePicture: {
+      type: String,
+      trim: true,
     },
     isApproved: {
       type: Boolean,

@@ -25,6 +25,20 @@ export async function GET(request: NextRequest) {
     if (isActive !== null && isActive !== undefined) {
       filter.isActive = isActive === "true";
     }
+    
+    // Filter by productType (regular/premium)
+    if (type) {
+      if (type === "regular") {
+        // Treat missing productType as regular for older documents
+        filter.$or = [
+          { productType: "regular" },
+          { productType: { $exists: false } },
+          { productType: null }
+        ];
+      } else {
+        filter.productType = type;
+      }
+    }
 
     // For public API (non-admin), only show active products
     if (!isAdmin) {
@@ -41,7 +55,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
 
     return NextResponse.json({
       message: "Produk berhasil diambil",
@@ -73,7 +87,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, robuxAmount, price, isActive, category } = body;
+    console.log("POST /api/products received body:", body);
+    const { name, description, robuxAmount, price, isActive, category, productType } = body;
+    console.log("Extracted productType:", productType);
 
     // Validation
     if (!name || !description || !robuxAmount || !category) {
@@ -119,6 +135,7 @@ export async function POST(request: NextRequest) {
       price: finalPrice,
       isActive: isActive !== undefined ? isActive : true,
       category,
+      productType: productType || "regular",
     });
 
     await newProduct.save();

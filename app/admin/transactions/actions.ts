@@ -53,6 +53,26 @@ export async function fetchTransactionsAdmin(params: Record<string, string>) {
 /**
  * Server Action: Update transaction status (admin)
  */
+export async function uploadTransactionImage(formData: FormData) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(`${BASE_URL}/api/upload`, {
+      method: "POST",
+      headers: {
+        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      },
+      body: formData,
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error uploading image:", error);
+    return { ok: false, data: { error: "Gagal upload gambar" } };
+  }
+}
+
 export async function updateTransactionStatus(
   transactionId: string,
   payload: {
@@ -60,6 +80,7 @@ export async function updateTransactionStatus(
     newStatus: string;
     notes?: string;
     updatedBy?: string;
+    imageUrl?: string;
   },
 ) {
   try {

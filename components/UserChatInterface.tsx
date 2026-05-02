@@ -654,6 +654,32 @@ export default function UserChatInterface({
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+          alert("Ukuran file maksimal 5MB");
+          return;
+        }
+
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        break;
+      }
+    }
+  };
+
   const formatTime = (date: string) => {
     try {
       return format(new Date(date), "HH:mm");
@@ -1175,6 +1201,7 @@ export default function UserChatInterface({
                       }
                     }
                   }}
+                  onPaste={handlePaste}
                   placeholder="Ketik pesan Anda..."
                   className="w-full text-xs md:text-sm bg-gradient-to-r from-primary-700/50 to-primary-600/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all backdrop-blur-sm shadow-inner disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto"
                   style={{

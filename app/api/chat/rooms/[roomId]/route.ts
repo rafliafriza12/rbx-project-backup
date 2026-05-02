@@ -12,7 +12,8 @@ export async function DELETE(
   { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const user = await authenticateToken(request);
 
     if (
@@ -98,7 +99,8 @@ export async function PATCH(
   { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const user = await authenticateToken(request);
 
     if (

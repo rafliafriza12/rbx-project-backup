@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       }),
 
       // Total users count
-      User.countDocuments({ accessRole: "user" }),
+      User.countDocuments(),
 
       // Total gamepass count
       Gamepass.countDocuments(),

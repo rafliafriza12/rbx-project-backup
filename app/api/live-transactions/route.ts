@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiKey } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import RobloxCache from "@/models/RobloxCache";
 
 export async function GET(request: NextRequest) {
   const apiKeyError = requireApiKey(request);
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
     })
       .sort({ createdAt: -1 })
       .limit(10)
+      .populate("customerInfo.userId", "profilePicture firstName lastName username")
       .lean();
 
     console.log(
@@ -23,11 +25,32 @@ export async function GET(request: NextRequest) {
     );
 
     // Format data untuk ditampilkan
-    const formattedTransactions = transactions.map((tx: any) => {
-      // Mask username (ambil huruf pertama + bintang)
-      const maskedUsername = tx.robloxUsername
-        ? tx.robloxUsername.charAt(0) + "*******"
-        : "u*******";
+    const formattedTransactions = await Promise.all(transactions.map(async (tx: any) => {
+      // Prioritaskan robloxUsername, jika tidak ada baru gunakan username User
+      const realUser = tx.customerInfo?.userId as any;
+      const actualUsername = tx.robloxUsername || realUser?.username || realUser?.firstName || "user";
+      
+      let profilePicture = null;
+      
+      // Jika punya robloxUsername, coba cari avatar di cache
+      if (tx.robloxUsername) {
+        try {
+          const cached = await RobloxCache.findOne({ username: tx.robloxUsername.toLowerCase() }).lean();
+          if (cached && cached.avatarUrl) {
+            profilePicture = cached.avatarUrl;
+          }
+        } catch (e) {
+          console.error("Error fetching roblox cache:", e);
+        }
+      }
+      
+      // Fallback ke profile picture user
+      if (!profilePicture) {
+        profilePicture = realUser?.profilePicture || null;
+      }
+      
+      // Tampilkan username penuh, tidak perlu di mask jika itu username roblox
+      const maskedUsername = actualUsername;
 
       // Tentukan nama service dan quantity
       let displayName = tx.serviceName || "Unknown Service";
@@ -78,8 +101,9 @@ export async function GET(request: NextRequest) {
         timeAgo,
         serviceType: tx.serviceType,
         colorScheme,
+        profilePicture,
       };
-    });
+    }));
 
     // Jika transaksi kurang dari 3, tambahkan data dummy untuk demo
     if (formattedTransactions.length < 3) {
@@ -98,6 +122,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "5 menit lalu",
           serviceType: "robux",
           colorScheme: "pink",
+          profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=dummy1",
         },
         {
           id: "dummy-2",
@@ -107,6 +132,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "15 menit lalu",
           serviceType: "robux",
           colorScheme: "purple",
+          profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=dummy2",
         },
         {
           id: "dummy-3",

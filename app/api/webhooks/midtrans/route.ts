@@ -81,8 +81,17 @@ export async function POST(request: NextRequest) {
       const oldPaymentStatus = transaction.paymentStatus;
       const oldOrderStatus = transaction.orderStatus;
 
+      let finalOrderStatus = statusMapping.orderStatus;
+      let orderNote = `Auto-updated from payment status change`;
+
+      // Khusus RBX5: setelah bayar, masuk ke pending dengan catatan
+      if (statusMapping.paymentStatus === "settlement" && transaction.serviceCategory === "robux_5_hari") {
+        finalOrderStatus = "pending";
+        orderNote = "Pesanan sedang diproses admin";
+      }
+
       transaction.paymentStatus = statusMapping.paymentStatus;
-      transaction.orderStatus = statusMapping.orderStatus;
+      transaction.orderStatus = finalOrderStatus;
 
       // Add to status history with more detailed information
       transaction.statusHistory.push({
@@ -95,11 +104,11 @@ export async function POST(request: NextRequest) {
       });
 
       // Also add order status history if it changed
-      if (oldOrderStatus !== statusMapping.orderStatus) {
+      if (oldOrderStatus !== finalOrderStatus) {
         transaction.statusHistory.push({
-          status: `order:${statusMapping.orderStatus}`,
+          status: `order:${finalOrderStatus}`,
           timestamp: new Date(),
-          notes: `Auto-updated from payment status change`,
+          notes: orderNote,
           updatedBy: "system",
         });
       }

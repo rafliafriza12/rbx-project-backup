@@ -210,10 +210,10 @@ async function processGamepassPurchase(transaction: any) {
     if (purchaseResult.success) {
       console.log("Gamepass purchase successful");
 
-      // Update order status to completed
+      // Update order status to processing
       await transaction.updateStatus(
         "order",
-        "completed",
+        "processing",
         `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
         null,
       );
@@ -551,7 +551,8 @@ export async function POST(request: NextRequest) {
       else if (transaction.orderStatus !== statusMapping.orderStatus) {
         // Hanya update order status jika payment status memungkinkan
         const allowedOrderStatusUpdates: { [key: string]: string[] } = {
-          waiting_payment: ["processing", "cancelled"],
+          waiting_payment: ["pending", "processing", "cancelled"],
+          pending: ["processing", "in_progress", "completed", "cancelled"],
           processing: ["in_progress", "completed", "cancelled"],
           in_progress: ["completed", "cancelled"],
         };
@@ -560,10 +561,17 @@ export async function POST(request: NextRequest) {
         const allowedStatuses =
           allowedOrderStatusUpdates[currentOrderStatus] || [];
 
-        if (allowedStatuses.includes(statusMapping.orderStatus)) {
+        let targetOrderStatus = statusMapping.orderStatus;
+        
+        // Khusus gamepass dan robux_5_hari, jika midtrans me-return processing, ubah ke pending terlebih dahulu
+        if (targetOrderStatus === "processing" && (transaction.serviceType === "gamepass" || transaction.serviceCategory === "gamepass" || transaction.serviceCategory === "robux_5_hari")) {
+          targetOrderStatus = "pending";
+        }
+
+        if (allowedStatuses.includes(targetOrderStatus)) {
           await transaction.updateStatus(
             "order",
-            statusMapping.orderStatus,
+            targetOrderStatus,
             `Order status updated based on payment ${transaction_status}`,
             null,
           );
@@ -699,11 +707,11 @@ export async function GET(request: NextRequest) {
     const midtransStatus = await midtransService.getTransactionStatus(orderId);
 
     // Cari transaksi di database
-    const transaction = await Transaction.findOne({
+    const transactions = await Transaction.find({
       midtransOrderId: orderId,
     });
 
-    if (!transaction) {
+    if (!transactions || transactions.length === 0) {
       return NextResponse.json(
         { error: "Transaction not found" },
         { status: 404 },
@@ -716,70 +724,79 @@ export async function GET(request: NextRequest) {
       midtransStatus.fraud_status,
     );
 
-    let updated = false;
+    let anyUpdated = false;
+    const results = [];
 
-    // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan perubahan status
-    if (transaction.paymentStatus === "settlement") {
-      console.log(
-        `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update (incoming: ${statusMapping.paymentStatus})`,
-      );
-      return NextResponse.json({
-        success: true,
-        data: {
-          transaction,
+    for (const transaction of transactions) {
+      // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan perubahan status
+      if (transaction.paymentStatus === "settlement") {
+        console.log(
+          `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update (incoming: ${statusMapping.paymentStatus})`,
+        );
+        results.push({
+          transactionId: transaction.invoiceId,
           midtransStatus,
           updated: false,
           skipped: true,
           reason: "Already settled - status cannot be changed",
-        },
-      });
-    }
+        });
+        continue;
+      }
 
-    // Update jika status berbeda
-    if (transaction.paymentStatus !== statusMapping.paymentStatus) {
-      const previousPaymentStatus = transaction.paymentStatus;
+      // Update jika status berbeda
+      if (transaction.paymentStatus !== statusMapping.paymentStatus) {
+        const previousPaymentStatus = transaction.paymentStatus;
 
-      await transaction.updateStatus(
-        "payment",
-        statusMapping.paymentStatus,
-        `Manual status check: ${midtransStatus.transaction_status}`,
-        null,
-      );
-      updated = true;
+        await transaction.updateStatus(
+          "payment",
+          statusMapping.paymentStatus,
+          `Manual status check: ${midtransStatus.transaction_status}`,
+          null,
+        );
+        anyUpdated = true;
 
-      // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
-      if (
-        statusMapping.paymentStatus === "settlement" &&
-        previousPaymentStatus !== "settlement" &&
-        transaction.customerInfo?.userId
-      ) {
-        try {
-          // Update spendedMoney user
-          const user = await User.findById(transaction.customerInfo.userId);
-          if (user) {
-            // Gunakan finalAmount, fallback ke totalAmount untuk safety
-            const amountToAdd =
-              transaction.finalAmount || transaction.totalAmount;
-            user.spendedMoney += amountToAdd;
-            await user.save();
+        // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.customerInfo?.userId
+        ) {
+          try {
+            // Update spendedMoney user only once for the first transaction
+            const isFirstTransaction = transactions.findIndex((t) => t._id.equals(transaction._id)) === 0;
+            
+            if (isFirstTransaction) {
+              const user = await User.findById(transaction.customerInfo.userId);
+              if (user) {
+                const totalOrderAmount = transactions.reduce(
+                  (sum, t) => sum + (t.finalAmount || t.totalAmount),
+                  0
+                );
+                user.spendedMoney += totalOrderAmount;
+                await user.save();
 
-            console.log(
-              `Updated spendedMoney for user ${user.email}: +${amountToAdd} (total: ${user.spendedMoney})`,
-            );
+                console.log(
+                  `Updated spendedMoney for user ${user.email}: +${totalOrderAmount} (total: ${user.spendedMoney})`
+                );
+              }
+            }
+          } catch (userUpdateError) {
+            console.error("Error updating user spendedMoney:", userUpdateError);
           }
-        } catch (userUpdateError) {
-          console.error("Error updating user spendedMoney:", userUpdateError);
-          // Continue execution even if user update fails
         }
       }
+
+      results.push({
+        transactionId: transaction.invoiceId,
+        midtransStatus,
+        updated: anyUpdated,
+      });
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        transaction,
-        midtransStatus,
-        updated,
+        results,
       },
     });
   } catch (error) {

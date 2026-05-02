@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { Star } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Review, ReviewApiResponse } from "@/types";
 import {
   getPublicReviews,
@@ -28,6 +28,10 @@ export default function ReviewSection({
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const reviewsPerPage = 5;
 
   // Form state
   const [username, setUsername] = useState("");
@@ -35,14 +39,16 @@ export default function ReviewSection({
   const [comment, setComment] = useState("");
   const [localHoverRating, setLocalHoverRating] = useState(0);
   useEffect(() => {
-    fetchReviews();
-  }, [serviceType, serviceCategory, serviceId]);
+    fetchReviews(currentPage);
+  }, [serviceType, serviceCategory, serviceId, currentPage]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = async (page: number) => {
+    setLoading(true);
     try {
       const params = new URLSearchParams({
         serviceType,
-        limit: "10",
+        limit: String(reviewsPerPage),
+        page: String(page),
       });
 
       if (serviceCategory) params.append("serviceCategory", serviceCategory);
@@ -52,6 +58,10 @@ export default function ReviewSection({
 
       if (data.success && data.data) {
         setReviews(data.data);
+        if (data.pagination) {
+          setTotalPages(data.pagination.pages);
+          setTotalReviews(data.pagination.total);
+        }
       }
     } catch (error) {
     } finally {
@@ -326,10 +336,19 @@ export default function ReviewSection({
               >
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-lg">
-                      {review.username.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                    {review.profilePicture ? (
+                      <img
+                        src={review.profilePicture}
+                        alt={review.username}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className="text-white font-bold text-lg">
+                        {review.username.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
 
                   {/* Content */}
@@ -379,7 +398,7 @@ export default function ReviewSection({
           ) : (
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full flex items-center justify-center">
-                <span className="text-primary-100 text-2xl -mt-1">�</span>
+                <span className="text-primary-100 text-2xl -mt-1"></span>
               </div>
               <p className="text-white/70 font-medium">
                 Belum ada review untuk layanan ini.
@@ -390,6 +409,53 @@ export default function ReviewSection({
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((page) => {
+                if (totalPages <= 5) return true;
+                if (page === 1 || page === totalPages) return true;
+                if (Math.abs(page - currentPage) <= 1) return true;
+                return false;
+              })
+              .map((page, index, arr) => {
+                const showDots = index > 0 && page - arr[index - 1] > 1;
+                return (
+                  <span key={page} className="flex items-center gap-2">
+                    {showDots && <span className="text-white/40 text-sm">...</span>}
+                    <button
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${
+                        currentPage === page
+                          ? "bg-primary-100 text-white"
+                          : "bg-white/10 border border-white/20 text-white/70 hover:bg-white/20"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </span>
+                );
+              })}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

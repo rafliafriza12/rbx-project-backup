@@ -642,6 +642,7 @@ const menuItems: MenuItem[] = [
   { title: "Statistik RBX5", icon: "📈", href: "/admin/rbx5-stats" },
   { title: "Gamepass", icon: "🎯", href: "/admin/gamepass" },
   // { title: "Jasa Joki", icon: "🚀", href: "/admin/joki" },
+  { title: "Promo Codes", icon: "🏷️", href: "/admin/promos" },
   { title: "Banner", icon: "🎨", href: "/admin/banners" },
   { title: "Metode Pembayaran", icon: "💳", href: "/admin/payment-methods" },
   { title: "Email Management", icon: "📧", href: "/admin/email-management" },

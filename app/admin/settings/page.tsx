@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";
+import Image from "next/image";
 import {
   fetchSettingsAdmin,
   updateSettingsAdmin,
   resetSettingsAdmin,
 } from "./actions";
+import { uploadBannerImage } from "@/app/admin/banners/actions";
 
 interface TabContent {
   id: string;
@@ -26,6 +28,16 @@ interface Settings {
   businessHours: string;
   maintenanceMode: boolean;
   maintenanceMessage: string;
+
+  // Admin Status
+  adminStatusMode: string;
+  operationalHourStart: string;
+  operationalHourEnd: string;
+
+  // Popup Banner Settings
+  popupBannerEnabled: boolean;
+  popupBannerImageUrl: string;
+  popupBannerTargetUrl: string;
 
   // Payment Gateway Settings
   activePaymentGateway: string;
@@ -87,6 +99,11 @@ export default function SettingsPage() {
     success: boolean;
     message: string;
   } | null>(null);
+
+  // Popup Image Upload State
+  const [popupImageFile, setPopupImageFile] = useState<File | null>(null);
+  const [popupImagePreview, setPopupImagePreview] = useState<string>("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const tabs: TabContent[] = [
     {
@@ -185,6 +202,9 @@ export default function SettingsPage() {
 
       if (ok) {
         setSettings(data.settings);
+        if (data.settings.popupBannerImageUrl) {
+          setPopupImagePreview(data.settings.popupBannerImageUrl);
+        }
       } else {
         toast.error("Error loading settings: " + data.error);
       }
@@ -205,17 +225,68 @@ export default function SettingsPage() {
     setHasChanges(true);
   };
 
+  const handlePopupImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("File harus berupa gambar");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 5MB");
+        return;
+      }
+      setPopupImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPopupImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setHasChanges(true);
+    }
+  };
+
+  const uploadPopupImageToCloudinary = async (): Promise<string> => {
+    if (!popupImageFile) return settings?.popupBannerImageUrl || "";
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", popupImageFile);
+      const { ok, data } = await uploadBannerImage(fd);
+      if (!ok || !data.success) {
+        throw new Error(data.error || "Gagal mengupload gambar popup");
+      }
+      return data.data.url;
+    } catch (error) {
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!settings) return;
 
     try {
       setSaving(true);
-      const { ok, data } = await updateSettingsAdmin(settings);
+
+      let popupImageUrl = settings.popupBannerImageUrl;
+      if (popupImageFile) {
+        popupImageUrl = await uploadPopupImageToCloudinary();
+      }
+
+      const settingsToSave = {
+        ...settings,
+        popupBannerImageUrl: popupImageUrl,
+      };
+
+      const { ok, data } = await updateSettingsAdmin(settingsToSave);
 
       if (ok) {
         toast.success("Settings berhasil disimpan!");
         setHasChanges(false);
         setSettings(data.settings);
+        setPopupImageFile(null);
       } else {
         toast.error("Error menyimpan settings: " + data.error);
       }
@@ -396,6 +467,144 @@ export default function SettingsPage() {
                     className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
                     placeholder="Situs sedang dalam pemeliharaan. Silakan coba lagi nanti."
                   />
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-[#334155] pt-6 mt-6">
+              <h3 className="text-lg font-semibold text-[#f1f5f9] mb-4">Admin Status & Jam Operasional</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                    Status Admin
+                  </label>
+                  <select
+                    value={settings.adminStatusMode || "auto"}
+                    onChange={(e) =>
+                      handleInputChange("adminStatusMode", e.target.value)
+                    }
+                    className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9]"
+                  >
+                    <option value="auto">Auto (Ikut Jam Operasional)</option>
+                    <option value="online">Selalu Online</option>
+                    <option value="offline">Selalu Offline</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                    Jam Buka (WIB)
+                  </label>
+                  <input
+                    type="time"
+                    value={settings.operationalHourStart || "10:00"}
+                    onChange={(e) =>
+                      handleInputChange("operationalHourStart", e.target.value)
+                    }
+                    disabled={settings.adminStatusMode !== "auto"}
+                    className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] disabled:opacity-50"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                    Jam Tutup (WIB)
+                  </label>
+                  <input
+                    type="time"
+                    value={settings.operationalHourEnd || "21:00"}
+                    onChange={(e) =>
+                      handleInputChange("operationalHourEnd", e.target.value)
+                    }
+                    disabled={settings.adminStatusMode !== "auto"}
+                    className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#334155] pt-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#f1f5f9]">Popup Banner Iklan (Homepage)</h3>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="popupBannerEnabled"
+                    checked={settings.popupBannerEnabled || false}
+                    onChange={(e) =>
+                      handleInputChange("popupBannerEnabled", e.target.checked)
+                    }
+                    className="w-5 h-5 bg-[#334155] border-[#334155] rounded text-purple-600 focus:ring-purple-500 mr-2"
+                  />
+                  <label htmlFor="popupBannerEnabled" className="text-sm font-medium text-[#cbd5e1]">
+                    Tampilkan Popup
+                  </label>
+                </div>
+              </div>
+
+              {settings.popupBannerEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Gambar Banner *
+                    </label>
+                    <div className="space-y-3">
+                      {popupImagePreview && (
+                        <div className="relative aspect-[4/5] max-w-[250px] rounded-lg overflow-hidden bg-[#334155] border border-[#475569]">
+                          <Image
+                            src={popupImagePreview}
+                            alt="Popup Preview"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePopupImageChange}
+                        className="w-full px-3 py-2 bg-[#334155] border border-[#334155] text-[#f1f5f9] rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-[#f1f5f9] hover:file:bg-purple-700"
+                      />
+                      <p className="text-xs text-[#94a3b8]">
+                        Format: JPG, PNG, WebP. Maks: 5MB. Rasio portrait (vertikal) direkomendasikan.
+                      </p>
+                      
+                      <div className="relative flex items-center justify-center py-2 text-xs text-[#94a3b8] uppercase font-bold">
+                        <span className="bg-[#1e293b] px-2 relative z-10">ATAU</span>
+                        <div className="absolute w-full h-px bg-[#334155] left-0"></div>
+                      </div>
+                      
+                      <input
+                        type="text"
+                        value={settings.popupBannerImageUrl || ""}
+                        onChange={(e) => {
+                          handleInputChange("popupBannerImageUrl", e.target.value);
+                          setPopupImagePreview(e.target.value);
+                          setPopupImageFile(null); // Clear file if URL is typed
+                        }}
+                        className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                        placeholder="https://res.cloudinary.com/rbxnet/image/upload/v1768309894/banners/m0nkzgtmwr3chyqaqyqj.png"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                      Link Tujuan (Target URL)
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.popupBannerTargetUrl || ""}
+                      onChange={(e) =>
+                        handleInputChange("popupBannerTargetUrl", e.target.value)
+                      }
+                      className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
+                      placeholder="Contoh: /rbx atau https://..."
+                    />
+                    <p className="text-xs text-[#94a3b8] mt-2">
+                      Halaman yang akan dibuka ketika pengguna mengklik gambar banner. Biarkan kosong jika tidak ada link.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

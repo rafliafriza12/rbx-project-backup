@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
     const settings = await Settings.getSiteSettings();
 

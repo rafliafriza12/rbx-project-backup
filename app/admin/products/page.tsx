@@ -20,6 +20,7 @@ interface Product {
   price: number;
   isActive: boolean;
   category: "robux_5_hari" | "robux_instant";
+  productType?: "regular" | "premium";
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +38,7 @@ interface FormData {
   price: string;
   isActive: boolean;
   category: "robux_5_hari" | "robux_instant";
+  productType: "regular" | "premium";
 }
 
 export default function ProductsPage() {
@@ -61,6 +63,7 @@ export default function ProductsPage() {
     price: "",
     isActive: true,
     category: "robux_5_hari",
+    productType: "regular",
   });
 
   // Redirect if not admin
@@ -180,6 +183,7 @@ export default function ProductsPage() {
       price: "",
       isActive: true,
       category: "robux_5_hari",
+      productType: "regular",
     });
     setSelectedProduct(null);
   };
@@ -201,6 +205,7 @@ export default function ProductsPage() {
       price: product.price.toString(),
       isActive: product.isActive,
       category: product.category,
+      productType: product.productType || "regular",
     });
     setShowModal(true);
   };
@@ -218,6 +223,7 @@ export default function ProductsPage() {
         price: parseFloat(formData.price),
         isActive: formData.isActive,
         category: formData.category,
+        productType: formData.productType,
       };
 
       let result;
@@ -414,15 +420,28 @@ export default function ProductsPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[#cbd5e1]">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.category === "robux_5_hari"
-                        ? "bg-purple-900 text-purple-300 border border-purple-700"
-                        : "bg-green-900 text-green-300 border border-green-700"
-                    }`}
-                  >
-                    {product.category === "robux_5_hari" ? "5 Hari" : "Instant"}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full self-start ${
+                        product.category === "robux_5_hari"
+                          ? "bg-purple-900 text-purple-300 border border-purple-700"
+                          : "bg-green-900 text-green-300 border border-green-700"
+                      }`}
+                    >
+                      {product.category === "robux_5_hari" ? "5 Hari" : "Instant"}
+                    </span>
+                    {product.category === "robux_instant" && (
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full self-start ${
+                          product.productType === "premium"
+                            ? "bg-yellow-900 text-yellow-300 border border-yellow-700"
+                            : "bg-blue-900 text-blue-300 border border-blue-700"
+                        }`}
+                      >
+                        {product.productType === "premium" ? "Premium" : "Reguler"}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
@@ -525,6 +544,24 @@ export default function ProductsPage() {
                       <option value="robux_instant">Robux Instant</option>
                     </select>
                   </div>
+                  
+                  {formData.category === "robux_instant" && (
+                    <div>
+                      <label className="block text-sm font-medium text-[#334155] mb-1">
+                        Tipe Produk *
+                      </label>
+                      <select
+                        name="productType"
+                        value={formData.productType}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                      >
+                        <option value="regular">Reguler</option>
+                        <option value="premium">Premium</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

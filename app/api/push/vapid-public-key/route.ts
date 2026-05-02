@@ -8,7 +8,8 @@ import { requireApiKey } from "@/lib/auth";
  */
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const authError = requireApiKey(request);
+    if (authError) return authError;
     // Check if web push is configured
     if (!isWebPushConfigured()) {
       return NextResponse.json(

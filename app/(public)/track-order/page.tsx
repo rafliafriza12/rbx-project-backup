@@ -24,6 +24,7 @@ import {
 import { Transaction } from "@/types";
 import Link from "next/link";
 import { getPublicSettings, getTransactionByInvoice } from "@/app/lib/actions";
+import StatusHistoryTimeline from "@/components/StatusHistoryTimeline";
 
 interface SiteSettings {
   whatsappNumber?: string;
@@ -211,13 +212,14 @@ export default function TrackOrderPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
+    return new Date(dateString).toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
       day: "numeric",
       month: "long",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    }) + " WIB";
   };
 
   return (
@@ -787,85 +789,10 @@ export default function TrackOrderPage() {
                     Riwayat Status Pesanan
                   </h3>
 
-                  <div className="space-y-4 sm:space-y-6">
-                    {transaction.statusHistory &&
-                    transaction.statusHistory.length > 0 ? (
-                      transaction.statusHistory.map(
-                        (status: any, index: number) => {
-                          const parsed = parseStatus(status.status);
-                          const isPaymentStatus = parsed.type === "payment";
-                          const isOrderStatus = parsed.type === "order";
-
-                          return (
-                            <div
-                              key={index}
-                              className="flex items-start space-x-4 sm:space-x-6"
-                            >
-                              <div className="flex-shrink-0 mt-1">
-                                <div
-                                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-sm border ${
-                                    isPaymentStatus
-                                      ? "bg-blue-500/20 border-blue-400/30"
-                                      : isOrderStatus
-                                        ? "bg-green-500/20 border-green-400/30"
-                                        : "bg-primary-100/20 border-primary-100/30"
-                                  }`}
-                                >
-                                  {isPaymentStatus ? (
-                                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-                                  ) : isOrderStatus ? (
-                                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                                  ) : (
-                                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-primary-100 rounded-full"></div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      {getStatusBadge(status.status)}
-                                      {isPaymentStatus && (
-                                        <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/30">
-                                          Pembayaran
-                                        </span>
-                                      )}
-                                      {isOrderStatus && (
-                                        <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
-                                          Pesanan
-                                        </span>
-                                      )}
-                                    </div>
-                                    {status.notes && (
-                                      <p className="text-sm sm:text-base text-white/70 break-words mb-2">
-                                        {status.notes}
-                                      </p>
-                                    )}
-                                    {status.updatedBy &&
-                                      status.updatedBy !== "system" && (
-                                        <p className="text-xs text-white/50 mt-1">
-                                          Diperbarui oleh: {status.updatedBy}
-                                        </p>
-                                      )}
-                                  </div>
-                                  <div className="text-sm text-white/60 flex-shrink-0">
-                                    {formatDate(status.timestamp)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        },
-                      )
-                    ) : (
-                      <div className="text-center py-8 sm:py-12">
-                        <Clock className="w-12 h-12 text-white/40 mx-auto mb-4" />
-                        <p className="text-base text-white/60">
-                          Belum ada riwayat status
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <StatusHistoryTimeline 
+                    transaction={transaction} 
+                    formatDate={formatDate} 
+                  />
                 </div>
               </div>
               {/* Payment Summary */}

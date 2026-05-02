@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
+import Transaction from "@/models/Transaction";
+import User from "@/models/User";
 import { requireApiKey } from "@/lib/auth";
 
 // Simple in-memory rate limiter for review submissions
 const reviewRateLimit = new Map<string, { count: number; resetAt: number }>();
-const REVIEW_RATE_LIMIT = 3; // max reviews
+const REVIEW_RATE_LIMIT = 10; // max reviews
 const REVIEW_RATE_WINDOW = 60 * 60 * 1000; // per 1 hour
 
 function isReviewRateLimited(identifier: string): boolean {
@@ -31,7 +33,8 @@ function isReviewRateLimited(identifier: string): boolean {
 // GET - Get all approved reviews
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -87,7 +90,8 @@ export async function GET(request: NextRequest) {
 // POST - Create new review
 export async function POST(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     // Rate limit by IP
@@ -109,6 +113,7 @@ export async function POST(request: NextRequest) {
       serviceName,
       rating,
       comment,
+      transactionId,
     } = body;
 
     // Validasi input
@@ -127,22 +132,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cek duplicate review dari username yang sama untuk service yang sama
-    const existingReview = await Review.findOne({
-      username: username,
-      serviceType: serviceType,
-      ...(serviceCategory && { serviceCategory }),
-      ...(serviceId && { serviceId }),
-    });
-
-    if (existingReview) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Anda sudah pernah memberikan review untuk layanan ini",
-        },
-        { status: 400 },
-      );
+    // Cek duplicate review jika menyertakan transactionId
+    let profilePicture = "";
+    if (transactionId) {
+      const existingReview = await Review.findOne({ transactionId });
+      if (existingReview) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Anda sudah pernah memberikan review untuk transaksi ini",
+          },
+          { status: 400 },
+        );
+      }
+      
+      // Fetch profile picture if available
+      try {
+        const transaction = await Transaction.findById(transactionId).lean();
+        if (transaction && transaction.customerInfo && transaction.customerInfo.userId) {
+          const user = await User.findById(transaction.customerInfo.userId).lean();
+          if (user && user.profilePicture) {
+            profilePicture = user.profilePicture;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching profile picture for review:", err);
+      }
     }
 
     // Validasi serviceCategory untuk robux
@@ -179,6 +194,8 @@ export async function POST(request: NextRequest) {
       serviceName,
       rating,
       comment,
+      transactionId,
+      profilePicture,
       isApproved: false, // Default false, need admin approval
     });
 

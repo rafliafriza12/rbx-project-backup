@@ -43,6 +43,35 @@ const settingsSchema = new mongoose.Schema(
       default: "Situs sedang dalam pemeliharaan. Silakan coba lagi nanti.",
     },
 
+    // Admin Operational Status
+    adminStatusMode: {
+      type: String,
+      enum: ["online", "offline", "auto"],
+      default: "auto",
+    },
+    operationalHourStart: {
+      type: String,
+      default: "10:00",
+    },
+    operationalHourEnd: {
+      type: String,
+      default: "21:00",
+    },
+
+    // Popup Banner Settings
+    popupBannerEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    popupBannerImageUrl: {
+      type: String,
+      default: "",
+    },
+    popupBannerTargetUrl: {
+      type: String,
+      default: "",
+    },
+
     // Robux Settings
     robuxRate: {
       type: Number,
@@ -266,7 +295,7 @@ interface ISettingsModel extends mongoose.Model<any> {
   getSiteSettings(): Promise<any>;
 }
 
-const Settings = (mongoose.models.Settings ||
-  mongoose.model("Settings", settingsSchema)) as ISettingsModel;
+delete mongoose.models.Settings;
+const Settings = mongoose.model("Settings", settingsSchema) as ISettingsModel;
 
 export default Settings;

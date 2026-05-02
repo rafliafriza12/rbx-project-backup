@@ -4,8 +4,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import ReviewSection from "@/components/ReviewSection";
-import AddToCartButton from "@/components/AddToCartButton";
+import PaymentMethodSelector from "@/components/checkout/PaymentMethodSelector";
+import OrderSummaryCard from "@/components/checkout/OrderSummaryCard";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  fetchPaymentSettings,
+  fetchPaymentMethods,
+  createTransaction,
+} from "@/app/checkout/actions";
+import { getProductsByCategory, getUserInfo, getPublicSettings, addToCartAction } from "@/app/lib/actions";
+import { PaymentCategory, calculatePaymentFee } from "@/lib/payment-helpers";
+
 import {
   DollarSign,
   CheckCircle2,
@@ -23,9 +34,8 @@ import {
   Search,
   CheckCircle,
   AlertCircle,
+  CreditCard
 } from "lucide-react";
-
-import { getProductsByCategory, getUserInfo } from "@/app/lib/actions";
 
 interface Product {
   _id: string;
@@ -37,11 +47,12 @@ interface Product {
   discountPercentage?: number;
   isActive: boolean;
   category: "robux_5_hari" | "robux_instant";
+  productType?: "regular" | "premium";
   createdAt: string;
   updatedAt: string;
 }
 
-const RobuxInstan: React.FC = () => {
+export default function RobuxInstan() {
   const [isShowReview, setIsShowReview] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,26 +67,41 @@ const RobuxInstan: React.FC = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null,
-  );
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Wizard States
+  const [currentStep, setCurrentStep] = useState(1);
+  const [productType, setProductType] = useState<"regular" | "premium">("regular");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Checkout States
+  const { user } = useAuth();
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
+  const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
+  const [expandedCategory, setExpandedCategory] = useState<string>("qris");
+  const [submitting, setSubmitting] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
 
   const router = useRouter();
 
-  // Function to search for user info
   const searchUserInfo = async (username: string) => {
     if (!username || username.trim().length < 2) {
       setUserInfo(null);
       setUserSearchError(null);
       return;
     }
-
     setIsSearchingUser(true);
     setUserSearchError(null);
-
     try {
       const { ok, data } = await getUserInfo(username.trim());
-
       if (data.success) {
         setUserInfo(data);
         setUserSearchError(null);
@@ -91,72 +117,96 @@ const RobuxInstan: React.FC = () => {
     }
   };
 
-  // Fetch products from database
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const result = await getProductsByCategory("robux_instant");
-        // Sort products by robuxAmount ascending
         const sortedProducts = (result.products || []).sort(
           (a: Product, b: Product) => a.robuxAmount - b.robuxAmount,
         );
         setProducts(sortedProducts);
-
-        // Set default values from first product
-        if (sortedProducts && sortedProducts.length > 0) {
-          setRobux(sortedProducts[0].robuxAmount);
-          setSelectedProduct(sortedProducts[0]);
-        }
       } catch (error) {
-        // Error fetching products
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
-  // Debounced search effect for username
   useEffect(() => {
-    // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    // Reset user info when input is cleared
+    if (searchTimeout) clearTimeout(searchTimeout);
     if (!username || username.trim().length < 2) {
       setUserInfo(null);
       setUserSearchError(null);
       setIsSearchingUser(false);
       return;
     }
-
-    // Set new timeout for 1 second delay
     const newTimeout = setTimeout(() => {
       searchUserInfo(username);
     }, 1000);
-
     setSearchTimeout(newTimeout);
-
-    // Cleanup function
     return () => {
-      if (newTimeout) {
-        clearTimeout(newTimeout);
-      }
+      if (newTimeout) clearTimeout(newTimeout);
     };
   }, [username]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
+    if (user) {
+      if (!email) setEmail(user.email || "");
+      if (!phone) setPhone(user.phone || "");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (paymentCategories.length > 0 && activePaymentGateway === "duitku") {
+      const categoryOrder = ["qris", "ewallet", "virtual_account", "retail"];
+      for (const cat of categoryOrder) {
+        if (paymentCategories.some((pc) => pc.id === cat)) {
+          setExpandedCategory(cat);
+          break;
+        }
+      }
+    }
+  }, [paymentCategories, activePaymentGateway]);
+
+  useEffect(() => {
+    const loadPaymentData = async () => {
+      setPaymentMethodsLoading(true);
+      try {
+        const settingsRes = await fetchPaymentSettings();
+        if (settingsRes.success && settingsRes.settings) {
+          const gateway = settingsRes.settings.activePaymentGateway;
+          setActivePaymentGateway(gateway);
+
+          const methodsRes = await fetchPaymentMethods(gateway);
+          if (methodsRes.success && methodsRes.data) {
+            const groupedMethods = methodsRes.data.reduce((acc: any, method: any) => {
+              const category = method.category || "Lainnya";
+              if (!acc[category]) {
+                acc[category] = { id: category, name: category, methods: [] };
+              }
+              acc[category].methods.push({
+                id: method.code,
+                name: method.name,
+                icon: method.icon,
+                fee: method.fee,
+                feeType: method.feeType,
+                minimumAmount: method.minimumAmount,
+                maximumAmount: method.maximumAmount,
+              });
+              return acc;
+            }, {});
+            setPaymentCategories(Object.values(groupedMethods));
+          }
+        }
+      } catch (error) {
+      } finally {
+        setPaymentMethodsLoading(false);
       }
     };
+    loadPaymentData();
   }, []);
 
-  // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -165,7 +215,6 @@ const RobuxInstan: React.FC = () => {
     }).format(amount);
   };
 
-  // Get final price with discount
   const getFinalPrice = (product: Product) => {
     if (product.discountPercentage) {
       return product.price * (1 - product.discountPercentage / 100);
@@ -173,28 +222,135 @@ const RobuxInstan: React.FC = () => {
     return product.price;
   };
 
-  // Check if all required fields are filled
-  const isFormValid =
-    selectedProduct !== null &&
-    username.trim() !== "" &&
-    password.trim() !== "" &&
-    userInfo !== null; // Backup code is optional
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setRobux(product.robuxAmount);
+  };
 
-  const handlePurchase = () => {
-    if (!isFormValid || !selectedProduct) return;
+  const validatePhone = (value: string) => {
+    if (!value) return true;
+    const phoneRegex = /^[0-9]{10,13}$/;
+    if (!phoneRegex.test(value)) {
+      setPhoneError("Nomor WhatsApp tidak valid (10-13 digit angka)");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
 
-    const price = getFinalPrice(selectedProduct);
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setPhone(value);
+    if (value) validatePhone(value);
+    else setPhoneError("");
+  };
 
-    // Create checkout items array (consistent format)
-    const checkoutItems = [
-      {
+  const getPaymentFee = () => {
+    if (selectedPaymentMethod && paymentCategories.length > 0) {
+      const methodObj = paymentCategories.flatMap(c => c.methods || []).find(m => m.id === selectedPaymentMethod);
+      if (methodObj) {
+        const feeType = methodObj.feeType || "flat";
+        const feeValue = Number(methodObj.fee) || 0;
+        const price = selectedProduct ? Number(selectedProduct.price) : 0;
+        if (feeType === "percent" || feeType === "percentage") {
+          return Math.ceil((price * feeValue) / 100);
+        } else {
+          return feeValue;
+        }
+      }
+    }
+    return 0;
+  };
+
+  const getDiscountAmount = () => {
+    if (user && selectedProduct) {
+      return Math.round((selectedProduct.price * ((user as any).diskon || 0)) / 100);
+    }
+    return 0;
+  };
+
+  const nextStep = () => {
+    if (currentStep === 1) {
+      if (!selectedProduct) {
+        toast.error("Pilih paket Robux terlebih dahulu!");
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (!username || !password || !userInfo) {
+        toast.error("Username, avatar, dan password harus dilengkapi!");
+        return;
+      }
+      if (!email || !phone) {
+        toast.error("Email dan nomor WhatsApp wajib diisi!");
+        return;
+      }
+      if (phone && !validatePhone(phone)) {
+        return;
+      }
+    } else if (currentStep === 3) {
+      if (!selectedPaymentMethod) {
+        toast.error("Pilih metode pembayaran terlebih dahulu!");
+        return;
+      }
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, 4));
+    window.scrollTo({ top: 300, behavior: "smooth" });
+  };
+
+  const handleApplyPromo = async () => {
+    if (!promoCode || !selectedProduct) return;
+    try {
+      const price = selectedProduct.price;
+      const res = await fetch("/api/promos/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode, totalAmount: price, serviceType: "robux_instant" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedPromoCode(data.data.code);
+        setPromoDiscount(data.data.discountAmount);
+        toast.success(`Promo berhasil digunakan! Diskon Rp ${data.data.discountAmount.toLocaleString()}`);
+      } else {
+        toast.error(data.error || "Kode promo tidak valid");
+        setAppliedPromoCode(null);
+        setPromoDiscount(0);
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat memvalidasi promo");
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 300, behavior: "smooth" });
+  };
+
+  const handleAddToCart = async () => {
+    if (!agreedToTerms || !selectedProduct) {
+      toast.error("Mohon lengkapi pilihan dan setujui syarat & ketentuan!");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Silakan login terlebih dahulu untuk menambahkan ke keranjang");
+      router.push("/login");
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      const cartItem = {
+        userId: user.id,
         serviceType: "robux",
         serviceId: selectedProduct._id,
         serviceName: selectedProduct.name,
-        serviceImage: "/robux-icon.png", // Default Robux icon
-        serviceCategory: "robux_instant", // Move to root level
+        serviceImage: "/robux-icon.png",
+        imgUrl: "/robux-icon.png",
+        serviceCategory: "robux_instant",
         quantity: 1,
-        unitPrice: price,
+        unitPrice: getFinalPrice(selectedProduct),
         robloxUsername: username,
         robloxPassword: password,
         robuxInstantDetails: {
@@ -204,18 +360,90 @@ const RobuxInstan: React.FC = () => {
           additionalInfo: additionalInfo,
           notes: additionalInfo,
         },
-      },
-    ];
+      };
 
-    // Store in sessionStorage for checkout page
-    sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
+      const result = await addToCartAction(cartItem);
+      const data = result.data;
 
-    router.push("/checkout");
+      if (!result.ok && !data?.success) {
+        throw new Error(data?.error || "Gagal menambahkan ke keranjang");
+      }
+
+      toast.success("Produk berhasil ditambahkan ke keranjang!");
+      router.push("/cart");
+    } catch (error: any) {
+      toast.error(error.message || "Gagal menambahkan ke keranjang");
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setRobux(product.robuxAmount);
+  const handleSubmitOrder = async () => {
+    if (!agreedToTerms) {
+      toast.error("Anda harus menyetujui syarat & ketentuan");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const requestData = {
+        serviceType: "robux",
+        serviceId: selectedProduct!._id,
+        serviceName: selectedProduct!.name,
+        serviceImage: "/robux-icon.png",
+        serviceCategory: "robux_instant",
+        quantity: 1,
+        robloxUsername: username,
+        robloxPassword: password,
+        robuxInstantDetails: {
+          robuxAmount: selectedProduct!.robuxAmount,
+          productName: selectedProduct!.name,
+          description: selectedProduct!.description,
+          additionalInfo: additionalInfo,
+          notes: additionalInfo,
+        },
+        paymentMethodId: selectedPaymentMethod,
+        promoCode: appliedPromoCode || undefined,
+        customerInfo: !user
+          ? { name: username, email: email, phone: phone }
+          : {
+            name: `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || username,
+            email: email || user.email,
+            phone: phone || user.phone,
+            userId: user.id,
+          },
+        userId: !user ? null : user.id,
+      };
+
+      const result = await createTransaction(requestData);
+      if (result.success) {
+        toast.success("Transaksi berhasil dibuat!");
+        if (result.data?.qrCodeUrl) {
+          router.push(result.data?.transaction?._id ? `/riwayat/${result.data.transaction._id}` : "/riwayat");
+        } else if (result.data?.redirectUrl) {
+          window.location.href = result.data.redirectUrl;
+        } else if (result.data?.snapToken) {
+          if ((window as any).snap) {
+            (window as any).snap.pay(result.data.snapToken, {
+              onSuccess: () => { toast.success("Pembayaran berhasil!"); router.push("/riwayat"); },
+              onPending: () => { toast.info("Menunggu pembayaran..."); router.push("/riwayat"); },
+              onError: () => toast.error("Pembayaran gagal!"),
+              onClose: () => { toast.warning("Anda menutup popup pembayaran"); router.push("/riwayat"); },
+            });
+          } else {
+            toast.error("Midtrans Snap tidak tersedia");
+            router.push("/riwayat");
+          }
+        } else {
+          router.push(result.data?.transaction?._id ? `/riwayat/${result.data.transaction._id}` : "/riwayat");
+        }
+      } else {
+        toast.error(result.error || "Gagal membuat transaksi");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Terjadi kesalahan sistem");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -223,34 +451,24 @@ const RobuxInstan: React.FC = () => {
       <div className="min-h-screen flex justify-center items-center">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-100 shadow-lg shadow-primary-100/50"></div>
-          <p className="mt-4 text-lg font-medium text-white drop-shadow-lg">
-            Memuat data...
-          </p>
+          <p className="mt-4 text-lg font-medium text-white drop-shadow-lg">Memuat data...</p>
         </div>
       </div>
     );
   }
 
+  const filteredProducts = products.filter(p => (p.productType || "regular") === productType);
+
   return (
     <main className="px-4 sm:px-6 md:px-8">
       <style jsx>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
 
@@ -262,78 +480,39 @@ const RobuxInstan: React.FC = () => {
             fill
             className="object-cover transform transition-transform duration-700 group-hover:scale-110"
           />
-          {/* Glow overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-primary-100/10 via-transparent to-primary-200/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         </div>
       </div>
 
-      {/* Hero Section with enhanced styling */}
-      {/* Enhanced Hero Section */}
-
-      {/* Main Content Grid - Layout Asli */}
       <section className="max-w-6xl mx-auto mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Cara Pesan Section - Di kiri */}
+        {/* Kiri: Hero Section */}
         <section className="relative min-h-[200px] sm:min-h-[250px] w-full">
-          <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-3xl p-4 sm:p-6  shadow-lg transition-all duration-300 overflow-hidden">
-            {/* Background Decorative Elements */}
+          <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-3xl p-4 sm:p-6 shadow-lg transition-all duration-300 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 via-transparent to-primary-200/5 rounded-3xl"></div>
-
-            {/* Multiple floating decorative elements */}
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-primary-200/10 to-primary-100/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-primary-100/5 to-primary-200/5 rounded-full blur-2xl animate-pulse delay-500"></div>
-
-            {/* Floating particles */}
-            <div className="absolute top-8 right-16 w-2 h-2 bg-primary-100/60 rounded-full animate-bounce delay-300"></div>
-            <div className="absolute top-20 right-32 w-1 h-1 bg-primary-200/80 rounded-full animate-bounce delay-700"></div>
-            <div className="absolute bottom-12 left-20 w-1.5 h-1.5 bg-primary-100/70 rounded-full animate-bounce delay-1000"></div>
-            <div className="absolute bottom-8 left-40 w-1 h-1 bg-primary-200/60 rounded-full animate-bounce delay-500"></div>
-
             <div className="relative z-10 flex flex-col gap-4 sm:gap-6 items-center">
               <div className="flex-shrink-0 group/icon">
                 <div className="relative w-[120px] h-[120px] sm:w-[150px] sm:h-[150px]">
-                  {/* Glow effects */}
-                  <div className="absolute -inset-4 bg-gradient-to-r from-primary-100/20 via-primary-200/15 to-primary-100/20 rounded-3xl blur-2xl opacity-40 group-hover/icon:opacity-80 transition-all duration-700"></div>
-                  <div className="absolute -inset-2 bg-gradient-to-r from-primary-100/30 via-primary-200/20 to-primary-100/30 rounded-2xl blur-xl opacity-50 group-hover/icon:opacity-70 transition-opacity duration-500"></div>
-
-                  {/* Main icon container */}
                   <div className="relative w-full h-full bg-gradient-to-br from-primary-100/25 via-primary-200/15 to-primary-100/20 rounded-xl flex items-center justify-center transform transition-all duration-500 group-hover/icon:scale-110 group-hover/icon:rotate-3 border border-primary-100/30 shadow-inner">
-                    {/* Icon with Lucide React */}
-                    <div className="relative z-10 group-hover/icon:animate-bounce">
-                      <DollarSign className="w-16 h-16 sm:w-20 sm:h-20 text-primary-100 drop-shadow-2xl" />
+                    <div className="relative z-10 group-hover/icon:animate-bounce flex items-center justify-center">
+                      <Image 
+                        src="/icon/icons8-robux-48 (2).png" 
+                        alt="Robux Icon" 
+                        width={80} 
+                        height={80} 
+                        className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-[0_10px_20px_rgba(246,58,230,0.5)]"
+                      />
                     </div>
-
-                    {/* Sparkle effects */}
-                    <div className="absolute top-3 right-3 w-2 h-2 bg-primary-100 rounded-full animate-ping opacity-75"></div>
-                    <div className="absolute bottom-4 left-4 w-1 h-1 bg-primary-200 rounded-full animate-ping delay-500 opacity-60"></div>
                   </div>
                 </div>
-              </div>{" "}
-              {/* Content */}
+              </div>
               <div className="flex-1 text-center ">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-[0.9] tracking-tight">
                   Robux <span className="text-primary-100">Instant</span>
-                  {/* Animated underline */}
                 </h1>
                 <p className="text-lg sm:text-base text-white/80 max-w-3xl mb-8 font-light">
-                  Dapatkan{" "}
-                  <span className="text-primary-100 font-medium">Robux</span>{" "}
-                  langsung ke akun Anda dalam{" "}
-                  <span className="text-primary-200 font-medium">
-                    hitungan menit
-                  </span>
-                  !
-                  <br className="hidden sm:block" />
-                  Proses{" "}
-                  <span className="text-primary-200 font-medium">cepat</span>,
-                  <span className="text-white font-medium ml-1">aman</span>, dan
-                  <span className="text-primary-100 font-medium ml-1">
-                    terpercaya
-                  </span>
-                  .
+                  Dapatkan <span className="text-primary-100 font-medium">Robux</span> langsung ke akun Anda dalam <span className="text-primary-200 font-medium">hitungan menit</span>!
                 </p>
 
-                {/* Enhanced Features with Lucide icons */}
                 <div className=" gap-2 sm:gap-3 justify-center grid grid-cols-2">
                   <span className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500/25 via-emerald-500/20 to-green-500/25 border border-green-400/50 rounded-full text-xs sm:text-sm text-white/90 backdrop-blur-sm hover:scale-105 transition-all duration-300 shadow-sm">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -370,556 +549,409 @@ const RobuxInstan: React.FC = () => {
           </div>
         </section>
 
-        {/* Form and Product Section - Di kanan */}
+        {/* Kanan: Wizard Section */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="w-full group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl px-4 sm:px-6 py-4  h-auto lg:h-auto flex flex-col justify-start  lg:mx-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-100/5 via-transparent to-primary-200/5 rounded-xl"></div>
-
-            <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-primary-100/15 to-primary-200/10 rounded-full blur-xl animate-pulse"></div>
-            <div className="absolute -bottom-8 -left-8 w-16 h-16 bg-gradient-to-tr from-primary-200/12 to-primary-100/8 rounded-full blur-lg animate-pulse delay-500"></div>
-            <div className="absolute top-1/2 right-0 w-12 h-12 bg-gradient-to-br from-primary-100/8 to-primary-200/6 rounded-full blur-md animate-pulse delay-1000"></div>
-
-            <div className="absolute top-4 right-6 w-1 h-1 bg-primary-100/80 rounded-full animate-bounce delay-200"></div>
-            <div className="absolute top-12 right-3 w-0.5 h-0.5 bg-primary-200/70 rounded-full animate-bounce delay-800"></div>
-            <div className="absolute bottom-8 left-3 w-1 h-1 bg-primary-100/60 rounded-full animate-bounce delay-1200"></div>
-
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100/20 via-transparent to-primary-200/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 border border-primary-100/40"></div>
-
+          <div className="w-full group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl px-4 sm:px-6 py-4 shadow-lg overflow-hidden">
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-all duration-500 shadow-lg">
-                    <FileText className="w-5 h-5 text-primary-100" />
-                  </div>
-                  {/* Decorative glow */}
-                  <div className="absolute -inset-1 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-xl blur opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="w-5 h-5 text-primary-100" />
                 </div>
                 <div>
                   <h2 className="text-white font-black text-lg sm:text-xl leading-tight">
                     <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
-                      Cara Pesan
+                      Progress Checkout
                     </span>
                   </h2>
-                  <p className="text-white/60 text-xs mt-0.5">
-                    Ikuti langkah mudah ini
-                  </p>
                 </div>
               </div>
+              <div className="flex justify-between items-center relative">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/10 rounded-full z-0"></div>
+                <div
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary-100 rounded-full z-0 transition-all duration-500"
+                  style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+                ></div>
 
-              {/* Steps dalam 2 kolom dengan ukuran konsisten */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center lg:text-left">
-                {/* Kolom Kiri */}
-                {/* Step 1 */}
-                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        1
-                      </div>
+                {[
+                  { step: 1, label: "Pilih" },
+                  { step: 2, label: "Detail" },
+                  { step: 3, label: "Bayar" },
+                  { step: 4, label: "Selesai" }
+                ].map((s) => (
+                  <div key={s.step} className="relative z-10 flex flex-col items-center gap-2">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${currentStep >= s.step
+                        ? "bg-primary-100 text-white shadow-[0_0_15px_rgba(var(--primary-100-rgb),0.5)]"
+                        : "bg-[#1A1F2C] text-white/40 border-2 border-white/10"
+                      }`}>
+                      {currentStep > s.step ? <CheckCircle2 className="w-5 h-5" /> : s.step}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Username RBX
-                      </h3>
-                      <p className="text-white/70 text-xs leading-relaxed">
-                        Masukkan username akun RBX Anda
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
-                        <Lock className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        2
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Password Akun
-                      </h3>
-                      <p className="text-white/70 text-xs leading-relaxed">
-                        Password akun untuk verifikasi
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 3 - Mobile only */}
-                <div className="sm:hidden group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
-                        <Shield className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        3
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Kode Keamanan
-                      </h3>
-                      <p className="text-white/70 text-xs leading-relaxed">
-                        Backup code jika ada 2FA (opsional)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Kolom Kanan */}
-                {/* Step 3 - Desktop only */}
-                <div className="hidden sm:block group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
-                        <Shield className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        3
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Kode Keamanan
-                      </h3>
-                      <p className="text-white/70 text-xs leading-relaxed">
-                        Backup code jika ada 2FA (opsional)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
-                        <Gem className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        4
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Pilih Jumlah Robux
-                      </h3>
-                      <p className="text-white/70 text-xs leading-relaxed">
-                        Tentukan paket Robux yang diinginkan
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 5 */}
-                <div className="group/step relative p-3 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-primary-100/15 hover:to-primary-200/10 transition-all duration-300 border border-white/20 hover:border-primary-100/40 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-lg flex items-center justify-center group-hover/step:scale-105 transition-all duration-300">
-                        <ShoppingCart className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-100 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        5
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-sm mb-0.5 group-hover/step:text-primary-100 transition-colors duration-300">
-                        Beli Sekarang
-                      </h3>
-                      <p className="text-white/70 text-xs leading-relaxed">
-                        Klik tombol untuk melanjutkan pembayaran
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer info yang simple dan konsisten */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-green-500/15 to-emerald-500/15 border border-green-400/30 rounded-xl backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-400/20 rounded-lg flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4 text-green-300" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-green-200 font-semibold text-sm mb-1">
-                      Proses Otomatis & Aman
-                    </h4>
-                    <p className="text-green-100/80 text-xs leading-relaxed">
-                      Transaksi diproses dalam hitungan menit dengan sistem yang
-                      terpercaya
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Enhanced Form Input */}
-          <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-3 sm:p-4 space-y-4 w-full mx-auto lg:mx-0 shadow-lg transition-all duration-300 overflow-hidden">
-            {/* Enhanced Background Decorative Elements */}
-            {/* <div className="absolute inset-0 bg-gradient-to-br from-primary-100/5 via-transparent to-primary-200/5 rounded-xl"></div> */}
-
-            {/* Multiple floating background elements */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-100/12 to-primary-200/8 rounded-full blur-2xl animate-pulse"></div>
-            <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-gradient-to-tr from-primary-200/10 to-primary-100/6 rounded-full blur-xl animate-pulse delay-700"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-gradient-to-br from-primary-100/6 to-primary-200/4 rounded-full blur-lg animate-pulse delay-1000"></div>
-
-            {/* Floating particles */}
-            <div className="absolute top-6 right-8 w-1 h-1 bg-primary-100/70 rounded-full animate-bounce delay-300"></div>
-            <div className="absolute top-16 right-20 w-0.5 h-0.5 bg-primary-200/60 rounded-full animate-bounce delay-900"></div>
-            <div className="absolute bottom-10 left-12 w-1 h-1 bg-primary-100/60 rounded-full animate-bounce delay-1300"></div>
-
-            {/* Border enhancement */}
-            {/* <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100/10 via-transparent to-primary-200/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div> */}
-
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <div className="group/field">
-                <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
-                  <div className="w-4 h-4 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded flex items-center justify-center">
-                    <User className="w-3 h-3 text-primary-100" />
-                  </div>
-                  Username
-                  <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <div
-                    className={`flex items-center border rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full max-w-[520px] mx-auto lg:mx-0 group/input transition-all duration-300 hover:shadow-lg ${
-                      userInfo
-                        ? "border-emerald-500/60 bg-emerald-500/10 hover:border-emerald-500/80"
-                        : username && userSearchError
-                          ? "border-red-500/60 bg-red-500/10 hover:border-red-500/80"
-                          : "border-primary-100/30 hover:border-primary-100/60 focus-within:border-primary-100/80 hover:shadow-primary-100/20"
-                    }`}
-                  >
-                    <div
-                      className={`px-3 py-2 border-r flex items-center justify-center group-hover/input:scale-110 transition-transform duration-300 ${
-                        userInfo
-                          ? "border-emerald-500/30 bg-gradient-to-r from-emerald-500/25 to-emerald-600/15"
-                          : username && userSearchError
-                            ? "border-red-500/30 bg-gradient-to-r from-red-500/25 to-red-600/15"
-                            : "border-primary-100/30 bg-gradient-to-r from-primary-100/25 to-primary-200/15"
-                      }`}
-                    >
-                      <User
-                        className={`w-5 h-5 group-hover/input:animate-pulse ${
-                          userInfo
-                            ? "text-emerald-500"
-                            : username && userSearchError
-                              ? "text-red-500"
-                              : "text-primary-100"
-                        }`}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Masukkan Username RBX"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="py-2 px-3 outline-none text-sm text-white placeholder-white/50 flex-1 min-w-0 transition-all bg-transparent focus:ring-2 focus:ring-primary-100/50 focus:placeholder-white/70"
-                    />
-                    <div className="px-3">
-                      {isSearchingUser ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-primary-100" />
-                      ) : userInfo ? (
-                        <CheckCircle className="w-4 h-4 text-emerald-500" />
-                      ) : username && userSearchError ? (
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                      ) : (
-                        <Search className="w-4 h-4 text-primary-200/60" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Status Messages */}
-                  {username && username.length >= 2 && (
-                    <div className="mt-2 max-w-[520px] mx-auto lg:mx-0">
-                      {isSearchingUser && (
-                        <div className="flex items-center gap-2 text-xs text-yellow-400 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          <span>Mencari username...</span>
-                        </div>
-                      )}
-                      {!isSearchingUser && userInfo && (
-                        <div className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                          {/* User Avatar */}
-                          {userInfo.avatar ? (
-                            <img
-                              src={userInfo.avatar}
-                              alt={userInfo.username}
-                              className="w-10 h-10 rounded-lg bg-slate-600 ring-2 ring-emerald-400/60 object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400/30 to-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-400/60 flex-shrink-0">
-                              <User className="w-5 h-5 text-emerald-400" />
-                            </div>
-                          )}
-
-                          {/* User Info */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white font-bold truncate">
-                              {userInfo.username}
-                            </p>
-                            <p className="text-xs text-emerald-300">
-                              ID: {userInfo.id}
-                            </p>
-                            {userInfo.displayName &&
-                              userInfo.displayName !== userInfo.username && (
-                                <p className="text-xs text-emerald-300 truncate">
-                                  Display: {userInfo.displayName}
-                                </p>
-                              )}
-                          </div>
-
-                          {/* Check Icon */}
-                          <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                        </div>
-                      )}
-                      {!isSearchingUser && userSearchError && (
-                        <div className="flex items-start gap-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
-                          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-red-400 font-semibold">
-                              User tidak ditemukan
-                            </p>
-                            <p className="text-xs text-white/70 mt-1">
-                              API Robloxxnya Lagi Limit, Coba Sebentar Lagi Ya
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Helper Text */}
-                  {(!username || username.length < 2) && (
-                    <p className="text-xs text-primary-200/70 mt-2 max-w-[520px] mx-auto lg:mx-0">
-                      Ketik minimal 2 karakter untuk mencari username
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="group/field">
-                <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
-                  <div className="w-4 h-4 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded flex items-center justify-center">
-                    <Lock className="w-3 h-3 text-primary-100" />
-                  </div>
-                  Password
-                  <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <div className="flex items-center border border-primary-100/30 rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full max-w-[520px] mx-auto lg:mx-0 group/input hover:border-primary-100/60 focus-within:border-primary-100/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary-100/20">
-                    <div className="px-3 py-2 border-r border-primary-100/30 bg-gradient-to-r from-primary-100/25 to-primary-200/15 flex items-center justify-center group-hover/input:scale-110 transition-transform duration-300">
-                      <Lock className="w-5 h-5 text-primary-100 group-hover/input:animate-pulse" />
-                    </div>
-                    <input
-                      type="password"
-                      placeholder="Masukkan Password RBX"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="py-2 px-3 outline-none text-sm text-white placeholder-white/50 flex-1 min-w-0 transition-all bg-transparent focus:ring-2 focus:ring-primary-100/50 focus:placeholder-white/70"
-                    />
-                    {password && (
-                      <div className="px-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                      </div>
-                    )}
-                  </div>
-                  {password && (
-                    <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary-100/60 to-transparent animate-pulse"></div>
-                  )}
-                </div>
-              </div>
-
-              <div className="lg:col-span-2 group/field">
-                <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
-                  <div className="w-4 h-4 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded flex items-center justify-center">
-                    <Shield className="w-3 h-3 text-primary-100" />
-                  </div>
-                  Backup Code
-                  <span className="text-xs text-white/60 font-normal">
-                    (Opsional)
-                  </span>
-                </label>
-                <div className="relative">
-                  <textarea
-                    placeholder="Masukkan backup code RBX jika akun memiliki 2-step verification"
-                    value={additionalInfo}
-                    onChange={(e) => setAdditionalInfo(e.target.value)}
-                    rows={3}
-                    className="w-full py-3 px-3 outline-none text-sm text-white placeholder-white/50 border border-primary-100/30 rounded-lg bg-gradient-to-br from-primary-900/50 to-primary-800/50 backdrop-blur-sm focus:ring-2 focus:ring-primary-100/50 focus:border-primary-100/80 transition-all resize-none hover:border-primary-100/60 hover:shadow-lg hover:shadow-primary-100/20 focus:placeholder-white/70"
-                  />
-                  {additionalInfo && (
-                    <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary-100/60 to-transparent animate-pulse"></div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="w-3 h-3 bg-gradient-to-br from-blue-400/30 to-cyan-400/20 rounded flex items-center justify-center">
-                    <Info className="w-2 h-2 text-blue-400" />
-                  </div>
-                  <p className="text-xs text-white/70">
-                    Cara lihat backup code:{" "}
-                    <button
-                      onClick={() => setShowVideoModal(true)}
-                      className="underline text-primary-100 hover:text-primary-200 transition-colors hover:glow font-medium cursor-pointer"
-                    >
-                      Klik di sini →
-                    </button>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Product Selection */}
-          <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-5 shadow-lg transition-all duration-300 overflow-hidden">
-            {/* Background Decorative Elements */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 via-transparent to-primary-200/5 rounded-xl"></div>
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-primary-200/10 to-primary-100/5 rounded-full blur-2xl"></div>
-
-            <div className="relative z-10">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-6 leading-tight text-center lg:text-left">
-                Pilih Jumlah <span className="text-primary-100">Robux</span>
-              </h2>
-
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 justify-center max-w-[740px] mx-auto">
-                {products.map((product) => (
-                  <div
-                    key={product._id}
-                    className={`group relative p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 ${
-                      selectedProduct?._id === product._id
-                        ? "bg-gradient-to-br from-primary-100/20 via-primary-200/10 to-primary-100/20 border-primary-100/60 backdrop-blur-xl shadow-lg"
-                        : "bg-gradient-to-br from-white/10 via-transparent to-white/5 border-white/20 backdrop-blur-xl hover:border-primary-100/40"
-                    }`}
-                    onClick={() => handleProductSelect(product)}
-                  >
-                    {/* Selection indicator */}
-                    {selectedProduct?._id === product._id && (
-                      <div className="absolute -top-2 -right-2">
-                        <div className="bg-primary-100 rounded-full p-1.5 shadow-md">
-                          <CheckCircle2 className="w-4 h-4 text-primary-900" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Discount Badge */}
-                    {product.discountPercentage && (
-                      <div className="absolute -top-1 -left-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
-                        -{product.discountPercentage}%
-                      </div>
-                    )}
-
-                    <div className="text-center">
-                      <div className="flex items-center gap-2 text-white/80 text-xs mb-2 justify-center">
-                        <Gem className="w-4 h-4 text-primary-100" />
-                        <span className="text-white font-medium">
-                          {product.robuxAmount} R$
-                        </span>
-                      </div>
-
-                      <div className="text-white text-sm font-bold">
-                        {formatCurrency(getFinalPrice(product))}
-                        {product.discountPercentage && (
-                          <div className="text-xs text-red-400 line-through opacity-75 mt-1">
-                            {formatCurrency(product.price)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Hover glow effect */}
-                    <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-primary-100/5 to-primary-200/5 pointer-events-none"></div>
+                    <span className={`text-xs sm:text-sm font-semibold ${currentStep >= s.step ? "text-white" : "text-white/40"}`}>
+                      {s.label}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="text-center mt-4">
-            <div className="flex flex-col gap-3 w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[750px] mx-auto">
-              {/* Add to Cart Button */}
-              <AddToCartButton
-                serviceType="robux"
-                serviceId={selectedProduct?._id || ""}
-                serviceName={selectedProduct?.name || "Robux Instant"}
-                serviceImage="/robux-icon.png" // Default Robux icon
-                serviceCategory="robux_instant"
-                type="rbx-instant"
-                gameId="robux-instant"
-                gameName="Roblox"
-                itemName={selectedProduct?.name || "Robux Instant"}
-                imgUrl="/robux-icon.png" // Default Robux icon
-                unitPrice={selectedProduct ? getFinalPrice(selectedProduct) : 0}
-                price={selectedProduct ? getFinalPrice(selectedProduct) : 0}
-                description={`${
-                  selectedProduct?.robuxAmount || 0
-                } Robux Instant untuk akun ${username}`}
-                quantity={1}
-                robuxAmount={selectedProduct?.robuxAmount || 0}
-                estimatedTime="Instant"
-                additionalInfo={additionalInfo}
-                robuxInstantDetails={
-                  additionalInfo ? { notes: additionalInfo } : undefined
-                }
-                robloxUsername={username}
-                robloxPassword={password}
-                className={`group/btn font-bold py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-lg relative overflow-hidden ${
-                  isFormValid
-                    ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-600 text-white hover:scale-105 active:scale-95 hover:shadow-purple-600/50 cursor-pointer"
-                    : "bg-gradient-to-r from-gray-600 to-gray-700 text-white cursor-not-allowed opacity-50"
-                }`}
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2 text-white">
-                  🛒 Tambah ke Keranjang
-                  {isFormValid && selectedProduct && (
-                    <span className="bg-white/20 px-3 py-1 rounded-lg text-sm ml-2">
-                      Rp {getFinalPrice(selectedProduct).toLocaleString()}
-                    </span>
-                  )}
-                </span>
-              </AddToCartButton>
+          {/* STEP 1: Pilih Nominal */}
+          {currentStep === 1 && (
+            <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-5 shadow-lg transition-all duration-300 overflow-hidden animate-fadeIn">
+              <div className="relative z-10">
+                <h2 className="text-2xl sm:text-3xl font-black text-white mb-6 leading-tight text-center lg:text-left">
+                  Pilih Jumlah <span className="text-primary-100">Robux</span>
+                </h2>
 
-              {/* Purchase Button */}
-              <button
-                onClick={handlePurchase}
-                disabled={!isFormValid}
-                className={`group/btn font-bold py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform shadow-lg relative overflow-hidden ${
-                  isFormValid
-                    ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:scale-105 active:scale-95 hover:shadow-primary-100/50 cursor-pointer"
-                    : "bg-gradient-to-r from-gray-600 to-gray-700 text-white cursor-not-allowed opacity-50"
-                }`}
-              >
-                {/* Button glow effect */}
-                {isFormValid && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-xl blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
-                )}
+                <div className="flex gap-4 mb-8 bg-black/20 p-2 rounded-2xl border border-white/5">
+                  <button
+                    onClick={() => { setProductType("regular"); setSelectedProduct(null); }}
+                    className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm transition-all ${productType === "regular"
+                        ? "bg-gradient-to-r from-primary-100 to-primary-200 text-white shadow-lg shadow-primary-100/20"
+                        : "text-white/50 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    RBX Regular
+                  </button>
+                  <button
+                    onClick={() => { setProductType("premium"); setSelectedProduct(null); }}
+                    className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${productType === "premium"
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20"
+                        : "text-white/50 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    RBX Premium
+                  </button>
+                </div>
 
-                <span className="relative z-10 flex items-center justify-center gap-2 text-white">
-                  <ShoppingCart className="w-5 h-5" />
-                  Beli Sekarang
-                  <ArrowRight className="w-4 h-4 transform transition-transform duration-300 group-hover/btn:translate-x-1" />
-                  {isFormValid && selectedProduct && (
-                    <span className="bg-white/20 px-3 py-1 rounded-lg text-sm ml-2">
-                      Rp {getFinalPrice(selectedProduct).toLocaleString()}
-                    </span>
-                  )}
-                </span>
-              </button>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 justify-center">
+                  {filteredProducts.map((product) => (
+                    <div
+                      key={product._id}
+                      className={`group/prod relative p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 ${selectedProduct?._id === product._id
+                          ? "bg-gradient-to-br from-primary-100/20 via-primary-200/10 to-primary-100/20 border-primary-100/60 backdrop-blur-xl shadow-lg"
+                          : "bg-gradient-to-br from-white/10 via-transparent to-white/5 border-white/20 backdrop-blur-xl hover:border-primary-100/40"
+                        }`}
+                      onClick={() => handleProductSelect(product)}
+                    >
+                      {selectedProduct?._id === product._id && (
+                        <div className="absolute -top-2 -right-2">
+                          <div className="bg-primary-100 rounded-full p-1.5 shadow-md">
+                            <CheckCircle2 className="w-4 h-4 text-primary-900" />
+                          </div>
+                        </div>
+                      )}
+                      {product.discountPercentage && (
+                        <div className="absolute -top-1 -left-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
+                          -{product.discountPercentage}%
+                        </div>
+                      )}
+                      <div className="text-center">
+                        <div className="flex items-center gap-2 text-white/80 text-xs mb-2 justify-center">
+                          {productType === "regular" ? (
+                            <Image src="/icon/icons8-robux-96.png" alt="Robux" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
+                          ) : (
+                            <Image src="/icon/RblxPlusLogo.webp" alt="Premium" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
+                          )}
+                          <span className="text-white font-medium">{product.robuxAmount} R$</span>
+                        </div>
+                        <div className="text-white text-sm font-bold">
+                          {formatCurrency(getFinalPrice(product))}
+                          {product.discountPercentage && (
+                            <div className="text-xs text-red-400 line-through opacity-75 mt-1">
+                              {formatCurrency(product.price)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                  <button
+                    onClick={nextStep}
+                    disabled={!selectedProduct}
+                    className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
+                  >
+                    Lanjut Isi Data
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* STEP 2: Detail Informasi */}
+          {currentStep === 2 && (
+            <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-5 shadow-lg overflow-hidden animate-fadeIn space-y-6">
+              <div className="relative z-10 grid grid-cols-1 gap-5">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <User className="w-6 h-6 text-primary-100" />
+                    Detail Informasi
+                  </h2>
+                  <button onClick={prevStep} className="text-sm font-medium text-white/60 hover:text-white px-3 py-1 bg-white/5 rounded-lg">Kembali</button>
+                </div>
+
+                <div className="group/field">
+                  <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
+                    <User className="w-4 h-4 text-primary-100" /> Username <span className="text-red-400">*</span>
+                  </label>
+                  <div className={`flex items-center border rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full transition-all ${userInfo ? "border-emerald-500/60 bg-emerald-500/10" : username && userSearchError ? "border-red-500/60 bg-red-500/10" : "border-primary-100/30 focus-within:border-primary-100/80"
+                    }`}>
+                    <input
+                      type="text"
+                      placeholder="Masukkan Username RBX"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="py-3 px-4 outline-none text-sm text-white placeholder-white/50 flex-1 bg-transparent w-full"
+                    />
+                    <div className="px-4">
+                      {isSearchingUser ? <Loader2 className="w-5 h-5 animate-spin text-primary-100" /> : userInfo ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : username && userSearchError ? <AlertCircle className="w-5 h-5 text-red-500" /> : <Search className="w-5 h-5 text-primary-200/60" />}
+                    </div>
+                  </div>
+                  {userInfo && (
+                    <div className="mt-3 flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                      <img src={userInfo.avatar || userInfo.avatarUrl} alt={userInfo.username || userInfo.name} className="w-10 h-10 rounded-lg ring-2 ring-emerald-400/60 object-cover" />
+                      <div>
+                        <p className="text-sm text-white font-bold">{userInfo.username || userInfo.displayName}</p>
+                        <p className="text-xs text-emerald-300">@{userInfo.name || userInfo.username}</p>
+                      </div>
+                    </div>
+                  )}
+                  {userSearchError && (
+                    <p className="text-xs text-red-400 mt-2">{userSearchError}</p>
+                  )}
+                </div>
+
+                <div className="group/field">
+                  <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
+                    <Lock className="w-4 h-4 text-primary-100" /> Password <span className="text-red-400">*</span>
+                  </label>
+                  <div className="flex items-center border border-primary-100/30 rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full focus-within:border-primary-100/80 transition-all">
+                    <input
+                      type="password"
+                      placeholder="Masukkan Password RBX"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="py-3 px-4 outline-none text-sm text-white placeholder-white/50 flex-1 bg-transparent w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="group/field">
+                  <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
+                    <Shield className="w-4 h-4 text-primary-100" /> Backup Code <span className="text-xs text-white/60 font-normal">(Opsional)</span>
+                  </label>
+                  <textarea
+                    placeholder="Masukkan backup code RBX jika akun memiliki 2-step verification"
+                    value={additionalInfo}
+                    onChange={(e) => setAdditionalInfo(e.target.value)}
+                    rows={2}
+                    className="w-full py-3 px-4 outline-none text-sm text-white placeholder-white/50 border border-primary-100/30 rounded-lg bg-gradient-to-br from-primary-900/50 to-primary-800/50 focus:border-primary-100/80 resize-none transition-all"
+                  />
+                  <div className="flex items-center gap-2 mt-2">
+                    <Info className="w-3 h-3 text-blue-400" />
+                    <p className="text-xs text-white/70">
+                      Cara lihat backup code: <button onClick={() => setShowVideoModal(true)} className="underline text-primary-100 hover:text-primary-200 transition-colors">Klik di sini</button>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <div>
+                    <label className="block text-sm font-bold text-white mb-2">Email <span className="text-red-400">*</span></label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email aktif" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary-100" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-white mb-2">WhatsApp <span className="text-red-400">*</span></label>
+                    <input type="tel" value={phone} onChange={handlePhoneChange} placeholder="0812xxxx" className={`w-full bg-black/40 border ${phoneError ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary-100`} />
+                    {phoneError && <span className="text-xs text-red-500 mt-1">{phoneError}</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={nextStep}
+                  disabled={!username || !password || !userInfo || (!user && (!email || !phone))}
+                  className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
+                >
+                  Pilih Pembayaran
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Pembayaran */}
+          {currentStep === 3 && selectedProduct && (
+            <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-5 shadow-lg overflow-hidden animate-fadeIn space-y-6">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <CreditCard className="w-6 h-6 text-primary-100" />
+                  Metode Pembayaran
+                </h2>
+                <button onClick={prevStep} className="text-sm font-medium text-white/60 hover:text-white px-3 py-1 bg-white/5 rounded-lg">Kembali</button>
+              </div>
+
+              <div className="bg-gradient-to-r from-primary-900/50 to-primary-800/50 border border-primary-500/20 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-primary-100/20 rounded-xl flex items-center justify-center border border-primary-100/30">
+                    <Gem className="w-6 h-6 text-primary-200" />
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Total Pembayaran</p>
+                    <p className="text-2xl font-bold text-white">
+                      {formatCurrency(getFinalPrice(selectedProduct))}
+                    </p>
+                  </div>
+                </div>
+                {selectedProduct.discountPercentage && (
+                  <div className="px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 font-medium text-sm">
+                    Hemat {selectedProduct.discountPercentage}%
+                  </div>
+                )}
+              </div>
+
+              {paymentMethodsLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary-100" />
+                  <p className="text-white/60 mt-2">Memuat metode pembayaran...</p>
+                </div>
+              ) : (
+                <PaymentMethodSelector
+                  categories={paymentCategories}
+                  loading={false}
+                  selectedMethod={selectedPaymentMethod}
+                  onSelectMethod={setSelectedPaymentMethod}
+                  baseAmount={getFinalPrice(selectedProduct)}
+                  expandedCategory={expandedCategory}
+                  onToggleCategory={(cat) => setExpandedCategory(expandedCategory === cat ? "" : cat)}
+                />
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={nextStep}
+                  disabled={!selectedPaymentMethod}
+                  className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
+                >
+                  Konfirmasi Pesanan
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Summary & Submit */}
+          {currentStep === 4 && selectedProduct && (
+            <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-5 shadow-lg overflow-hidden animate-fadeIn space-y-6">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <ShoppingCart className="w-6 h-6 text-primary-100" />
+                  Konfirmasi Order
+                </h2>
+                <button onClick={prevStep} className="text-sm font-medium text-white/60 hover:text-white px-3 py-1 bg-white/5 rounded-lg">Kembali</button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                <div className="p-5 rounded-2xl bg-black/20 border border-white/5">
+                  <h3 className="text-sm font-bold text-white/40 uppercase mb-4 tracking-wider">Item & Akun</h3>
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-100/10 flex items-center justify-center">
+                        <Image src="/robux-icon.png" alt="Robux" width={24} height={24} />
+                      </div>
+                      <div>
+                        <div className="text-white font-bold text-lg">{selectedProduct.name}</div>
+                        <div className="text-primary-100 font-semibold text-sm">
+                          {productType === "premium" ? "Premium" : "Reguler"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {userInfo && <img src={userInfo.avatar || userInfo.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full border border-white/10 object-cover" />}
+                    <div>
+                      <div className="text-white font-bold">{username}</div>
+                      <div className="text-xs text-white/50">Target Akun</div>
+                    </div>
+                  </div>
+                </div>
+
+                <OrderSummaryCard
+                  baseAmount={selectedProduct.price}
+                  details={[
+                    { label: "Layanan", value: selectedProduct.name },
+                    { label: "Target", value: username },
+                    { label: "Email", value: email || "-" },
+                    { label: "WhatsApp", value: phone || "-" },
+                    {
+                      label: "Pembayaran",
+                      value: selectedPaymentMethod
+                        ? paymentCategories.flatMap(c => c.methods || []).find(m => m.id === selectedPaymentMethod)?.name || selectedPaymentMethod
+                        : "Belum dipilih"
+                    }
+                  ]}
+                  adminFee={0}
+                  discount={getDiscountAmount()}
+                  discountPercentage={user ? ((user as any).diskon || 0) : 0}
+                  paymentFee={getPaymentFee()}
+                  promoCode={promoCode}
+                  onPromoCodeChange={setPromoCode}
+                  onApplyPromo={handleApplyPromo}
+                  appliedPromoCode={appliedPromoCode || undefined}
+                  promoDiscount={promoDiscount}
+                />
+
+                <div className="mt-4">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center mt-1">
+                      <input
+                        type="checkbox"
+                        checked={agreedToTerms}
+                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                        className="peer sr-only"
+                      />
+                      <div className="w-5 h-5 rounded border-2 border-white/20 peer-checked:bg-primary-100 peer-checked:border-primary-100 transition-colors flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" />
+                      </div>
+                    </div>
+                    <div className="text-sm text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">
+                      Saya menyetujui <a href="/terms" className="text-primary-100 hover:underline">Syarat dan Ketentuan</a> pembelian
+                    </div>
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={isAddingToCart || !agreedToTerms}
+                      className="w-full py-4 bg-primary-800/50 border border-primary-100/30 text-primary-100 font-bold rounded-xl transition-all hover:bg-primary-800 hover:border-primary-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isAddingToCart ? <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</> : <><ShoppingCart className="w-5 h-5" /> Masukkan Keranjang</>}
+                    </button>
+                    <button
+                      onClick={handleSubmitOrder}
+                      disabled={submitting || !agreedToTerms}
+                      className="w-full py-4 bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary-100/25 flex items-center justify-center gap-2"
+                    >
+                      {submitting ? (
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</>
+                      ) : (
+                        <><ShoppingCart className="w-5 h-5" /> Bayar Sekarang</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Reviews Section */}
           {isShowReview && (
-            <div className="w-full">
+            <div className="w-full mt-8">
               <ReviewSection
                 serviceType="robux"
                 serviceCategory="robux_instant"
@@ -935,44 +967,28 @@ const RobuxInstan: React.FC = () => {
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-300"
           onClick={() => setShowVideoModal(false)}
-          style={{ animation: "fadeIn 0.3s ease-out" }}
         >
           <div
             className="relative w-full max-w-2xl bg-gradient-to-br from-primary-900/95 via-primary-800/90 to-primary-700/95 backdrop-blur-xl rounded-3xl border-2 border-primary-100/40 shadow-2xl shadow-primary-100/20 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
-            style={{ animation: "scaleIn 0.3s ease-out" }}
           >
-            {/* Decorative Background Elements */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-100/5 via-transparent to-primary-200/5 pointer-events-none"></div>
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-100/20 to-primary-200/10 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-primary-200/20 to-primary-100/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-
-            {/* Header */}
             <div className="relative z-10 flex items-center justify-between p-6 border-b border-primary-100/20">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-xl flex items-center justify-center">
                   <Shield className="w-5 h-5 text-primary-100" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">
-                    Tutorial Backup Code
-                  </h3>
-                  <p className="text-sm text-white/60">
-                    Cara mendapatkan backup code untuk 2FA
-                  </p>
+                  <h3 className="text-xl font-bold text-white">Tutorial Backup Code</h3>
+                  <p className="text-sm text-white/60">Cara mendapatkan backup code untuk 2FA</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowVideoModal(false)}
                 className="group w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 transition-all duration-300 hover:scale-110"
               >
-                <span className="text-2xl text-white/80 group-hover:text-red-400 transition-colors">
-                  ×
-                </span>
+                <span className="text-2xl text-white/80 group-hover:text-red-400 transition-colors">×</span>
               </button>
             </div>
-
-            {/* Video Content */}
             <div className="relative z-10 p-6">
               <div className="rounded-2xl overflow-hidden border-2 border-primary-100/30 shadow-xl">
                 <iframe
@@ -986,28 +1002,20 @@ const RobuxInstan: React.FC = () => {
                   className="w-full bg-black aspect-video"
                 ></iframe>
               </div>
-
-              {/* Info Box */}
               <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 border border-blue-400/30 rounded-xl backdrop-blur-sm">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Info className="w-4 h-4 text-blue-300" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-blue-200 font-semibold text-sm mb-1">
-                      Catatan Penting
-                    </h4>
+                    <h4 className="text-blue-200 font-semibold text-sm mb-1">Catatan Penting</h4>
                     <p className="text-blue-100/80 text-xs leading-relaxed">
-                      Backup code diperlukan jika akun Roblox Anda menggunakan
-                      2-Step Verification (2FA). Jika tidak ada 2FA, Anda bisa
-                      langsung checkout tanpa mengisi backup code.
+                      Backup code diperlukan jika akun Roblox Anda menggunakan 2-Step Verification (2FA). Jika tidak ada 2FA, Anda bisa langsung checkout tanpa mengisi backup code.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Footer */}
             <div className="relative w-full z-10 flex items-center justify-end gap-3 p-6 border-t border-primary-100/20">
               <button
                 onClick={() => setShowVideoModal(false)}
@@ -1021,6 +1029,4 @@ const RobuxInstan: React.FC = () => {
       )}
     </main>
   );
-};
-
-export default RobuxInstan;
+}

@@ -13,6 +13,7 @@ import {
 import {
   fetchTransactionsAdmin,
   updateTransactionStatus,
+  uploadTransactionImage,
   deleteTransaction,
   exportTransactionsAdmin,
 } from "./actions";
@@ -74,6 +75,8 @@ export default function TransactionsPage() {
   const [newPaymentStatus, setNewPaymentStatus] = useState("");
   const [newOrderStatus, setNewOrderStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [adminImage, setAdminImage] = useState<File | null>(null);
+  const [adminImagePreview, setAdminImagePreview] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -118,11 +121,29 @@ export default function TransactionsPage() {
   ) => {
     try {
       setIsUpdating(true);
+
+      // Upload gambar dulu kalau ada
+      let imageUrl: string | undefined;
+      if (adminImage) {
+        const formData = new FormData();
+        formData.append("file", adminImage);
+        formData.append("folder", "transaction-notes");
+        const uploadResult = await uploadTransactionImage(formData);
+        if (uploadResult.ok && uploadResult.data?.url) {
+          imageUrl = uploadResult.data.url;
+        } else {
+          toast.error("Gagal upload gambar");
+          setIsUpdating(false);
+          return;
+        }
+      }
+
       const { ok, data } = await updateTransactionStatus(transactionId, {
         statusType,
         newStatus,
         notes: adminNotes || `Status updated by admin to ${newStatus}`,
         updatedBy: "admin",
+        imageUrl,
       });
 
       if (ok) {
@@ -137,6 +158,8 @@ export default function TransactionsPage() {
         setShowStatusModal(false);
         setSelectedTransaction(null);
         setAdminNotes("");
+        setAdminImage(null);
+        setAdminImagePreview("");
       } else {
         toast.error(data.error || "Failed to update status");
       }
@@ -152,6 +175,8 @@ export default function TransactionsPage() {
     setNewPaymentStatus(transaction.paymentStatus);
     setNewOrderStatus(transaction.orderStatus);
     setAdminNotes("");
+    setAdminImage(null);
+    setAdminImagePreview("");
     setShowStatusModal(true);
   };
 
@@ -255,13 +280,14 @@ export default function TransactionsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
+    return new Date(dateString).toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    }) + " WIB";
   };
 
   const getStatusBadge = (status: string, type: "payment" | "order") => {
@@ -1034,6 +1060,37 @@ export default function TransactionsPage() {
                   className="w-full bg-[#334155] border border-[#475569] text-[#f1f5f9] placeholder-[#94a3b8] rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   rows={3}
                 />
+              </div>
+
+              {/* Upload Gambar */}
+              <div>
+                <label className="block text-sm font-medium text-[#f1f5f9] mb-2">
+                  Lampiran Gambar (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setAdminImage(file);
+                      setAdminImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="w-full bg-[#334155] border border-[#475569] text-[#f1f5f9] rounded-md px-3 py-2 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:text-sm file:cursor-pointer"
+                />
+                {adminImagePreview && (
+                  <div className="mt-2 relative inline-block">
+                    <img src={adminImagePreview} alt="Preview" className="max-h-32 rounded-lg border border-[#475569]" />
+                    <button
+                      type="button"
+                      onClick={() => { setAdminImage(null); setAdminImagePreview(""); }}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

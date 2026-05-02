@@ -9,7 +9,8 @@ import { authenticateToken, requireApiKey } from "@/lib/auth";
  */
 export async function POST(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const authError = requireApiKey(request);
+    if (authError) return authError;
     await connectDB();
 
     // Authenticate user
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Create new subscription
     const newSubscription = new PushSubscription({
       userId: user._id,
-      userRole: user.role,
+      userRole: user.accessRole || "user",
       subscription,
       userAgent,
       isActive: true,
@@ -92,7 +93,8 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const authError = requireApiKey(request);
+    if (authError) return authError;
     await connectDB();
 
     // Authenticate user

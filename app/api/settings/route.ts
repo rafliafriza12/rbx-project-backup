@@ -4,6 +4,7 @@ import Settings from "@/models/Settings";
 import { requireAdmin, requireApiKey } from "@/lib/auth";
 
 // Sensitive fields that should NEVER be exposed in GET response
+// Adding this comment to force Next.js HMR reload
 const SENSITIVE_FIELDS = [
   "midtransServerKey",
   "midtransClientKey",

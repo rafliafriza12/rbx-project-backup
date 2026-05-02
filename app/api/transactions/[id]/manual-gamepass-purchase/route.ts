@@ -161,10 +161,10 @@ async function processGamepassPurchase(transaction: any) {
     if (purchaseResult.success) {
       console.log("Gamepass purchase successful");
 
-      // Update order status to completed
+      // Update order status to processing
       await transaction.updateStatus(
         "order",
-        "completed",
+        "processing",
         `Gamepass berhasil dibeli `,
         null,
       );

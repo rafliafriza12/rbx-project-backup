@@ -74,7 +74,9 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, robuxAmount, price, isActive, category } = body;
+    console.log("PUT /api/products/[id] received body:", body);
+    const { name, description, robuxAmount, price, isActive, category, productType } = body;
+    console.log("Extracted productType:", productType);
 
     // Find and update product
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -86,6 +88,7 @@ export async function PUT(
         price,
         isActive,
         category,
+        productType: productType || "regular",
       },
       { new: true, runValidators: true },
     );

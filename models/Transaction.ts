@@ -360,10 +360,6 @@ transactionSchema.methods.updateStatus = function (
     this.paymentStatus = sanitizedStatus;
     if (sanitizedStatus === "settlement") {
       this.paidAt = new Date();
-      // Auto update order status jika pembayaran berhasil
-      if (this.orderStatus === "waiting_payment") {
-        this.orderStatus = "processing";
-      }
     }
   } else {
     this.orderStatus = sanitizedStatus;
@@ -372,13 +368,34 @@ transactionSchema.methods.updateStatus = function (
     }
   }
 
-  // Add to history (use sanitized status)
+  // Add primary status to history (use sanitized status)
   this.statusHistory.push({
     status: `${statusType}:${sanitizedStatus}`,
     timestamp: new Date(),
     notes: notes || "",
     updatedBy: updatedBy,
   });
+
+  // Handle auto-update for orderStatus after payment settlement
+  if (statusType === "payment" && sanitizedStatus === "settlement") {
+    if (this.orderStatus === "waiting_payment") {
+      let targetStatus = "processing";
+      
+      // Khusus gamepass dan robux_5_hari, masuk ke pending terlebih dahulu
+      if (this.serviceType === "gamepass" || this.serviceCategory === "gamepass" || this.serviceCategory === "robux_5_hari") {
+        targetStatus = "pending";
+      }
+      
+      this.orderStatus = targetStatus;
+      // PUSH history order AFTER payment history
+      this.statusHistory.push({
+        status: `order:${targetStatus}`,
+        timestamp: new Date(),
+        notes: `Status updated automatically to ${targetStatus}`,
+        updatedBy: updatedBy,
+      });
+    }
+  }
 
   return this.save();
 };

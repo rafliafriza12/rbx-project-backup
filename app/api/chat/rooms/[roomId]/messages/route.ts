@@ -77,7 +77,8 @@ export async function GET(
   { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const user = await authenticateToken(request);
 
     if (!user) {
@@ -221,7 +222,8 @@ export async function POST(
     );
     console.log("========================================================");
 
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const user = await authenticateToken(request);
 
     if (!user) {

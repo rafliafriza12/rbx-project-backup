@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
-import { Gem, CheckCircle } from "lucide-react";
+import { Gem, CheckCircle, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 function LoginForm() {
@@ -166,6 +166,19 @@ function LoginForm() {
 
             {/* Form container */}
             <div className="relative bg-primary-800/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+              {/* Security Notice Banner */}
+              <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <ShieldCheck className="w-5 h-5 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-green-400 mb-1">Data kamu aman</h3>
+                  <p className="text-xs text-green-500/90 leading-relaxed">
+                    Login di sini cuma buat transaksi di Rbxnet aja, nggak bakal ngaruh sama akun Rblx atau akun game lain kamu.
+                  </p>
+                </div>
+              </div>
+
               {/* Form Header */}
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-white mb-2">

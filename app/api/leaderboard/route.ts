@@ -5,7 +5,8 @@ import { requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -217,7 +218,8 @@ export async function GET(request: NextRequest) {
 // GET endpoint untuk top spender (untuk homepage atau widget)
 export async function POST(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     const { limit: rawLimit = 5, period = "all" } = await request.json();

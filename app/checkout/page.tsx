@@ -1105,6 +1105,10 @@ function CheckoutContent() {
     );
   }
 
+  const isRbx5Checkout = checkoutData.items.some(
+    (item) => item.serviceType === "robux" && item.rbx5Details
+  );
+
   return (
     <div className="min-h-screen bg-[#22102A] py-8">
       {/* Background Effects */}
@@ -1113,14 +1117,60 @@ function CheckoutContent() {
 
       <div className="max-w-7xl mx-auto px-4 relative">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-3">
-            Selesaikan <span className="text-neon-pink">Pesanan</span>
-          </h1>
-          <p className="text-lg text-white/80 max-w-2xl mx-auto">
-            Lengkapi data untuk melanjutkan pembayaran dengan aman
-          </p>
-        </div>
+        {isRbx5Checkout ? (
+          <div className="max-w-4xl mx-auto px-4 mb-10 mt-4">
+            <div className="flex items-center justify-between relative">
+              {/* Connecting lines */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-primary-900/50 -z-10 rounded-full"></div>
+              <div 
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-primary-100 to-primary-200 -z-10 rounded-full transition-all duration-500"
+                style={{ width: `${(2 / 3) * 100}%` }}
+              ></div>
+              
+              {[
+                { num: 1, label: "Detail Informasi" },
+                { num: 2, label: "Buat Gamepass" },
+                { num: 3, label: "Metode Pembayaran" },
+                { num: 4, label: "Konfirmasi Order" }
+              ].map((step) => (
+                <div key={step.num} className="flex flex-col items-center gap-2">
+                  <div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                      3 >= step.num 
+                        ? "bg-gradient-to-br from-primary-100 to-primary-200 text-white shadow-lg shadow-primary-100/30" 
+                        : "bg-primary-900/80 text-white/40 border border-primary-200/20"
+                    }`}
+                  >
+                    {step.num}
+                  </div>
+                  <div className={`text-xs font-medium hidden sm:block ${
+                    3 >= step.num ? "text-primary-100" : "text-white/40"
+                  }`}>
+                    {step.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="text-center mt-12 mb-2">
+              <h1 className="text-3xl sm:text-4xl font-black text-white">
+                <span className="text-transparent bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text">Metode Pembayaran</span>
+              </h1>
+              <p className="text-lg text-white/80 max-w-2xl mx-auto mt-2">
+                Pilih metode pembayaran untuk menyelesaikan pesanan Robux Anda
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl font-black text-white mb-3">
+              Selesaikan <span className="text-neon-pink">Pesanan</span>
+            </h1>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto">
+              Lengkapi data untuk melanjutkan pembayaran dengan aman
+            </p>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Order Summary & Payment - Left Column */}
@@ -1939,11 +1989,20 @@ function CheckoutContent() {
               </div>
 
               {/* Submit Button */}
-              <div className="text-center">
+              <div className={`flex flex-col sm:flex-row gap-4 ${isRbx5Checkout ? "w-full" : "justify-center"}`}>
+                {isRbx5Checkout && (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/rbx5")}
+                    className="w-full sm:w-1/3 py-4 rounded-2xl font-bold text-lg flex items-center justify-center transition-all duration-300 bg-primary-800/50 text-white/80 hover:bg-primary-700 hover:text-white border-2 border-primary-700/50"
+                  >
+                    Kembali
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={submitting || !isFormValid()}
-                  className={`group relative px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 transform inline-flex items-center gap-3 w-full md:w-auto justify-center shadow-xl ${
+                  className={`group relative px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 transform inline-flex items-center gap-3 w-full ${isRbx5Checkout ? "sm:w-2/3" : "md:w-auto"} justify-center shadow-xl ${
                     submitting || !isFormValid()
                       ? "bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600"
                       : "btn-neon-primary hover:scale-105 glow-neon-pink active:scale-95"

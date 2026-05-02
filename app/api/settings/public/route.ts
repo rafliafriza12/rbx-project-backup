@@ -67,6 +67,11 @@ export async function GET(req: NextRequest) {
       facebookUrl: settings.facebookUrl || "",
       twitterUrl: settings.twitterUrl || "",
       youtubeUrl: settings.youtubeUrl || "",
+      
+      // Popup Banner
+      popupBannerEnabled: settings.popupBannerEnabled || false,
+      popupBannerImageUrl: settings.popupBannerImageUrl || "",
+      popupBannerTargetUrl: settings.popupBannerTargetUrl || "",
     };
 
     return NextResponse.json(

@@ -17,7 +17,7 @@ import {
   getTotalItemsCount,
   getPaymentFee,
 } from "@/lib/transaction-helpers";
-import { getUserTransactions } from "@/app/lib/actions";
+import { getUserTransactions, submitReview } from "@/app/lib/actions";
 import {
   Clock,
   CheckCircle,
@@ -43,6 +43,7 @@ import {
   Calendar,
   DollarSign,
   Zap,
+  Star,
 } from "lucide-react";
 
 export default function RiwayatPage() {
@@ -52,6 +53,25 @@ export default function RiwayatPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+
+  // Review Modal States
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [transactionToReview, setTransactionToReview] = useState<Transaction | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewUsername, setReviewUsername] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewedTransactionIds, setReviewedTransactionIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("reviewed_transactions");
+      if (stored) {
+        setReviewedTransactionIds(JSON.parse(stored));
+      }
+    } catch (e) {}
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -243,13 +263,82 @@ export default function RiwayatPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
+    return new Date(dateString).toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
       day: "numeric",
       month: "short",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    }) + " WIB";
+  };
+
+  const getReviewLink = (transaction: Transaction) => {
+    switch (transaction.serviceType) {
+      case "robux":
+        if (transaction.serviceCategory === "robux_instant")
+          return "/robux-instant";
+        if (transaction.serviceCategory === "robux_5_hari") return "/rbx5";
+        return "/rbx";
+      case "gamepass":
+        return `/gamepass/${transaction.serviceId}`;
+      case "joki":
+        return `/joki/${transaction.serviceId}`;
+      case "reseller":
+        return "/reseller";
+      default:
+        return "/";
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transactionToReview) return;
+    if (!reviewUsername.trim() || !reviewComment.trim()) {
+      toast.error("Username dan ulasan wajib diisi");
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      const payload: any = {
+        username: reviewUsername.trim(),
+        serviceType: transactionToReview.serviceType,
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        transactionId: transactionToReview._id,
+      };
+
+      if (transactionToReview.serviceType === "robux") {
+        payload.serviceCategory = transactionToReview.serviceCategory || "robux_instant";
+      }
+
+      if (
+        transactionToReview.serviceType === "gamepass" ||
+        transactionToReview.serviceType === "joki"
+      ) {
+        payload.serviceId = String(transactionToReview.serviceId || "unknown");
+        payload.serviceName = transactionToReview.serviceName || "Unknown Service";
+      }
+
+      const data = await submitReview(payload);
+
+      if (data.success) {
+        toast.success("Ulasan berhasil dikirim dan menunggu persetujuan admin");
+        setReviewModalOpen(false);
+        const newReviewed = [...reviewedTransactionIds, transactionToReview._id];
+        setReviewedTransactionIds(newReviewed);
+        try {
+          localStorage.setItem("reviewed_transactions", JSON.stringify(newReviewed));
+        } catch (e) {}
+      } else {
+        toast.error(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mengirim ulasan");
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const filteredTransactions = transactions
@@ -711,10 +800,25 @@ export default function RiwayatPage() {
                               {getTotalItemsCount(transaction)} total items
                             </div>
                           )}
-                          {/* Glowing effect behind price */}
                           <div className="absolute -inset-2 bg-primary-100/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
                         </div>
                         <div className="flex gap-2">
+                          {transaction.orderStatus === "completed" && !reviewedTransactionIds.includes(transaction._id) && (
+                            <button
+                              onClick={() => {
+                                setTransactionToReview(transaction);
+                                setReviewUsername(transaction.robloxUsername || user?.name || "");
+                                setReviewRating(5);
+                                setReviewComment("");
+                                setReviewModalOpen(true);
+                              }}
+                              className="relative overflow-hidden flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg transition-all duration-300 hover:scale-105 font-medium text-sm backdrop-blur-sm border border-yellow-500/30 group/review"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 opacity-0 group-hover/review:opacity-100 transition-opacity duration-300"></div>
+                              <Star className="w-4 h-4 relative z-10 fill-yellow-400 group-hover/review:scale-110 transition-transform duration-200" />
+                              <span className="relative z-10">Ulas</span>
+                            </button>
+                          )}
                           <Link
                             href={`/riwayat/${transaction._id}`}
                             className="relative overflow-hidden flex items-center gap-2 px-4 py-2 bg-primary-100/20 hover:bg-primary-100/30 text-white rounded-lg transition-all duration-300 hover:scale-105 font-medium text-sm backdrop-blur-sm border border-primary-100/30 group/btn"
@@ -803,6 +907,125 @@ export default function RiwayatPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {/* Review Modal */}
+        {reviewModalOpen && transactionToReview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/60">
+            <div
+              className="absolute inset-0"
+              onClick={() => !reviewSubmitting && setReviewModalOpen(false)}
+            />
+            <div className="relative w-full max-w-lg bg-gradient-to-br from-primary-900/90 to-primary-800/90 border border-primary-100/30 rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 overflow-hidden z-10">
+              <div className="absolute top-4 right-4">
+                <button
+                  onClick={() => !reviewSubmitting && setReviewModalOpen(false)}
+                  className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+                Berikan Ulasan
+              </h2>
+
+              <form onSubmit={handleReviewSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Layanan yang Diulas
+                  </label>
+                  <div className="px-4 py-3 bg-primary-900/50 rounded-xl border border-primary-100/20 text-white/80">
+                    {transactionToReview.serviceName}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={reviewUsername}
+                    onChange={(e) => setReviewUsername(e.target.value)}
+                    required
+                    disabled={reviewSubmitting}
+                    className="w-full px-4 py-3 bg-primary-900/50 border border-primary-100/30 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-primary-100/60 focus:ring-1 focus:ring-primary-100/60 transition-all"
+                    placeholder="Nama / Username Roblox Anda"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Rating
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const currentRating = hoverRating || reviewRating;
+                      const isFilled = star <= currentRating;
+                      return (
+                        <button
+                          key={star}
+                          type="button"
+                          className="focus:outline-none hover:scale-110 active:scale-95 transition-all"
+                          onClick={() => {
+                            setReviewRating(star);
+                            setHoverRating(0);
+                          }}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          disabled={reviewSubmitting}
+                        >
+                          <Star
+                            className={`w-8 h-8 transition-colors ${
+                              isFilled
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-500 fill-transparent"
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Ulasan Anda
+                  </label>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    required
+                    disabled={reviewSubmitting}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-primary-900/50 border border-primary-100/30 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-primary-100/60 focus:ring-1 focus:ring-primary-100/60 transition-all resize-none"
+                    placeholder="Bagaimana pengalaman Anda membeli layanan ini?"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={reviewSubmitting}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-orange-500/25 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {reviewSubmitting ? (
+                      <>
+                        <RotateCcw className="w-5 h-5 animate-spin" />
+                        Mengirim...
+                      </>
+                    ) : (
+                      <>
+                        <Star className="w-5 h-5 fill-white" />
+                        Kirim Ulasan
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

@@ -6,7 +6,8 @@ import { authenticateToken, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     // Authenticate user from token — never trust userId from query params
@@ -80,7 +81,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     // Authenticate user from token

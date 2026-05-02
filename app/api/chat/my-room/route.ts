@@ -6,7 +6,8 @@ import ChatRoom from "@/models/ChatRoom";
 // GET - Get user's chat room (or null if doesn't exist)
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     // Authenticate user
     const user = await authenticateToken(request);
 

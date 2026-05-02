@@ -569,6 +569,33 @@ export default function ChatMessages({
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) return;
+
+        // Validate size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert("Ukuran file maksimal 5MB");
+          return;
+        }
+
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        break;
+      }
+    }
+  };
+
   const formatTime = (date: string) => {
     try {
       return format(new Date(date), "HH:mm");
@@ -798,6 +825,7 @@ export default function ChatMessages({
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onPaste={handlePaste}
             placeholder={
               localRoomStatus !== "active"
                 ? "Chat tidak aktif..."

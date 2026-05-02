@@ -5,7 +5,8 @@ import { requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     await dbConnect();
 
     // Get user ID from query params

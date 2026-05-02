@@ -123,12 +123,13 @@ export default function TransactionDetailPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    }) + " WIB";
   };
 
   const getStatusBadge = (status: string, type: "payment" | "order") => {

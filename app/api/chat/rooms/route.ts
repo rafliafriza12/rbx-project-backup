@@ -137,7 +137,8 @@ function generateInvoiceMessage(transactions: any[]): string {
 export async function GET(request: NextRequest) {
   try {
     console.log("[GET /rooms] 📋 Fetching chat rooms list...");
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
 
     const user = await authenticateToken(request);
 
@@ -352,7 +353,8 @@ export async function GET(request: NextRequest) {
 // Create or get existing chat room
 export async function POST(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const user = await authenticateToken(request);
 
     if (!user) {
@@ -367,7 +369,8 @@ export async function POST(request: NextRequest) {
     // Determine target user ID and admin ID
     const isAdmin =
       user.accessRole === "admin" || user.accessRole === "superadmin";
-    const targetUserId = isAdmin ? userId : user._id;
+    // Jika admin memberikan userId (dari dashboard admin), gunakan itu. Jika tidak (admin belanja untuk diri sendiri), gunakan ID admin itu sendiri.
+    const targetUserId = (isAdmin && userId) ? userId : user._id;
 
     if (!targetUserId) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 });
@@ -670,7 +673,8 @@ export async function POST(request: NextRequest) {
 // DELETE - Delete all chat rooms and messages (admin only)
 export async function DELETE(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const user = await authenticateToken(request);
 
     if (

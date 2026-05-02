@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import Settings from "@/models/Settings";
+import Promo from "@/models/Promo";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
 import EmailService from "@/lib/email";
@@ -774,10 +775,60 @@ async function handleMultiItemDirectPurchase(body: any) {
     (subtotal * verifiedDiscountPercentage) / 100,
   );
 
+  // Validasi Promo Code
+  let promoDiscountAmount = 0;
+  let appliedPromoCode = "";
+
+  if (body.promoCode && typeof body.promoCode === 'string') {
+    const promo = await Promo.findOne({ code: body.promoCode.toUpperCase(), isActive: true });
+    if (promo) {
+      if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) {
+        console.warn(`Promo expired: ${body.promoCode}`);
+      } else if (promo.maxUses > 0 && promo.currentUses >= promo.maxUses) {
+        console.warn(`Promo max uses reached: ${body.promoCode}`);
+      } else if (promo.minPurchaseAmount > 0 && subtotal < promo.minPurchaseAmount) {
+        console.warn(`Promo min purchase not met: ${body.promoCode}`);
+      } else {
+        // Cek max uses per user if user logged in
+        let userUses = 0;
+        let userUsageIndex = -1;
+        if (userId) {
+          userUsageIndex = promo.usedBy.findIndex((u: any) => u.userId === userId.toString());
+          if (userUsageIndex !== -1) {
+            userUses = promo.usedBy[userUsageIndex].count;
+          }
+        }
+        if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
+          if (promo.discountType === "percentage") {
+            promoDiscountAmount = Math.round((subtotal * promo.discountValue) / 100);
+          } else {
+            promoDiscountAmount = promo.discountValue;
+          }
+          if (promoDiscountAmount > subtotal) promoDiscountAmount = subtotal;
+          appliedPromoCode = promo.code;
+          
+          // Add to promo usage
+          promo.currentUses += 1;
+          if (userId) {
+            if (userUsageIndex !== -1) {
+              promo.usedBy[userUsageIndex].count += 1;
+            } else {
+              promo.usedBy.push({ userId: userId.toString(), count: 1 });
+            }
+          }
+          await promo.save();
+        }
+      }
+    }
+  }
+
+  const totalDiscountAmount = verifiedDiscountAmount + promoDiscountAmount;
+
   console.log("=== MULTI-ITEM PRICE CALCULATION (VERIFIED) ===");
   console.log("Subtotal (verified from DB):", subtotal);
   console.log("Discount % (verified from DB):", verifiedDiscountPercentage);
   console.log("Discount Amount (calculated):", verifiedDiscountAmount);
+  console.log("Promo Discount Amount:", promoDiscountAmount);
 
   if (discountAmount && Math.abs(discountAmount - verifiedDiscountAmount) > 1) {
     console.warn(
@@ -785,17 +836,17 @@ async function handleMultiItemDirectPurchase(body: any) {
     );
   }
 
-  const verifiedFinalAmountBeforeFee = subtotal - verifiedDiscountAmount;
+  const verifiedFinalAmountBeforeFee = subtotal - totalDiscountAmount;
 
   // Update each transaction with VERIFIED proportional discount
-  if (verifiedDiscountAmount > 0 && createdTransactions.length > 0) {
+  if (totalDiscountAmount > 0 && createdTransactions.length > 0) {
     for (const transaction of createdTransactions) {
       // Calculate proportion of this item to subtotal
       const itemProportion = transaction.totalAmount / subtotal;
 
       // Calculate proportional discount for this item
       const itemDiscountAmount = Math.round(
-        verifiedDiscountAmount * itemProportion,
+        totalDiscountAmount * itemProportion,
       );
       const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
 
@@ -803,6 +854,7 @@ async function handleMultiItemDirectPurchase(body: any) {
       transaction.discountPercentage = verifiedDiscountPercentage;
       transaction.discountAmount = itemDiscountAmount;
       transaction.finalAmount = itemFinalAmount;
+      transaction.promoCode = appliedPromoCode || undefined;
 
       await transaction.save();
     }
@@ -1401,6 +1453,63 @@ async function handleSingleItemTransaction(body: any) {
     verifiedFinalAmountWithFee,
   });
 
+  // Validasi Promo Code
+  let promoDiscountAmount = 0;
+  let appliedPromoCode = "";
+
+  if (body.promoCode && typeof body.promoCode === 'string') {
+    const promo = await Promo.findOne({ code: body.promoCode.toUpperCase(), isActive: true });
+    if (promo) {
+      let currentService = "";
+      if (serviceCategory === "robux_5_hari") currentService = "rbx5";
+      else if (serviceCategory === "robux_instant") currentService = "robux_instant";
+      else if (serviceCategory === "gamepass" || serviceType === "gamepass") currentService = "gamepass";
+      
+      if (promo.applicableTo && promo.applicableTo.length > 0 && currentService && !promo.applicableTo.includes(currentService)) {
+        console.warn(`Promo not applicable for this service: ${body.promoCode}`);
+      } else if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) {
+        console.warn(`Promo expired: ${body.promoCode}`);
+      } else if (promo.maxUses > 0 && promo.currentUses >= promo.maxUses) {
+        console.warn(`Promo max uses reached: ${body.promoCode}`);
+      } else if (promo.minPurchaseAmount > 0 && verifiedTotalAmount < promo.minPurchaseAmount) {
+        console.warn(`Promo min purchase not met: ${body.promoCode}`);
+      } else {
+        // Cek max uses per user if user logged in
+        let userUses = 0;
+        let userUsageIndex = -1;
+        if (userId) {
+          userUsageIndex = promo.usedBy.findIndex((u: any) => u.userId === userId.toString());
+          if (userUsageIndex !== -1) {
+            userUses = promo.usedBy[userUsageIndex].count;
+          }
+        }
+        if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
+          if (promo.discountType === "percentage") {
+            promoDiscountAmount = Math.round((verifiedTotalAmount * promo.discountValue) / 100);
+          } else {
+            promoDiscountAmount = promo.discountValue;
+          }
+          if (promoDiscountAmount > verifiedTotalAmount) promoDiscountAmount = verifiedTotalAmount;
+          appliedPromoCode = promo.code;
+          
+          // Add to promo usage
+          promo.currentUses += 1;
+          if (userId) {
+            if (userUsageIndex !== -1) {
+              promo.usedBy[userUsageIndex].count += 1;
+            } else {
+              promo.usedBy.push({ userId: userId.toString(), count: 1 });
+            }
+          }
+          await promo.save();
+        }
+      }
+    }
+  }
+
+  const finalDiscountAmount = verifiedDiscountAmount + promoDiscountAmount;
+  const finalAmountBeforeFeeWithPromo = verifiedTotalAmount - finalDiscountAmount;
+
   // ============================================================
   // VERIFY GAMEPASS via Roblox API for rbx5_hari (anti-spoof)
   // ============================================================
@@ -1470,8 +1579,9 @@ async function handleSingleItemTransaction(body: any) {
     unitPrice: verifiedUnitPrice,
     totalAmount: verifiedTotalAmount,
     discountPercentage: verifiedDiscountPercentage,
-    discountAmount: verifiedDiscountAmount,
-    finalAmount: verifiedFinalAmountBeforeFee,
+    discountAmount: finalDiscountAmount,
+    finalAmount: finalAmountBeforeFeeWithPromo,
+    promoCode: appliedPromoCode || undefined,
     robloxUsername: verifiedRobloxUsername, // Verified from Roblox API (empty for reseller)
     robloxPassword: robloxPassword || "", // Empty string for gamepass, robux_5_hari, and reseller
     customerNotes: additionalNotes || "", // Customer notes dari form checkout
@@ -1576,12 +1686,13 @@ async function handleSingleItemTransaction(body: any) {
   const midtransOrderId = transaction.generateMidtransOrderId();
 
   // Calculate price after discount (WITHOUT payment fee) - USING VERIFIED VALUES
-  const amountAfterDiscount = verifiedFinalAmountBeforeFee;
+  const amountAfterDiscount = finalAmountBeforeFeeWithPromo;
   const finalUnitPrice = Math.round(amountAfterDiscount / verifiedQuantity);
 
   console.log("=== PRICE CALCULATION DEBUG (VERIFIED) ===");
   console.log("Total Amount (verified):", verifiedTotalAmount);
   console.log("Discount Amount (verified):", verifiedDiscountAmount);
+  console.log("Promo Discount Amount:", promoDiscountAmount);
   console.log("Amount After Discount (verified):", amountAfterDiscount);
   console.log("Quantity (verified):", verifiedQuantity);
   console.log("Final Unit Price:", finalUnitPrice);
@@ -1593,10 +1704,11 @@ async function handleSingleItemTransaction(body: any) {
       id: serviceId,
       price: finalUnitPrice, // Use unit price after discount (WITHOUT payment fee)
       quantity: verifiedQuantity,
-      name:
-        verifiedDiscountPercentage > 0
-          ? `${serviceName} (Diskon ${verifiedDiscountPercentage}%)`
-          : serviceName,
+      name: appliedPromoCode 
+          ? `${serviceName} (Promo)`
+          : verifiedDiscountPercentage > 0
+            ? `${serviceName} (Diskon ${verifiedDiscountPercentage}%)`
+            : serviceName,
       brand: "RBX Store",
       category: serviceType,
     },

@@ -31,6 +31,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getGamepassById, addToCartAction } from "@/app/lib/actions";
 import { getUserInfo } from "@/app/lib/actions";
 
+import PaymentMethodSelector from "@/components/checkout/PaymentMethodSelector";
+import OrderSummaryCard from "@/components/checkout/OrderSummaryCard";
+import {
+  fetchPaymentSettings,
+  fetchPaymentMethods,
+  createMultiTransaction,
+} from "@/app/checkout/actions";
+import { PaymentCategory } from "@/lib/payment-helpers";
+import { CreditCard, ArrowRight } from "lucide-react";
+
 interface GamepassItem {
   itemName: string;
   imgUrl: string;
@@ -59,7 +69,6 @@ export default function GamepassDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [username, setUsername] = useState("");
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
 
@@ -67,21 +76,94 @@ export default function GamepassDetailPage() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null,
-  );
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Item search timeout
-  const [itemSearchTimeout, setItemSearchTimeout] =
-    useState<NodeJS.Timeout | null>(null);
+  const [itemSearchTimeout, setItemSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
+  // Wizard States
+  const [currentStep, setCurrentStep] = useState(1);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Checkout States
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
+  const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
+  const [expandedCategory, setExpandedCategory] = useState<string>("qris");
+  const [submitting, setSubmitting] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
+
   const params = useParams();
   const router = useRouter();
   const gamepassId = params.id as string;
+
+  useEffect(() => {
+    if (user) {
+      if (!email) setEmail(user.email || "");
+      if (!phone) setPhone(user.phone || "");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (paymentCategories.length > 0 && activePaymentGateway === "duitku") {
+      const categoryOrder = ["qris", "ewallet", "virtual_account", "retail"];
+      for (const cat of categoryOrder) {
+        if (paymentCategories.some((pc) => pc.id === cat)) {
+          setExpandedCategory(cat);
+          break;
+        }
+      }
+    }
+  }, [paymentCategories, activePaymentGateway]);
+
+  useEffect(() => {
+    const loadPaymentData = async () => {
+      setPaymentMethodsLoading(true);
+      try {
+        const settingsRes = await fetchPaymentSettings();
+        if (settingsRes.success && settingsRes.settings) {
+          const gateway = settingsRes.settings.activePaymentGateway;
+          setActivePaymentGateway(gateway);
+
+          const methodsRes = await fetchPaymentMethods(gateway);
+          if (methodsRes.success && methodsRes.data) {
+            const groupedMethods = methodsRes.data.reduce((acc: any, method: any) => {
+              const category = method.category || "Lainnya";
+              if (!acc[category]) {
+                acc[category] = { id: category, name: category, methods: [] };
+              }
+              acc[category].methods.push({
+                id: method.code,
+                name: method.name,
+                icon: method.icon,
+                fee: method.fee,
+                feeType: method.feeType,
+                minimumAmount: method.minimumAmount,
+                maximumAmount: method.maximumAmount,
+              });
+              return acc;
+            }, {});
+            setPaymentCategories(Object.values(groupedMethods));
+          }
+        }
+      } catch (error) {
+      } finally {
+        setPaymentMethodsLoading(false);
+      }
+    };
+    loadPaymentData();
+  }, []);
 
   // Function to search for user info
   const searchUserInfo = async (username: string) => {
@@ -110,15 +192,79 @@ export default function GamepassDetailPage() {
     }
   };
 
-  // Check if all required fields are filled
-  const isFormValid =
-    selectedItems.length > 0 && username.trim() !== "" && userInfo !== null;
-
   // Calculate total price
   const totalPrice = selectedItems.reduce(
     (total, item) => total + item.price * item.quantity,
     0,
   );
+
+  const getDiscountAmount = () => {
+    if (!user || !(user as any).diskon) return 0;
+    return Math.round((totalPrice * (user as any).diskon) / 100);
+  };
+
+  const getPaymentFee = () => {
+    if (selectedPaymentMethod && paymentCategories.length > 0) {
+      const methodObj = paymentCategories.flatMap(c => c.methods || []).find(m => m.id === selectedPaymentMethod);
+      if (methodObj) {
+        const feeType = methodObj.feeType || "flat";
+        const feeValue = Number(methodObj.fee) || 0;
+        const baseAmount = totalPrice - getDiscountAmount();
+        
+        if (feeType === "percentage") {
+          return Math.round((baseAmount * feeValue) / 100);
+        }
+        return feeValue;
+      }
+    }
+    return 0;
+  };
+
+  const validatePhone = (value: string) => {
+    if (!value) return true;
+    const phoneRegex = /^[0-9]{8,15}$/;
+    if (!phoneRegex.test(value)) {
+      setPhoneError("Nomor WhatsApp tidak valid (8-15 digit angka)");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setPhone(value);
+    if (value) validatePhone(value);
+    else setPhoneError("");
+  };
+
+  const nextStep = () => {
+    if (currentStep === 1 && selectedItems.length === 0) {
+      toast.error("Pilih minimal satu item!");
+      return;
+    }
+    if (currentStep === 2) {
+      if (!username || !userInfo) {
+        toast.error("Username Roblox tidak valid");
+        return;
+      }
+      if (!user && (!email || !phone)) {
+        toast.error("Email dan WhatsApp wajib diisi");
+        return;
+      }
+      if (phoneError) {
+        toast.error("Nomor WhatsApp tidak valid");
+        return;
+      }
+    }
+    if (currentStep === 3 && !selectedPaymentMethod) {
+      toast.error("Pilih metode pembayaran");
+      return;
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, 4));
+  };
+
+  const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   // Function to handle item selection
   const handleItemSelect = (item: GamepassItem) => {
@@ -183,23 +329,15 @@ export default function GamepassDetailPage() {
 
   // Debounced search effect for item search
   useEffect(() => {
-    // Clear previous timeout
     if (itemSearchTimeout) {
       clearTimeout(itemSearchTimeout);
     }
-
-    // Set new timeout for 1 second delay
     const newTimeout = setTimeout(() => {
       setDebouncedItemSearch(itemSearchQuery);
     }, 1000);
-
     setItemSearchTimeout(newTimeout);
-
-    // Cleanup function
     return () => {
-      if (newTimeout) {
-        clearTimeout(newTimeout);
-      }
+      if (newTimeout) clearTimeout(newTimeout);
     };
   }, [itemSearchQuery]);
 
@@ -211,9 +349,7 @@ export default function GamepassDetailPage() {
   // Cleanup item search timeout on unmount
   useEffect(() => {
     return () => {
-      if (itemSearchTimeout) {
-        clearTimeout(itemSearchTimeout);
-      }
+      if (itemSearchTimeout) clearTimeout(itemSearchTimeout);
     };
   }, []);
 
@@ -225,40 +361,28 @@ export default function GamepassDetailPage() {
 
   // Debounced search effect for username
   useEffect(() => {
-    // Clear previous timeout
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-
-    // Reset user info when input is cleared
     if (!username || username.trim().length < 2) {
       setUserInfo(null);
       setUserSearchError(null);
       setIsSearchingUser(false);
       return;
     }
-
-    // Set new timeout for 1 second delay
     const newTimeout = setTimeout(() => {
       searchUserInfo(username);
     }, 1000);
-
     setSearchTimeout(newTimeout);
-
-    // Cleanup function
     return () => {
-      if (newTimeout) {
-        clearTimeout(newTimeout);
-      }
+      if (newTimeout) clearTimeout(newTimeout);
     };
   }, [username]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
+      if (searchTimeout) clearTimeout(searchTimeout);
     };
   }, []);
 
@@ -279,16 +403,13 @@ export default function GamepassDetailPage() {
   };
 
   const handleAddToCart = async () => {
-    if (!isFormValid || selectedItems.length === 0 || !gamepass) {
-      toast.error("Mohon lengkapi semua data!");
+    if (!agreedToTerms || selectedItems.length === 0 || !gamepass) {
+      toast.error("Mohon setujui syarat & ketentuan!");
       return;
     }
 
-    // Check if user is logged in
     if (!user) {
-      toast.error(
-        "Silakan login terlebih dahulu untuk menambahkan ke keranjang",
-      );
+      toast.error("Silakan login terlebih dahulu untuk menambahkan ke keranjang");
       router.push("/login");
       return;
     }
@@ -296,15 +417,14 @@ export default function GamepassDetailPage() {
     setIsAddingToCart(true);
 
     try {
-      // Add each selected item to cart
       for (const item of selectedItems) {
         const cartItem = {
-          userId: user.id, // Add userId from auth context
+          userId: user.id,
           serviceType: "gamepass",
           serviceId: gamepass._id,
           serviceName: `${gamepass.gameName} - ${item.itemName}`,
-          serviceImage: item.imgUrl, // Use item image, not game image
-          imgUrl: item.imgUrl, // Use item image, not game image
+          serviceImage: item.imgUrl,
+          imgUrl: item.imgUrl,
           serviceCategory: "gamepass",
           quantity: item.quantity,
           unitPrice: item.price,
@@ -322,18 +442,13 @@ export default function GamepassDetailPage() {
         const result = await addToCartAction(cartItem);
         const data = result.data;
 
-        if (!result.ok) {
+        if (!result.ok && !data?.success) {
           throw new Error(data?.error || "Gagal menambahkan ke keranjang");
         }
       }
 
-      toast.success(
-        `${selectedItems.length} item berhasil ditambahkan ke keranjang!`,
-      );
-
-      // Reset form
-      setSelectedItems([]);
-      setUsername("");
+      toast.success(`${selectedItems.length} item berhasil ditambahkan ke keranjang!`);
+      router.push("/cart");
     } catch (error: any) {
       toast.error(error.message || "Gagal menambahkan ke keranjang");
     } finally {
@@ -341,33 +456,103 @@ export default function GamepassDetailPage() {
     }
   };
 
-  const handlePurchase = () => {
-    if (!isFormValid || selectedItems.length === 0 || !gamepass) return;
+  const handleApplyPromo = async () => {
+    if (!promoCode || selectedItems.length === 0) return;
+    try {
+      const res = await fetch("/api/promos/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode, totalAmount: totalPrice, serviceType: "gamepass" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedPromoCode(data.data.code);
+        setPromoDiscount(data.data.discountAmount);
+        toast.success(`Promo berhasil digunakan! Diskon Rp ${data.data.discountAmount.toLocaleString()}`);
+      } else {
+        toast.error(data.error || "Kode promo tidak valid");
+        setAppliedPromoCode(null);
+        setPromoDiscount(0);
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat memvalidasi promo");
+    }
+  };
 
-    // Create array of checkout items for multi-item support
-    const checkoutItems = selectedItems.map((item) => ({
-      serviceType: "gamepass",
-      serviceId: gamepass._id,
-      serviceName: `${gamepass.gameName} - ${item.itemName}`,
-      serviceImage: gamepass.imgUrl,
-      serviceCategory: "gamepass", // Add serviceCategory
-      quantity: item.quantity,
-      unitPrice: item.price,
-      robloxUsername: username,
-      robloxPassword: null, // Gamepass tidak memerlukan password
-      gamepassDetails: {
-        gameName: gamepass.gameName,
-        itemName: item.itemName,
-        imgUrl: item.imgUrl,
-        developer: gamepass.developer,
-        caraPesan: gamepass.caraPesan,
-      },
-    }));
+  const handleSubmitOrder = async () => {
+    if (!agreedToTerms || !selectedPaymentMethod || selectedItems.length === 0 || !gamepass) return;
 
-    // Store in sessionStorage for checkout page
-    sessionStorage.setItem("checkoutData", JSON.stringify(checkoutItems));
+    setSubmitting(true);
+    try {
+      const checkoutItems = selectedItems.map((item) => ({
+        serviceType: "gamepass",
+        serviceId: gamepass._id,
+        serviceName: `${gamepass.gameName} - ${item.itemName}`,
+        serviceImage: item.imgUrl,
+        serviceCategory: "gamepass",
+        quantity: item.quantity,
+        unitPrice: item.price,
+        robloxUsername: username,
+        robloxPassword: null,
+        gamepassDetails: {
+          gameName: gamepass.gameName,
+          itemName: item.itemName,
+          imgUrl: item.imgUrl,
+          developer: gamepass.developer,
+          caraPesan: gamepass.caraPesan,
+        },
+      }));
 
-    router.push("/checkout");
+      const payload = {
+        items: checkoutItems,
+        customerInfo: !user
+          ? { name: username, email: email, phone: phone }
+          : {
+              name: `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || username,
+              email: email || user.email,
+              phone: phone || user.phone,
+              userId: user.id,
+            },
+        userId: !user ? null : user.id,
+        totalAmount: totalPrice,
+        discountPercentage: user ? ((user as any).diskon || 0) : 0,
+        discountAmount: getDiscountAmount(),
+        finalAmount: totalPrice - getDiscountAmount(),
+        paymentFee: getPaymentFee(),
+        paymentMethodId: selectedPaymentMethod,
+        activeGateway: activePaymentGateway,
+        promoCode: appliedPromoCode || undefined,
+      };
+
+      const result = await createMultiTransaction(payload);
+      
+      if (result.success) {
+        toast.success("Pesanan berhasil dibuat!");
+        if (result.data?.redirectUrl) {
+          window.location.href = result.data.redirectUrl;
+        } else if (result.data?.snapToken) {
+          if ((window as any).snap) {
+            (window as any).snap.pay(result.data.snapToken, {
+              onSuccess: () => { toast.success("Pembayaran berhasil!"); router.push("/riwayat"); },
+              onPending: () => { toast.info("Menunggu pembayaran..."); router.push("/riwayat"); },
+              onError: () => toast.error("Pembayaran gagal!"),
+              onClose: () => { toast.warning("Anda menutup popup pembayaran"); router.push("/riwayat"); },
+            });
+          } else {
+            toast.error("Midtrans Snap tidak tersedia");
+            router.push("/riwayat");
+          }
+        } else {
+          router.push(`/riwayat`);
+        }
+      } else {
+        throw new Error(result.error || "Gagal membuat pesanan");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memproses pembayaran");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -490,11 +675,6 @@ export default function GamepassDetailPage() {
                     className="object-fill group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/20"></div>
-
-                  {/* Premium badge */}
-                  {/* <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full text-white text-xs font-bold shadow-lg">
-                    New
-                  </div> */}
                 </div>
 
                 {/* Game Info */}
@@ -510,8 +690,6 @@ export default function GamepassDetailPage() {
                     <Star className="w-4 h-4 fill-current" />
                   </div>
                 </div>
-
-                {/* Features */}
               </div>
               <button
                 onClick={() => setIsShowReview(!isShowReview)}
@@ -522,747 +700,417 @@ export default function GamepassDetailPage() {
             </div>
           </div>
 
-          {/* Right Column - Items & Purchase */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Cara Pesan Section */}
-            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
-              {/* Enhanced Background Effects */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
-              <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary-200/15 to-primary-100/10 rounded-full blur-3xl animate-pulse delay-1000 group-hover:scale-110 transition-transform duration-700"></div>
-              <div className="absolute -bottom-20 -left-20 w-32 h-32 bg-gradient-to-tr from-primary-100/20 to-primary-200/10 rounded-full blur-2xl animate-pulse delay-500 group-hover:scale-110 transition-transform duration-700"></div>
-
-              {/* Floating sparkles */}
-              <div className="absolute top-6 right-12 w-1.5 h-1.5 bg-primary-100/70 rounded-full animate-ping delay-200"></div>
-              <div className="absolute top-12 right-6 w-1 h-1 bg-primary-200/80 rounded-full animate-ping delay-600"></div>
-              <div className="absolute bottom-8 left-12 w-1.5 h-1.5 bg-primary-100/60 rounded-full animate-ping delay-1000"></div>
-
+          {/* Right Column - Wizard */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="w-full group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl px-4 sm:px-6 py-4 shadow-lg overflow-hidden">
               <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
-                    <Gift className="w-7 h-7 text-primary-100" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-100/40 to-primary-200/30 rounded-xl flex items-center justify-center shadow-lg">
+                    <FileText className="w-5 h-5 text-primary-100" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-white">
-                      Cara Pesan
-                    </h3>
-                    <p className="text-white/80 text-sm">
-                      Ikuti langkah mudah berikut
-                    </p>
+                    <h2 className="text-white font-black text-lg sm:text-xl leading-tight">
+                      <span className="bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
+                        Progress Checkout
+                      </span>
+                    </h2>
                   </div>
                 </div>
+                <div className="flex justify-between items-center relative">
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/10 rounded-full z-0"></div>
+                  <div
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary-100 rounded-full z-0 transition-all duration-500"
+                    style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+                  ></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {gamepass.caraPesan.map((cara, index) => (
-                    <div
-                      key={index}
-                      className="group/step relative flex items-start gap-4 p-4 bg-gradient-to-r from-primary-800/40 to-primary-700/30 rounded-2xl border border-primary-100/20 hover:border-primary-100/50 hover:bg-gradient-to-r hover:from-primary-800/60 hover:to-primary-700/50 transition-all duration-300 overflow-hidden"
-                    >
-                      {/* Step glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary-100/5 to-primary-200/5 rounded-2xl opacity-0 group-hover/step:opacity-100 transition-opacity duration-300"></div>
-
-                      <div className="relative flex-shrink-0 w-8 h-8 bg-gradient-to-r from-primary-100 to-primary-200 rounded-full flex items-center justify-center text-white font-black text-sm shadow-lg group-hover/step:scale-110 group-hover/step:shadow-primary-100/50 transition-all duration-300">
-                        {index + 1}
+                  {[
+                    { step: 1, label: "Pilih" },
+                    { step: 2, label: "Detail" },
+                    { step: 3, label: "Bayar" },
+                    { step: 4, label: "Selesai" }
+                  ].map((s) => (
+                    <div key={s.step} className="relative z-10 flex flex-col items-center gap-2">
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${currentStep >= s.step
+                          ? "bg-primary-100 text-white shadow-[0_0_15px_rgba(var(--primary-100-rgb),0.5)]"
+                          : "bg-[#1A1F2C] text-white/40 border-2 border-white/10"
+                        }`}>
+                        {currentStep > s.step ? <CheckCircle className="w-5 h-5" /> : s.step}
                       </div>
-                      <div className="relative">
-                        <span className="text-base text-white leading-relaxed font-medium">
-                          {cara}
-                        </span>
-                      </div>
-
-                      {/* Step completion checkmark */}
-                      <div className="absolute top-2 right-2 w-4 h-4 bg-primary-100/20 rounded-full flex items-center justify-center opacity-0 group-hover/step:opacity-100 transition-opacity duration-300">
-                        <Check className="w-2.5 h-2.5 text-primary-100" />
-                      </div>
+                      <span className={`text-xs sm:text-sm font-semibold ${currentStep >= s.step ? "text-white" : "text-white/40"}`}>
+                        {s.label}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Username Input with Validation */}
-            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
-              <div className="absolute -top-10 -right-10 w-20 h-20 bg-primary-100/10 rounded-full blur-xl animate-pulse"></div>
-
-              <div className="relative z-10 space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
-                    <User className="w-6 h-6 text-primary-100" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">
-                      Username RBX <span className="text-red-400">*</span>
-                    </h3>
-                    <p className="text-white/80 text-sm">
-                      Masukkan username Roblox Anda
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Input Field with Dynamic Border */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Masukkan username Roblox..."
-                      className={`w-full px-6 py-4 pr-14 bg-gradient-to-r from-primary-800/40 to-primary-700/30 border-2 rounded-2xl text-white placeholder-primary-300 focus:outline-none focus:ring-4 transition-all duration-300 text-lg font-medium ${
-                        userInfo
-                          ? "border-emerald-500 focus:border-emerald-400 focus:ring-emerald-500/20"
-                          : userSearchError
-                            ? "border-red-500 focus:border-red-400 focus:ring-red-500/20"
-                            : "border-primary-100/30 focus:border-primary-100/70 focus:ring-primary-100/20"
-                      }`}
-                    />
-
-                    {/* Status Icon */}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      {isSearchingUser && (
-                        <Loader2 className="w-5 h-5 text-primary-100 animate-spin" />
-                      )}
-                      {!isSearchingUser && userInfo && (
-                        <CheckCircle className="w-5 h-5 text-emerald-400" />
-                      )}
-                      {!isSearchingUser && userSearchError && (
-                        <AlertCircle className="w-5 h-5 text-red-400" />
-                      )}
-                      {!isSearchingUser &&
-                        !userInfo &&
-                        !userSearchError &&
-                        username.length >= 2 && (
-                          <Search className="w-5 h-5 text-primary-200" />
-                        )}
-                    </div>
-                  </div>
-
-                  {/* Status Messages */}
-                  <div className="min-h-[24px]">
-                    {isSearchingUser && (
-                      <div className="flex items-center gap-2 text-primary-200 text-sm">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Mencari username...</span>
-                      </div>
-                    )}
-
-                    {!isSearchingUser && userInfo && (
-                      <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Username ditemukan!</span>
-                      </div>
-                    )}
-
-                    {!isSearchingUser && userSearchError && (
-                      <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>
-                          API Robloxxnya Lagi Limit, Coba Sebentar Lagi Ya
-                        </span>
-                      </div>
-                    )}
-
-                    {!isSearchingUser &&
-                      !userInfo &&
-                      !userSearchError &&
-                      username.length > 0 &&
-                      username.length < 2 && (
-                        <p className="text-primary-300 text-sm">
-                          Minimal 2 karakter untuk pencarian
-                        </p>
-                      )}
-                  </div>
-
-                  {/* User Avatar Card */}
-                  {userInfo && (
-                    <div className="relative bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-2 border-emerald-400/30 rounded-2xl p-4 overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent"></div>
-
-                      <div className="relative flex items-center gap-4">
-                        {/* Avatar */}
-                        <div className="relative w-12 h-12 flex-shrink-0">
-                          {userInfo.avatar ? (
-                            <div className="relative w-full h-full rounded-xl overflow-hidden ring-2 ring-emerald-400/50">
-                              <img
-                                src={userInfo.avatar}
-                                alt={userInfo.username}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center ring-2 ring-emerald-400/50">
-                              <User className="w-6 h-6 text-white" />
-                            </div>
-                          )}
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-primary-800 flex items-center justify-center">
-                            <Check className="w-2.5 h-2.5 text-white" />
-                          </div>
-                        </div>
-
-                        {/* User Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-white font-bold text-base truncate">
-                              {userInfo.username}
-                            </p>
-                            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          </div>
-                          <p className="text-emerald-300 text-sm">
-                            ID: {userInfo.id}
-                          </p>
-                          {userInfo.displayName &&
-                            userInfo.displayName !== userInfo.username && (
-                              <p className="text-primary-200 text-xs mt-0.5">
-                                Display: {userInfo.displayName}
-                              </p>
-                            )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Items Grid */}
-            <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
-              <div className="absolute -top-20 -left-20 w-40 h-40 bg-gradient-to-br from-primary-100/15 to-primary-200/10 rounded-full blur-3xl animate-pulse group-hover:scale-110 transition-transform duration-700"></div>
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30 group-hover:scale-110 transition-transform duration-300">
-                    <ShoppingCart className="w-7 h-7 text-primary-100" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-white">
-                      Pilih Item Gamepass
-                    </h3>
-                    <p className="text-primary-200 text-sm">
-                      Pilih item yang ingin Anda beli (bisa lebih dari satu)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Item Search Bar */}
-                {gamepass.item.length > 0 && (
-                  <div className="mb-6">
-                    <div className="relative group/search">
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary-100/10 to-primary-200/10 rounded-xl blur-lg group-hover/search:blur-xl transition-all duration-300"></div>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Cari item gamepass..."
-                          value={itemSearchQuery}
-                          onChange={(e) => setItemSearchQuery(e.target.value)}
-                          className="w-full px-4 py-3 pl-12 pr-10 bg-primary-800/30 backdrop-blur-sm border-2 border-primary-100/30 rounded-xl text-white placeholder-white/40 focus:border-primary-100/60 focus:ring-2 focus:ring-primary-100/20 focus:outline-none transition-all duration-300 text-sm"
-                        />
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-200" />
-                        {itemSearchQuery && (
-                          <button
-                            onClick={() => setItemSearchQuery("")}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-primary-100/20 rounded-lg transition-colors"
-                          >
-                            <X className="w-4 h-4 text-white/60 hover:text-white" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Search Results Info */}
-                    {itemSearchQuery && (
-                      <div className="mt-2 text-xs text-white/60">
-                        Ditemukan{" "}
-                        <span className="font-bold text-primary-100">
-                          {filteredItems.length}
-                        </span>{" "}
-                        dari {gamepass.item.length} item
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
-                  {filteredItems.length === 0 && itemSearchQuery ? (
-                    <div className="col-span-full text-center py-12">
-                      <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6">
-                        <Search className="w-12 h-12 text-primary-100/50 mx-auto mb-3" />
-                        <p className="text-white/70 mb-2">
-                          Tidak ada item untuk &quot;{itemSearchQuery}&quot;
-                        </p>
-                        <button
-                          onClick={() => setItemSearchQuery("")}
-                          className="mt-3 px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-200 text-white text-sm rounded-lg hover:from-primary-100/80 hover:to-primary-200/80 transition-all duration-300"
-                        >
-                          Hapus Pencarian
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    paginatedItems.map((item, index) => {
-                      const isSelected = isItemSelected(item.itemName);
-                      const quantity = getSelectedQuantity(item.itemName);
-
-                      return (
-                        <div
-                          key={index}
-                          className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center justify-start gap-3 ${
-                            isSelected
-                              ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 shadow-2xl shadow-primary-100/30 scale-105"
-                              : "border-primary-100/30 hover:border-primary-100/60 hover:bg-gradient-to-br hover:from-primary-800/60 hover:to-primary-700/50 hover:scale-102"
-                          }`}
-                          onClick={() => handleItemSelect(item)}
-                        >
-                          {/* Card glow effect */}
-                          <div
-                            className={`absolute inset-0 bg-gradient-to-br from-primary-100/10 to-primary-200/5 rounded-xl sm:rounded-2xl transition-opacity duration-300 ${
-                              isSelected
-                                ? "opacity-100"
-                                : "opacity-0 group-hover/item:opacity-100"
-                            }`}
-                          ></div>
-
-                          {/* Floating particles for selected items */}
-                          {isSelected && (
-                            <>
-                              <div className="absolute top-2 sm:top-4 left-2 sm:left-4 w-1 h-1 bg-primary-100/70 rounded-full animate-ping"></div>
-                              <div className="absolute top-3 sm:top-6 left-4 sm:left-8 w-1 sm:w-1.5 h-1 sm:h-1.5 bg-primary-200/60 rounded-full animate-ping delay-300"></div>
-                              <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 w-1 h-1 bg-primary-100/80 rounded-full animate-ping delay-500"></div>
-                            </>
-                          )}
-
-                          {/* Selection Indicator */}
-                          <div
-                            className={`absolute z-[3] top-2 sm:top-3 md:top-4 right-2 sm:right-3 md:right-4 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${
-                              isSelected
-                                ? "border-primary-100 bg-gradient-to-r from-primary-100 to-primary-200 scale-110"
-                                : "border-primary-100/60 bg-primary-800/50 group-hover/item:border-primary-100 group-hover/item:bg-primary-700/70"
-                            }`}
-                          >
-                            {isSelected ? (
-                              <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary-900 font-bold" />
-                            ) : (
-                              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-primary-100 group-hover/item:scale-110 transition-transform duration-300" />
-                            )}
-                          </div>
-
-                          {/* Item Image */}
-                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full overflow-hidden mb-2 sm:mb-3 md:mb-4 border-2 border-primary-100/20 shadow-lg group-hover/item:shadow-xl transition-all duration-300 flex-shrink-0">
-                            <Image
-                              src={item.imgUrl}
-                              alt={item.itemName}
-                              fill
-                              loading="lazy"
-                              className="object-fill group-hover/item:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-100/10"></div>
-                          </div>
-
-                          {/* Item Info - Always centered */}
-                          <div className="relative z-10 w-full flex flex-col items-center text-center gap-3">
-                            <h4 className="font-black text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base line-clamp-2">
-                              {item.itemName}
-                            </h4>
-
-                            <div className="flex items-center justify-center mb-2 sm:mb-3 md:mb-4">
-                              <div className="flex items-center gap-1">
-                                {/* <Gem className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-primary-100" /> */}
-                                <span className="text-white font-bold text-xs sm:text-sm md:text-base">
-                                  Rp {item.price.toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Quantity Controls - Only show when selected */}
-                            {isSelected && (
-                              <div className="mt-2 sm:mt-3 md:mt-4 p-2 sm:p-3 md:p-3.5 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-lg sm:rounded-xl border border-primary-100/40 backdrop-blur-sm w-full">
-                                <div className="flex flex-col gap-2 sm:gap-2.5 md:gap-3">
-                                  <span className="text-[10px] sm:text-xs md:text-sm font-bold text-primary-100 flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2">
-                                    <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current" />
-                                    Quantity
-                                  </span>
-                                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateQuantity(
-                                          item.itemName,
-                                          quantity - 1,
-                                        );
-                                      }}
-                                      className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-110"
-                                    >
-                                      <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                                    </button>
-                                    <div className="w-7 h-6 sm:w-8 sm:h-7 md:w-9 md:h-8 bg-gradient-to-r from-primary-100 to-primary-200 rounded-md flex items-center justify-center">
-                                      <span className="font-black text-primary-900 text-xs sm:text-sm md:text-base">
-                                        {quantity}
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateQuantity(
-                                          item.itemName,
-                                          quantity + 1,
-                                        );
-                                      }}
-                                      className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-110"
-                                    >
-                                      <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Subtotal */}
-                                <div className="mt-2 sm:mt-2.5 md:mt-3 pt-2 sm:pt-2.5 md:pt-3 border-t border-primary-100/30">
-                                  <div className="flex flex-col sm:flex-row justify-between items-center gap-0.5 sm:gap-1">
-                                    <span className="text-primary-200 text-[10px] sm:text-xs md:text-sm">
-                                      Subtotal:
-                                    </span>
-                                    <span className="text-primary-100 font-bold text-xs sm:text-sm md:text-base">
-                                      Rp{" "}
-                                      {(item.price * quantity).toLocaleString()}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Pagination Controls */}
-                {filteredItems.length > ITEMS_PER_PAGE && (
-                  <div className="mt-8 flex items-center justify-center gap-3">
-                    {/* Previous Button */}
-                    <button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
-                      disabled={currentPage === 1}
-                      className={`group/nav flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all duration-300 ${
-                        currentPage === 1
-                          ? "bg-primary-800/30 text-primary-300/50 cursor-not-allowed"
-                          : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:from-primary-200 hover:to-primary-100 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
-                      }`}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    {/* Page Numbers with Ellipsis */}
-                    <div className="flex items-center gap-2">
-                      {/* First Page */}
-                      <button
-                        onClick={() => setCurrentPage(1)}
-                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
-                          currentPage === 1
-                            ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
-                            : "bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
-                        }`}
-                      >
-                        1
-                      </button>
-
-                      {/* Left Ellipsis */}
-                      {currentPage > 2 && (
-                        <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white text-xs sm:text-base">
-                          ...
-                        </span>
-                      )}
-
-                      {/* Desktop: Show 3 pages centered on current (only if not first or last) */}
-                      <div className="hidden sm:flex items-center gap-2">
-                        {currentPage > 2 && currentPage < totalPages - 1 && (
-                          <>
-                            {currentPage > 2 && (
-                              <button
-                                onClick={() => setCurrentPage(currentPage - 1)}
-                                className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
-                              >
-                                {currentPage - 1}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setCurrentPage(currentPage)}
-                              className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
-                            >
-                              {currentPage}
-                            </button>
-                            {currentPage < totalPages - 1 && (
-                              <button
-                                onClick={() => setCurrentPage(currentPage + 1)}
-                                className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
-                              >
-                                {currentPage + 1}
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {currentPage === 2 && totalPages > 2 && (
-                          <button
-                            onClick={() => setCurrentPage(2)}
-                            className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
-                          >
-                            2
-                          </button>
-                        )}
-                        {currentPage === totalPages - 1 && totalPages > 2 && (
-                          <button
-                            onClick={() => setCurrentPage(totalPages - 1)}
-                            className="w-10 h-10 rounded-xl font-bold transition-all duration-300 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
-                          >
-                            {totalPages - 1}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Mobile: Show only current page (only if not first or last) */}
-                      <div className="flex sm:hidden items-center gap-1">
-                        {currentPage > 1 && currentPage < totalPages && (
-                          <button
-                            onClick={() => setCurrentPage(currentPage)}
-                            className="w-8 h-8 rounded-lg font-bold transition-all duration-300 text-xs bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
-                          >
-                            {currentPage}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Right Ellipsis */}
-                      {currentPage < totalPages - 1 && (
-                        <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white text-xs sm:text-base">
-                          ...
-                        </span>
-                      )}
-
-                      {/* Last Page */}
-                      {totalPages > 1 && (
-                        <button
-                          onClick={() => setCurrentPage(totalPages)}
-                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl font-bold transition-all duration-300 text-xs sm:text-base ${
-                            currentPage === totalPages
-                              ? "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 shadow-lg shadow-primary-100/30 scale-110"
-                              : "bg-primary-800/30 text-white hover:bg-primary-700/50 hover:scale-105"
-                          }`}
-                        >
-                          {totalPages}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Next Button */}
-                    <button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
-                      disabled={currentPage === totalPages}
-                      className={`group/nav flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all duration-300 ${
-                        currentPage === totalPages
-                          ? "bg-primary-800/30 text-primary-300/50 cursor-not-allowed"
-                          : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-900 hover:from-primary-200 hover:to-primary-100 hover:scale-105 shadow-lg hover:shadow-primary-100/30"
-                      }`}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Pagination Info */}
-                {filteredItems.length > 0 && (
-                  <div className="mt-4 text-center text-sm text-primary-200">
-                    Menampilkan {startIndex + 1}-
-                    {Math.min(endIndex, filteredItems.length)} dari{" "}
-                    {filteredItems.length} item
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Selected Items Summary */}
-            {selectedItems.length > 0 && (
-              <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-8 shadow-2xl shadow-primary-100/20 transition-all duration-500 hover:shadow-primary-100/30 hover:scale-[1.01] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-100/8 via-transparent to-primary-200/8 rounded-3xl"></div>
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary-100/10 rounded-full blur-2xl animate-pulse"></div>
-
-                <div className="relative z-10">
+            {/* STEP 1: Pilih Item Gamepass */}
+            {currentStep === 1 && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* Cara Pesan Section */}
+                <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-primary-100/20">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 rounded-2xl border border-green-400/30">
-                      <Check className="w-7 h-7 text-green-400" />
+                    <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30">
+                      <Gift className="w-7 h-7 text-primary-100" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-white">
-                        Ringkasan Pesanan
-                      </h3>
-                      <p className="text-primary-200 text-sm">
-                        {selectedItems.length} item dipilih
-                      </p>
+                      <h3 className="text-2xl font-black text-white">Cara Pesan</h3>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
-                    {selectedItems.map((item, index) => (
-                      <div
-                        key={index}
-                        className="group/summary flex justify-between items-center bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-2xl p-4 border border-primary-100/20 hover:border-primary-100/40 transition-all duration-300"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-r from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-primary-900 font-black text-lg">
-                            {item.quantity}
-                          </div>
-                          <div>
-                            <p className="font-bold text-white">
-                              {item.itemName}
-                            </p>
-                            <p className="text-sm text-primary-200">
-                              {item.quantity} × Rp {item.price.toLocaleString()}
-                            </p>
-                          </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {gamepass.caraPesan.map((cara, index) => (
+                      <div key={index} className="flex items-start gap-4 p-4 bg-primary-800/40 rounded-2xl border border-primary-100/20">
+                        <div className="w-8 h-8 flex-shrink-0 bg-primary-100 rounded-full flex items-center justify-center text-white font-black text-sm">
+                          {index + 1}
                         </div>
-                        <div className="text-right flex items-center gap-3">
-                          <div>
-                            <p className="font-black text-primary-100 text-lg">
-                              Rp {(item.price * item.quantity).toLocaleString()}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleItemSelect(item)}
-                            className="w-8 h-8 bg-red-500/20 hover:bg-red-500/40 border border-red-400/30 hover:border-red-400/60 rounded-lg flex items-center justify-center text-red-400 hover:text-red-300 transition-all duration-300 hover:scale-110"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <span className="text-sm text-white/90 leading-relaxed">{cara}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
 
-                    {/* Total Section */}
-                    <div className="mt-6 pt-6 border-t-2 border-primary-100/30">
-                      <div className="flex justify-between items-center p-4 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/40">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-primary-100 to-primary-200 rounded-lg">
-                            <Gem className="w-6 h-6 text-primary-900" />
+                {/* Items Grid */}
+                <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-primary-100/20">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="p-3 bg-gradient-to-r from-primary-100/20 to-primary-200/20 rounded-2xl border border-primary-100/30">
+                      <ShoppingCart className="w-7 h-7 text-primary-100" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-white">Pilih Item Gamepass</h3>
+                    </div>
+                  </div>
+
+                  {/* Search Bar */}
+                  {gamepass.item.length > 0 && (
+                    <div className="mb-6 relative">
+                      <input
+                        type="text"
+                        placeholder="Cari item..."
+                        value={itemSearchQuery}
+                        onChange={(e) => setItemSearchQuery(e.target.value)}
+                        className="w-full px-4 py-3 pl-12 bg-primary-800/30 border-2 border-primary-100/30 rounded-xl text-white placeholder-white/40 focus:border-primary-100/60 focus:outline-none text-sm"
+                      />
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-200" />
+                      {itemSearchQuery && (
+                        <button onClick={() => setItemSearchQuery("")} className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1">
+                          <X className="w-4 h-4 text-white/60" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
+                    {filteredItems.length === 0 && itemSearchQuery ? (
+                      <div className="col-span-full text-center py-8 text-white/70">Tidak ada item ditemukan.</div>
+                    ) : (
+                      paginatedItems.map((item, index) => {
+                        const isSelected = isItemSelected(item.itemName);
+                        const quantity = getSelectedQuantity(item.itemName);
+                        return (
+                          <div
+                            key={index}
+                            className={`group/item relative bg-gradient-to-br from-primary-800/40 to-primary-700/30 border-2 rounded-xl sm:rounded-2xl p-3 sm:p-4 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col items-center justify-start gap-3 ${isSelected ? "border-primary-100 bg-gradient-to-br from-primary-500/30 to-primary-600/20 scale-105" : "border-primary-100/30 hover:border-primary-100/60"}`}
+                            onClick={() => handleItemSelect(item)}
+                          >
+                            <div className={`absolute z-[3] top-2 right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? "border-primary-100 bg-gradient-to-r from-primary-100 to-primary-200" : "border-primary-100/60 bg-primary-800/50"}`}>
+                              {isSelected ? <Check className="w-4 h-4 text-primary-900 font-bold" /> : <Plus className="w-4 h-4 text-primary-100" />}
+                            </div>
+
+                            <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden mb-2 border-2 border-primary-100/20 shadow-lg">
+                              <Image src={item.imgUrl} alt={item.itemName} fill className="object-fill" />
+                            </div>
+
+                            <div className="relative z-10 w-full flex flex-col items-center text-center gap-2">
+                              <h4 className="font-black text-white text-xs sm:text-sm line-clamp-2">{item.itemName}</h4>
+                              <span className="text-white font-bold text-xs sm:text-sm">Rp {item.price.toLocaleString()}</span>
+                              
+                              {isSelected && (
+                                <div className="mt-2 p-2 bg-gradient-to-r from-primary-500/30 to-primary-600/20 rounded-lg border border-primary-100/40 w-full">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.itemName, quantity - 1); }} className="w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"><Minus className="w-3 h-3" /></button>
+                                    <span className="font-black text-primary-900 bg-primary-100 px-2 rounded">{quantity}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.itemName, quantity + 1); }} className="w-6 h-6 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center text-white"><Plus className="w-3 h-3" /></button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-xl font-black text-white">
-                            Total Pembayaran:
-                          </span>
+                        );
+                      })
+                    )}
+                  </div>
+                  
+                  {filteredItems.length > ITEMS_PER_PAGE && (
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                      <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="p-2 bg-primary-100/20 rounded-lg text-white disabled:opacity-50"><ChevronLeft className="w-5 h-5" /></button>
+                      <span className="text-white font-bold">{currentPage} / {totalPages}</span>
+                      <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 bg-primary-100/20 rounded-lg text-white disabled:opacity-50"><ChevronRight className="w-5 h-5" /></button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Items Summary */}
+                {selectedItems.length > 0 && (
+                  <div className="group relative bg-gradient-to-br from-primary-900/60 via-primary-800/40 to-primary-700/50 backdrop-blur-2xl border-2 border-primary-100/40 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 rounded-2xl border border-green-400/30">
+                        <Check className="w-7 h-7 text-green-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-white">Ringkasan Pesanan</h3>
+                        <p className="text-primary-200 text-sm">{selectedItems.length} item dipilih</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {selectedItems.map((item, index) => (
+                        <div key={index} className="flex justify-between items-center bg-primary-500/20 rounded-xl p-4 border border-primary-100/20">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center text-primary-900 font-black">{item.quantity}</div>
+                            <div>
+                              <p className="font-bold text-white">{item.itemName}</p>
+                              <p className="text-sm text-primary-200">{item.quantity} × Rp {item.price.toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <p className="font-black text-primary-100 text-lg">Rp {(item.price * item.quantity).toLocaleString()}</p>
                         </div>
-                        <div className="text-right">
-                          <span className="text-3xl font-black bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text text-transparent">
-                            Rp {totalPrice.toLocaleString()}
-                          </span>
-                          <p className="text-sm text-primary-200 mt-1">
-                            Sudah termasuk semua biaya
-                          </p>
-                        </div>
+                      ))}
+                      <div className="mt-6 pt-6 border-t-2 border-primary-100/30 flex justify-between items-center">
+                        <span className="text-xl font-black text-white">Total:</span>
+                        <span className="text-3xl font-black text-primary-100">Rp {totalPrice.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
+                )}
+
+                <div className="mt-8 flex justify-end">
+                  <button
+                    onClick={nextStep}
+                    disabled={selectedItems.length === 0}
+                    className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
+                  >
+                    Lanjut Isi Data <ArrowRight className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6">
-              {/* Add to Cart Button */}
-              <button
-                onClick={handleAddToCart}
-                disabled={!isFormValid || isAddingToCart}
-                className={`group relative flex-1 py-6 px-8 rounded-2xl font-black text-lg transition-all duration-500 overflow-hidden ${
-                  isFormValid && !isAddingToCart
-                    ? "bg-gradient-to-r from-primary-600 via-primary-700 to-primary-600 hover:from-primary-700 hover:via-primary-600 hover:to-primary-700 text-white shadow-2xl shadow-primary-600/40 hover:shadow-primary-600/60 transform hover:scale-105 hover:-translate-y-1"
-                    : "bg-gradient-to-r from-gray-600/50 to-gray-700/50 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {isFormValid && !isAddingToCart && (
-                  <>
-                    {/* Button glow effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 via-primary-200/10 to-primary-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    {/* Floating particles */}
-                    <div className="absolute top-2 left-4 w-1 h-1 bg-primary-100/60 rounded-full animate-ping"></div>
-                    <div className="absolute top-4 right-6 w-1.5 h-1.5 bg-primary-200/70 rounded-full animate-ping delay-300"></div>
-                    <div className="absolute bottom-2 left-8 w-1 h-1 bg-primary-100/50 rounded-full animate-ping delay-500"></div>
-                  </>
-                )}
-
-                <div className="relative flex items-center justify-center gap-3">
-                  <div
-                    className={`p-2 rounded-lg transition-all duration-300 ${
-                      isFormValid && !isAddingToCart
-                        ? "bg-white/20 group-hover:bg-white/30 group-hover:scale-110"
-                        : "bg-gray-500/20"
-                    }`}
-                  >
-                    <ShoppingCart className="w-6 h-6" />
-                  </div>
-                  <span className="group-hover:scale-105 transition-transform duration-300">
-                    {isAddingToCart ? "Menambahkan..." : "Tambah ke Keranjang"}
-                  </span>
+            {/* STEP 2: Detail Informasi */}
+            {currentStep === 2 && (
+              <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-6 shadow-lg overflow-hidden animate-fadeIn space-y-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <User className="w-6 h-6 text-primary-100" /> Detail Informasi
+                  </h2>
+                  <button onClick={prevStep} className="text-sm font-medium text-white/60 hover:text-white px-3 py-1 bg-white/5 rounded-lg">Kembali</button>
                 </div>
-              </button>
 
-              {/* Buy Now Button */}
-              <button
-                onClick={handlePurchase}
-                disabled={!isFormValid}
-                className={`group relative flex-1 py-6 px-8 rounded-2xl font-black text-lg transition-all duration-500 overflow-hidden ${
-                  isFormValid
-                    ? "bg-gradient-to-r from-primary-100 via-primary-200 to-primary-100 hover:from-primary-200 hover:via-primary-100 hover:to-primary-200 text-primary-900 shadow-2xl shadow-primary-100/40 hover:shadow-primary-100/60 transform hover:scale-105 hover:-translate-y-1"
-                    : "bg-gradient-to-r from-gray-600/50 to-gray-700/50 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {isFormValid && (
-                  <>
-                    {/* Button glow effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    {/* Success particles */}
-                    <div className="absolute top-2 right-4 w-1 h-1 bg-primary-900/60 rounded-full animate-bounce"></div>
-                    <div className="absolute top-4 left-6 w-1.5 h-1.5 bg-primary-800/70 rounded-full animate-bounce delay-200"></div>
-                    <div className="absolute bottom-2 right-8 w-1 h-1 bg-primary-900/50 rounded-full animate-bounce delay-400"></div>
-                  </>
-                )}
-
-                <div className="relative flex items-center justify-center gap-3">
-                  <div
-                    className={`p-2 rounded-lg transition-all duration-300 ${
-                      isFormValid
-                        ? "bg-primary-900/20 group-hover:bg-primary-900/30 group-hover:scale-110"
-                        : "bg-gray-500/20"
-                    }`}
-                  >
-                    <Zap className="w-6 h-6" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="group-hover:scale-105 transition-transform duration-300">
-                      Beli Sekarang
-                    </span>
-                    {isFormValid && (
-                      <div className="px-3 py-1 bg-primary-900/30 backdrop-blur-sm rounded-lg border border-primary-900/40 group-hover:bg-primary-900/40 transition-all duration-300">
-                        <span className="text-sm font-black">
-                          Rp {totalPrice.toLocaleString()}
-                        </span>
+                <div className="space-y-5">
+                  <div className="group/field">
+                    <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
+                      <User className="w-4 h-4 text-primary-100" /> Username RBX <span className="text-red-400">*</span>
+                    </label>
+                    <div className={`flex items-center border rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full transition-all ${userInfo ? "border-emerald-500/60 bg-emerald-500/10" : username && userSearchError ? "border-red-500/60 bg-red-500/10" : "border-primary-100/30 focus-within:border-primary-100/80"}`}>
+                      <input
+                        type="text"
+                        placeholder="Masukkan Username Roblox"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="py-3 px-4 outline-none text-sm text-white placeholder-white/50 flex-1 bg-transparent w-full"
+                      />
+                      <div className="px-4">
+                        {isSearchingUser ? <Loader2 className="w-5 h-5 animate-spin text-primary-100" /> : userInfo ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : username && userSearchError ? <AlertCircle className="w-5 h-5 text-red-500" /> : <Search className="w-5 h-5 text-primary-200/60" />}
+                      </div>
+                    </div>
+                    {userInfo && (
+                      <div className="mt-3 flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                        <img src={userInfo.avatar || userInfo.avatarUrl} alt={userInfo.username} className="w-10 h-10 rounded-lg ring-2 ring-emerald-400/60 object-cover" />
+                        <div>
+                          <p className="text-sm text-white font-bold">{userInfo.username || userInfo.displayName}</p>
+                          <p className="text-xs text-emerald-300">ID: {userInfo.id}</p>
+                        </div>
                       </div>
                     )}
+                    {userSearchError && <p className="text-xs text-red-400 mt-2">{userSearchError}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <label className="block text-sm font-bold text-white mb-2">Email <span className="text-red-400">*</span></label>
+                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email aktif" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary-100" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-white mb-2">WhatsApp <span className="text-red-400">*</span></label>
+                      <input type="tel" value={phone} onChange={handlePhoneChange} placeholder="0812xxxx" className={`w-full bg-black/40 border ${phoneError ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary-100`} />
+                      {phoneError && <span className="text-xs text-red-500 mt-1">{phoneError}</span>}
+                    </div>
                   </div>
                 </div>
-              </button>
-            </div>
-            {isShowReview && (
-              <div className="w-full">
-                <ReviewSection
-                  serviceType="gamepass"
-                  title={`Reviews ${gamepass.gameName}`}
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={nextStep}
+                    disabled={!username || !userInfo || (!user && (!email || !phone))}
+                    className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
+                  >
+                    Pilih Pembayaran <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Pembayaran */}
+            {currentStep === 3 && (
+              <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-6 shadow-lg overflow-hidden animate-fadeIn space-y-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <CreditCard className="w-6 h-6 text-primary-100" /> Metode Pembayaran
+                  </h2>
+                  <button onClick={prevStep} className="text-sm font-medium text-white/60 hover:text-white px-3 py-1 bg-white/5 rounded-lg">Kembali</button>
+                </div>
+
+                <div className="bg-primary-900/50 border border-primary-500/20 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary-100/20 rounded-xl flex items-center justify-center border border-primary-100/30">
+                      <Gem className="w-6 h-6 text-primary-200" />
+                    </div>
+                    <div>
+                      <p className="text-white/60 text-sm">Total Pembayaran</p>
+                      <p className="text-2xl font-bold text-white">
+                        Rp {(totalPrice - getDiscountAmount()).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {paymentMethodsLoading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary-100" />
+                    <p className="text-white/60 mt-2">Memuat metode pembayaran...</p>
+                  </div>
+                ) : (
+                  <PaymentMethodSelector
+                    categories={paymentCategories}
+                    loading={false}
+                    selectedMethod={selectedPaymentMethod}
+                    onSelectMethod={setSelectedPaymentMethod}
+                    baseAmount={totalPrice - getDiscountAmount()}
+                    expandedCategory={expandedCategory}
+                    onToggleCategory={(cat) => setExpandedCategory(expandedCategory === cat ? "" : cat)}
+                  />
+                )}
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={nextStep}
+                    disabled={!selectedPaymentMethod}
+                    className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
+                  >
+                    Konfirmasi Pesanan <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Konfirmasi */}
+            {currentStep === 4 && (
+              <div className="group relative bg-gradient-to-br from-primary-900/40 via-primary-800/30 to-primary-700/40 backdrop-blur-xl border border-primary-100/30 rounded-xl p-4 sm:p-6 shadow-lg overflow-hidden animate-fadeIn space-y-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <ShoppingCart className="w-6 h-6 text-primary-100" /> Konfirmasi Order
+                  </h2>
+                  <button onClick={prevStep} className="text-sm font-medium text-white/60 hover:text-white px-3 py-1 bg-white/5 rounded-lg">Kembali</button>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-black/20 border border-white/5">
+                  <h3 className="text-sm font-bold text-white/40 uppercase mb-4 tracking-wider">Item & Akun</h3>
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-100/10 flex items-center justify-center overflow-hidden">
+                        <Image src={gamepass.imgUrl} alt={gamepass.gameName} width={40} height={40} className="object-cover" />
+                      </div>
+                      <div>
+                        <div className="text-white font-bold text-lg">{gamepass.gameName}</div>
+                        <div className="text-primary-100 font-semibold text-sm">{selectedItems.length} Item Terpilih</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {userInfo && <img src={userInfo.avatar || userInfo.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full border border-white/10 object-cover" />}
+                    <div>
+                      <div className="text-white font-bold">{username}</div>
+                      <div className="text-xs text-white/50">Target Akun</div>
+                    </div>
+                  </div>
+                </div>
+
+                <OrderSummaryCard
+                  baseAmount={totalPrice}
+                  details={[
+                    { label: "Layanan", value: `Gamepass (${selectedItems.length} item)` },
+                    { label: "Target", value: username },
+                    { label: "Email", value: email || "-" },
+                    { label: "WhatsApp", value: phone || "-" },
+                    {
+                      label: "Pembayaran",
+                      value: selectedPaymentMethod
+                        ? paymentCategories.flatMap(c => c.methods || []).find(m => m.id === selectedPaymentMethod)?.name || selectedPaymentMethod
+                        : "Belum dipilih"
+                    }
+                  ]}
+                  adminFee={0}
+                  discount={getDiscountAmount()}
+                  discountPercentage={user ? ((user as any).diskon || 0) : 0}
+                  paymentFee={getPaymentFee()}
+                  promoCode={promoCode}
+                  onPromoCodeChange={setPromoCode}
+                  onApplyPromo={handleApplyPromo}
+                  appliedPromoCode={appliedPromoCode || undefined}
+                  promoDiscount={promoDiscount}
                 />
+
+                <div className="mt-4">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center mt-1">
+                      <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="peer sr-only" />
+                      <div className="w-5 h-5 rounded border-2 border-white/20 peer-checked:bg-primary-100 peer-checked:border-primary-100 transition-colors flex items-center justify-center">
+                        <CheckCircle className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" />
+                      </div>
+                    </div>
+                    <div className="text-sm text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">
+                      Saya menyetujui <a href="/terms" className="text-primary-100 hover:underline">Syarat dan Ketentuan</a> pembelian
+                    </div>
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={isAddingToCart || !agreedToTerms}
+                      className="w-full py-4 bg-primary-800/50 border border-primary-100/30 text-primary-100 font-bold rounded-xl transition-all hover:bg-primary-800 hover:border-primary-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isAddingToCart ? <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</> : <><Plus className="w-5 h-5" /> Masukkan Keranjang</>}
+                    </button>
+                    <button
+                      onClick={handleSubmitOrder}
+                      disabled={submitting || !agreedToTerms}
+                      className="w-full py-4 bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary-100/25 flex items-center justify-center gap-2"
+                    >
+                      {submitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</> : <><ShoppingCart className="w-5 h-5" /> Bayar Sekarang</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {isShowReview && (
+              <div className="w-full mt-8">
+                <ReviewSection serviceType="gamepass" title={`Reviews ${gamepass.gameName}`} />
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Reviews Section */}
     </main>
   );
 }

@@ -143,6 +143,8 @@ export interface Review {
   serviceName?: string;
   rating: number;
   comment: string;
+  transactionId?: string;
+  profilePicture?: string;
   isApproved: boolean;
   createdAt: string;
   updatedAt: string;

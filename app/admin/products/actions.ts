@@ -59,7 +59,7 @@ export async function fetchProductsAdmin() {
   try {
     const BASE_URL = getBaseUrl();
     const authCookie = await getAuthCookie();
-    const response = await fetch(`${BASE_URL}/api/products?admin=true`, {
+    const response = await fetch(`${BASE_URL}/api/products?admin=true&t=${Date.now()}`, {
       headers: getInternalHeaders({
         ...(authCookie ? { Cookie: authCookie } : {}),
       }),

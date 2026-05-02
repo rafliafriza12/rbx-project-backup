@@ -5,7 +5,8 @@ import { requireApiKey } from "@/lib/auth";
 
 export async function PUT(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const body = await request.json();
     const { userId, itemId, quantity } = body;
 

@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { Transaction } from "@/types";
+import StatusHistoryTimeline from "@/components/StatusHistoryTimeline";
 import {
   ArrowLeft,
   Calendar,
@@ -42,12 +43,86 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+function RobuxDeliveryCountdown({ completedAt, formatDate }: { completedAt: string; formatDate: (d: string) => string }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [isExpired, setIsExpired] = useState(false);
+
+  const estimatedDate = new Date(
+    new Date(completedAt).getTime() + (5 * 24 * 60 * 60 * 1000)
+  );
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const diff = estimatedDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setIsExpired(true);
+        setTimeLeft("");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) {
+        setTimeLeft(`${days} hari ${hours} jam lagi`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours} jam ${minutes} menit lagi`);
+      } else {
+        setTimeLeft(`${minutes} menit lagi`);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000);
+    return () => clearInterval(interval);
+  }, [estimatedDate.getTime()]);
+
+  return (
+    <div className="neon-card rounded-2xl shadow-lg p-6 border border-emerald-500/30 bg-emerald-500/5">
+      <h2 className="text-lg font-bold text-emerald-400 mb-3 flex items-center gap-3">
+        <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+          <CheckCircle className="w-5 h-5 text-emerald-400" />
+        </div>
+        {isExpired ? "Robux Sudah Masuk" : "Robux Sudah Dikirim"}
+      </h2>
+
+      {isExpired ? (
+        <p className="text-white/70 text-sm">
+          Robux seharusnya sudah masuk ke akunmu. Jika belum, silakan hubungi CS kami.
+        </p>
+      ) : (
+        <>
+          <p className="text-white/70 text-sm mb-3">
+            Robux sedang dalam proses masuk ke akunmu melalui gamepass.
+          </p>
+          <div className="bg-white/[0.04] rounded-xl p-4 text-center">
+            <p className="text-xs text-white/50 mb-1">Estimasi Robux Masuk</p>
+            <p className="text-2xl font-bold text-emerald-400 mb-1">
+              {timeLeft}
+            </p>
+            <p className="text-xs text-white/40">
+              {formatDate(estimatedDate.toISOString())}
+            </p>
+          </div>
+          <p className="text-white/40 text-xs mt-3 text-center">
+            * Estimasi dapat lebih cepat dari waktu yang ditampilkan
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function TransactionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [claimLoading, setClaimLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -255,6 +330,32 @@ export default function TransactionDetailPage() {
       }
     } catch (error) {
       toast.error("Gagal menghubungi CS");
+    }
+  };
+
+  const handleClaimGamepass = async () => {
+    if (!transaction || claimLoading) return;
+    if (!user) {
+      toast.error("Silakan login terlebih dahulu untuk klaim gamepass.");
+      router.push(`/login?redirect=${encodeURIComponent(`/riwayat/${transaction._id}`)}`);
+      return;
+    }
+    setClaimLoading(true);
+    try {
+      const result = await createChatRoom({
+        roomType: "order",
+        transactionCode: transaction.invoiceId,
+        transactionTitle: transaction.serviceName,
+      });
+      if (result.data?.success) {
+        router.push("/chat");
+      } else {
+        toast.error(result.data?.error || "Gagal membuat ruang chat. Coba lagi.");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setClaimLoading(false);
     }
   };
 
@@ -749,48 +850,18 @@ export default function TransactionDetailPage() {
               Riwayat Status
             </h2>
 
-            <div className="space-y-4">
-              {transaction.statusHistory.map((history, index) => {
-                const statusData = parseStatus(history.status);
-                return (
-                  <div
-                    key={index}
-                    className="flex items-start gap-4 p-4 neon-card-secondary rounded-xl hover:transform hover:-translate-y-1 transition-all duration-300"
-                  >
-                    <div className="text-2xl flex-shrink-0">
-                      {statusData.type === "payment" ? (
-                        <CreditCard className="w-6 h-6 text-neon-purple" />
-                      ) : (
-                        <Package className="w-6 h-6 text-neon-pink" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="font-semibold text-white mb-1">
-                            {statusData.type === "payment"
-                              ? "Pembayaran"
-                              : "Pesanan"}
-                          </p>
-                          <div className="mb-2">
-                            {getStatusBadge(statusData.value)}
-                          </div>
-                          <p className="text-sm text-primary-200">
-                            {formatDate(history.updatedAt)}
-                          </p>
-                          {history.notes && (
-                            <p className="text-sm text-white mt-2 italic">
-                              {history.notes}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <StatusHistoryTimeline 
+              transaction={transaction} 
+              formatDate={formatDate} 
+            />
           </div>
+
+          {/* Estimasi Penerimaan Robux - hanya untuk RBX 5 Hari yang sudah completed */}
+          {transaction.serviceCategory === "robux_5_hari" &&
+            transaction.orderStatus === "completed" &&
+            transaction.completedAt && (
+              <RobuxDeliveryCountdown completedAt={transaction.completedAt} formatDate={formatDate} />
+            )}
         </div>
 
         {/* Right Column - Sidebar */}
@@ -941,6 +1012,20 @@ export default function TransactionDetailPage() {
                 Cetak Detail
               </button>
 
+              {/* Klaim Gamepass Button - hanya untuk gamepass + settlement */}
+              {transaction.serviceType === "gamepass" &&
+                transaction.paymentStatus === "settlement" &&
+                transaction.orderStatus !== "completed" && (
+                <button
+                  onClick={handleClaimGamepass}
+                  disabled={claimLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-r from-neon-pink via-neon-purple to-neon-pink text-white rounded-xl hover:scale-[1.02] transition-all font-bold text-lg border border-neon-pink/40 hover:border-neon-pink/60 shadow-lg shadow-neon-pink/20 hover:shadow-neon-pink/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  <span>🎮</span>
+                  {claimLoading ? "Memproses..." : "Klaim Gamepass"}
+                </button>
+              )}
+
               <button
                 onClick={handleContactCS}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500/80 text-white rounded-xl hover:bg-emerald-600/80 transition-colors font-medium backdrop-blur-sm border border-emerald-500/30"
@@ -995,7 +1080,7 @@ export default function TransactionDetailPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                 />
               </svg>
             </a>

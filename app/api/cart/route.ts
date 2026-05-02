@@ -5,7 +5,8 @@ import { authenticateToken, requireApiKey } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const currentUser = await authenticateToken(request);
     const userId = currentUser._id.toString();
 
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const currentUser = await authenticateToken(request);
     const userId = currentUser._id.toString();
 
@@ -221,7 +223,8 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    requireApiKey(request);
+    const apiKeyError = requireApiKey(request);
+    if (apiKeyError) return apiKeyError;
     const currentUser = await authenticateToken(request);
     const userId = currentUser._id.toString();
 

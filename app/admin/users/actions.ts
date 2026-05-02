@@ -35,7 +35,7 @@ export async function fetchUsersAdmin() {
   try {
     const BASE_URL = getBaseUrl();
     const authCookie = await getAuthCookie();
-    const response = await fetch(`${BASE_URL}/api/admin/users`, {
+    const response = await fetch(`${BASE_URL}/api/admin/users?limit=10000`, {
       headers: {
         ...getInternalHeaders(),
         Cookie: authCookie,
