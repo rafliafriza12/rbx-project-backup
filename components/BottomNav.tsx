@@ -9,6 +9,7 @@ import {
   Receipt,
   User,
   LogIn,
+  Trophy,
 } from "lucide-react";
 
 export default function BottomNav() {
@@ -27,6 +28,12 @@ export default function BottomNav() {
       href: user ? "/chat" : "/login",
       icon: MessageCircle,
       isActive: pathname === "/chat",
+    },
+    {
+      label: "Top Rank",
+      href: "/leaderboard",
+      icon: Trophy,
+      isActive: pathname === "/leaderboard",
     },
     {
       label: "Transaksi",

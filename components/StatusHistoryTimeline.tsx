@@ -52,7 +52,8 @@ export default function StatusHistoryTimeline({
 
     // Payment Notes
     if (type === "payment" && (status === "settlement" || status === "paid")) {
-      note = "Pembayaran via Payment Berhasil";
+      const paymentMethod = transaction.paymentMethodName || transaction.paymentMethod || "Payment";
+      note = `Pembayaran via ${paymentMethod} berhasil`;
     }
 
     // RBX 5 Hari
@@ -61,7 +62,7 @@ export default function StatusHistoryTimeline({
         label = "DI SIAPKAN";
         note = "Pesanan Sedang di siapkan oleh tim rbxnet";
       } else if (status === "processing") {
-        label = "TERKIRIM";
+        label = "SEDANG DIKIRIM";
         note = "Robux udah pending di dalam akun";
       } else if (status === "in_progress" || status === "completed") {
         label = "TERKIRIM";
@@ -104,11 +105,34 @@ export default function StatusHistoryTimeline({
     );
   }
 
-  // Determine latest status and history items
-  const statusHistory = transaction.statusHistory;
-  const latestStatus = statusHistory[statusHistory.length - 1];
-  
-  // Custom info for latest
+  // Deduplicate consecutive identical statuses (based on label and type)
+  // We keep the newest one but preserve notes/images from the older one if missing
+  const deduplicatedHistory = [...transaction.statusHistory].reduce((acc: any[], current: any) => {
+    if (acc.length === 0) {
+      return [current];
+    }
+    
+    const prev = acc[acc.length - 1];
+    const prevInfo = getCustomStatusInfo(prev.status);
+    const currentInfo = getCustomStatusInfo(current.status);
+    
+    if (prevInfo.label === currentInfo.label && prevInfo.type === currentInfo.type) {
+      // It's a duplicate representation in UI. Replace prev with current, 
+      // but inherit important fields if current lacks them.
+      const merged = {
+        ...current,
+        notes: current.notes || prev.notes,
+        imageUrl: current.imageUrl || prev.imageUrl
+      };
+      acc[acc.length - 1] = merged;
+    } else {
+      acc.push(current);
+    }
+    
+    return acc;
+  }, []);
+
+  const latestStatus = deduplicatedHistory[deduplicatedHistory.length - 1];
   const { label: latestLabel, note: latestNote, type: latestType } = getCustomStatusInfo(latestStatus.status);
   
   const isSystemNote = (n?: string) => {
@@ -119,7 +143,8 @@ export default function StatusHistoryTimeline({
       lower.startsWith("status updated automatically") ||
       lower.startsWith("order status updated") ||
       lower.startsWith("transaction marked as") ||
-      lower.startsWith("payment status updated")
+      lower.startsWith("payment status updated") ||
+      lower.startsWith("payment ")
     );
   };
 
@@ -130,7 +155,7 @@ export default function StatusHistoryTimeline({
   }
 
   // The older statuses
-  const olderHistory = [...statusHistory].slice(0, statusHistory.length - 1).reverse();
+  const olderHistory = [...deduplicatedHistory].slice(0, deduplicatedHistory.length - 1).reverse();
 
   return (
     <div className="space-y-6">

@@ -457,6 +457,10 @@ export default function GamepassDetailPage() {
   };
 
   const handleApplyPromo = async () => {
+    if (!user) {
+      toast.error("Harap login terlebih dahulu untuk menggunakan kode promo");
+      return;
+    }
     if (!promoCode || selectedItems.length === 0) return;
     try {
       const res = await fetch("/api/promos/validate", {

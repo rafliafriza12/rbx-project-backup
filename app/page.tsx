@@ -901,7 +901,7 @@ export default function HomePage() {
                             )}
                             <div className="flex-1">
                               <div className="text-white font-semibold">
-                                {tx.username}
+                                {tx.username ? (tx.username.length <= 4 ? tx.username.substring(0, 2) + "**" : tx.username.substring(0, 3) + "***" + tx.username.substring(tx.username.length - 1)) : "User"}
                               </div>
                               <div className={`${style.textColor} text-sm`}>
                                 {tx.displayQuantity}

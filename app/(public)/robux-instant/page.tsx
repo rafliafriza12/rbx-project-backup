@@ -298,6 +298,10 @@ export default function RobuxInstan() {
   };
 
   const handleApplyPromo = async () => {
+    if (!user) {
+      toast.error("Harap login terlebih dahulu untuk menggunakan kode promo");
+      return;
+    }
     if (!promoCode || !selectedProduct) return;
     try {
       const price = selectedProduct.price;
@@ -649,7 +653,7 @@ export default function RobuxInstan() {
                       <div className="text-center">
                         <div className="flex items-center gap-2 text-white/80 text-xs mb-2 justify-center">
                           {productType === "regular" ? (
-                            <Image src="/icon/icons8-robux-96.png" alt="Robux" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
+                            <Image src="/icon/icons8-robux-48 (2).png" alt="Robux" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
                           ) : (
                             <Image src="/icon/RblxPlusLogo.webp" alt="Premium" width={20} height={20} className="w-5 h-5 drop-shadow-md" />
                           )}

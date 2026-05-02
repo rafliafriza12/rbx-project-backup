@@ -676,6 +676,10 @@ export default function Rbx5Page() {
   const isStep3Valid = selectedPaymentMethod !== "";
 
   const handleApplyPromo = async () => {
+    if (!user) {
+      toast.error("Harap login terlebih dahulu untuk menggunakan kode promo");
+      return;
+    }
     if (!promoCode) return;
     try {
       const price = getCurrentPrice();
