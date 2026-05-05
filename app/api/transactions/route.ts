@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
     if (serviceType) {
       if (serviceType === "robux_5_hari" || serviceType === "robux_instan" || serviceType === "robux_instant") {
         query.serviceType = "robux";
-        query.serviceCategory = serviceType === "robux_instant" ? "robux_instan" : serviceType;
+        query.serviceCategory = (serviceType === "robux_instan" || serviceType === "robux_instant") ? "robux_instant" : serviceType;
       } else {
         query.serviceType = serviceType;
       }
