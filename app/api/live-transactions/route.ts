@@ -95,13 +95,13 @@ export async function GET(request: NextRequest) {
 
       // Format berdasarkan service type
       if (tx.serviceType === "robux") {
-        // Extract robux amount dari serviceName (format: "Robux 1000" atau "1000 Robux")
-        const robuxMatch = displayName.match(/(\d+[\d,]*)\s*(?:R\$|Robux)/i);
-        if (robuxMatch) {
-          const amount = robuxMatch[1].replace(/,/g, "");
-          displayQuantity = `${parseInt(amount).toLocaleString()} R$`;
+        // Tampilkan nama produk (contoh: Robux 5 Hari, Robux Instan)
+        if (tx.serviceCategory === "robux_5_hari") {
+          displayQuantity = "Robux 5 Hari";
+        } else if (tx.serviceCategory === "robux_instan") {
+          displayQuantity = "Robux Instan";
         } else {
-          displayQuantity = `${tx.quantity || 0} R$`;
+          displayQuantity = tx.serviceName || "Robux";
         }
       } else if (tx.serviceType === "gamepass") {
         // Untuk gamepass, tampilkan nama game/item

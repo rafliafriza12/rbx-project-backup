@@ -610,14 +610,14 @@ export default function TransactionsPage() {
             <option className="bg-[#334155] text-[#f1f5f9]" value="">
               All Types
             </option>
-            <option className="bg-[#334155] text-[#f1f5f9]" value="robux">
-              Robux
-            </option>
             <option className="bg-[#334155] text-[#f1f5f9]" value="gamepass">
               Gamepass
             </option>
-            <option className="bg-[#334155] text-[#f1f5f9]" value="joki">
-              Joki
+            <option className="bg-[#334155] text-[#f1f5f9]" value="robux_5_hari">
+              Robux 5 Hari
+            </option>
+            <option className="bg-[#334155] text-[#f1f5f9]" value="robux_instan">
+              Robux Instan
             </option>
           </select>
           <input

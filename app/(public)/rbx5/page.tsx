@@ -1144,7 +1144,10 @@ export default function Rbx5Page() {
                           const numValue = parseInt(value.replace(/\D/g, ""));
                           if (!isNaN(numValue)) setRobux(numValue);
                         }}
-                        onBlur={() => { if (robux < 25) setRobux(25); }}
+                        onBlur={() => { 
+                          if (robux < 25) setRobux(25); 
+                          else if (robux > 5000) setRobux(5000);
+                        }}
                         className="flex-1 bg-gradient-to-r from-primary-600/10 to-primary-700/5 text-white text-lg font-bold outline-none px-4 py-4 placeholder:text-white/40"
                       />
                     </div>
@@ -1169,7 +1172,7 @@ export default function Rbx5Page() {
                       <div
                         className="absolute -top-10 transition-all duration-200 ease-out z-10 pointer-events-none"
                         style={{
-                          left: `calc(${Math.min(robux / 1000, 1) * 100}% - ${Math.min(robux / 1000, 1) * 24}px + 12px)`,
+                          left: `calc(${Math.min(robux / 5000, 1) * 100}% - ${Math.min(robux / 5000, 1) * 24}px + 12px)`,
                           transform: "translateX(-50%)",
                         }}
                       >
@@ -1182,7 +1185,7 @@ export default function Rbx5Page() {
                       <input
                         type="range"
                         min={0}
-                        max={1000}
+                        max={5000}
                         step={50}
                         value={robux}
                         onChange={(e) => setRobux(Number(e.target.value))}
@@ -1195,8 +1198,8 @@ export default function Rbx5Page() {
                       background: linear-gradient(
                         to right,
                         #a855f7 0%,
-                        #a855f7 ${(robux / 1000) * 100}%,
-                        rgba(168, 85, 247, 0.2) ${(robux / 1000) * 100}%,
+                        #a855f7 ${(robux / 5000) * 100}%,
+                        rgba(168, 85, 247, 0.2) ${(robux / 5000) * 100}%,
                         rgba(168, 85, 247, 0.2) 100%
                       );
                     }

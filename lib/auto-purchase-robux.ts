@@ -296,10 +296,10 @@ export async function autoPurchasePendingRobux(
         );
 
         if (purchaseResult.success) {
-          // Update transaction status to completed
+          // Update transaction status to processing (pending 5 days)
           await transaction.updateStatus(
             "order",
-            "completed",
+            "processing",
             `Gamepass berhasil dibeli `,
             null,
           );
