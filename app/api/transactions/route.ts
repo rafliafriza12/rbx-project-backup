@@ -204,10 +204,6 @@ export async function GET(request: NextRequest) {
     // Remove duplicate userId filtering since it's already handled above with customerInfo.userId
     // The Transaction model doesn't have a top-level userId field
 
-    if (serviceType) {
-      query.serviceType = serviceType;
-    }
-
     // Calculate pagination
     const skip = (page - 1) * limit;
 
