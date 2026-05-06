@@ -97,11 +97,11 @@ export async function GET(request: NextRequest) {
       if (tx.serviceType === "robux") {
         // Tampilkan nama produk (contoh: Robux 5 Hari, Robux Instan)
         if (tx.serviceCategory === "robux_5_hari") {
-          displayQuantity = "Robux 5 Hari";
-        } else if (tx.serviceCategory === "robux_instan") {
-          displayQuantity = "Robux Instan";
+          displayQuantity = "RBX 5 Hari";
+        } else if (tx.serviceCategory === "robux_instan" || tx.serviceCategory === "robux_instant") {
+          displayQuantity = "RBX Instant";
         } else {
-          displayQuantity = tx.serviceName || "Robux";
+          displayQuantity = tx.serviceName || "RBX";
         }
       } else if (tx.serviceType === "gamepass") {
         // Untuk gamepass, tampilkan nama game/item

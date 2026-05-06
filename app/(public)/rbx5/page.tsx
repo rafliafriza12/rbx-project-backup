@@ -1109,12 +1109,12 @@ export default function Rbx5Page() {
                       placeholder="Masukan Username RBX"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className={`w-full py-4 pl-16 pr-12 rounded-xl text-white font-medium outline-none transition-all duration-300 backdrop-blur-xl ${userInfo
+                      className={`w-full py-4 pl-14 sm:pl-16 pr-10 sm:pr-12 rounded-xl text-white font-medium outline-none transition-all duration-300 backdrop-blur-xl ${userInfo
                           ? "bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 border-2 border-emerald-400/60"
                           : username && userSearchError
                             ? "bg-gradient-to-r from-red-500/20 to-red-600/10 border-2 border-red-400/60"
                             : "bg-gradient-to-r from-primary-600/20 to-primary-700/10 border-2 border-primary-200/50 focus:border-primary-100/80"
-                        } placeholder:text-white/50 text-lg`}
+                        } placeholder:text-white/50 text-sm sm:text-lg`}
                     />
                     {userInfo ? (
                       <CheckCircle2 className="absolute right-5 top-1/2 -translate-y-1/2 w-6 h-6 text-emerald-400" />
@@ -1130,8 +1130,20 @@ export default function Rbx5Page() {
                   {/* Robux & Price */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="relative flex rounded-xl overflow-hidden backdrop-blur-xl border border-primary-200/40 focus-within:border-primary-100/60 transition-all duration-300">
-                      <div className="bg-gradient-to-r from-primary-100/30 to-primary-200/20 px-5 flex items-center justify-center border-r border-primary-200/30">
-                        <Gem className="w-5 h-5 text-primary-100" />
+                      <div className="bg-gradient-to-r from-primary-100/30 to-primary-200/20 px-4 sm:px-5 flex items-center justify-center border-r border-primary-200/30">
+                        <div 
+                          className="w-5 h-5 sm:w-6 sm:h-6 bg-primary-100 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"
+                          style={{
+                            maskImage: 'url(/robux.png)',
+                            WebkitMaskImage: 'url(/robux.png)',
+                            maskSize: 'contain',
+                            WebkitMaskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            WebkitMaskPosition: 'center',
+                          }}
+                        />
                       </div>
                       <input
                         type="text"
