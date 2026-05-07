@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
     const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
       body: JSON.stringify({
         usernames: [username],
         excludeBannedUsers: false,
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest) {
     // 3️⃣ Fetch avatar
     const avatarRes = await fetch(
       `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=false`,
+      { cache: "no-store" }
     );
 
     let avatarUrl = "";
