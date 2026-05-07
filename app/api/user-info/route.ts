@@ -3,6 +3,8 @@ import { requireApiKey } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import RobloxCache from "@/models/RobloxCache";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const apiKeyError = requireApiKey(req);
   if (apiKeyError) return apiKeyError;

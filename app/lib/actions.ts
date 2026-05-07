@@ -8,13 +8,20 @@ import { cookies } from "next/headers";
  */
 
 function getBaseUrl(): string {
+  let url = "http://127.0.0.1:3000";
   if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
+    url = process.env.NEXT_PUBLIC_BASE_URL;
+  } else if (process.env.VERCEL_URL) {
+    url = `https://${process.env.VERCEL_URL}`;
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  
+  // Fix Node 18+ IPv6 fetch issue with localhost
+  if (url.includes("localhost")) {
+    url = url.replace("localhost", "127.0.0.1");
   }
-  return "http://localhost:3000";
+  
+  // Remove trailing slash
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
 function getInternalHeaders(): Record<string, string> {
