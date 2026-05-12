@@ -177,3 +177,27 @@ export async function toggleGamepassHomepage(
     };
   }
 }
+
+/**
+ * Server Action: Synchronize all gamepass slugs
+ */
+export async function syncGamepassSlugs() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(`${BASE_URL}/api/admin/gamepass/sync-slugs`, {
+      method: "POST",
+      headers: getInternalHeaders({
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      }),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error syncing gamepass slugs:", error);
+    return {
+      ok: false,
+      data: { success: false, error: "Gagal sinkronisasi slug" },
+    };
+  }
+}

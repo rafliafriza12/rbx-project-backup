@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
 import GamepassManager from "@/components/admin/GamepassManager";
 import Link from "next/link";
-import { Settings } from "lucide-react";
+import { Settings, RefreshCcw } from "lucide-react";
 import {
   fetchRobuxSetting,
   fetchGamepassesAdmin,
@@ -13,6 +13,7 @@ import {
   updateGamepass,
   deleteGamepass,
   toggleGamepassHomepage,
+  syncGamepassSlugs,
 } from "./actions";
 
 interface GamepassItem {
@@ -42,6 +43,7 @@ export default function AdminGamepassPage() {
   const [editingGamepass, setEditingGamepass] = useState<GamepassData | null>(
     null,
   );
+  const [isSyncing, setIsSyncing] = useState(false);
   const [pricePerRobux, setPricePerRobux] = useState(100); // NEW: Harga per Robux
   const { user } = useAuth();
 
@@ -171,6 +173,24 @@ export default function AdminGamepassPage() {
     }
   };
 
+  // Sync all slugs
+  const handleSyncSlugs = async () => {
+    try {
+      setIsSyncing(true);
+      const { ok, data } = await syncGamepassSlugs();
+      if (ok && data.success) {
+        toast.success(data.message || "Berhasil sinkronisasi slug!");
+        fetchGamepasses(); // Refresh data to show updated slugs if needed
+      } else {
+        toast.error(data.error || "Gagal sinkronisasi slug");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat sinkronisasi slug");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (user?.accessRole !== "admin") {
     return (
       <div className="flex items-center justify-center h-screen ">
@@ -222,6 +242,17 @@ export default function AdminGamepassPage() {
                 <span className="hidden sm:inline ">Atur Harga Robux</span>
               </button>
             </Link>
+
+            {/* Sync Slugs Button */}
+            <button
+              onClick={handleSyncSlugs}
+              disabled={isSyncing}
+              className="px-4 py-3 bg-emerald-600 text-[#f1f5f9] rounded-lg hover:bg-emerald-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
+              title="Perbaiki/Sync URL Slug semua gamepass"
+            >
+              <RefreshCcw className={`w-5 h-5 ${isSyncing ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Sync Slugs</span>
+            </button>
 
             {/* Create Button */}
             <button
