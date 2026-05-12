@@ -4,6 +4,8 @@ import dbConnect from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import RobloxCache from "@/models/RobloxCache";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const apiKeyError = requireApiKey(request);
   if (apiKeyError) return apiKeyError;
@@ -87,7 +89,13 @@ export async function GET(request: NextRequest) {
         profilePicture = `https://api.dicebear.com/7.x/avataaars/svg?seed=${actualUsername}`;
       }
       
-      const maskedUsername = actualUsername;
+      const maskUsername = (name: string) => {
+        if (!name) return "U*****";
+        if (name.length <= 4) return name.charAt(0) + "***" + (name.length > 1 ? name.charAt(name.length - 1) : "");
+        return name.slice(0, 2) + "***" + name.slice(-2);
+      };
+      
+      const maskedUsername = maskUsername(actualUsername);
 
       // Tentukan nama service dan quantity
       let displayName = tx.serviceName || "Unknown Service";
@@ -107,9 +115,9 @@ export async function GET(request: NextRequest) {
         // Untuk gamepass, tampilkan nama game/item
         if (tx.gamepassDetails?.itemName) {
           displayName = tx.gamepassDetails.itemName;
-          displayQuantity = "Gamepass";
+          displayQuantity = tx.gamepassDetails.gameName || tx.serviceName || "Gamepass";
         } else {
-          displayQuantity = "Gamepass";
+          displayQuantity = tx.gamepassDetails?.gameName || tx.serviceName || "Gamepass";
         }
       } else if (tx.serviceType === "joki") {
         displayQuantity = "Joki Service";
@@ -130,6 +138,18 @@ export async function GET(request: NextRequest) {
         colorScheme = colors[Math.floor(Math.random() * colors.length)];
       }
 
+      // Tentukan gambar produk fallback jika tidak ada
+      let finalServiceImage = tx.serviceImage;
+      if (!finalServiceImage) {
+        if (tx.serviceType === "robux") {
+          finalServiceImage = (tx.serviceCategory === "robux_instant" || tx.serviceCategory === "robux_instan")
+            ? "/icon/roblox-premium-pink.png"
+            : "/icon/icons8-robux-48 (2).png";
+        } else if (tx.serviceType === "gamepass") {
+          finalServiceImage = "/icon/gamepass-gift.webp";
+        }
+      }
+
       return {
         id: tx._id,
         username: maskedUsername,
@@ -139,6 +159,7 @@ export async function GET(request: NextRequest) {
         serviceType: tx.serviceType,
         colorScheme,
         profilePicture,
+        serviceImage: finalServiceImage,
       };
     }));
 
@@ -153,13 +174,14 @@ export async function GET(request: NextRequest) {
       const dummyTransactions = [
         {
           id: "dummy-1",
-          username: "r*******",
+          username: "r*******", // I'll just keep the hardcoded dummy strings as is since they look masked already
           displayName: "Robux Package",
           displayQuantity: "1,000 R$",
           timeAgo: "5 menit lalu",
           serviceType: "robux",
           colorScheme: "pink",
           profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=dummy1",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-2",
@@ -170,6 +192,7 @@ export async function GET(request: NextRequest) {
           serviceType: "robux",
           colorScheme: "purple",
           profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=dummy2",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-3",
@@ -179,42 +202,50 @@ export async function GET(request: NextRequest) {
           timeAgo: "1 jam lalu",
           serviceType: "robux",
           colorScheme: "amber",
+          serviceImage: "/icon/roblox-premium-pink.png",
         },
         {
           id: "dummy-4",
           username: "d*******",
-          displayName: "Gamepass VIP",
-          displayQuantity: "Gamepass",
-          timeAgo: "2 jam lalu",
+          displayName: "VIP Pass",
+          displayQuantity: "Brookhaven 🏡RP",
+          timeAgo: "15 menit lalu",
           serviceType: "gamepass",
           colorScheme: "teal",
+          profilePicture: null,
+          serviceImage: "/icon/gamepass-gift.webp",
         },
         {
           id: "dummy-5",
           username: "s*******",
           displayName: "Robux Package",
           displayQuantity: "1,500 R$",
-          timeAgo: "3 jam lalu",
+          timeAgo: "5 menit lalu",
           serviceType: "robux",
-          colorScheme: "purple",
+          colorScheme: "pink",
+          profilePicture: null,
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-6",
           username: "b*******",
           displayName: "Robux Package",
           displayQuantity: "3,200 R$",
-          timeAgo: "4 jam lalu",
+          timeAgo: "1 jam lalu",
           serviceType: "robux",
           colorScheme: "amber",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-7",
-          username: "l*******",
+          username: "t*******",
           displayName: "Joki Service",
           displayQuantity: "Joki Service",
-          timeAgo: "5 jam lalu",
+          timeAgo: "1 jam lalu",
           serviceType: "joki",
           colorScheme: "indigo",
+          profilePicture: null,
+          serviceImage: null,
         },
       ];
 

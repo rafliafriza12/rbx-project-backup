@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 /**
  * Shared server actions for fetching public data
@@ -113,10 +113,28 @@ export async function getGamepassById(id: string) {
 }
 
 /**
+ * Server Action: Fetch a single gamepass by Slug (public)
+ */
+export async function getGamepassBySlug(slug: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/gamepass/slug/${slug}`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("[Server Action] Error fetching gamepass by slug:", error);
+    return { success: false, data: null };
+  }
+}
+
+/**
  * Server Action: Fetch products by category (public)
  */
 export async function getProductsByCategory(
-  category: "robux_5_hari" | "robux_instant",
+  category: "robux_5_hari" | "robux_instant" | "coin",
 ) {
   try {
     const BASE_URL = getBaseUrl();
@@ -552,9 +570,17 @@ export async function getPublicReviews(params: string) {
 export async function submitReview(payload: any) {
   try {
     const BASE_URL = getBaseUrl();
+    const headersList = await headers();
+    const forwardedFor = headersList.get("x-forwarded-for");
+    const realIp = headersList.get("x-real-ip");
+    
+    const requestHeaders = { ...getInternalHeaders() };
+    if (forwardedFor) requestHeaders["x-forwarded-for"] = forwardedFor;
+    else if (realIp) requestHeaders["x-forwarded-for"] = realIp;
+
     const response = await fetch(`${BASE_URL}/api/reviews`, {
       method: "POST",
-      headers: getInternalHeaders(),
+      headers: requestHeaders,
       body: JSON.stringify(payload),
     });
     const result = await response.json();

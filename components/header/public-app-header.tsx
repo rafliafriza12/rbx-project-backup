@@ -116,6 +116,17 @@ const PublicAppHeader: React.FC = () => {
         >
           Cek Pesanan
         </Link>
+        <Link
+          href="/topup"
+          onClick={handleLinkClick}
+          className={`transition-all duration-300 px-3 py-2 rounded-lg ${
+            pathname.includes("topup")
+              ? "text-[#f63ae6] font-bold text-drop-shadow-sm bg-[#f63ae6]/8"
+              : "text-white hover:text-[#f63ae6] font-medium hover:bg-[#f63ae6]/5 hover:text-drop-shadow-sm"
+          }`}
+        >
+          Top Up Credits
+        </Link>
       </nav>
 
       <div className="space-x-4 hidden lg:flex items-center">
@@ -156,6 +167,10 @@ const PublicAppHeader: React.FC = () => {
               <ShoppingCart className="w-6 h-6" />
               {/* Cart count badge can be added here */}
             </Link>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-full font-bold text-fuchsia-400">
+              <img src="/icon/dollar.png" alt="Coin" className="w-5 h-5 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]" />
+              <span>{user.balance || 0}</span>
+            </div>
           </>
         )}
 
@@ -209,6 +224,13 @@ const PublicAppHeader: React.FC = () => {
                   className="block px-4 py-2.5 text-sm text-white hover:bg-neon-pink/20 hover:text-neon-pink hover:pl-6 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(246,58,230,0.3)]"
                 >
                   Riwayat Pesanan
+                </Link>
+                <Link
+                  href="/topup"
+                  onClick={handleLinkClick}
+                  className="block px-4 py-2.5 text-sm text-fuchsia-400 hover:bg-fuchsia-400/20 hover:text-fuchsia-300 hover:pl-6 rounded-lg mx-2 transition-all duration-300 hover:shadow-[inset_0_0_10px_rgba(217,70,239,0.3)]"
+                >
+                  Top Up Credits
                 </Link>
                 {isAdmin() && (
                   <>
@@ -370,6 +392,17 @@ const PublicAppHeader: React.FC = () => {
         >
           Lacak Pesanan
         </Link>
+        <Link
+          href="/topup"
+          onClick={handleLinkClick}
+          className={`block font-medium py-3 px-3 rounded-lg transition-all duration-300 ${
+            pathname.includes("topup")
+              ? "text-[#f63ae6] font-bold bg-[#f63ae6]/20 text-drop-shadow-sm"
+              : "text-white hover:text-[#f63ae6] hover:bg-[#f63ae6]/10"
+          }`}
+        >
+          Top Up Credits
+        </Link>
 
         {user && (
           <>
@@ -409,6 +442,10 @@ const PublicAppHeader: React.FC = () => {
               <ShoppingCart className="w-5 h-5" />
               Keranjang
             </Link>
+            <div className="flex items-center gap-2 font-medium py-3 px-3 rounded-lg text-fuchsia-400 bg-fuchsia-500/10">
+              <img src="/icon/dollar.png" alt="Coin" className="w-5 h-5 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]" />
+              Saldo: {user.balance || 0} Credits
+            </div>
           </>
         )}
 

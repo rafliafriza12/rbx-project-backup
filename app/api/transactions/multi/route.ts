@@ -442,26 +442,117 @@ export async function POST(request: NextRequest) {
       verifiedFinalAmountBeforeFee,
     );
 
-    // Update transactions with VERIFIED proportional discount
-    if (verifiedDiscountAmount > 0 && createdTransactions.length > 0) {
-      for (const transaction of createdTransactions) {
-        const itemRatio = transaction.totalAmount / subtotal;
-        const itemDiscountAmount = Math.round(
-          verifiedDiscountAmount * itemRatio,
-        );
-        const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
 
-        transaction.discountPercentage = verifiedDiscountPercentage;
-        transaction.discountAmount = itemDiscountAmount;
-        transaction.finalAmount = itemFinalAmount;
-        await transaction.save();
+    // Validasi Promo Code
+    let totalPromoDiscountAmount = 0;
+    let appliedPromoCode = "";
+    
+    if (body.promoCode && typeof body.promoCode === 'string') {
+      const Promo = (await import("@/models/Promo")).default;
+      const promo = await Promo.findOne({ code: body.promoCode.toUpperCase(), isActive: true });
+      if (promo) {
+        if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) {
+          console.warn(`Promo expired: ${body.promoCode}`);
+        } else if (promo.maxUses > 0 && promo.currentUses >= promo.maxUses) {
+          console.warn(`Promo max uses reached: ${body.promoCode}`);
+        } else if (promo.minPurchaseAmount > 0 && verifiedFinalAmountBeforeFee < promo.minPurchaseAmount) {
+          console.warn(`Promo min purchase not met: ${body.promoCode}`);
+        } else {
+          // Check applicableTo
+          let isApplicable = true;
+          if (promo.applicableTo && promo.applicableTo.length > 0) {
+            const cartServices = Array.from(new Set(createdTransactions.map(t => {
+               if (t.serviceCategory === "robux_5_hari") return "rbx5";
+               if (t.serviceCategory === "robux_instant") return "robux_instant";
+               if (t.serviceCategory === "gamepass" || t.serviceType === "gamepass") return "gamepass";
+               return "";
+            }).filter(Boolean)));
+            isApplicable = cartServices.some(s => promo.applicableTo.includes(s));
+          }
+          
+          if (!isApplicable) {
+            console.warn(`Promo not applicable for cart items: ${body.promoCode}`);
+          } else {
+            // Cek max uses per user
+            let userUses = 0;
+            let userUsageIndex = -1;
+            if (userId) {
+              userUsageIndex = promo.usedBy.findIndex((u: any) => u.userId.toString() === userId);
+              if (userUsageIndex !== -1) {
+                userUses = promo.usedBy[userUsageIndex].count;
+              }
+            }
+            
+            if (promo.maxUsesPerUser > 0 && userUses >= promo.maxUsesPerUser) {
+              console.warn(`Promo max uses per user reached: ${body.promoCode}`);
+            } else {
+              if (promo.discountType === 'percentage') {
+                totalPromoDiscountAmount = Math.round((verifiedFinalAmountBeforeFee * promo.discountValue) / 100);
+              } else {
+                totalPromoDiscountAmount = promo.discountValue;
+              }
+              if (totalPromoDiscountAmount > verifiedFinalAmountBeforeFee) totalPromoDiscountAmount = verifiedFinalAmountBeforeFee;
+              appliedPromoCode = promo.code;
+              
+              promo.currentUses += 1;
+              if (userId) {
+                if (userUsageIndex !== -1) {
+                  promo.usedBy[userUsageIndex].count += 1;
+                } else {
+                  promo.usedBy.push({ userId: userId, count: 1 });
+                }
+              }
+              await promo.save();
+            }
+          }
+        }
+      } else {
+        console.warn(`Promo code not found or inactive: ${body.promoCode}`);
       }
     }
+
+    const finalAmountBeforeFeeWithPromo = Math.max(0, verifiedFinalAmountBeforeFee - totalPromoDiscountAmount);
+
+    // Update transactions with VERIFIED proportional discount and promo
+    if ((verifiedDiscountAmount > 0 || totalPromoDiscountAmount > 0) && createdTransactions.length > 0) {
+      for (const transaction of createdTransactions) {
+        const itemRatio = transaction.totalAmount / subtotal;
+        const itemDiscountAmount = Math.round(verifiedDiscountAmount * itemRatio);
+        const itemPromoDiscountAmount = Math.round(totalPromoDiscountAmount * itemRatio);
+        const itemFinalAmount = transaction.totalAmount - itemDiscountAmount - itemPromoDiscountAmount;
+
+        const isTaxable = ["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory);
+        const itemPpnAmount = isTaxable ? Math.round(itemFinalAmount * 0.11) : 0;
+        
+        transaction.discountPercentage = verifiedDiscountPercentage;
+        transaction.discountAmount = itemDiscountAmount + itemPromoDiscountAmount;
+        transaction.ppnAmount = itemPpnAmount;
+        transaction.finalAmount = itemFinalAmount + itemPpnAmount;
+        if (appliedPromoCode) transaction.promoCode = appliedPromoCode;
+        
+        await transaction.save();
+      }
+    } else {
+      // Masih harus simpan finalAmount
+      for (const transaction of createdTransactions) {
+         const isTaxable = ["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory);
+         const itemPpnAmount = isTaxable ? Math.round(transaction.totalAmount * 0.11) : 0;
+         
+         transaction.discountPercentage = 0;
+         transaction.discountAmount = 0;
+         transaction.ppnAmount = itemPpnAmount;
+         transaction.finalAmount = transaction.totalAmount + itemPpnAmount;
+         await transaction.save();
+      }
+    }
+
+    const totalPpnAmount = createdTransactions.reduce((sum, t) => sum + (t.ppnAmount || 0), 0);
+    const finalAmountBeforeFeeWithPromoAndPpn = finalAmountBeforeFeeWithPromo + totalPpnAmount;
 
     // Validasi & hitung payment fee dari DB (BUKAN dari frontend)
     const feeCheck = await getVerifiedPaymentFee(
       paymentMethodId,
-      verifiedFinalAmountBeforeFee,
+      finalAmountBeforeFeeWithPromoAndPpn,
     );
     const verifiedPaymentFee = feeCheck.fee;
     const paymentMethodName = feeCheck.paymentMethodName;
@@ -483,25 +574,44 @@ export async function POST(request: NextRequest) {
       for (const transaction of createdTransactions) {
         if (paymentMethodName)
           transaction.paymentMethodName = paymentMethodName;
-        if (validPaymentMethodId)
+        if (validPaymentMethodId && validPaymentMethodId !== "RBXNET_COIN")
           transaction.paymentMethodId = validPaymentMethodId;
+          
+        await transaction.save();
       }
     }
 
-    // Apply VERIFIED discount to Midtrans items
-    if (verifiedDiscountAmount > 0 && midtransItems.length > 0) {
-      const discountMultiplier = 1 - verifiedDiscountPercentage / 100;
+    // Apply VERIFIED discount, PROMO, and PPN to Midtrans items
+    if (midtransItems.length > 0) {
+      const hasDiscount = verifiedDiscountAmount > 0 || totalPromoDiscountAmount > 0;
+      const discountMultiplier = hasDiscount && verifiedFinalAmountBeforeFee > 0 ? finalAmountBeforeFeeWithPromo / subtotal : 1;
+      
       midtransItems.forEach((item) => {
         const originalPrice = item.price;
-        item.price = Math.round(item.price * discountMultiplier);
-        if (!item.name.includes("Diskon")) {
-          item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
+        if (hasDiscount) {
+          item.price = Math.round(item.price * discountMultiplier);
+        }
+        
+        // Apply PPN directly to the item price if taxable
+        const isTaxable = ["robux", "gamepass"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category);
+        if (isTaxable) {
+          item.price += Math.round(item.price * 0.11);
+        }
+
+        if (hasDiscount) {
+          if (appliedPromoCode) {
+             item.name = `${item.name} (Promo)`;
+          } else if (verifiedDiscountPercentage > 0 && !item.name.includes("Diskon")) {
+             item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
+          }
         }
         console.log(
           `Item: ${item.name}, Original: ${originalPrice}, Discounted: ${item.price}`,
         );
       });
     }
+
+    // PPN is now merged into the main product prices
 
     // Create a master order ID for grouping BEFORE saving transactions
     const masterOrderId = `MULTI-${Date.now()}-${Math.random()
@@ -581,7 +691,75 @@ export async function POST(request: NextRequest) {
         qrString?: string;
       };
 
-      if (activeGateway === "duitku") {
+      if (validPaymentMethodId === "RBXNET_COIN") {
+        // ===== RBXNET COIN PAYMENT (INTERNAL BALANCE) =====
+        console.log("Using RBXNET Credits internal balance for Multi Checkout");
+        if (!userId) {
+          throw new Error("User must be logged in to use RBXNET Credits");
+        }
+        const User = (await import("@/models/User")).default;
+        const user = await User.findById(userId);
+        if (!user) {
+          throw new Error("User not found");
+        }
+        
+        // PREVENT buying coins with coins (Infinite Money Glitch)
+        const hasCoinTopup = createdTransactions.some((t: any) => t.serviceType === "coin_topup");
+        if (hasCoinTopup) {
+          return NextResponse.json(
+            { error: "RBXNET Credits tidak dapat digunakan untuk membeli saldo Credits" },
+            { status: 400 }
+          );
+        }
+        
+        const coinsRequired = Number((grossAmount / (settings.coinSpendValue || 1000)).toFixed(2));
+        
+        if ((user.balance || 0) < coinsRequired) {
+          return NextResponse.json(
+            { error: `Saldo Credits tidak cukup. Dibutuhkan: ${coinsRequired} credits, Saldo: ${user.balance || 0} credits` },
+            { status: 400 }
+          );
+        }
+        
+        // Deduct balance with 2 decimal precision
+        user.balance = Number((user.balance - coinsRequired).toFixed(2));
+        await user.save();
+        
+        // Update all transactions to paid
+        const updatePromises = createdTransactions.map(async (transaction) => {
+          transaction.paymentStatus = "settlement";
+          transaction.paidAt = new Date();
+          transaction.midtransOrderId = masterOrderId;
+          
+          // Adjust order status based on service
+          let finalOrderStatus = "processing";
+          if (transaction.serviceCategory === "robux_5_hari") {
+            finalOrderStatus = "pending";
+          }
+          transaction.orderStatus = finalOrderStatus;
+          
+          transaction.statusHistory.push({
+            status: "payment:settlement",
+            timestamp: new Date(),
+            notes: `Paid with RBXNET Credits (${coinsRequired} coins)`,
+            updatedBy: "system"
+          });
+          
+          transaction.statusHistory.push({
+            status: `order:${finalOrderStatus}`,
+            timestamp: new Date(),
+            notes: "Pesanan masuk antrean sistem otomatis",
+            updatedBy: "system"
+          });
+          
+          return transaction.save();
+        });
+        
+        await Promise.all(updatePromises);
+        
+        paymentResult = {};
+        
+      } else if (activeGateway === "duitku") {
         // ===== DUITKU PAYMENT GATEWAY =====
         console.log("Using Duitku payment gateway");
 

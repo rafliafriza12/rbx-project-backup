@@ -17,7 +17,7 @@ const transactionSchema = new mongoose.Schema(
     // Detail Layanan
     serviceType: {
       type: String,
-      enum: ["robux", "gamepass", "joki", "reseller"],
+      enum: ["robux", "gamepass", "joki", "reseller", "coin_topup"],
       required: true,
     },
     serviceCategory: {
@@ -71,6 +71,11 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    ppnAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
 
     // Payment Fee (for multi-checkout grouping)
     paymentFee: {
@@ -83,8 +88,8 @@ const transactionSchema = new mongoose.Schema(
     robloxUsername: {
       type: String,
       required: function () {
-        // Not required for reseller purchases
-        return this.serviceType !== "reseller";
+        // Not required for reseller and coin topup purchases
+        return this.serviceType !== "reseller" && this.serviceType !== "coin_topup";
       },
       trim: true,
       default: "",
@@ -142,6 +147,14 @@ const transactionSchema = new mongoose.Schema(
       price: Number,
       productId: Number,
       sellerId: Number,
+    },
+
+    // Data Tambahan untuk RBXNET Credits Top Up
+    coinDetails: {
+      amount: Number,
+      bonusAmount: Number,
+      totalCoins: Number,
+      isAdded: { type: Boolean, default: false },
     },
 
     // Data Gamepass Details
@@ -385,6 +398,8 @@ transactionSchema.methods.updateStatus = function (
       // Khusus gamepass dan robux_5_hari, masuk ke pending terlebih dahulu
       if (this.serviceType === "gamepass" || this.serviceCategory === "gamepass" || this.serviceCategory === "robux_5_hari") {
         targetStatus = "pending";
+      } else if (this.serviceType === "coin_topup") {
+        targetStatus = "completed";
       }
       
       this.orderStatus = targetStatus;

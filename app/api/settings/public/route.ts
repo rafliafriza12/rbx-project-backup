@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Settings from "@/models/Settings";
-import { requireApiKey } from "@/lib/auth";
 
 // GET - Get public settings (safe to expose to client)
-// API key WAJIB di setiap request
 export async function GET(req: NextRequest) {
   try {
-    // WAJIB: Validasi API key
-    const apiKeyError = requireApiKey(req);
-    if (apiKeyError) return apiKeyError;
 
     await dbConnect();
 
@@ -23,6 +18,7 @@ export async function GET(req: NextRequest) {
         robuxPricePerUnit: 150,
         minRobuxOrder: 100,
         maxRobuxOrder: 10000,
+        coinTopupPrice: 1000,
         emailEnabled: false,
         whatsappNumber: "",
         instagramUrl: "",
@@ -72,6 +68,11 @@ export async function GET(req: NextRequest) {
       popupBannerEnabled: settings.popupBannerEnabled || false,
       popupBannerImageUrl: settings.popupBannerImageUrl || "",
       popupBannerTargetUrl: settings.popupBannerTargetUrl || "",
+
+      // Coin Settings
+      coinTopupPrice: settings.coinTopupPrice || 1000,
+      coinSpendValue: settings.coinSpendValue || 1000,
+      coinBonusTiers: settings.coinBonusTiers || [],
     };
 
     return NextResponse.json(

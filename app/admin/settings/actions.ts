@@ -4,13 +4,23 @@
 import { cookies } from "next/headers";
 
 function getBaseUrl(): string {
+  // 🔹 FIX: On VPS/Dedicated servers (like PM2), fetching the public domain (https://domain.com)
+  // from the server itself often gets blocked by Cloudflare/WAF, returning an HTML CAPTCHA.
+  // We MUST use the local loopback address for internal server-to-server API calls.
+  if (!process.env.VERCEL_URL) {
+    const port = process.env.PORT || 3000;
+    return `http://127.0.0.1:${port}`;
+  }
+
+  // Fallback for Vercel
+  let url = "http://127.0.0.1:3000";
   if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
+    url = process.env.NEXT_PUBLIC_BASE_URL;
+  } else if (process.env.VERCEL_URL) {
+    url = `https://${process.env.VERCEL_URL}`;
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
+  
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
 function getInternalHeaders(): Record<string, string> {

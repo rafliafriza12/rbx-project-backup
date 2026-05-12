@@ -67,6 +67,7 @@ interface LiveTransaction {
   serviceType: string;
   colorScheme: string;
   profilePicture?: string;
+  serviceImage?: string;
 }
 
 interface LiveReview {
@@ -75,10 +76,10 @@ interface LiveReview {
   initial: string;
   rating: number;
   comment: string;
-  serviceInfo: string;
   timeAgo: string;
-  serviceType: string;
+  serviceInfo: string;
   colorScheme: string;
+  serviceImage?: string;
 }
 
 interface SiteSettings {
@@ -883,28 +884,48 @@ export default function HomePage() {
                         return (
                           <div
                             key={tx.id}
-                            className={`flex items-center ${style.cardClass} border ${style.borderColor} rounded-lg p-4 mx-3 min-w-[280px] ${style.hoverBorder} transition-all duration-300`}
+                            className={`flex items-center ${style.cardClass} border ${style.borderColor} rounded-xl p-5 mx-3 min-w-[340px] ${style.hoverBorder} transition-all duration-300`}
                           >
-                            {tx.profilePicture ? (
-                              <img
-                                src={tx.profilePicture}
-                                alt={tx.username}
-                                className="w-10 h-10 rounded-full object-cover mr-4"
-                                referrerPolicy="no-referrer"
-                              />
-                            ) : (
-                              <div
-                                className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center mr-4`}
-                              >
-                                {getIcon()}
+                            <div className="flex items-center gap-2 mr-4 shrink-0">
+                              {/* Avatar User */}
+                              {tx.profilePicture ? (
+                                <img
+                                  src={tx.profilePicture}
+                                  alt={tx.username}
+                                  className="w-10 h-10 rounded-full object-cover border border-white/10"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-transparent text-white/50 text-sm font-bold">
+                                  {tx.username ? tx.username.charAt(0).toUpperCase() : "?"}
+                                </div>
+                              )}
+                              
+                              {tx.serviceImage ? (
+                                  <img
+                                    src={tx.serviceImage}
+                                    alt={tx.displayName}
+                                    className="w-10 h-10 rounded-lg object-cover border border-white/10 shadow-[0_0_10px_rgba(255,255,255,0.1)] bg-transparent"
+                                    referrerPolicy="no-referrer"
+                                  />
+                              ) : (
+                                <div
+                                  className={`w-10 h-10 ${style.bgGradient} rounded-lg flex items-center justify-center shadow-lg border border-white/10 bg-transparent`}
+                                >
+                                  {getIcon()}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 text-left px-2">
+                              <div className="text-white font-semibold text-sm line-clamp-1">
+                                {tx.displayName}
                               </div>
-                            )}
-                            <div className="flex-1">
-                              <div className="text-white font-semibold">
-                                {tx.username ? (tx.username.length <= 4 ? tx.username.substring(0, 2) + "**" : tx.username.substring(0, 3) + "***" + tx.username.substring(tx.username.length - 1)) : "User"}
-                              </div>
-                              <div className={`${style.textColor} text-sm`}>
-                                {tx.displayQuantity}
+                              <div className={`${style.textColor} text-xs font-medium flex items-center gap-1.5 mt-0.5`}>
+                                <span>{tx.displayQuantity}</span>
+                                <span className="text-white/30">•</span>
+                                <span className="text-white/80 font-semibold">
+                                  {tx.username || "User"}
+                                </span>
                               </div>
                             </div>
                             <div className="text-right">
@@ -1046,17 +1067,41 @@ export default function HomePage() {
                       key={`${review.id}-${index}`}
                       className={`${style.cardClass} rounded-xl p-4 mx-3 min-w-[280px] sm:min-w-[320px] flex-shrink-0 snap-center ${style.hoverBorder} hover:-translate-y-2 transition-all duration-500 ${style.hoverShadow}`}
                     >
-                      <div className="flex items-center mb-3">
-                        <div
-                          className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center font-bold text-white text-sm`}
-                        >
-                          {review.initial}
+                      <div className="flex items-center mb-4">
+                        <div className="flex items-center gap-2 mr-3 shrink-0">
+                          {/* Avatar User */}
+                          <div
+                            className={`w-10 h-10 ${style.bgGradient} rounded-full flex items-center justify-center font-bold text-white text-sm border border-white/10`}
+                          >
+                            {review.initial}
+                          </div>
+                          
+                          {/* Product Image */}
+                          {review.serviceImage ? (
+                            <img
+                              src={review.serviceImage}
+                              alt={review.serviceInfo}
+                              className="w-10 h-10 rounded-lg object-cover shadow-sm border border-white/10 bg-transparent"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.bgGradient} shadow-sm border border-white/10 bg-transparent`}>
+                              {review.serviceType === "robux" ? (
+                                <Gem className="w-5 h-5 text-white" />
+                              ) : review.serviceType === "gamepass" ? (
+                                <Gamepad2 className="w-5 h-5 text-white" />
+                              ) : (
+                                <Rocket className="w-5 h-5 text-white" />
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="ml-3">
-                          <div className="font-semibold text-white text-sm">
+
+                        <div className="flex-1">
+                          <div className="font-semibold text-white text-sm line-clamp-1">
                             {review.username}
                           </div>
-                          <div className={`flex gap-0.5 ${style.starColor}`}>
+                          <div className={`flex gap-0.5 ${style.starColor} mt-0.5`}>
                             {[...Array(review.rating)].map((_, index) => (
                               <Star
                                 key={index}
@@ -1069,14 +1114,21 @@ export default function HomePage() {
                       <p className="text-white/70 italic mb-3 text-sm line-clamp-3">
                         "{review.comment}"
                       </p>
-                      <div className={`text-xs ${style.checkColor}`}>
-                        <CheckCircle
-                          className={`inline w-3 h-3 ${style.checkColor} mr-1`}
-                        />{" "}
-                        {review.serviceInfo.includes("Robux")
-                          ? review.serviceInfo.replace("Robux", "RBX")
-                          : review.serviceInfo}{" "}
-                        • {review.timeAgo}
+                      
+                      <div className="flex items-center gap-2 pt-3 border-t border-white/5 mt-auto">
+                        <div className="flex-1 flex justify-between items-center text-xs">
+                          <div className={`${style.checkColor} font-medium`}>
+                            <CheckCircle
+                              className={`inline w-3 h-3 ${style.checkColor} mr-1`}
+                            />{" "}
+                            {review.serviceInfo.includes("Robux")
+                              ? review.serviceInfo.replace("Robux", "RBX")
+                              : review.serviceInfo}
+                          </div>
+                          <div className="text-white/40">
+                            {review.timeAgo}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1156,7 +1208,7 @@ export default function HomePage() {
               {gamepasses.map((gamepass, index) => (
                 <Link
                   key={gamepass._id}
-                  href={`/gamepass/${gamepass._id}`}
+                  href={`/gamepass/${gamepass.slug || gamepass.gameName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`}
                   className="group focus:outline-none h-full w-full block"
                 >
                   {/* Mobile-Optimized Purple Neon Themed Gamepass Card */}

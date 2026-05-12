@@ -3,6 +3,8 @@ import { requireApiKey } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Review from "@/models/Review";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const apiKeyError = requireApiKey(request);
   if (apiKeyError) return apiKeyError;
@@ -19,11 +21,15 @@ export async function GET(request: NextRequest) {
     console.log(`[Live Reviews] Found ${reviews.length} approved reviews`);
 
     // Format data untuk ditampilkan
-    const formattedReviews = reviews.map((review: any) => {
+    const formattedReviews = await Promise.all(reviews.map(async (review: any) => {
       // Mask username (ambil huruf pertama + bintang)
-      const maskedUsername = review.username
-        ? review.username.charAt(0) + "*****"
-        : "A*****";
+      const maskUsername = (name: string) => {
+        if (!name) return "U*****";
+        if (name.length <= 4) return name.charAt(0) + "***" + (name.length > 1 ? name.charAt(name.length - 1) : "");
+        return name.slice(0, 2) + "***" + name.slice(-2);
+      };
+      
+      const maskedUsername = maskUsername(review.username);
 
       // Initial untuk avatar (huruf pertama username)
       const initial = review.username
@@ -46,6 +52,20 @@ export async function GET(request: NextRequest) {
         serviceInfo = review.serviceName || "Joki Service";
       }
 
+      // Ambil serviceImage dari Review (baru ditambahkan), fallback ke lookup Transaction untuk review lama
+      let serviceImage = review.serviceImage || null;
+      if (!serviceImage && review.transactionId) {
+        try {
+          const Transaction = (await import("@/models/Transaction")).default;
+          const tx = await Transaction.findById(review.transactionId).select("serviceImage").lean();
+          if (tx && tx.serviceImage) {
+            serviceImage = tx.serviceImage;
+          }
+        } catch (e) {
+          console.error("Error fetching transaction image for review:", e);
+        }
+      }
+
       // Hitung waktu relatif
       const timeAgo = getTimeAgo(new Date(review.createdAt));
 
@@ -60,6 +80,18 @@ export async function GET(request: NextRequest) {
         colorScheme = colors[Math.floor(Math.random() * colors.length)];
       }
 
+      // Tentukan gambar produk fallback jika tidak ada dari Transaction
+      let finalServiceImage = serviceImage;
+      if (!finalServiceImage) {
+        if (review.serviceType === "robux") {
+          finalServiceImage = (review.serviceCategory === "robux_instant" || review.serviceCategory === "robux_instan")
+            ? "/icon/roblox-premium-pink.png"
+            : "/icon/icons8-robux-48 (2).png";
+        } else if (review.serviceType === "gamepass") {
+          finalServiceImage = "/icon/gamepass-gift.webp";
+        }
+      }
+
       return {
         id: review._id,
         username: maskedUsername,
@@ -70,8 +102,9 @@ export async function GET(request: NextRequest) {
         timeAgo,
         serviceType: review.serviceType,
         colorScheme,
+        serviceImage: finalServiceImage,
       };
-    });
+    }));
 
     // Jika review kurang dari 3, tambahkan data dummy
     if (formattedReviews.length < 3) {
@@ -92,6 +125,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "2 hari lalu",
           serviceType: "robux",
           colorScheme: "pink",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-2",
@@ -103,6 +137,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "3 hari lalu",
           serviceType: "robux",
           colorScheme: "purple",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-3",
@@ -114,6 +149,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "4 hari lalu",
           serviceType: "robux",
           colorScheme: "pink",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-4",
@@ -125,6 +161,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "5 hari lalu",
           serviceType: "gamepass",
           colorScheme: "teal",
+          serviceImage: "/icon/gamepass-gift.webp",
         },
         {
           id: "dummy-5",
@@ -136,6 +173,7 @@ export async function GET(request: NextRequest) {
           timeAgo: "1 minggu lalu",
           serviceType: "robux",
           colorScheme: "amber",
+          serviceImage: "/icon/icons8-robux-48 (2).png",
         },
         {
           id: "dummy-6",
@@ -143,10 +181,11 @@ export async function GET(request: NextRequest) {
           initial: "B",
           rating: 5,
           comment: "Website keren, sistemnya juga aman. Top!",
-          serviceInfo: "Robux 5 Hari",
+          serviceInfo: "Robux Instant",
           timeAgo: "1 minggu lalu",
           serviceType: "robux",
           colorScheme: "purple",
+          serviceImage: "/icon/roblox-premium-pink.png",
         },
       ];
 

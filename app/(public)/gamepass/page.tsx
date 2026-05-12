@@ -211,11 +211,11 @@ export default function GamepassPage() {
               </div>
             ) : (
               filteredGamepasses?.map((gamepass) => {
-                const slug = gamepass.gameName.toLowerCase().replace(/ /g, "-");
+                const gameSlug = gamepass.slug || gamepass.gameName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
                 return (
                   <Link
                     key={gamepass._id}
-                    href={`/gamepass/${gamepass._id}`}
+                    href={`/gamepass/${gameSlug}`}
                     className="group focus:outline-none h-full w-full block"
                   >
                     {/* Mobile-Optimized Purple Neon Themed Gamepass Card */}

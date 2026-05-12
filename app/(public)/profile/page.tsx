@@ -697,6 +697,21 @@ export default function ProfilePage() {
                   </div>
                 </Link>
 
+                <Link
+                  href="/topup"
+                  className="flex items-center gap-4 p-6 bg-white/5 border border-white/20 rounded-xl hover:bg-white/10 transition-all duration-300 group"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Image src="/icon/dollar.png" alt="Coin" width={24} height={24} className="w-6 h-6 drop-shadow-md" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white">Top Up Credits</div>
+                    <div className="text-sm text-white/70">
+                      Isi saldo untuk transaksi instan
+                    </div>
+                  </div>
+                </Link>
+
                 <a
                   href="https://wa.me/6281234567890"
                   target="_blank"

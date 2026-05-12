@@ -14,6 +14,66 @@ import {
   notifyOrderStatusChange,
 } from "@/lib/discord";
 import { maskEmail, maskUsername, maskName } from "@/lib/mask";
+import ResellerPackage from "@/models/ResellerPackage";
+
+// Activate Reseller Package for user after payment settlement
+async function activateResellerPackage(transaction: any) {
+  try {
+    if (!transaction.customerInfo?.userId || !transaction.serviceId) {
+      return null;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) return null;
+
+    const resellerPackage = await ResellerPackage.findById(transaction.serviceId);
+    if (!resellerPackage) return null;
+
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + resellerPackage.duration);
+
+    user.resellerTier = resellerPackage.tier;
+    user.resellerExpiry = expiryDate;
+    user.resellerPackageId = resellerPackage._id;
+    await user.save();
+
+    console.log(`✅ Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}`);
+    return true;
+  } catch (error) {
+    console.error("Error in activateResellerPackage:", error);
+    return null;
+  }
+}
+
+// Activate Coin Top Up for user after payment settlement
+async function activateCoinTopup(transaction: any) {
+  try {
+    if (!transaction.customerInfo?.userId || !transaction.coinDetails?.totalCoins) {
+      return null;
+    }
+
+    if (transaction.coinDetails.isAdded) {
+      console.log("Coins already added to user, skipping.");
+      return true;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) return null;
+
+    user.balance = (user.balance || 0) + transaction.coinDetails.totalCoins;
+    await user.save();
+
+    transaction.coinDetails.isAdded = true;
+    await transaction.save();
+
+    console.log(`✅ Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. New balance: ${user.balance}`);
+    return true;
+  } catch (error) {
+    console.error("Error in activateCoinTopup:", error);
+    return null;
+  }
+}
+
 
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
@@ -505,6 +565,29 @@ export async function PUT(
         "Admin changed payment to settlement - processing gamepass purchase",
       );
       await processGamepassPurchase(transaction);
+    }
+
+    // Auto-activate reseller package
+    if (
+      statusType === "payment" &&
+      newStatus === "settlement" &&
+      oldPaymentStatus !== "settlement" &&
+      transaction.serviceType === "reseller"
+    ) {
+      console.log("Admin changed payment to settlement - activating reseller package");
+      await activateResellerPackage(transaction);
+    }
+
+    // Auto-activate coin top up
+    const isPaymentSettled = statusType === "payment" && newStatus === "settlement" && oldPaymentStatus !== "settlement";
+    const isOrderCompleted = statusType === "order" && newStatus === "completed" && oldOrderStatus !== "completed";
+
+    if (
+      (isPaymentSettled || isOrderCompleted) &&
+      transaction.serviceType === "coin_topup"
+    ) {
+      console.log("Admin changed status - activating coin top up");
+      await activateCoinTopup(transaction);
     }
 
     if (statusType === "payment" && newStatus === "settlement") {

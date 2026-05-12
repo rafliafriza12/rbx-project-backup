@@ -9,7 +9,6 @@ import {
   Receipt,
   User,
   LogIn,
-  Trophy,
 } from "lucide-react";
 
 export default function BottomNav() {
@@ -24,16 +23,16 @@ export default function BottomNav() {
       isActive: pathname === "/",
     },
     {
+      label: "Top Up RBX",
+      href: "/rbx",
+      icon: "/icon/icons8-robux-48 (2).png",
+      isActive: pathname === "/rbx",
+    },
+    {
       label: "Chat",
       href: user ? "/chat" : "/login",
       icon: MessageCircle,
       isActive: pathname === "/chat",
-    },
-    {
-      label: "Top Rank",
-      href: "/leaderboard",
-      icon: Trophy,
-      isActive: pathname === "/leaderboard",
     },
     {
       label: "Transaksi",
@@ -62,7 +61,19 @@ export default function BottomNav() {
                 : "text-white/40 hover:text-white/60"
             }`}
           >
-            <item.icon className={`w-5 h-5 ${item.isActive ? "drop-shadow-[0_0_6px_rgba(246,58,230,0.5)]" : ""}`} />
+            {typeof item.icon === "string" ? (
+              <img 
+                src={item.icon} 
+                alt={item.label} 
+                className={`w-6 h-6 object-contain transition-all duration-200 ${
+                  item.isActive 
+                    ? "drop-shadow-[0_0_8px_rgba(246,58,230,0.6)]" 
+                    : "opacity-40 grayscale brightness-150"
+                }`} 
+              />
+            ) : (
+              <item.icon className={`w-5 h-5 transition-all duration-200 ${item.isActive ? "drop-shadow-[0_0_6px_rgba(246,58,230,0.5)]" : ""}`} />
+            )}
             <span className={`text-[10px] font-semibold ${item.isActive ? "text-primary-100" : ""}`}>
               {item.label}
             </span>

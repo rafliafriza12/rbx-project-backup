@@ -82,6 +82,7 @@ export default function RobuxInstan() {
   const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>([]);
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
   const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+  const [coinSpendValue, setCoinSpendValue] = useState<number>(1000);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [expandedCategory, setExpandedCategory] = useState<string>("qris");
   const [submitting, setSubmitting] = useState(false);
@@ -177,6 +178,9 @@ export default function RobuxInstan() {
         if (settingsRes.success && settingsRes.settings) {
           const gateway = settingsRes.settings.activePaymentGateway;
           setActivePaymentGateway(gateway);
+          if (settingsRes.settings.coinSpendValue) {
+            setCoinSpendValue(settingsRes.settings.coinSpendValue);
+          }
 
           const methodsRes = await fetchPaymentMethods(gateway);
           if (methodsRes.success && methodsRes.data) {
@@ -196,7 +200,28 @@ export default function RobuxInstan() {
               });
               return acc;
             }, {});
-            setPaymentCategories(Object.values(groupedMethods));
+            const categories = Object.values(groupedMethods);
+            if (user) {
+              const coinCategory = {
+                id: "internal",
+                name: "Saldo Internal",
+                methods: [
+                  {
+                    id: "RBXNET_COIN",
+                    name: "RBXNET Credits",
+                    icon: "/icon/dollar.png",
+                    fee: 0,
+                    feeType: "fixed",
+                    description: `Saldo saat ini: ${user.balance || 0} Credits`,
+                    minimumAmount: 0,
+                    maximumAmount: 0,
+                  }
+                ]
+              };
+              setPaymentCategories([coinCategory, ...categories]);
+            } else {
+              setPaymentCategories(categories);
+            }
           }
         }
       } catch (error) {
@@ -267,6 +292,11 @@ export default function RobuxInstan() {
       return Math.round((selectedProduct.price * ((user as any).diskon || 0)) / 100);
     }
     return 0;
+  };
+
+  const getPpnAmount = () => {
+    if (!selectedProduct) return 0;
+    return Math.round((selectedProduct.price - getDiscountAmount() - promoDiscount) * 0.11);
   };
 
   const nextStep = () => {
@@ -821,9 +851,19 @@ export default function RobuxInstan() {
                   </div>
                   <div>
                     <p className="text-white/60 text-sm">Total Pembayaran</p>
-                    <p className="text-2xl font-bold text-white">
-                      {formatCurrency(getFinalPrice(selectedProduct))}
-                    </p>
+                    {selectedPaymentMethod === "RBXNET_COIN" ? (
+                      <div>
+                        <p className="text-2xl font-bold text-yellow-400 flex items-center">
+                          <img src="/icon/dollar.png" alt="Coin" className="w-6 h-6 mr-2 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
+                          {Number((getFinalPrice(selectedProduct) / coinSpendValue).toFixed(2))} Credits
+                        </p>
+                        <p className="text-xs text-white/50 mt-1">Setara Rp {getFinalPrice(selectedProduct).toLocaleString("id-ID")}</p>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-bold text-white">
+                        {formatCurrency(getFinalPrice(selectedProduct))}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {selectedProduct.discountPercentage && (
@@ -922,6 +962,9 @@ export default function RobuxInstan() {
                   onApplyPromo={handleApplyPromo}
                   appliedPromoCode={appliedPromoCode || undefined}
                   promoDiscount={promoDiscount}
+                  selectedPaymentMethod={selectedPaymentMethod}
+                  coinSpendValue={coinSpendValue}
+                  ppnAmount={getPpnAmount()}
                 />
 
                 <div className="mt-4">

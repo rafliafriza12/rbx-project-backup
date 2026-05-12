@@ -1,8 +1,10 @@
 import mongoose, { Document, Schema } from "mongoose";
 import RobuxSetting from "./RobuxSetting";
+import slugify from "slugify";
 
 export interface IGamepass extends Document {
   gameName: string;
+  slug: string;
   imgUrl: string;
   caraPesan: string[];
   showOnHomepage: boolean;
@@ -24,6 +26,12 @@ const GamepassSchema: Schema = new Schema(
       required: [true, "Nama game diperlukan"],
       trim: true,
       maxlength: [100, "Nama game tidak boleh lebih dari 100 karakter"],
+    },
+    slug: {
+      type: String,
+      unique: true,
+      trim: true,
+      lowercase: true,
     },
     imgUrl: {
       type: String,
@@ -91,6 +99,7 @@ const GamepassSchema: Schema = new Schema(
 
 // Index for better query performance
 GamepassSchema.index({ gameName: 1 });
+GamepassSchema.index({ slug: 1 }, { unique: true });
 GamepassSchema.index({ createdAt: -1 });
 GamepassSchema.index({ showOnHomepage: 1 });
 
@@ -109,6 +118,15 @@ GamepassSchema.pre("save", async function (next) {
     // Auto-calculate price for each item based on robuxAmount
     const robuxSetting = await RobuxSetting.findOne();
     const pricePerRobux = robuxSetting?.pricePerRobux || 100;
+
+    // Generate slug if not exists or gameName changed
+    if (!this.slug || this.isModified("gameName")) {
+      this.slug = slugify(this.gameName, {
+        lower: true,
+        strict: true,
+        trim: true,
+      });
+    }
 
     // Map items dengan type assertion yang benar
     const items = this.item as any[];

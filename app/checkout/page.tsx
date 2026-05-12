@@ -146,11 +146,11 @@ function CheckoutContent() {
 
     // Check Roblox credentials (jika bukan multi-checkout dan bukan reseller)
     if (!isMultiCheckoutFromCart && checkoutData) {
-      const isResellerPurchase = checkoutData.items.some(
-        (item) => item.serviceType === "reseller",
+      const isNoRobloxCredsRequired = checkoutData.items.some(
+        (item) => item.serviceType === "reseller" || item.serviceType === "coin_topup",
       );
 
-      if (!isResellerPurchase && !robloxUsername.trim()) return false;
+      if (!isNoRobloxCredsRequired && !robloxUsername.trim()) return false;
 
       // Check password requirement
       const requiresPassword = checkoutData.items.some((item) => {
@@ -175,6 +175,7 @@ function CheckoutContent() {
   // Active payment gateway - only need to know which one is active
   // All configs (keys, URLs) are handled by libs on server-side
   const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+  const [coinSpendValue, setCoinSpendValue] = useState<number>(1000);
 
   // Fungsi untuk mengecek apakah payment method tersedia berdasarkan amount
   const isPaymentMethodAvailable = (
@@ -537,6 +538,9 @@ function CheckoutContent() {
           setActivePaymentGateway(
             result.data.activePaymentGateway || "midtrans",
           );
+          if (result.data.coinSpendValue) {
+            setCoinSpendValue(result.data.coinSpendValue);
+          }
         }
       } catch (error) {
         // Default to midtrans if fetch fails
@@ -604,7 +608,32 @@ function CheckoutContent() {
             });
           });
 
-          setPaymentCategories(Object.values(groupedMethods));
+          // Inject RBXNET Credits if user is logged in
+          if (user) {
+            const coinCategory = {
+              id: "internal",
+              name: "Saldo Internal",
+              icon: Wallet,
+              description: "Bayar menggunakan saldo RBXNET Credits",
+              methods: [
+                {
+                  id: "RBXNET_COIN",
+                  name: "RBXNET Credits",
+                  icon: "/icon/dollar.png", // Use a generic coin icon or default
+                  fee: 0,
+                  feeType: "fixed",
+                  description: `Saldo saat ini: ${user.balance || 0} Credits`,
+                  minimumAmount: 0,
+                  maximumAmount: 0,
+                }
+              ]
+            };
+            
+            // Add to the top of categories
+            setPaymentCategories([coinCategory, ...Object.values(groupedMethods)]);
+          } else {
+            setPaymentCategories(Object.values(groupedMethods));
+          }
         }
       } catch (error) {
         setPaymentCategories([]);
@@ -614,11 +643,12 @@ function CheckoutContent() {
     };
 
     loadPaymentMethods();
-  }, [activePaymentGateway]); // Re-fetch when gateway changes
+  }, [activePaymentGateway, user]); // Re-fetch when gateway or user changes
 
   // Helper functions for category mapping
   const getCategoryName = (category: string) => {
     const names: { [key: string]: string } = {
+      internal: "Saldo Internal",
       ewallet: "E-Wallet",
       bank_transfer: "Virtual Account",
       qris: "QRIS",
@@ -631,6 +661,7 @@ function CheckoutContent() {
 
   const getCategoryIcon = (category: string) => {
     const icons: { [key: string]: any } = {
+      internal: Wallet,
       ewallet: Wallet,
       bank_transfer: Building2,
       qris: QrCode,
@@ -643,6 +674,7 @@ function CheckoutContent() {
 
   const getCategoryDescription = (category: string) => {
     const descriptions: { [key: string]: string } = {
+      internal: "Bayar langsung tanpa biaya admin",
       ewallet: "Transfer langsung ke e-wallet",
       bank_transfer: "Transfer melalui ATM/Mobile Banking",
       qris: "Scan QR Code untuk pembayaran instant",
@@ -664,12 +696,12 @@ function CheckoutContent() {
     // Validation - hanya cek form jika bukan multi-checkout dari cart
     // Multi-checkout dari cart: data sudah ada di setiap item
     if (!isMultiCheckoutFromCart) {
-      // Reseller packages don't need Roblox credentials
-      const isResellerPurchase = checkoutData.items.some(
-        (item) => item.serviceType === "reseller",
+      // Reseller and coin topup packages don't need Roblox credentials
+      const isNoRobloxCredsRequired = checkoutData.items.some(
+        (item) => item.serviceType === "reseller" || item.serviceType === "coin_topup",
       );
 
-      if (!isResellerPurchase && !robloxUsername.trim()) {
+      if (!isNoRobloxCredsRequired && !robloxUsername.trim()) {
         toast.error("Username Roblox harus diisi");
         return;
       }
@@ -1039,10 +1071,10 @@ function CheckoutContent() {
           window.location.href = result.data.duitkuPaymentUrl;
         } else if (result.data?.transaction?._id) {
           // Fallback to transaction detail
-          router.push(`/transaction/${result.data.transaction._id}`);
+          router.push(`/riwayat/${result.data.transaction._id}`);
         } else if (result.data?.transactions?.[0]?._id) {
           // Multi-transaction: redirect to first transaction
-          router.push(`/transaction/${result.data.transactions[0]._id}`);
+          router.push(`/riwayat/${result.data.transactions[0]._id}`);
         } else {
           router.push("/riwayat");
         }
@@ -1299,9 +1331,19 @@ function CheckoutContent() {
 
                   <div className="flex justify-between items-center border-t border-neon-purple/20 pt-3">
                     <span className="font-bold text-white">Total Bayar:</span>
-                    <span className="font-bold text-xl text-neon-pink">
-                      Rp {calculateFinalAmount().toLocaleString("id-ID")}
-                    </span>
+                    {selectedPaymentMethod === "RBXNET_COIN" ? (
+                      <div className="text-right">
+                        <span className="font-bold text-xl text-yellow-400 flex items-center justify-end">
+                          <img src="icon/dollar.png" alt="Coin" className="w-5 h-5 mr-1 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
+                          {Number((calculateFinalAmount() / coinSpendValue).toFixed(2))} Credits
+                        </span>
+                        <span className="text-xs text-white/50 block">Setara Rp {calculateFinalAmount().toLocaleString("id-ID")}</span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-xl text-neon-pink">
+                        Rp {calculateFinalAmount().toLocaleString("id-ID")}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1650,9 +1692,9 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {/* Roblox Account - Hide for Reseller packages */}
+              {/* Roblox Account - Hide for Reseller and Coin Topup packages */}
               {!checkoutData.items.some(
-                (item) => item.serviceType === "reseller",
+                (item) => item.serviceType === "reseller" || item.serviceType === "coin_topup",
               ) && (
                 <div className="neon-card rounded-2xl p-5">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center">

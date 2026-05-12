@@ -10,6 +10,7 @@ export interface IReview extends Document {
   comment: string;
   transactionId?: string; // Menyimpan ID transaksi agar satu transaksi hanya bisa diulas 1 kali
   profilePicture?: string; // URL foto profil Google (jika ada)
+  serviceImage?: string; // Gambar spesifik produk dari transaksi
   isApproved: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +70,10 @@ const reviewSchema = new Schema<IReview>(
       trim: true,
     },
     profilePicture: {
+      type: String,
+      trim: true,
+    },
+    serviceImage: {
       type: String,
       trim: true,
     },

@@ -20,6 +20,9 @@ interface OrderSummaryCardProps {
   onApplyPromo?: () => void;
   promoDiscount?: number;
   appliedPromoCode?: string;
+  selectedPaymentMethod?: string;
+  coinSpendValue?: number;
+  ppnAmount?: number;
 }
 
 export default function OrderSummaryCard({
@@ -34,8 +37,11 @@ export default function OrderSummaryCard({
   onApplyPromo,
   promoDiscount = 0,
   appliedPromoCode,
+  selectedPaymentMethod,
+  coinSpendValue = 1000,
+  ppnAmount = 0,
 }: OrderSummaryCardProps) {
-  const finalAmount = baseAmount + adminFee - discount - promoDiscount + paymentFee;
+  const finalAmount = baseAmount + adminFee - discount - promoDiscount + paymentFee + ppnAmount;
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
@@ -78,12 +84,29 @@ export default function OrderSummaryCard({
             <span className="text-white/60">Biaya Layanan</span>
             <span className="font-semibold">{formatCurrency(paymentFee)}</span>
           </div>
+
+          {ppnAmount > 0 && (
+            <div className="flex justify-between items-center pb-4 border-b border-white/10">
+              <span className="text-white/60">PPN 11%</span>
+              <span className="font-semibold">{formatCurrency(ppnAmount)}</span>
+            </div>
+          )}
           
           <div className="flex justify-between items-center pt-2">
             <span className="text-lg font-bold text-primary-100">Total Akhir</span>
-            <span className="text-xl font-black text-primary-100">
-              {formatCurrency(finalAmount)}
-            </span>
+            {selectedPaymentMethod === "RBXNET_COIN" ? (
+              <div className="text-right">
+                <span className="font-bold text-xl text-yellow-400 flex items-center justify-end">
+                  <img src="/icon/dollar.png" alt="Coin" className="w-5 h-5 mr-1 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
+                  {Number((finalAmount / coinSpendValue).toFixed(2))} Credits
+                </span>
+                <span className="text-xs text-white/50 block mt-1">Setara {formatCurrency(finalAmount)}</span>
+              </div>
+            ) : (
+              <span className="text-xl font-black text-primary-100">
+                {formatCurrency(finalAmount)}
+              </span>
+            )}
           </div>
         </div>
       </div>

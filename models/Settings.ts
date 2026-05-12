@@ -87,6 +87,26 @@ const settingsSchema = new mongoose.Schema(
       default: 10000,
     },
 
+    // Coin Economy Settings
+    coinTopupPrice: {
+      type: Number,
+      default: 1000, // Harga beli 1 coin (dalam IDR)
+      min: 0,
+    },
+    coinSpendValue: {
+      type: Number,
+      default: 1000, // Nilai belanja 1 coin (dalam IDR)
+      min: 0,
+    },
+    coinBonusTiers: [
+      {
+        minAmount: { type: Number, required: true },
+        bonusType: { type: String, enum: ["percentage", "fixed"], default: "percentage" },
+        percentage: { type: Number, max: 100 }, // Digunakan jika bonusType = percentage
+        fixedBonus: { type: Number }, // Digunakan jika bonusType = fixed
+      }
+    ],
+
     // Payment Gateway Settings - General
     activePaymentGateway: {
       type: String,

@@ -646,6 +646,7 @@ const menuItems: MenuItem[] = [
   { title: "Banner", icon: "🎨", href: "/admin/banners" },
   { title: "Metode Pembayaran", icon: "💳", href: "/admin/payment-methods" },
   { title: "Email Management", icon: "📧", href: "/admin/email-management" },
+  { title: "Pengaturan Credits", icon: "🪙", href: "/admin/coin-settings" },
   { title: "Pengaturan", icon: "⚙️", href: "/admin/settings" },
 ];
 

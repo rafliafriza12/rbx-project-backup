@@ -163,6 +163,7 @@ export default function Rbx5Page() {
   const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>([]);
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
   const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+  const [coinSpendValue, setCoinSpendValue] = useState<number>(1000);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [expandedCategory, setExpandedCategory] = useState<string>("qris");
   const [submitting, setSubmitting] = useState(false);
@@ -425,6 +426,9 @@ export default function Rbx5Page() {
         if (settingsRes.success && settingsRes.settings) {
           const gateway = settingsRes.settings.activePaymentGateway;
           setActivePaymentGateway(gateway);
+          if (settingsRes.settings.coinSpendValue) {
+            setCoinSpendValue(settingsRes.settings.coinSpendValue);
+          }
           
           const methodsRes = await fetchPaymentMethods(gateway);
           if (methodsRes.success && methodsRes.data) {
@@ -450,8 +454,29 @@ export default function Rbx5Page() {
               return acc;
             }, {});
             
-            setPaymentCategories(Object.values(groupedMethods));
-          }
+              const categories = Object.values(groupedMethods);
+              if (user) {
+                const coinCategory = {
+                  id: "internal",
+                  name: "Saldo Internal",
+                  methods: [
+                    {
+                      id: "RBXNET_COIN",
+                      name: "RBXNET Credits",
+                      icon: "/icon/dollar.png",
+                      fee: 0,
+                      feeType: "fixed",
+                      description: `Saldo saat ini: ${user.balance || 0} Credits`,
+                      minimumAmount: 0,
+                      maximumAmount: 0,
+                    }
+                  ]
+                };
+                setPaymentCategories([coinCategory, ...categories]);
+              } else {
+                setPaymentCategories(categories);
+              }
+            }
         }
       } catch (err) {
         console.error("Error loading payment methods:", err);
@@ -499,6 +524,15 @@ export default function Rbx5Page() {
       return product.price * (1 - product.discountPercentage / 100);
     }
     return product.price;
+  };
+
+  const getDiscountAmount = () => {
+    if (!user) return 0;
+    return Math.round((getCurrentPrice() * ((user as any).diskon || 0)) / 100);
+  };
+
+  const getPpnAmount = () => {
+    return Math.round((getCurrentPrice() - getDiscountAmount() - promoDiscount) * 0.11);
   };
 
   // Calculate price based on robux amount and current pricing
@@ -1124,7 +1158,7 @@ export default function Rbx5Page() {
                   </div>
 
                   {userSearchError && username && username.length >= 2 && !isSearchingUser && (
-                    <div className="text-red-400 text-sm mt-1">Username tidak ditemukan atau API limit.</div>
+                    <div className="text-red-400 text-sm mt-1">{userSearchError}</div>
                   )}
 
                   {/* Robux & Price */}
@@ -1496,11 +1530,7 @@ export default function Rbx5Page() {
                 ]}
                 baseAmount={getCurrentPrice()}
                 adminFee={0}
-                discount={
-                  user 
-                    ? Math.round((getCurrentPrice() * ((user as any).diskon || 0)) / 100)
-                    : 0
-                }
+                discount={getDiscountAmount()}
                 discountPercentage={user ? ((user as any).diskon || 0) : 0}
                 paymentFee={getPaymentFee()}
                 promoCode={promoCode}
@@ -1508,22 +1538,12 @@ export default function Rbx5Page() {
                 onApplyPromo={handleApplyPromo}
                 appliedPromoCode={appliedPromoCode || undefined}
                 promoDiscount={promoDiscount}
+                selectedPaymentMethod={selectedPaymentMethod}
+                coinSpendValue={coinSpendValue}
+                ppnAmount={getPpnAmount()}
               />
 
-              {/* Payment Method Selected */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
-                <h4 className="font-bold text-white mb-4">Metode Pembayaran</h4>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full border-4 border-primary-100 bg-transparent flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-primary-100"></div>
-                    </div>
-                    <span className="font-bold text-white uppercase text-sm">
-                      {selectedPaymentMethod}
-                    </span>
-                  </div>
-                </div>
-              </div>
+
 
               {/* Navigation Buttons */}
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">

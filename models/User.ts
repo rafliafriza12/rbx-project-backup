@@ -14,6 +14,7 @@ export interface IUser extends Document {
   resellerExpiry?: Date;
   resellerPackageId?: mongoose.Types.ObjectId;
   spendedMoney: number;
+  balance: number;
   isVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -138,6 +139,11 @@ const UserSchema: Schema<IUser> = new Schema(
       type: Number,
       default: 0,
       min: [0, "Jumlah uang yang dihabiskan tidak boleh negatif"],
+    },
+    balance: {
+      type: Number,
+      default: 0,
+      min: [0, "Saldo tidak boleh negatif"],
     },
     isVerified: {
       type: Boolean,

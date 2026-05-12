@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
       isVerified: user.isVerified,
       profilePicture: user.profilePicture,
       googleId: user.googleId,
+      balance: user.balance || 0,
     };
 
     return NextResponse.json(

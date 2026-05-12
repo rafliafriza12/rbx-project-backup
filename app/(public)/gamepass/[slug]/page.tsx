@@ -28,7 +28,7 @@ import {
 import ReviewSection from "@/components/ReviewSection";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
-import { getGamepassById, addToCartAction } from "@/app/lib/actions";
+import { getGamepassBySlug, getGamepassById, addToCartAction } from "@/app/lib/actions";
 import { getUserInfo } from "@/app/lib/actions";
 
 import PaymentMethodSelector from "@/components/checkout/PaymentMethodSelector";
@@ -54,6 +54,7 @@ interface SelectedItem extends GamepassItem {
 interface Gamepass {
   _id: string;
   gameName: string;
+  slug: string;
   imgUrl: string;
   caraPesan: string[];
   showOnHomepage: boolean;
@@ -96,6 +97,7 @@ export default function GamepassDetailPage() {
   const [paymentCategories, setPaymentCategories] = useState<PaymentCategory[]>([]);
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
   const [activePaymentGateway, setActivePaymentGateway] = useState<string>("");
+  const [coinSpendValue, setCoinSpendValue] = useState<number>(1000);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [expandedCategory, setExpandedCategory] = useState<string>("qris");
   const [submitting, setSubmitting] = useState(false);
@@ -106,7 +108,7 @@ export default function GamepassDetailPage() {
 
   const params = useParams();
   const router = useRouter();
-  const gamepassId = params.id as string;
+  const gamepassSlug = params.slug as string;
 
   useEffect(() => {
     if (user) {
@@ -135,6 +137,9 @@ export default function GamepassDetailPage() {
         if (settingsRes.success && settingsRes.settings) {
           const gateway = settingsRes.settings.activePaymentGateway;
           setActivePaymentGateway(gateway);
+          if (settingsRes.settings.coinSpendValue) {
+            setCoinSpendValue(settingsRes.settings.coinSpendValue);
+          }
 
           const methodsRes = await fetchPaymentMethods(gateway);
           if (methodsRes.success && methodsRes.data) {
@@ -154,7 +159,28 @@ export default function GamepassDetailPage() {
               });
               return acc;
             }, {});
-            setPaymentCategories(Object.values(groupedMethods));
+            const categories = Object.values(groupedMethods);
+            if (user) {
+              const coinCategory = {
+                id: "internal",
+                name: "Saldo Internal",
+                methods: [
+                  {
+                    id: "RBXNET_COIN",
+                    name: "RBXNET Credits",
+                    icon: "/icon/dollar.png",
+                    fee: 0,
+                    feeType: "fixed",
+                    description: `Saldo saat ini: ${user.balance || 0} Credits`,
+                    minimumAmount: 0,
+                    maximumAmount: 0,
+                  }
+                ]
+              };
+              setPaymentCategories([coinCategory, ...categories]);
+            } else {
+              setPaymentCategories(categories);
+            }
           }
         }
       } catch (error) {
@@ -201,6 +227,10 @@ export default function GamepassDetailPage() {
   const getDiscountAmount = () => {
     if (!user || !(user as any).diskon) return 0;
     return Math.round((totalPrice * (user as any).diskon) / 100);
+  };
+
+  const getPpnAmount = () => {
+    return Math.round((totalPrice - getDiscountAmount() - promoDiscount) * 0.11);
   };
 
   const getPaymentFee = () => {
@@ -354,10 +384,10 @@ export default function GamepassDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (gamepassId) {
+    if (gamepassSlug) {
       fetchGamepass();
     }
-  }, [gamepassId]);
+  }, [gamepassSlug]);
 
   // Debounced search effect for username
   useEffect(() => {
@@ -389,10 +419,18 @@ export default function GamepassDetailPage() {
   const fetchGamepass = async () => {
     try {
       setLoading(true);
-      const data = await getGamepassById(gamepassId);
+      const data = await getGamepassBySlug(gamepassSlug);
       if (data.success) {
         setGamepass(data.data);
       } else {
+        // Fallback: Check if it's an ID
+        if (gamepassSlug.length === 24) {
+          const idData = await getGamepassById(gamepassSlug);
+          if (idData.success && idData.data && idData.data.slug) {
+            router.replace(`/gamepass/${idData.data.slug}`);
+            return;
+          }
+        }
         setError(data.error || "Gamepass tidak ditemukan");
       }
     } catch (error) {
@@ -981,9 +1019,19 @@ export default function GamepassDetailPage() {
                     </div>
                     <div>
                       <p className="text-white/60 text-sm">Total Pembayaran</p>
-                      <p className="text-2xl font-bold text-white">
-                        Rp {(totalPrice - getDiscountAmount()).toLocaleString()}
-                      </p>
+                      {selectedPaymentMethod === "RBXNET_COIN" ? (
+                        <div>
+                          <p className="text-2xl font-bold text-yellow-400 flex items-center">
+                            <img src="/icon/dollar.png" alt="Coin" className="w-6 h-6 mr-2 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
+                            {Number(((totalPrice - getDiscountAmount()) / coinSpendValue).toFixed(2))} Credits
+                          </p>
+                          <p className="text-xs text-white/50 mt-1">Setara Rp {(totalPrice - getDiscountAmount()).toLocaleString()}</p>
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold text-white">
+                          Rp {(totalPrice - getDiscountAmount()).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1072,6 +1120,9 @@ export default function GamepassDetailPage() {
                   onApplyPromo={handleApplyPromo}
                   appliedPromoCode={appliedPromoCode || undefined}
                   promoDiscount={promoDiscount}
+                  selectedPaymentMethod={selectedPaymentMethod}
+                  coinSpendValue={coinSpendValue}
+                  ppnAmount={getPpnAmount()}
                 />
 
                 <div className="mt-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 
 interface Promo {
   _id: string;
@@ -59,15 +59,23 @@ export default function PromosAdmin() {
   const handleOpenModal = (promo: Promo | null = null) => {
     if (promo) {
       setEditingPromo(promo);
+      
+      let localExpiresAt = "";
+      if (promo.expiresAt) {
+        const d = new Date(promo.expiresAt);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        localExpiresAt = d.toISOString().slice(0, 16);
+      }
+
       setFormData({
         code: promo.code,
         discountType: promo.discountType,
         discountValue: promo.discountValue,
         maxUses: promo.maxUses,
-        maxUsesPerUser: promo.maxUsesPerUser || 1,
+        maxUsesPerUser: promo.maxUsesPerUser !== undefined ? promo.maxUsesPerUser : 1,
         minPurchaseAmount: promo.minPurchaseAmount,
         applicableTo: promo.applicableTo || [],
-        expiresAt: promo.expiresAt ? new Date(promo.expiresAt).toISOString().slice(0, 16) : "",
+        expiresAt: localExpiresAt,
         isActive: promo.isActive,
       });
     } else {
@@ -98,10 +106,17 @@ export default function PromosAdmin() {
       const url = editingPromo ? `/api/admin/promos/${editingPromo._id}` : "/api/admin/promos";
       const method = editingPromo ? "PUT" : "POST";
 
+      const payload: any = { ...formData };
+      if (payload.expiresAt) {
+        payload.expiresAt = new Date(payload.expiresAt).toISOString();
+      } else {
+        payload.expiresAt = null;
+      }
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -254,7 +269,7 @@ export default function PromosAdmin() {
                     required
                     min="1"
                     value={formData.discountValue}
-                    onChange={(e) => setFormData({ ...formData, discountValue: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, discountValue: e.target.value ? parseInt(e.target.value) : 0 })}
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
                   />
                 </div>
@@ -267,7 +282,7 @@ export default function PromosAdmin() {
                     type="number"
                     min="0"
                     value={formData.maxUses}
-                    onChange={(e) => setFormData({ ...formData, maxUses: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, maxUses: e.target.value ? parseInt(e.target.value) : 0 })}
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
                   />
                 </div>
@@ -277,7 +292,7 @@ export default function PromosAdmin() {
                     type="number"
                     min="0"
                     value={formData.maxUsesPerUser}
-                    onChange={(e) => setFormData({ ...formData, maxUsesPerUser: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, maxUsesPerUser: e.target.value ? parseInt(e.target.value) : 0 })}
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
                   />
                 </div>
@@ -289,7 +304,7 @@ export default function PromosAdmin() {
                   type="number"
                   min="0"
                   value={formData.minPurchaseAmount}
-                  onChange={(e) => setFormData({ ...formData, minPurchaseAmount: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, minPurchaseAmount: e.target.value ? parseInt(e.target.value) : 0 })}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
                 />
               </div>

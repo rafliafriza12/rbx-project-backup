@@ -68,6 +68,42 @@ async function activateResellerPackage(transaction: any) {
   }
 }
 
+// Activate Coin Top Up for user after payment settlement
+async function activateCoinTopup(transaction: any) {
+  try {
+    if (!transaction.customerInfo?.userId || !transaction.coinDetails?.totalCoins) {
+      console.log("Missing userId or coin details for coin top up activation");
+      return null;
+    }
+
+    if (transaction.coinDetails.isAdded) {
+      console.log("Coins already added to user, skipping.");
+      return true;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) {
+      console.log("User not found for coin top up activation");
+      return null;
+    }
+
+    user.balance = (user.balance || 0) + transaction.coinDetails.totalCoins;
+    await user.save();
+
+    transaction.coinDetails.isAdded = true;
+    await transaction.save();
+
+    console.log(
+      `✅ Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. New balance: ${user.balance}`
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Error in activateCoinTopup:", error);
+    return null;
+  }
+}
+
 // Function to process gamepass purchase for robux_5_hari
 async function processGamepassPurchase(transaction: any) {
   try {
@@ -531,6 +567,18 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Activate Coin Top Up if this is a coin purchase
+        if (
+          statusMapping.paymentStatus === "settlement" &&
+          previousPaymentStatus !== "settlement" &&
+          transaction.serviceType === "coin_topup"
+        ) {
+          const coinResult = await activateCoinTopup(transaction);
+          if (coinResult) {
+            console.log("Coin top up activated");
+          }
+        }
+
         // Check if this is a robux_5_hari transaction that needs processing
         // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
         const hasValidGamepassData =
@@ -555,6 +603,8 @@ export async function POST(request: NextRequest) {
       let targetOrderStatus = statusMapping.orderStatus;
       if (targetOrderStatus === "processing" && (transaction.serviceType === "gamepass" || transaction.serviceCategory === "gamepass" || transaction.serviceCategory === "robux_5_hari")) {
         targetOrderStatus = "pending";
+      } else if (statusMapping.paymentStatus === "settlement" && transaction.serviceType === "coin_topup") {
+        targetOrderStatus = "completed";
       }
 
       // Update order status jika ada dan berubah

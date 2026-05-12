@@ -55,7 +55,52 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+    let products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+
+    // If fetching coin category, auto-calculate price based on global settings
+    if (category === "coin" || products.some(p => p.category === "coin")) {
+      const Settings = (await import("@/models/Settings")).default;
+      const settings = await Settings.findOne({});
+      const coinTopupPrice = settings?.coinTopupPrice || 1000;
+      const coinBonusTiers = settings?.coinBonusTiers || [];
+
+      products = products.map((p: any) => {
+        if (p.category === "coin") {
+          const coinAmount = p.robuxAmount;
+          p.price = coinAmount * coinTopupPrice;
+          
+          // Calculate bonus for display based on tiers, unless customBonusAmount is set
+          let bonusAmount = 0;
+          if (coinBonusTiers.length > 0) {
+            // Find the tier with the highest minAmount that the quantity qualifies for
+            let applicableTier = null;
+            for (const tier of coinBonusTiers) {
+              if (coinAmount >= tier.minAmount) {
+                if (!applicableTier || tier.minAmount > applicableTier.minAmount) {
+                  applicableTier = tier;
+                }
+              }
+            }
+            
+            if (applicableTier) {
+              if (applicableTier.bonusType === "fixed") {
+                bonusAmount = applicableTier.fixedBonus || 0;
+              } else {
+                bonusAmount = Math.floor(coinAmount * ((applicableTier.percentage || 0) / 100));
+              }
+            }
+          }
+          
+          let finalBonusAmount = bonusAmount;
+          // Treats undefined or false as "Manual" (use customBonusAmount)
+          if (!p.useBonusTiers) {
+            finalBonusAmount = p.customBonusAmount || 0;
+          }
+          p.bonusAmount = finalBonusAmount;
+        }
+        return p;
+      });
+    }
 
     return NextResponse.json({
       message: "Produk berhasil diambil",
@@ -88,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     console.log("POST /api/products received body:", body);
-    const { name, description, robuxAmount, price, isActive, category, productType } = body;
+    const { name, description, robuxAmount, price, isActive, category, productType, customBonusAmount, useBonusTiers } = body;
     console.log("Extracted productType:", productType);
 
     // Validation
@@ -117,14 +162,17 @@ export async function POST(request: NextRequest) {
 
       // Calculate price based on robux amount and price per 100 robux
       finalPrice = Math.ceil((robuxAmount / 100) * pricing.pricePerHundred);
+    } else if (category === "coin") {
+      finalPrice = 0;
     } else {
       // For other categories (robux_instant), price must be provided
-      if (!price) {
+      if (price === undefined || price === null || price < 0) {
         return NextResponse.json(
           { error: "Harga harus diisi untuk kategori ini" },
           { status: 400 },
         );
       }
+      finalPrice = price;
     }
 
     // Create new product
@@ -136,6 +184,8 @@ export async function POST(request: NextRequest) {
       isActive: isActive !== undefined ? isActive : true,
       category,
       productType: productType || "regular",
+      customBonusAmount: customBonusAmount || 0,
+      useBonusTiers: useBonusTiers !== undefined ? useBonusTiers : false,
     });
 
     await newProduct.save();

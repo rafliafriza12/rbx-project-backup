@@ -47,7 +47,61 @@ export default function PaymentMethodSelector({
 
   return (
     <div className="space-y-4">
-      {categories.map((category) => {
+      {/* Saldo Internal / RBXNET Credits displayed at the very top without accordion */}
+      {categories.find(c => c.id === "internal")?.methods.map((method) => {
+        const isAvailable = isPaymentMethodAvailable(method, baseAmount);
+        const fee = calculatePaymentFee(baseAmount, method);
+        const limitMessage = getTransactionLimitMessage(method, baseAmount);
+
+        return (
+          <div
+            key={method.id}
+            onClick={() => isAvailable && onSelectMethod(method.id)}
+            className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+              !isAvailable
+                ? "border-primary-600/30 bg-primary-800/30 cursor-not-allowed opacity-60 grayscale"
+                : selectedMethod === method.id
+                  ? "border-primary-100 bg-primary-100/10 shadow-lg cursor-pointer"
+                  : "border-primary-600/50 bg-primary-700/20 hover:border-primary-100/50 hover:bg-primary-600/20 cursor-pointer"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center">
+                {(method.icon && (method.icon.startsWith("http") || method.icon.startsWith("/"))) ? (
+                  <img
+                    src={method.icon}
+                    alt={method.name}
+                    className={`w-8 h-8 object-contain mr-3 ${method.icon.startsWith("http") ? "bg-white rounded p-1" : "drop-shadow-lg"}`}
+                  />
+                ) : (
+                  <span className={`text-lg mr-2 ${!isAvailable ? "opacity-50" : ""}`}>
+                    {method.icon}
+                  </span>
+                )}
+                <span className={`font-bold text-base ${!isAvailable ? "text-white/50" : "text-white"}`}>
+                  {method.name}
+                </span>
+              </div>
+              <div className="text-right flex items-center gap-2">
+                {selectedMethod === method.id && (
+                  <CheckCircle2 className="w-5 h-5 text-primary-100" fill="currentColor" />
+                )}
+                {!isAvailable && limitMessage ? (
+                  <div className="text-xs text-red-400 font-medium">
+                    {limitMessage}
+                  </div>
+                ) : (
+                  <div className="text-sm text-yellow-400 font-bold">
+                    {method.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {categories.filter(c => c.id !== "internal").map((category) => {
         const availableMethodsCount = category.methods.filter(
           (method) => isPaymentMethodAvailable(method, baseAmount),
         ).length;

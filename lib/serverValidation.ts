@@ -235,11 +235,17 @@ export function getVerifiedQuantity(
     };
   }
 
-  if (parsed > MAX_QUANTITY) {
+  // MAX_QUANTITY check
+  let currentMaxQuantity = MAX_QUANTITY;
+  if (serviceType === "coin_topup") {
+    currentMaxQuantity = 1000000; // Allow large custom coin topup
+  }
+
+  if (parsed > currentMaxQuantity) {
     return {
       valid: false,
       quantity: 0,
-      error: `Quantity maksimal ${MAX_QUANTITY}`,
+      error: `Quantity maksimal ${currentMaxQuantity}`,
     };
   }
 
@@ -403,6 +409,8 @@ export async function getVerifiedUnitPrice(
       };
     }
 
+
+
     // ---- ROBUX 5 HARI ----
     if (
       serviceType === "robux" &&
@@ -560,6 +568,92 @@ export async function getVerifiedUnitPrice(
       };
     }
 
+    // ---- COIN TOPUP ----
+    if (serviceType === "coin_topup") {
+      const Settings = (await import("@/models/Settings")).default;
+      const settings = await Settings.getSiteSettings();
+      const coinTopupPrice = settings?.coinTopupPrice || 1000;
+
+      // Calculate bonus based on number of coins (quantity) using coinBonusTiers
+      let bonusAmount = 0;
+      if (settings.coinBonusTiers && Array.isArray(settings.coinBonusTiers)) {
+        // Find the tier with the highest minAmount that the quantity qualifies for
+        let applicableTier = null;
+        for (const tier of settings.coinBonusTiers) {
+          if (quantity >= tier.minAmount) {
+            if (!applicableTier || tier.minAmount > applicableTier.minAmount) {
+              applicableTier = tier;
+            }
+          }
+        }
+        
+        if (applicableTier) {
+          if (applicableTier.bonusType === "fixed") {
+            bonusAmount = applicableTier.fixedBonus || 0;
+          } else {
+            bonusAmount = Math.floor(quantity * ((applicableTier.percentage || 0) / 100));
+          }
+        }
+      }
+      
+      const verifiedCoinDetails = {
+        amount: quantity,
+        bonusAmount: bonusAmount,
+        totalCoins: quantity + bonusAmount,
+      };
+
+      const Product = (await import("@/models/Product")).default;
+
+      if (serviceId === "custom_coin") {
+        // Cek apakah ada paket credits yang jumlahnya sama persis dengan input custom
+        const matchingProduct = await Product.findOne({ category: "coin", robuxAmount: quantity, isActive: true });
+        
+        let customFinalBonus = bonusAmount;
+        if (matchingProduct && !matchingProduct.useBonusTiers) {
+          // Jika ada paket yang jumlahnya sama dan paket itu pakai bonus manual, ikuti bonus manual paket tersebut
+          customFinalBonus = matchingProduct.customBonusAmount || 0;
+        }
+
+        return {
+          valid: true,
+          unitPrice: coinTopupPrice,
+          verifiedCoinDetails: {
+            amount: quantity,
+            bonusAmount: customFinalBonus,
+            totalCoins: quantity + customFinalBonus,
+          }
+        };
+      } else {
+        const product = await Product.findById(serviceId);
+        
+        if (product && product.category === "coin") {
+          // Hitung bonus akhir berdasarkan pengaturan produk
+          let finalBonusAmount = bonusAmount; // Default pakai hasil Tier Otomatis
+          
+          if (!product.useBonusTiers) {
+            // Jika fitur otomatis dimatikan atau undefined, maka MURNI pakai customBonusAmount
+            finalBonusAmount = product.customBonusAmount || 0;
+          }
+          
+          return {
+            valid: true,
+            unitPrice: coinTopupPrice, // Price per single coin
+            verifiedCoinDetails: {
+              amount: quantity,
+              bonusAmount: finalBonusAmount,
+              totalCoins: quantity + finalBonusAmount,
+            }
+          };
+        }
+
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: `Paket Credits tidak ditemukan: ${serviceId}`,
+        };
+      }
+    }
+
     // Tipe tidak dikenal - tolak
     return {
       valid: false,
@@ -644,22 +738,32 @@ export async function getVerifiedPaymentFee(
     const mongoose = await import("mongoose");
 
     let paymentMethodDoc = null;
+    let paymentMethodName = null;
+    let validPaymentMethodId = null;
 
-    // Cek apakah paymentMethodId adalah ObjectId atau code
-    if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
-      paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+    if (paymentMethodId === "RBXNET_COIN") {
+      paymentMethodName = "RBXNET Credits";
+      validPaymentMethodId = "RBXNET_COIN";
     } else {
-      // Cari berdasarkan code (case-insensitive)
-      paymentMethodDoc = await PaymentMethod.findOne({
-        $or: [
-          { code: paymentMethodId.toUpperCase() },
-          { code: paymentMethodId.toLowerCase() },
-          { code: paymentMethodId },
-        ],
-      });
+      if (mongoose.default.Types.ObjectId.isValid(paymentMethodId)) {
+        paymentMethodDoc = await PaymentMethod.findById(paymentMethodId);
+      } else {
+        paymentMethodDoc = await PaymentMethod.findOne({
+          $or: [
+            { code: paymentMethodId.toUpperCase() },
+            { code: paymentMethodId.toLowerCase() },
+            { code: paymentMethodId },
+          ],
+        });
+      }
+
+      if (paymentMethodDoc) {
+        paymentMethodName = paymentMethodDoc.name;
+        validPaymentMethodId = paymentMethodDoc._id.toString();
+      }
     }
 
-    if (!paymentMethodDoc) {
+    if (!paymentMethodDoc && validPaymentMethodId !== "RBXNET_COIN") {
       console.warn(`Payment method tidak ditemukan: ${paymentMethodId}`);
       return {
         fee: 0,
@@ -670,7 +774,7 @@ export async function getVerifiedPaymentFee(
     }
 
     // Validasi apakah payment method aktif
-    if (!paymentMethodDoc.isActive) {
+    if (paymentMethodDoc && !paymentMethodDoc.isActive) {
       console.warn(`Payment method tidak aktif: ${paymentMethodDoc.name}`);
       return {
         fee: 0,
@@ -681,38 +785,44 @@ export async function getVerifiedPaymentFee(
     }
 
     // Validasi min/max amount
-    if (
-      paymentMethodDoc.minimumAmount &&
-      paymentMethodDoc.minimumAmount > 0 &&
-      baseAmount < paymentMethodDoc.minimumAmount
-    ) {
-      console.warn(
-        `Amount ${baseAmount} di bawah minimum ${paymentMethodDoc.minimumAmount} untuk ${paymentMethodDoc.name}`,
-      );
-    }
+    if (paymentMethodDoc) {
+      if (
+        paymentMethodDoc.minimumAmount &&
+        paymentMethodDoc.minimumAmount > 0 &&
+        baseAmount < paymentMethodDoc.minimumAmount
+      ) {
+        console.warn(
+          `Amount ${baseAmount} di bawah minimum ${paymentMethodDoc.minimumAmount} untuk ${paymentMethodDoc.name}`,
+        );
+      }
 
-    if (
-      paymentMethodDoc.maximumAmount &&
-      paymentMethodDoc.maximumAmount > 0 &&
-      baseAmount > paymentMethodDoc.maximumAmount
-    ) {
-      console.warn(
-        `Amount ${baseAmount} di atas maximum ${paymentMethodDoc.maximumAmount} untuk ${paymentMethodDoc.name}`,
-      );
+      if (
+        paymentMethodDoc.maximumAmount &&
+        paymentMethodDoc.maximumAmount > 0 &&
+        baseAmount > paymentMethodDoc.maximumAmount
+      ) {
+        console.warn(
+          `Amount ${baseAmount} di atas maximum ${paymentMethodDoc.maximumAmount} untuk ${paymentMethodDoc.name}`,
+        );
+      }
     }
 
     // Hitung fee dari database
     let calculatedFee = 0;
-    if (paymentMethodDoc.feeType === "percentage") {
-      calculatedFee = Math.round((baseAmount * paymentMethodDoc.fee) / 100);
-    } else {
-      calculatedFee = paymentMethodDoc.fee || 0;
+    if (validPaymentMethodId === "RBXNET_COIN") {
+      calculatedFee = 0;
+    } else if (paymentMethodDoc) {
+      if (paymentMethodDoc.feeType === "percentage") {
+        calculatedFee = Math.round((baseAmount * paymentMethodDoc.fee) / 100);
+      } else {
+        calculatedFee = paymentMethodDoc.fee || 0;
+      }
     }
 
     return {
       fee: calculatedFee,
-      paymentMethodName: paymentMethodDoc.name,
-      validPaymentMethodId: paymentMethodDoc._id.toString(),
+      paymentMethodName: validPaymentMethodId === "RBXNET_COIN" ? "RBXNET Credits" : paymentMethodDoc.name,
+      validPaymentMethodId: validPaymentMethodId === "RBXNET_COIN" ? "RBXNET_COIN" : paymentMethodDoc._id.toString(),
       paymentMethodDoc,
     };
   } catch (error) {
@@ -755,6 +865,7 @@ export async function validateSingleTransaction(body: any): Promise<{
       discount: number;
       features: string[];
     };
+    verifiedCoinDetails?: any;
     verifiedServiceName?: string;
     // Robux Instant verified values from DB
     verifiedRobuxInstantDetails?: {
@@ -949,6 +1060,7 @@ export async function validateSingleTransaction(body: any): Promise<{
       verifiedPricePerHundred: priceCheck.pricePerHundred,
       // Reseller verified values from DB
       verifiedResellerDetails: priceCheck.verifiedResellerDetails,
+      verifiedCoinDetails: priceCheck.verifiedCoinDetails,
       verifiedServiceName: priceCheck.verifiedServiceName,
       // Robux Instant verified values from DB
       verifiedRobuxInstantDetails: priceCheck.verifiedRobuxInstantDetails,
@@ -973,6 +1085,9 @@ export async function validateMultiTransactionItem(
   verifiedRobuxAmount?: number;
   verifiedGamepassAmount?: number;
   verifiedPricePerHundred?: number;
+  verifiedResellerDetails?: any;
+  verifiedCoinDetails?: any;
+  verifiedServiceName?: string;
   verifiedRobuxInstantDetails?: {
     robuxAmount: number;
     productName: string;
@@ -1047,6 +1162,9 @@ export async function validateMultiTransactionItem(
     verifiedRobuxAmount: priceCheck.robuxAmount,
     verifiedGamepassAmount: priceCheck.gamepassAmount,
     verifiedPricePerHundred: priceCheck.pricePerHundred,
+    verifiedResellerDetails: priceCheck.verifiedResellerDetails,
+    verifiedCoinDetails: priceCheck.verifiedCoinDetails,
+    verifiedServiceName: priceCheck.verifiedServiceName,
     verifiedRobuxInstantDetails: priceCheck.verifiedRobuxInstantDetails,
     verifiedGamepassDetails: priceCheck.verifiedGamepassDetails,
   };

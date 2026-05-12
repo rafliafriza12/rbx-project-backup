@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Promo from "@/models/Promo";
 
-export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin(req);
   } catch (error: any) {
@@ -12,7 +12,8 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
 
   await dbConnect();
   try {
-    const { id } = context.params;
+    const params = await context.params;
+    const { id } = params;
     const body = await req.json();
 
     const promo = await Promo.findByIdAndUpdate(
@@ -31,7 +32,7 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
   }
 }
 
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin(req);
   } catch (error: any) {
@@ -40,7 +41,8 @@ export async function DELETE(req: NextRequest, context: { params: { id: string }
 
   await dbConnect();
   try {
-    const { id } = context.params;
+    const params = await context.params;
+    const { id } = params;
     const promo = await Promo.findByIdAndDelete(id);
 
     if (!promo) {

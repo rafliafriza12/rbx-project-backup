@@ -124,6 +124,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validasi tipe data untuk mencegah NoSQL injection
+    if (
+      typeof username !== "string" ||
+      typeof serviceType !== "string" ||
+      typeof rating !== "number" ||
+      typeof comment !== "string"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Tipe data tidak valid" },
+        { status: 400 },
+      );
+    }
+
+    if (transactionId && typeof transactionId !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Format transactionId tidak valid" },
+        { status: 400 },
+      );
+    }
+
     // Validasi rating
     if (rating < 1 || rating > 5) {
       return NextResponse.json(
@@ -146,13 +166,18 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Fetch profile picture if available
+      // Fetch profile picture and service image if available
       try {
         const transaction = await Transaction.findById(transactionId).lean();
-        if (transaction && transaction.customerInfo && transaction.customerInfo.userId) {
-          const user = await User.findById(transaction.customerInfo.userId).lean();
-          if (user && user.profilePicture) {
-            profilePicture = user.profilePicture;
+        if (transaction) {
+          if (transaction.customerInfo && transaction.customerInfo.userId) {
+            const user = await User.findById(transaction.customerInfo.userId).lean();
+            if (user && user.profilePicture) {
+              profilePicture = user.profilePicture;
+            }
+          }
+          if (transaction.serviceImage) {
+            body.serviceImage = transaction.serviceImage; // attach to body to be saved
           }
         }
       } catch (err) {
@@ -196,6 +221,7 @@ export async function POST(request: NextRequest) {
       comment,
       transactionId,
       profilePicture,
+      serviceImage: body.serviceImage, // Simpan serviceImage dari transaction
       isApproved: false, // Default false, need admin approval
     });
 

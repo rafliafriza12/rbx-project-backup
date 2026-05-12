@@ -5,6 +5,7 @@ import Settings from "@/models/Settings";
 import Promo from "@/models/Promo";
 import MidtransService from "@/lib/midtrans";
 import { duitkuService } from "@/lib/duitku";
+import fs from "fs";
 import EmailService from "@/lib/email";
 import {
   authenticateToken,
@@ -621,6 +622,10 @@ async function handleMultiItemDirectPurchase(body: any) {
       transactionData.serviceCategory = item.serviceCategory;
     }
 
+    if (itemValidation.verifiedCoinDetails) {
+      transactionData.coinDetails = itemValidation.verifiedCoinDetails;
+    }
+
     if (item.gamepassDetails) {
       // SANITIZE gamepassDetails: use verified data from DB, only allow additionalInfo from client
       if (itemValidation.verifiedGamepassDetails) {
@@ -900,7 +905,7 @@ async function handleMultiItemDirectPurchase(body: any) {
   if (paymentMethodName) {
     for (const transaction of createdTransactions) {
       transaction.paymentMethodName = paymentMethodName;
-      if (validPaymentMethodId) {
+      if (validPaymentMethodId && validPaymentMethodId !== "RBXNET_COIN") {
         transaction.paymentMethodId = validPaymentMethodId;
       }
     }
@@ -1005,7 +1010,68 @@ async function handleMultiItemDirectPurchase(body: any) {
       transactionId?: string;
     };
 
-    if (activeGateway === "duitku") {
+    if (validPaymentMethodId === "RBXNET_COIN") {
+      // ===== RBXNET COIN PAYMENT (INTERNAL BALANCE) =====
+      console.log("Using RBXNET Credits internal balance");
+      if (!userId) {
+        throw new Error("User must be logged in to use RBXNET Credits");
+      }
+      const User = (await import("@/models/User")).default;
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      
+      // PREVENT buying coins with coins (Infinite Money Glitch)
+      const hasCoinTopup = createdTransactions.some((t: any) => t.serviceType === "coin_topup");
+      if (hasCoinTopup) {
+        return NextResponse.json(
+          { error: "RBXNET Credits tidak dapat digunakan untuk membeli saldo Credits" },
+          { status: 400 }
+        );
+      }
+      
+      const coinsRequired = Number((totalItemsAmount / (settings.coinSpendValue || 1000)).toFixed(2));
+      
+      if ((user.balance || 0) < coinsRequired) {
+        return NextResponse.json(
+          { error: `Saldo Credits tidak cukup. Dibutuhkan: ${coinsRequired} credits, Saldo: ${user.balance || 0} credits` },
+          { status: 400 }
+        );
+      }
+      
+      // Deduct balance with 2 decimal precision
+      user.balance = Number((user.balance - coinsRequired).toFixed(2));
+      await user.save();
+      
+      // Update all transactions to paid
+      const updatePromises = createdTransactions.map(async (transaction) => {
+        transaction.paymentStatus = "settlement";
+        transaction.paidAt = new Date();
+        transaction.midtransOrderId = masterOrderId;
+        
+        // Adjust order status based on service
+        if (transaction.serviceCategory === "robux_5_hari") {
+          transaction.orderStatus = "pending";
+        } else {
+          transaction.orderStatus = "processing";
+        }
+        
+        transaction.statusHistory.push({
+          status: "payment:settlement",
+          timestamp: new Date(),
+          notes: `Paid with RBXNET Credits (${coinsRequired} coins)`,
+          updatedBy: "system"
+        });
+        
+        return transaction.save();
+      });
+      
+      await Promise.all(updatePromises);
+      
+      paymentResult = {};
+      
+    } else if (activeGateway === "duitku") {
       // ===== DUITKU PAYMENT GATEWAY =====
       console.log("Using Duitku payment gateway");
 
@@ -1336,8 +1402,8 @@ async function handleSingleItemTransaction(body: any) {
   let passwordRequired = false;
   let usernameRequired = true;
 
-  // Reseller packages don't need Roblox credentials
-  if (serviceType === "reseller") {
+  // Reseller and coin_topup packages don't need Roblox credentials
+  if (serviceType === "reseller" || serviceType === "coin_topup") {
     usernameRequired = false;
     passwordRequired = false;
   } else if (serviceType === "robux") {
@@ -1456,6 +1522,7 @@ async function handleSingleItemTransaction(body: any) {
     verifiedServiceName,
     verifiedRobuxInstantDetails,
     verifiedGamepassDetails,
+    verifiedCoinDetails,
   } = validation.verified;
 
   console.log("✅ Server-side validation passed. Using verified values:");
@@ -1525,6 +1592,9 @@ async function handleSingleItemTransaction(body: any) {
 
   const finalDiscountAmount = verifiedDiscountAmount + promoDiscountAmount;
   const finalAmountBeforeFeeWithPromo = verifiedTotalAmount - finalDiscountAmount;
+
+  const isTaxable = ["robux", "gamepass", "coin_topup"].includes(serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(serviceCategory);
+  const ppnAmount = isTaxable ? Math.round(finalAmountBeforeFeeWithPromo * 0.11) : 0;
 
   // ============================================================
   // VERIFY GAMEPASS via Roblox API for rbx5_hari (anti-spoof)
@@ -1596,7 +1666,8 @@ async function handleSingleItemTransaction(body: any) {
     totalAmount: verifiedTotalAmount,
     discountPercentage: verifiedDiscountPercentage,
     discountAmount: finalDiscountAmount,
-    finalAmount: finalAmountBeforeFeeWithPromo,
+    ppnAmount: ppnAmount,
+    finalAmount: finalAmountBeforeFeeWithPromo + ppnAmount,
     promoCode: appliedPromoCode || undefined,
     robloxUsername: verifiedRobloxUsername, // Verified from Roblox API (empty for reseller)
     robloxPassword: robloxPassword || "", // Empty string for gamepass, robux_5_hari, and reseller
@@ -1612,6 +1683,7 @@ async function handleSingleItemTransaction(body: any) {
           additionalInfo: robuxInstantDetails?.additionalInfo || "",
         }
       : undefined,
+    coinDetails: verifiedCoinDetails || undefined,
     // SANITIZE rbx5Details: ALL gamepass data from Roblox API, not client
     rbx5Details: rbx5Details
       ? {
@@ -1649,7 +1721,7 @@ async function handleSingleItemTransaction(body: any) {
       : undefined,
     // SANITIZE resellerDetails: use verified data from DB, NOT from frontend
     resellerDetails: verifiedResellerDetails || undefined,
-    paymentMethodId: validPaymentMethodId, // Use validated ObjectId or null
+    paymentMethodId: validPaymentMethodId === "RBXNET_COIN" ? undefined : validPaymentMethodId, // Use validated ObjectId or undefined
     paymentMethodName: paymentMethodName,
     customerInfo: {
       ...customerInfo,
@@ -1701,15 +1773,15 @@ async function handleSingleItemTransaction(body: any) {
   // Generate Midtrans order ID
   const midtransOrderId = transaction.generateMidtransOrderId();
 
-  // Calculate price after discount (WITHOUT payment fee) - USING VERIFIED VALUES
-  const amountAfterDiscount = finalAmountBeforeFeeWithPromo;
-  const finalUnitPrice = Math.round(amountAfterDiscount / verifiedQuantity);
+  // Calculate price after discount and PPN (WITHOUT payment fee) - USING VERIFIED VALUES
+  const amountAfterDiscountAndPpn = finalAmountBeforeFeeWithPromo + ppnAmount;
+  const finalUnitPrice = Math.round(amountAfterDiscountAndPpn / verifiedQuantity);
 
   console.log("=== PRICE CALCULATION DEBUG (VERIFIED) ===");
   console.log("Total Amount (verified):", verifiedTotalAmount);
   console.log("Discount Amount (verified):", verifiedDiscountAmount);
   console.log("Promo Discount Amount:", promoDiscountAmount);
-  console.log("Amount After Discount (verified):", amountAfterDiscount);
+  console.log("Amount After Discount And PPN (verified):", amountAfterDiscountAndPpn);
   console.log("Quantity (verified):", verifiedQuantity);
   console.log("Final Unit Price:", finalUnitPrice);
   console.log("Payment Fee (verified):", verifiedPaymentFee);
@@ -1769,6 +1841,8 @@ async function handleSingleItemTransaction(body: any) {
       });
     }
 
+    // PPN is now merged into the main product price
+
     // Calculate total items amount
     const totalItemsAmount = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -1793,7 +1867,72 @@ async function handleSingleItemTransaction(body: any) {
       qrString?: string;
     };
 
-    if (activeGateway === "duitku") {
+    try {
+      fs.appendFileSync("tx_debug.log", `SINGLE TX: paymentMethodId=${paymentMethodId}, validPaymentMethodId=${validPaymentMethodId}\n`);
+    } catch (e) {}
+
+    if (validPaymentMethodId === "RBXNET_COIN") {
+      // ===== RBXNET COIN PAYMENT (INTERNAL BALANCE) =====
+      console.log("Using RBXNET Credits internal balance");
+      if (!userId) {
+        throw new Error("User must be logged in to use RBXNET Credits");
+      }
+      const User = (await import("@/models/User")).default;
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      
+      // PREVENT buying coins with coins (Infinite Money Glitch)
+      if (serviceType === "coin_topup") {
+        return NextResponse.json(
+          { error: "RBXNET Credits tidak dapat digunakan untuk membeli saldo Credits" },
+          { status: 400 }
+        );
+      }
+      
+      const coinsRequired = Number((totalItemsAmount / (settings.coinSpendValue || 1000)).toFixed(2));
+      
+      if ((user.balance || 0) < coinsRequired) {
+        return NextResponse.json(
+          { error: `Saldo Credits tidak cukup. Dibutuhkan: ${coinsRequired} credits, Saldo: ${user.balance || 0} credits` },
+          { status: 400 }
+        );
+      }
+      
+      // Deduct balance with 2 decimal precision
+      user.balance = Number((user.balance - coinsRequired).toFixed(2));
+      await user.save();
+      
+      // Mark transaction as paid
+      transaction.paymentStatus = "settlement";
+      transaction.paidAt = new Date();
+      transaction.midtransOrderId = orderId;
+      
+      // Adjust order status based on service
+      let finalOrderStatus = "processing";
+      if (serviceCategory === "robux_5_hari") {
+        finalOrderStatus = "pending";
+      }
+      transaction.orderStatus = finalOrderStatus;
+      
+      transaction.statusHistory.push({
+        status: "payment:settlement",
+        timestamp: new Date(),
+        notes: `Paid with RBXNET Credits (${coinsRequired} coins)`,
+        updatedBy: "system"
+      });
+      
+      transaction.statusHistory.push({
+        status: `order:${finalOrderStatus}`,
+        timestamp: new Date(),
+        notes: "Pesanan masuk antrean sistem otomatis",
+        updatedBy: "system"
+      });
+      
+      paymentResult = {};
+      
+    } else if (activeGateway === "duitku") {
       // ===== DUITKU PAYMENT GATEWAY =====
       console.log("Using Duitku payment gateway");
 

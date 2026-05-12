@@ -88,6 +88,9 @@ export async function POST(request: NextRequest) {
       if (statusMapping.paymentStatus === "settlement" && transaction.serviceCategory === "robux_5_hari") {
         finalOrderStatus = "pending";
         orderNote = "Pesanan sedang diproses admin";
+      } else if (statusMapping.paymentStatus === "settlement" && transaction.serviceType === "coin_topup") {
+        finalOrderStatus = "completed";
+        orderNote = "Pesanan selesai dan credits berhasil ditambahkan ke akun";
       }
 
       transaction.paymentStatus = statusMapping.paymentStatus;
@@ -163,9 +166,9 @@ export async function POST(request: NextRequest) {
       if (!wasAlreadySettled) {
         // Activate reseller if this is a reseller package purchase
         for (const transaction of transactions) {
-          if (transaction.serviceType === "reseller" && transaction.userId) {
+          if (transaction.serviceType === "reseller" && transaction.customerInfo?.userId) {
             try {
-              const user = await User.findById(transaction.userId);
+              const user = await User.findById(transaction.customerInfo.userId);
               if (user && transaction.serviceId) {
                 const resellerPackage = await ResellerPackage.findById(
                   transaction.serviceId,
@@ -192,6 +195,29 @@ export async function POST(request: NextRequest) {
             } catch (resellerError) {
               console.error("Failed to activate reseller:", resellerError);
               // Don't fail the webhook for reseller activation errors
+            }
+          }
+
+          // Activate Coin Top Up if this is a coin purchase
+          if (transaction.serviceType === "coin_topup" && transaction.customerInfo?.userId) {
+            try {
+              const user = await User.findById(transaction.customerInfo.userId);
+              if (user && transaction.coinDetails?.totalCoins) {
+                if (transaction.coinDetails.isAdded) {
+                  console.log("Coins already added to user, skipping.");
+                } else {
+                  user.balance = (user.balance || 0) + transaction.coinDetails.totalCoins;
+                  await user.save();
+                  
+                  transaction.coinDetails.isAdded = true;
+                  await transaction.save();
+                  
+                  console.log(`Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. New balance: ${user.balance}`);
+                }
+              }
+            } catch (coinError) {
+              console.error("Failed to add coins:", coinError);
+              // Don't fail the webhook for coin activation errors
             }
           }
         }
