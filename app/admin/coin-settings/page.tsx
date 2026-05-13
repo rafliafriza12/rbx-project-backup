@@ -8,15 +8,15 @@ import { Coins, Save, Percent, RefreshCw, ShoppingCart, Plus, Edit, Trash2 } fro
 import { fetchProductsAdmin, createProduct, updateProduct, deleteProduct } from "../products/actions";
 
 interface CoinBonusTier {
-  minAmount: number;
+  minAmount: number | undefined;
   bonusType?: "percentage" | "fixed";
-  percentage?: number;
-  fixedBonus?: number;
+  percentage?: number | undefined;
+  fixedBonus?: number | undefined;
 }
 
 interface CoinSettings {
-  coinTopupPrice: number;
-  coinSpendValue: number;
+  coinTopupPrice: number | undefined;
+  coinSpendValue: number | undefined;
   coinBonusTiers: CoinBonusTier[];
 }
 
@@ -112,7 +112,7 @@ export default function CoinEconomyPage() {
     if (field === 'coinBonusTiers') return; // Handled separately
     setSettings((prev) => ({
       ...prev,
-      [field]: isNaN(value) ? 0 : value,
+      [field]: isNaN(value) ? undefined : value,
     }));
     setHasChanges(true);
   };
@@ -140,7 +140,7 @@ export default function CoinEconomyPage() {
       if (field === "bonusType") {
         newTiers[index] = { ...newTiers[index], [field]: value };
       } else {
-        newTiers[index] = { ...newTiers[index], [field]: isNaN(value) ? 0 : value };
+        newTiers[index] = { ...newTiers[index], [field]: isNaN(value) ? undefined : value };
       }
       return { ...prev, coinBonusTiers: newTiers };
     });
@@ -391,7 +391,8 @@ export default function CoinEconomyPage() {
                   </span>
                   <input
                     type="number"
-                    value={settings.coinTopupPrice || ""}
+                    step="0.01"
+                    value={settings.coinTopupPrice ?? ""}
                     onChange={(e) => handleInputChange("coinTopupPrice", parseFloat(e.target.value))}
                     className="flex-1 block w-full min-w-0 rounded-none rounded-r-lg bg-[#0f172a] border border-[#334155] focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500 text-white placeholder-[#475569] px-4 py-3"
                     placeholder="Contoh: 5000"
@@ -425,7 +426,8 @@ export default function CoinEconomyPage() {
                   </span>
                   <input
                     type="number"
-                    value={settings.coinSpendValue || ""}
+                    step="0.01"
+                    value={settings.coinSpendValue ?? ""}
                     onChange={(e) => handleInputChange("coinSpendValue", parseFloat(e.target.value))}
                     className="flex-1 block w-full min-w-0 rounded-none rounded-r-lg bg-[#0f172a] border border-[#334155] focus:ring-2 focus:ring-green-500 focus:border-green-500 text-white placeholder-[#475569] px-4 py-3"
                     placeholder="Contoh: 5500"
@@ -494,7 +496,7 @@ export default function CoinEconomyPage() {
                         </span>
                         <input
                           type="number"
-                          value={tier.minAmount || ""}
+                          value={tier.minAmount ?? ""}
                           onChange={(e) => updateBonusTier(index, "minAmount", parseInt(e.target.value))}
                           className="flex-1 block w-full min-w-0 rounded-none rounded-r-lg bg-[#1e293b] border border-[#334155] focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500 text-white placeholder-[#475569] px-4 py-2"
                           placeholder="Contoh: 100"
@@ -523,7 +525,7 @@ export default function CoinEconomyPage() {
                         {tier.bonusType === "fixed" ? (
                           <input
                             type="number"
-                            value={tier.fixedBonus || ""}
+                            value={tier.fixedBonus ?? ""}
                             onChange={(e) => updateBonusTier(index, "fixedBonus", parseInt(e.target.value))}
                             className="flex-1 block w-full min-w-0 rounded-none rounded-r-lg bg-[#1e293b] border border-[#334155] focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500 text-white placeholder-[#475569] px-4 py-2"
                             placeholder="Contoh: 5"
@@ -531,8 +533,9 @@ export default function CoinEconomyPage() {
                         ) : (
                           <input
                             type="number"
-                            value={tier.percentage || ""}
-                            onChange={(e) => updateBonusTier(index, "percentage", parseInt(e.target.value))}
+                            step="0.01"
+                            value={tier.percentage ?? ""}
+                            onChange={(e) => updateBonusTier(index, "percentage", parseFloat(e.target.value))}
                             className="flex-1 block w-full min-w-0 rounded-none rounded-r-lg bg-[#1e293b] border border-[#334155] focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500 text-white placeholder-[#475569] px-4 py-2"
                             placeholder="Contoh: 10"
                           />
