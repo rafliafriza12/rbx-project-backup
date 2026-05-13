@@ -295,8 +295,7 @@ export default function RobuxInstan() {
   };
 
   const getPpnAmount = () => {
-    if (!selectedProduct) return 0;
-    return Math.round((selectedProduct.price - getDiscountAmount() - promoDiscount) * 0.11);
+    return 0; // PPN 11% dinonaktifkan untuk Robux Instant
   };
 
   const nextStep = () => {

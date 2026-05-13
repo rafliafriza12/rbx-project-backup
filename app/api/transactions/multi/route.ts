@@ -521,7 +521,7 @@ export async function POST(request: NextRequest) {
         const itemPromoDiscountAmount = Math.round(totalPromoDiscountAmount * itemRatio);
         const itemFinalAmount = transaction.totalAmount - itemDiscountAmount - itemPromoDiscountAmount;
 
-        const isTaxable = ["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory);
+        const isTaxable = (["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
         const itemPpnAmount = isTaxable ? Math.round(itemFinalAmount * 0.11) : 0;
         
         transaction.discountPercentage = verifiedDiscountPercentage;
@@ -535,7 +535,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Masih harus simpan finalAmount
       for (const transaction of createdTransactions) {
-         const isTaxable = ["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory);
+         const isTaxable = (["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
          const itemPpnAmount = isTaxable ? Math.round(transaction.totalAmount * 0.11) : 0;
          
          transaction.discountPercentage = 0;
@@ -593,7 +593,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Apply PPN directly to the item price if taxable
-        const isTaxable = ["robux", "gamepass"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category);
+        const isTaxable = (["robux", "gamepass"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category)) && item.category !== "robux_instant";
         if (isTaxable) {
           item.price += Math.round(item.price * 0.11);
         }
