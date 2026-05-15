@@ -20,14 +20,21 @@ import ResellerPackage from "@/models/ResellerPackage";
 async function activateResellerPackage(transaction: any) {
   try {
     if (!transaction.customerInfo?.userId || !transaction.serviceId) {
+      console.log(`[Admin API] Missing userId or serviceId for reseller activation (Invoice: ${transaction.invoiceId})`);
       return null;
     }
 
     const user = await User.findById(transaction.customerInfo.userId);
-    if (!user) return null;
+    if (!user) {
+      console.log(`[Admin API] User not found for reseller activation (UserId: ${transaction.customerInfo.userId})`);
+      return null;
+    }
 
     const resellerPackage = await ResellerPackage.findById(transaction.serviceId);
-    if (!resellerPackage) return null;
+    if (!resellerPackage) {
+      console.log(`[Admin API] Reseller package not found: ${transaction.serviceId}`);
+      return null;
+    }
 
     const expiryDate = new Date();
     expiryDate.setMonth(expiryDate.getMonth() + resellerPackage.duration);
@@ -37,10 +44,10 @@ async function activateResellerPackage(transaction: any) {
     user.resellerPackageId = resellerPackage._id;
     await user.save();
 
-    console.log(`✅ Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}`);
+    console.log(`[Admin API] ✅ Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}`);
     return true;
   } catch (error) {
-    console.error("Error in activateResellerPackage:", error);
+    console.error("[Admin API] Error in activateResellerPackage:", error);
     return null;
   }
 }
@@ -48,28 +55,40 @@ async function activateResellerPackage(transaction: any) {
 // Activate Coin Top Up for user after payment settlement
 async function activateCoinTopup(transaction: any) {
   try {
-    if (!transaction.customerInfo?.userId || !transaction.coinDetails?.totalCoins) {
+    console.log(`[Admin API] Starting coin activation for Invoice: ${transaction.invoiceId}`);
+    
+    if (!transaction.customerInfo?.userId) {
+      console.log(`[Admin API] ❌ Missing customerInfo.userId for coin top up (Invoice: ${transaction.invoiceId})`);
+      return null;
+    }
+
+    if (!transaction.coinDetails?.totalCoins) {
+      console.log(`[Admin API] ❌ Missing coinDetails.totalCoins (Invoice: ${transaction.invoiceId})`, transaction.coinDetails);
       return null;
     }
 
     if (transaction.coinDetails.isAdded) {
-      console.log("Coins already added to user, skipping.");
+      console.log(`[Admin API] ℹ️ Coins already added to user for Invoice ${transaction.invoiceId}, skipping.`);
       return true;
     }
 
     const user = await User.findById(transaction.customerInfo.userId);
-    if (!user) return null;
+    if (!user) {
+      console.log(`[Admin API] ❌ User not found for coin top up (UserId: ${transaction.customerInfo.userId})`);
+      return null;
+    }
 
-    user.balance = (user.balance || 0) + transaction.coinDetails.totalCoins;
+    const previousBalance = user.balance || 0;
+    user.balance = previousBalance + transaction.coinDetails.totalCoins;
     await user.save();
 
     transaction.coinDetails.isAdded = true;
     await transaction.save();
 
-    console.log(`✅ Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. New balance: ${user.balance}`);
+    console.log(`[Admin API] ✅ SUCCESS: Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. Previous: ${previousBalance}, New: ${user.balance}`);
     return true;
   } catch (error) {
-    console.error("Error in activateCoinTopup:", error);
+    console.error("[Admin API] ❌ Error in activateCoinTopup:", error);
     return null;
   }
 }

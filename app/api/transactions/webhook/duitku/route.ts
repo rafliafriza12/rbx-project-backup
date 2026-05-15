@@ -71,35 +71,43 @@ async function activateResellerPackage(transaction: any) {
 // Activate Coin Top Up for user after payment settlement
 async function activateCoinTopup(transaction: any) {
   try {
-    if (!transaction.customerInfo?.userId || !transaction.coinDetails?.totalCoins) {
-      console.log("Missing userId or coin details for coin top up activation");
+    console.log(`[Duitku Webhook] Starting coin activation for Invoice: ${transaction.invoiceId}`);
+
+    if (!transaction.customerInfo?.userId) {
+      console.log(`[Duitku Webhook] ❌ Missing userId for coin top up (Invoice: ${transaction.invoiceId})`);
+      return null;
+    }
+
+    if (!transaction.coinDetails?.totalCoins) {
+      console.log(`[Duitku Webhook] ❌ Missing coin details for coin top up (Invoice: ${transaction.invoiceId})`, transaction.coinDetails);
       return null;
     }
 
     if (transaction.coinDetails.isAdded) {
-      console.log("Coins already added to user, skipping.");
+      console.log(`[Duitku Webhook] ℹ️ Coins already added to user for Invoice ${transaction.invoiceId}, skipping.`);
       return true;
     }
 
     const user = await User.findById(transaction.customerInfo.userId);
     if (!user) {
-      console.log("User not found for coin top up activation");
+      console.log(`[Duitku Webhook] ❌ User not found for coin top up (UserId: ${transaction.customerInfo.userId})`);
       return null;
     }
 
-    user.balance = (user.balance || 0) + transaction.coinDetails.totalCoins;
+    const previousBalance = user.balance || 0;
+    user.balance = previousBalance + transaction.coinDetails.totalCoins;
     await user.save();
 
     transaction.coinDetails.isAdded = true;
     await transaction.save();
 
     console.log(
-      `✅ Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. New balance: ${user.balance}`
+      `[Duitku Webhook] ✅ SUCCESS: Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. Previous: ${previousBalance}, New: ${user.balance}`
     );
 
     return true;
   } catch (error) {
-    console.error("Error in activateCoinTopup:", error);
+    console.error("[Duitku Webhook] ❌ Error in activateCoinTopup:", error);
     return null;
   }
 }
@@ -559,11 +567,11 @@ export async function POST(request: NextRequest) {
         if (
           statusMapping.paymentStatus === "settlement" &&
           previousPaymentStatus !== "settlement" &&
-          transaction.serviceType === "reseller_package"
+          transaction.serviceType === "reseller"
         ) {
           const resellerResult = await activateResellerPackage(transaction);
           if (resellerResult) {
-            console.log("Reseller package activated:", resellerResult);
+            console.log("[Duitku Webhook] Reseller package activated");
           }
         }
 

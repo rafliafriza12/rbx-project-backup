@@ -6,6 +6,83 @@ import ResellerPackage from "@/models/ResellerPackage";
 import { midtransService } from "@/lib/midtrans";
 import EmailService from "@/lib/email";
 
+// Helper to activate Reseller Package
+async function activateResellerPackage(transaction: any) {
+  try {
+    if (!transaction.customerInfo?.userId || !transaction.serviceId) {
+      console.log(`[Midtrans Webhook] Missing userId or serviceId for reseller activation (Invoice: ${transaction.invoiceId})`);
+      return null;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) {
+      console.log(`[Midtrans Webhook] User not found for reseller activation (UserId: ${transaction.customerInfo.userId})`);
+      return null;
+    }
+
+    const resellerPackage = await ResellerPackage.findById(transaction.serviceId);
+    if (!resellerPackage) {
+      console.log(`[Midtrans Webhook] Reseller package not found: ${transaction.serviceId}`);
+      return null;
+    }
+
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + resellerPackage.duration);
+
+    user.resellerTier = resellerPackage.tier;
+    user.resellerExpiry = expiryDate;
+    user.resellerPackageId = resellerPackage._id;
+    await user.save();
+
+    console.log(`[Midtrans Webhook] ✅ Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}`);
+    return true;
+  } catch (error) {
+    console.error("[Midtrans Webhook] Error in activateResellerPackage:", error);
+    return null;
+  }
+}
+
+// Helper to activate Coin Top Up
+async function activateCoinTopup(transaction: any) {
+  try {
+    console.log(`[Midtrans Webhook] Starting coin activation for Invoice: ${transaction.invoiceId}`);
+    
+    if (!transaction.customerInfo?.userId) {
+      console.log(`[Midtrans Webhook] ❌ Missing customerInfo.userId for coin top up (Invoice: ${transaction.invoiceId})`);
+      return null;
+    }
+
+    if (!transaction.coinDetails?.totalCoins) {
+      console.log(`[Midtrans Webhook] ❌ Missing coinDetails.totalCoins (Invoice: ${transaction.invoiceId})`, transaction.coinDetails);
+      return null;
+    }
+
+    if (transaction.coinDetails.isAdded) {
+      console.log(`[Midtrans Webhook] ℹ️ Coins already added to user for Invoice ${transaction.invoiceId}, skipping.`);
+      return true;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) {
+      console.log(`[Midtrans Webhook] ❌ User not found for coin top up (UserId: ${transaction.customerInfo.userId})`);
+      return null;
+    }
+
+    const previousBalance = user.balance || 0;
+    user.balance = previousBalance + transaction.coinDetails.totalCoins;
+    await user.save();
+
+    transaction.coinDetails.isAdded = true;
+    await transaction.save();
+
+    console.log(`[Midtrans Webhook] ✅ SUCCESS: Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. Previous: ${previousBalance}, New: ${user.balance}`);
+    return true;
+  } catch (error) {
+    console.error("[Midtrans Webhook] ❌ Error in activateCoinTopup:", error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
@@ -164,61 +241,15 @@ export async function POST(request: NextRequest) {
         updatedTransactions[0].oldStatus.payment === "settlement";
 
       if (!wasAlreadySettled) {
-        // Activate reseller if this is a reseller package purchase
         for (const transaction of transactions) {
-          if (transaction.serviceType === "reseller" && transaction.customerInfo?.userId) {
-            try {
-              const user = await User.findById(transaction.customerInfo.userId);
-              if (user && transaction.serviceId) {
-                const resellerPackage = await ResellerPackage.findById(
-                  transaction.serviceId,
-                );
-
-                if (resellerPackage) {
-                  // Calculate expiry date
-                  const expiryDate = new Date();
-                  expiryDate.setMonth(
-                    expiryDate.getMonth() + resellerPackage.duration,
-                  );
-
-                  // Update user with reseller info
-                  user.resellerTier = resellerPackage.tier;
-                  user.resellerExpiry = expiryDate;
-                  user.resellerPackageId = resellerPackage._id;
-                  await user.save();
-
-                  console.log(
-                    `Reseller activated for user ${user.email}: Tier ${resellerPackage.tier}, Expires: ${expiryDate}`,
-                  );
-                }
-              }
-            } catch (resellerError) {
-              console.error("Failed to activate reseller:", resellerError);
-              // Don't fail the webhook for reseller activation errors
-            }
+          // Activate reseller if this is a reseller package purchase
+          if (transaction.serviceType === "reseller") {
+            await activateResellerPackage(transaction);
           }
 
           // Activate Coin Top Up if this is a coin purchase
-          if (transaction.serviceType === "coin_topup" && transaction.customerInfo?.userId) {
-            try {
-              const user = await User.findById(transaction.customerInfo.userId);
-              if (user && transaction.coinDetails?.totalCoins) {
-                if (transaction.coinDetails.isAdded) {
-                  console.log("Coins already added to user, skipping.");
-                } else {
-                  user.balance = (user.balance || 0) + transaction.coinDetails.totalCoins;
-                  await user.save();
-                  
-                  transaction.coinDetails.isAdded = true;
-                  await transaction.save();
-                  
-                  console.log(`Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. New balance: ${user.balance}`);
-                }
-              }
-            } catch (coinError) {
-              console.error("Failed to add coins:", coinError);
-              // Don't fail the webhook for coin activation errors
-            }
+          if (transaction.serviceType === "coin_topup") {
+            await activateCoinTopup(transaction);
           }
         }
 
