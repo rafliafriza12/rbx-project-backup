@@ -14,6 +14,47 @@ import {
   notifyOrderStatusChange,
 } from "@/lib/discord";
 
+// Helper to activate Coin Top Up
+async function activateCoinTopup(transaction: any) {
+  try {
+    console.log(`[Webhook Route] Starting coin activation for Invoice: ${transaction.invoiceId}`);
+
+    if (!transaction.customerInfo?.userId) {
+      console.log(`[Webhook Route] ❌ Missing customerInfo.userId for coin top up (Invoice: ${transaction.invoiceId})`);
+      return null;
+    }
+
+    if (!transaction.coinDetails?.totalCoins) {
+      console.log(`[Webhook Route] ❌ Missing coinDetails.totalCoins (Invoice: ${transaction.invoiceId})`, transaction.coinDetails);
+      return null;
+    }
+
+    if (transaction.coinDetails.isAdded) {
+      console.log(`[Webhook Route] ℹ️ Coins already added to user for Invoice ${transaction.invoiceId}, skipping.`);
+      return true;
+    }
+
+    const user = await User.findById(transaction.customerInfo.userId);
+    if (!user) {
+      console.log(`[Webhook Route] ❌ User not found for coin top up (UserId: ${transaction.customerInfo.userId})`);
+      return null;
+    }
+
+    const previousBalance = user.balance || 0;
+    user.balance = previousBalance + transaction.coinDetails.totalCoins;
+    await user.save();
+
+    transaction.coinDetails.isAdded = true;
+    await transaction.save();
+
+    console.log(`[Webhook Route] ✅ SUCCESS: Added ${transaction.coinDetails.totalCoins} coins to user ${user.email}. Previous: ${previousBalance}, New: ${user.balance}`);
+    return true;
+  } catch (error) {
+    console.error("[Webhook Route] ❌ Error in activateCoinTopup:", error);
+    return null;
+  }
+}
+
 // Activate reseller package for user after payment settlement
 async function activateResellerPackage(transaction: any) {
   try {
@@ -48,8 +89,7 @@ async function activateResellerPackage(transaction: any) {
     await user.save();
 
     console.log(
-      `✅ Reseller activated for user ${user.email}: Tier ${
-        resellerPackage.tier
+      `✅ Reseller activated for user ${user.email}: Tier ${resellerPackage.tier
       } (${resellerPackage.name}), Expires: ${expiryDate.toLocaleDateString(
         "id-ID",
       )}`,
@@ -446,10 +486,8 @@ export async function POST(request: NextRequest) {
 
             if (activationResult) {
               console.log(
-                `✅ Reseller package activated: Tier ${
-                  activationResult.newTier
-                } (${activationResult.packageName}), Discount: ${
-                  activationResult.discount
+                `✅ Reseller package activated: Tier ${activationResult.newTier
+                } (${activationResult.packageName}), Discount: ${activationResult.discount
                 }%, Expires: ${activationResult.expiryDate.toLocaleDateString(
                   "id-ID",
                 )}`,
@@ -459,8 +497,7 @@ export async function POST(request: NextRequest) {
               await transaction.updateStatus(
                 "order",
                 "completed",
-                `Reseller Tier ${
-                  activationResult.newTier
+                `Reseller Tier ${activationResult.newTier
                 } berhasil diaktifkan hingga ${activationResult.expiryDate.toLocaleDateString(
                   "id-ID",
                 )}`,
@@ -487,10 +524,9 @@ export async function POST(request: NextRequest) {
             await transaction.updateStatus(
               "order",
               "pending",
-              `Error saat mengaktifkan reseller: ${
-                resellerError instanceof Error
-                  ? resellerError.message
-                  : "Unknown error"
+              `Error saat mengaktifkan reseller: ${resellerError instanceof Error
+                ? resellerError.message
+                : "Unknown error"
               }`,
               null,
             );
@@ -512,6 +548,20 @@ export async function POST(request: NextRequest) {
           hasValidGamepassData
         ) {
           rbx5TransactionsToProcess.push(transaction);
+        }
+      }
+
+      // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
+      // to allow retries if fulfillment failed in a previous webhook attempt.
+      if (statusMapping.paymentStatus === "settlement") {
+        // Activate reseller if this is a reseller package purchase
+        if (transaction.serviceType === "reseller") {
+          await activateResellerPackage(transaction);
+        }
+
+        // Activate Coin Top Up if this is a coin purchase
+        if (transaction.serviceType === "coin_topup") {
+          await activateCoinTopup(transaction);
         }
       }
 
@@ -541,8 +591,7 @@ export async function POST(request: NextRequest) {
         await transaction.updateStatus(
           "order",
           "cancelled",
-          `Pesanan dibatalkan karena pembayaran ${
-            transaction_status === "cancel" ? "dibatalkan" : "ditolak"
+          `Pesanan dibatalkan karena pembayaran ${transaction_status === "cancel" ? "dibatalkan" : "ditolak"
           }`,
           null,
         );
@@ -562,7 +611,7 @@ export async function POST(request: NextRequest) {
           allowedOrderStatusUpdates[currentOrderStatus] || [];
 
         let targetOrderStatus = statusMapping.orderStatus;
-        
+
         // Khusus gamepass dan robux_5_hari, jika midtrans me-return processing, ubah ke pending terlebih dahulu
         if (targetOrderStatus === "processing" && (transaction.serviceType === "gamepass" || transaction.serviceCategory === "gamepass" || transaction.serviceCategory === "robux_5_hari")) {
           targetOrderStatus = "pending";
@@ -764,7 +813,7 @@ export async function GET(request: NextRequest) {
           try {
             // Update spendedMoney user only once for the first transaction
             const isFirstTransaction = transactions.findIndex((t) => t._id.equals(transaction._id)) === 0;
-            
+
             if (isFirstTransaction) {
               const user = await User.findById(transaction.customerInfo.userId);
               if (user) {
@@ -783,6 +832,16 @@ export async function GET(request: NextRequest) {
           } catch (userUpdateError) {
             console.error("Error updating user spendedMoney:", userUpdateError);
           }
+        }
+      }
+
+      // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
+      if (statusMapping.paymentStatus === "settlement") {
+        if (transaction.serviceType === "reseller") {
+          await activateResellerPackage(transaction);
+        }
+        if (transaction.serviceType === "coin_topup") {
+          await activateCoinTopup(transaction);
         }
       }
 
