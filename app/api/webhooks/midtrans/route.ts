@@ -236,12 +236,8 @@ export async function POST(request: NextRequest) {
       statusMapping.paymentStatus === "settlement" &&
       transactions.length > 0
     ) {
-      const firstTransaction = transactions[0];
-      const wasAlreadySettled =
-        updatedTransactions[0].oldStatus.payment === "settlement";
-
-      if (!wasAlreadySettled) {
-        for (const transaction of transactions) {
+      // Process fulfillment (Reseller, Coins, etc.)
+      for (const transaction of transactions) {
           // Activate reseller if this is a reseller package purchase
           if (transaction.serviceType === "reseller") {
             await activateResellerPackage(transaction);
@@ -253,24 +249,30 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        try {
-          if (firstTransaction.customerInfo?.email) {
-            await EmailService.sendInvoiceEmail(firstTransaction);
-            console.log(
-              "Payment confirmation email sent to:",
-              firstTransaction.customerInfo.email,
+        // Send email notification if payment is successful
+        // Only send once for the first transaction in the group if it just became settlement
+        const firstTransaction = transactions[0];
+        const wasAlreadySettled = updatedTransactions[0].oldStatus.payment === "settlement";
+        
+        if (!wasAlreadySettled) {
+          try {
+            if (firstTransaction.customerInfo?.email) {
+              await EmailService.sendInvoiceEmail(firstTransaction);
+              console.log(
+                "Payment confirmation email sent to:",
+                firstTransaction.customerInfo.email,
+              );
+            } else {
+              console.log("No customer email found for transaction:", order_id);
+            }
+          } catch (emailError) {
+            console.error(
+              "Failed to send payment confirmation email:",
+              emailError,
             );
-          } else {
-            console.log("No customer email found for transaction:", order_id);
+            // Don't fail the webhook for email errors
           }
-        } catch (emailError) {
-          console.error(
-            "Failed to send payment confirmation email:",
-            emailError,
-          );
-          // Don't fail the webhook for email errors
         }
-      }
     }
 
     return NextResponse.json({

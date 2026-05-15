@@ -563,29 +563,21 @@ export async function POST(request: NextRequest) {
           }
         }
 
+      }
+
+      // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
+      // to allow retries if fulfillment failed in a previous webhook attempt.
+      if (statusMapping.paymentStatus === "settlement") {
         // Activate reseller package if this is a reseller purchase
-        if (
-          statusMapping.paymentStatus === "settlement" &&
-          previousPaymentStatus !== "settlement" &&
-          transaction.serviceType === "reseller"
-        ) {
-          const resellerResult = await activateResellerPackage(transaction);
-          if (resellerResult) {
-            console.log("[Duitku Webhook] Reseller package activated");
-          }
+        if (transaction.serviceType === "reseller") {
+          await activateResellerPackage(transaction);
         }
 
         // Activate Coin Top Up if this is a coin purchase
-        if (
-          statusMapping.paymentStatus === "settlement" &&
-          previousPaymentStatus !== "settlement" &&
-          transaction.serviceType === "coin_topup"
-        ) {
-          const coinResult = await activateCoinTopup(transaction);
-          if (coinResult) {
-            console.log("Coin top up activated");
-          }
+        if (transaction.serviceType === "coin_topup") {
+          await activateCoinTopup(transaction);
         }
+      }
 
         // Check if this is a robux_5_hari transaction that needs processing
         // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
