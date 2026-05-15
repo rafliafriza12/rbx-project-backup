@@ -563,6 +563,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Send email notification
+        await sendPaymentNotification(transaction, statusMapping.paymentStatus);
       }
 
       // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
@@ -577,7 +579,6 @@ export async function POST(request: NextRequest) {
         if (transaction.serviceType === "coin_topup") {
           await activateCoinTopup(transaction);
         }
-      }
 
         // Check if this is a robux_5_hari transaction that needs processing
         // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
@@ -587,17 +588,13 @@ export async function POST(request: NextRequest) {
             transaction.rbx5Details?.gamepass?.price);
 
         if (
-          statusMapping.paymentStatus === "settlement" &&
-          previousPaymentStatus !== "settlement" &&
           transaction.serviceType === "robux" &&
           transaction.serviceCategory === "robux_5_hari" &&
-          hasValidGamepassData
+          hasValidGamepassData &&
+          previousPaymentStatus !== "settlement"
         ) {
           rbx5TransactionsToProcess.push(transaction);
         }
-
-        // Send email notification
-        await sendPaymentNotification(transaction, statusMapping.paymentStatus);
       }
 
       let targetOrderStatus = statusMapping.orderStatus;
