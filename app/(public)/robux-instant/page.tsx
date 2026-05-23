@@ -230,7 +230,7 @@ export default function RobuxInstan() {
       }
     };
     loadPaymentData();
-  }, []);
+  }, [user]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {

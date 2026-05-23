@@ -268,8 +268,8 @@ class MidtransService {
       danamon: ["other_va"],
       bsi: ["other_va"],
       bsi_va: ["other_va"],
-      seabank: ["other_va"],
-      seabank_va: ["other_va"],
+      seabank: ["seabank_va"],
+      seabank_va: ["seabank_va"],
 
       // QRIS - include both qris and gopay for maximum compatibility
       qris: ["other_qris"],

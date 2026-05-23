@@ -189,7 +189,7 @@ export default function GamepassDetailPage() {
       }
     };
     loadPaymentData();
-  }, []);
+  }, [user]);
 
   // Function to search for user info
   const searchUserInfo = async (username: string) => {

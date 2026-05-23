@@ -307,7 +307,7 @@ export default function TopupCoinPage() {
         } else if (result.data?.duitkuPaymentUrl) {
           window.location.href = result.data.duitkuPaymentUrl;
         } else if (result.data?.transaction?._id) {
-          router.push(`/transaction/${result.data.transaction._id}`);
+          router.push(`/transaction?order_id=${result.data.transaction.invoiceId}&transaction_status=settlement`);
         } else {
           router.push("/riwayat");
         }

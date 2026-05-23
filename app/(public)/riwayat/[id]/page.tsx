@@ -979,9 +979,9 @@ export default function TransactionDetailPage() {
                     href={
                       transaction.redirectUrl ||
                       transaction.duitkuPaymentUrl ||
-                      `/transaction/pending?order_id=${
-                        transaction.midtransOrderId || transaction.duitkuOrderId
-                      }`
+                      `/transaction?order_id=${
+                        transaction.invoiceId
+                      }&transaction_status=pending`
                     }
                     target="_blank"
                     rel="noopener noreferrer"

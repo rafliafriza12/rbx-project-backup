@@ -110,20 +110,7 @@ export default function TransactionsPage() {
   };
 
   const handleViewDetails = (transaction: Transaction) => {
-    // Redirect to appropriate transaction status page
-    if (transaction.paymentStatus === "settlement") {
-      router.push(
-        `/transaction/success?order_id=${transaction.midtransOrderId}`,
-      );
-    } else if (transaction.paymentStatus === "pending") {
-      router.push(
-        `/transaction/pending?order_id=${transaction.midtransOrderId}`,
-      );
-    } else {
-      router.push(
-        `/transaction/failed?order_id=${transaction.midtransOrderId}`,
-      );
-    }
+    router.push(`/riwayat/${transaction._id}`);
   };
 
   if (!isAuthenticated) {

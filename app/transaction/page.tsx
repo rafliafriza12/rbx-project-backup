@@ -84,6 +84,9 @@ function TransactionResultContent() {
         default:
           return "pending"; // Default to pending for unknown codes
       }
+    // Fallback to database transaction status if available
+    if (transaction?.paymentStatus) {
+      return transaction.paymentStatus;
     }
 
     return null;
