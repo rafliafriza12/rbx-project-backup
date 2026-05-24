@@ -371,6 +371,9 @@ export default function TransactionsPage() {
             </span>
           );
         }
+        if (value === "coin_topup") {
+          return <span className="capitalize">Pembelian Coin</span>;
+        }
         return <span className="capitalize">{value}</span>;
       },
     },
@@ -618,6 +621,9 @@ export default function TransactionsPage() {
             </option>
             <option className="bg-[#334155] text-[#f1f5f9]" value="robux_instan">
               Robux Instan
+            </option>
+            <option className="bg-[#334155] text-[#f1f5f9]" value="coin_topup">
+              Pembelian Coin
             </option>
           </select>
           <input
