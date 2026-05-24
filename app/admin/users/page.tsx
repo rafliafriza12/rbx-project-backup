@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useAuth } from "@/contexts/AuthContext";
 import { getResellerPackages } from "@/app/lib/actions";
 import {
   fetchUsersAdmin,
@@ -91,6 +92,29 @@ export default function UsersPage() {
   const [pendingStockAccountId, setPendingStockAccountId] = useState<
     string | null
   >(null);
+
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.email === "ibrahimabdullah102008@gmail.com";
+
+  const handleImpersonate = async (targetUser: User) => {
+    if (!confirm(`Are you sure you want to login as ${targetUser.firstName} (${targetUser.email})?`)) return;
+    try {
+      const response = await fetch("/api/auth/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: targetUser._id }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || "Impersonation successful");
+        window.location.href = "/";
+      } else {
+        toast.error(data.error || "Impersonation failed");
+      }
+    } catch (error) {
+      toast.error("Failed to impersonate");
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -825,6 +849,14 @@ export default function UsersPage() {
                       </>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {isSuperAdmin && user.accessRole !== "admin" && (
+                        <button
+                          onClick={() => handleImpersonate(user)}
+                          className="text-green-400 hover:text-green-300 mr-3"
+                        >
+                          Login As
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEdit(user)}
                         className="text-[#60a5fa] hover:text-[#93c5fd] mr-3"
