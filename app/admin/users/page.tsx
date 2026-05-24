@@ -13,6 +13,7 @@ import {
   saveStockAccount,
   deleteStockAccountAdmin,
   triggerAutoPurchase,
+  impersonateUserAction,
 } from "./actions";
 
 interface User {
@@ -99,13 +100,8 @@ export default function UsersPage() {
   const handleImpersonate = async (targetUser: User) => {
     if (!confirm(`Are you sure you want to login as ${targetUser.firstName} (${targetUser.email})?`)) return;
     try {
-      const response = await fetch("/api/auth/impersonate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: targetUser._id }),
-      });
-      const data = await response.json();
-      if (response.ok) {
+      const { ok, data } = await impersonateUserAction(targetUser._id);
+      if (ok) {
         toast.success(data.message || "Impersonation successful");
         window.location.href = "/";
       } else {

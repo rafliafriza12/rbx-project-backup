@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
-import { generateToken, requireApiKey, authenticateToken } from "@/lib/auth";
+import { generateToken, authenticateToken, requireApiKey } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const apiKeyError = requireApiKey(request);

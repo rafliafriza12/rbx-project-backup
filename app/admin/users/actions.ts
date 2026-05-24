@@ -182,6 +182,50 @@ export async function deleteStockAccountAdmin(accountId: string) {
 }
 
 /**
+ * Impersonate user
+ */
+export async function impersonateUserAction(targetUserId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(`${BASE_URL}/api/auth/impersonate`, {
+      method: "POST",
+      headers: {
+        ...getInternalHeaders(),
+        Cookie: authCookie,
+      },
+      body: JSON.stringify({ targetUserId }),
+    });
+    const data = await response.json();
+
+    // Forward Set-Cookie header from API to browser
+    const setCookieHeader = response.headers.getSetCookie();
+    if (setCookieHeader && setCookieHeader.length > 0) {
+      const cookieStore = await cookies();
+      for (const cookieStr of setCookieHeader) {
+        const parts = cookieStr.split(";")[0];
+        const [name, ...valueParts] = parts.split("=");
+        const value = valueParts.join("=");
+        if (name && value) {
+          cookieStore.set(name.trim(), value.trim(), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60,
+          });
+        }
+      }
+    }
+
+    return { ok: response.ok, data };
+  } catch (error) {
+    console.error("[Server Action] Error impersonating user:", error);
+    return { ok: false, data: { error: "Error impersonating user" } };
+  }
+}
+
+/**
  * Trigger auto-purchase for pending transactions (admin)
  */
 export async function triggerAutoPurchase(stockAccountId: string) {
