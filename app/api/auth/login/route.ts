@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
       isVerified: user.isVerified,
       profilePicture: user.profilePicture,
       googleId: user.googleId,
+      balance: user.balance || 0,
     };
 
     const response = NextResponse.json(

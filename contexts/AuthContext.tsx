@@ -34,6 +34,7 @@ interface User {
   isVerified: boolean;
   profilePicture?: string;
   googleId?: string;
+  balance: number;
 }
 
 interface AuthContextType {

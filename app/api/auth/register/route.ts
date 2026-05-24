@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
       isVerified: newUser.isVerified,
       profilePicture: newUser.profilePicture,
       googleId: newUser.googleId,
+      balance: newUser.balance || 0,
     };
 
     const response = NextResponse.json(

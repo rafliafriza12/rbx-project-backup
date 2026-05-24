@@ -51,7 +51,7 @@ interface Transaction {
 function TransactionResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -111,6 +111,8 @@ function TransactionResultContent() {
       const { ok, data } = await getTransactionByInvoice(orderId);
       if (ok) {
         setTransaction(data.data);
+        // Refresh auth state to update coin balance
+        await checkAuth();
       } else {
         toast.error(data.error || "Transaksi tidak ditemukan");
         router.push("/");
