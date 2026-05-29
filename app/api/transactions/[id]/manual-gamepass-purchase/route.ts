@@ -52,15 +52,15 @@ async function processGamepassPurchase(transaction: any) {
 
     const gamepassPrice = gamepassData.price;
 
-    // Cari akun yang memiliki robux sama atau lebih dari price gamepass
-    const suitableAccount = await StockAccount.findOne({
+    // Cari SEMUA akun yang memiliki robux sama atau lebih dari price gamepass
+    const suitableAccounts = await StockAccount.find({
       robux: { $gte: gamepassPrice },
       status: "active",
     }).sort({ robux: 1 }); // Sort ascending untuk menggunakan akun dengan robux paling sedikit yang mencukupi
 
-    if (!suitableAccount) {
+    if (!suitableAccounts || suitableAccounts.length === 0) {
       console.log("No suitable account found for gamepass purchase");
-      // Update order status to failed
+      // Update order status to pending
       await transaction.updateStatus(
         "order",
         "pending",
@@ -73,136 +73,138 @@ async function processGamepassPurchase(transaction: any) {
       };
     }
 
-    console.log("Suitable account found:", suitableAccount.username);
+    let purchaseSuccess = false;
+    let lastErrorMessage = "";
 
-    // Validate dan update account data terlebih dahulu (using direct import)
-    console.log("🔄 Updating stock account data...");
-    const updateRequest = new NextRequest(
-      `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
-      {
-        method: "PUT",
+    for (const suitableAccount of suitableAccounts) {
+      console.log("Suitable account found:", suitableAccount.username);
+
+      // Validate dan update account data terlebih dahulu (using direct import)
+      console.log("🔄 Updating stock account data...");
+      const updateRequest = new NextRequest(
+        `${apiUrl}/api/admin/stock-accounts/${suitableAccount._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+          },
+          body: JSON.stringify({
+            robloxCookie: suitableAccount.robloxCookie,
+          }),
+        },
+      );
+
+      const updateAccountResponse = await updateStockAccountHandler(
+        updateRequest,
+        { params: Promise.resolve({ id: suitableAccount._id.toString() }) },
+      );
+
+      if (!updateAccountResponse.ok) {
+        console.error(`❌ Failed to update account data for ${suitableAccount.username}, marking inactive`);
+        suitableAccount.status = "inactive";
+        suitableAccount.lastChecked = new Date();
+        await suitableAccount.save();
+        lastErrorMessage = "Gagal memvalidasi akun stock (cookie invalid)";
+        continue;
+      }
+
+      const updatedAccountData = await updateAccountResponse.json();
+
+      if (!updatedAccountData.success) {
+        console.error("Account validation failed:", updatedAccountData.message);
+        suitableAccount.status = "inactive";
+        suitableAccount.lastChecked = new Date();
+        await suitableAccount.save();
+        lastErrorMessage = `Validasi akun gagal: ${updatedAccountData.message}`;
+        continue;
+      }
+
+      // Cek apakah robux masih mencukupi setelah update
+      if (updatedAccountData.stockAccount.robux < gamepassPrice) {
+        console.log("Account robux insufficient after update");
+        lastErrorMessage = `Robux tidak mencukupi setelah validasi (tersedia: ${updatedAccountData.stockAccount.robux}, diperlukan: ${gamepassPrice})`;
+        continue;
+      }
+
+      // Lakukan purchase gamepass (using direct import with Puppeteer)
+      console.log("🎯 Purchasing gamepass...");
+      const purchaseRequest = new NextRequest(`${apiUrl}/api/buy-pass`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           robloxCookie: suitableAccount.robloxCookie,
+          gamepassId: gamepassData.id,
+          gamepassName: gamepassData.name,
+          price: gamepassData.price,
+          sellerId: gamepassData.sellerId,
         }),
-      },
-    );
+      });
 
-    const updateAccountResponse = await updateStockAccountHandler(
-      updateRequest,
-      { params: Promise.resolve({ id: suitableAccount._id.toString() }) },
-    );
+      const purchaseResponse = await buyPassHandler(purchaseRequest);
+      const purchaseResult = await purchaseResponse.json();
+      console.log(purchaseResult);
+      if (purchaseResult.success) {
+        console.log("Gamepass purchase successful");
 
-    if (!updateAccountResponse.ok) {
-      console.error("❌ Failed to update account data");
-      await transaction.updateStatus(
-        "order",
-        "pending",
-        "Pesanan sedang diproses",
-        null,
-      );
-      return { success: false, message: "Gagal memvalidasi akun stock" };
-    }
+        // Update order status to processing
+        await transaction.updateStatus(
+          "order",
+          "processing",
+          `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
+          null,
+        );
 
-    const updatedAccountData = await updateAccountResponse.json();
+        // Update account data setelah purchase - langsung kurangi robux di database
+        // Tidak perlu fetch ke Roblox lagi (menghindari socket error / rate limit)
+        console.log("🔄 Updating stock account robux in database...");
+        const deductPrice = gamepassData.price || 0;
+        suitableAccount.robux = Math.max(0, suitableAccount.robux - deductPrice);
+        suitableAccount.lastChecked = new Date();
+        await suitableAccount.save();
+        console.log(
+          `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${deductPrice})`,
+        );
 
-    if (!updatedAccountData.success) {
-      console.error("Account validation failed:", updatedAccountData.message);
-      await transaction.updateStatus(
-        "order",
-        "pending",
-        `Pesanan sedang diproses`,
-        null,
-      );
-      return {
-        success: false,
-        message: `Validasi akun gagal: ${updatedAccountData.message}`,
-      };
-    }
+        // Record purchase di stats (untuk mode manual & tracking)
+        try {
+          await Rbx5Stats.recordPurchase(deductPrice, 1);
+          console.log("📊 Rbx5Stats updated after purchase");
+        } catch (statsError) {
+          console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+        }
 
-    // Cek apakah robux masih mencukupi setelah update
-    if (updatedAccountData.stockAccount.robux < gamepassPrice) {
-      console.log("Account robux insufficient after update");
-      await transaction.updateStatus(
-        "order",
-        "pending",
-        `Pesanan sedang diproses`,
-        null,
-      );
-      return {
-        success: false,
-        message: `Robux tidak mencukupi setelah validasi (tersedia: ${updatedAccountData.stockAccount.robux}, diperlukan: ${gamepassPrice})`,
-      };
-    }
+        purchaseSuccess = true;
+        return {
+          success: true,
+          message: `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
+        };
+      } else {
+        console.error("Gamepass purchase failed:", purchaseResult.message);
+        const errMsgLower = (purchaseResult.message || "").toLowerCase();
+        if (errMsgLower.includes("rate limit") || errMsgLower.includes("too many requests") || errMsgLower.includes("challenge")) {
+          lastErrorMessage = `Pembelian gagal (Rate Limit), mencoba akun lain...`;
+          continue;
+        }
 
-    // Lakukan purchase gamepass (using direct import with Puppeteer)
-    console.log("🎯 Purchasing gamepass...");
-    const purchaseRequest = new NextRequest(`${apiUrl}/api/buy-pass`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
-      },
-      body: JSON.stringify({
-        robloxCookie: suitableAccount.robloxCookie,
-        gamepassId: gamepassData.id,
-        gamepassName: gamepassData.name,
-        price: gamepassData.price,
-        sellerId: gamepassData.sellerId,
-      }),
-    });
-
-    const purchaseResponse = await buyPassHandler(purchaseRequest);
-    const purchaseResult = await purchaseResponse.json();
-    console.log(purchaseResult);
-    if (purchaseResult.success) {
-      console.log("Gamepass purchase successful");
-
-      // Update order status to processing
-      await transaction.updateStatus(
-        "order",
-        "processing",
-        `Gamepass berhasil dibeli `,
-        null,
-      );
-
-      // Update account data setelah purchase - langsung kurangi robux di database
-      // Tidak perlu fetch ke Roblox lagi (menghindari socket error / rate limit)
-      console.log("🔄 Updating stock account robux in database...");
-      const deductPrice = gamepassData.price || 0;
-      suitableAccount.robux = Math.max(0, suitableAccount.robux - deductPrice);
-      suitableAccount.lastChecked = new Date();
-      await suitableAccount.save();
-      console.log(
-        `✅ Account ${suitableAccount.username} robux updated: ${suitableAccount.robux} (deducted ${deductPrice})`,
-      );
-
-      // Record purchase di stats (untuk mode manual & tracking)
-      try {
-        await Rbx5Stats.recordPurchase(deductPrice, 1);
-        console.log("📊 Rbx5Stats updated after purchase");
-      } catch (statsError) {
-        console.warn("⚠️ Failed to update Rbx5Stats:", statsError);
+        lastErrorMessage = `Pembelian gamepass gagal: ${purchaseResult.message}`;
+        break; // Stop and fail for price mismatch etc.
       }
+    }
 
-      return {
-        success: true,
-        message: `Gamepass berhasil dibeli menggunakan akun ${suitableAccount.username}`,
-      };
-    } else {
-      console.error("Gamepass purchase failed:", purchaseResult.message);
+    if (!purchaseSuccess) {
       await transaction.updateStatus(
         "order",
         "pending",
-        `Pesanan sedang diproses`,
+        `Pesanan sedang diproses. ${lastErrorMessage}`,
         null,
       );
       return {
         success: false,
-        message: `Pembelian gamepass gagal: ${purchaseResult.message}`,
+        message: lastErrorMessage || "Semua akun stok gagal digunakan",
       };
     }
   } catch (error) {

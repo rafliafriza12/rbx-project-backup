@@ -52,10 +52,10 @@ import ReviewSection from "@/components/ReviewSection";
 import AddToCartButton from "@/components/AddToCartButton";
 import PaymentMethodSelector from "@/components/checkout/PaymentMethodSelector";
 import OrderSummaryCard from "@/components/checkout/OrderSummaryCard";
-import { 
-  PaymentCategory, 
-  calculatePaymentFee, 
-  formatCurrency 
+import {
+  PaymentCategory,
+  calculatePaymentFee,
+  formatCurrency
 } from "@/lib/payment-helpers";
 
 interface Product {
@@ -429,7 +429,7 @@ export default function Rbx5Page() {
           if (settingsRes.settings.coinSpendValue) {
             setCoinSpendValue(settingsRes.settings.coinSpendValue);
           }
-          
+
           const methodsRes = await fetchPaymentMethods(gateway);
           if (methodsRes.success && methodsRes.data) {
             // Group payment methods by category like checkout/page.tsx does
@@ -453,30 +453,30 @@ export default function Rbx5Page() {
               });
               return acc;
             }, {});
-            
-              const categories = Object.values(groupedMethods);
-              if (user) {
-                const coinCategory = {
-                  id: "internal",
-                  name: "Saldo Internal",
-                  methods: [
-                    {
-                      id: "RBXNET_COIN",
-                      name: "RBXNET Credits",
-                      icon: "/icon/dollar.png",
-                      fee: 0,
-                      feeType: "fixed",
-                      description: `Saldo saat ini: ${user.balance || 0} Credits`,
-                      minimumAmount: 0,
-                      maximumAmount: 0,
-                    }
-                  ]
-                };
-                setPaymentCategories([coinCategory, ...categories]);
-              } else {
-                setPaymentCategories(categories);
-              }
+
+            const categories = Object.values(groupedMethods);
+            if (user) {
+              const coinCategory = {
+                id: "internal",
+                name: "Saldo Internal",
+                methods: [
+                  {
+                    id: "RBXNET_COIN",
+                    name: "RBXNET Credits",
+                    icon: "/icon/dollar.png",
+                    fee: 0,
+                    feeType: "fixed",
+                    description: `Saldo saat ini: ${user.balance || 0} Credits`,
+                    minimumAmount: 0,
+                    maximumAmount: 0,
+                  }
+                ]
+              };
+              setPaymentCategories([coinCategory, ...categories]);
+            } else {
+              setPaymentCategories(categories);
             }
+          }
         }
       } catch (err) {
         console.error("Error loading payment methods:", err);
@@ -484,7 +484,7 @@ export default function Rbx5Page() {
         setPaymentMethodsLoading(false);
       }
     };
-    
+
     loadPaymentData();
   }, [user]);
 
@@ -572,42 +572,29 @@ export default function Rbx5Page() {
 
     try {
       const expectedRobux = getGamepassAmount();
-
-      // Get placeId from selectedPlace
       const placeId = selectedPlace.placeId;
 
       if (!placeId) {
-        toast.error(
-          "Place ID tidak ditemukan. Mohon pilih game terlebih dahulu.",
-        );
+        toast.error("Place ID tidak ditemukan. Mohon pilih game terlebih dahulu.");
         setIsCheckingGamepass(false);
         return;
       }
 
-      // Use Universe-based GamePass API with placeId
-      // This endpoint returns all gamepasses for a specific universe/place
       const { ok, data } = await checkGamepass(placeId, expectedRobux);
 
-      if (!ok) {
-        throw new Error(data.message || "Gagal memeriksa gamepass");
-      }
-
-      // Log result
-      if (data.success) {
-      } else {
+      if (!ok || !data) {
+        throw new Error(data?.message ? String(data.message) : "Gagal memeriksa gamepass");
       }
 
       setGamepassCheckResult(data);
 
       if (data.success) {
-        // GamePass found, mark instruction as shown
         setGamepassInstructionShown(true);
         setShowGamepassModal(false);
-        setLastCheckedRobuxAmount(robux); // Save the robux amount that was successfully checked
+        setLastCheckedRobuxAmount(robux);
 
-        // Show success message
         toast.success(
-          `GamePass berhasil ditemukan! Nama: ${data.gamepass?.name}, Harga: ${data.gamepass?.price} Robux`,
+          `GamePass berhasil ditemukan! Nama: ${data.gamepass?.name || 'Unknown'}, Harga: ${data.gamepass?.price || expectedRobux} Robux`,
           {
             position: "top-right",
             autoClose: 5000,
@@ -615,12 +602,11 @@ export default function Rbx5Page() {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-          },
+          }
         );
       } else {
-        // GamePass not found, show error with existing gamepasses
-        let errorMessage = `${data.message}`;
-        if (data.allGamepasses && data.allGamepasses.length > 0) {
+        let errorMessage = data.message ? String(data.message) : "GamePass tidak ditemukan.";
+        if (data.allGamepasses && Array.isArray(data.allGamepasses) && data.allGamepasses.length > 0) {
           errorMessage += `. Pastikan GamePass dengan harga ${expectedRobux} RBX sudah dibuat dan aktif.`;
         } else {
           errorMessage += ` Belum ada GamePass di game ini. Silakan buat GamePass dengan harga ${expectedRobux} RBX terlebih dahulu.`;
@@ -634,9 +620,10 @@ export default function Rbx5Page() {
           draggable: true,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error in checkGamepassExists:", error);
       toast.error(
-        "Terjadi kesalahan saat memeriksa GamePass. Silakan coba lagi.",
+        error?.message ? String(error.message) : "Terjadi kesalahan saat memeriksa GamePass. Silakan coba lagi.",
         {
           position: "top-right",
           autoClose: 5000,
@@ -644,7 +631,7 @@ export default function Rbx5Page() {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-        },
+        }
       );
     } finally {
       setIsCheckingGamepass(false);
@@ -758,19 +745,19 @@ export default function Rbx5Page() {
           packageName: selectedPackage?.name || `Custom ${robux} Robux`,
           selectedPlace: selectedPlace
             ? {
-                placeId: selectedPlace.placeId,
-                name: selectedPlace.name,
-              }
+              placeId: selectedPlace.placeId,
+              name: selectedPlace.name,
+            }
             : undefined,
           gamepassCreated: gamepassInstructionShown,
           backupCode: "",
           gamepass: gamepassCheckResult?.gamepass
             ? {
-                id: gamepassCheckResult.gamepass.id,
-                name: gamepassCheckResult.gamepass.name,
-                productId: gamepassCheckResult.gamepass.productId,
-                sellerId: gamepassCheckResult.gamepass.sellerId,
-              }
+              id: gamepassCheckResult.gamepass.id,
+              name: gamepassCheckResult.gamepass.name,
+              productId: gamepassCheckResult.gamepass.productId,
+              sellerId: gamepassCheckResult.gamepass.sellerId,
+            }
             : undefined,
         };
       };
@@ -824,20 +811,20 @@ export default function Rbx5Page() {
           packageName: selectedPackage?.name || `Custom ${robux} Robux`,
           selectedPlace: selectedPlace
             ? {
-                placeId: selectedPlace.placeId,
-                name: selectedPlace.name,
-              }
+              placeId: selectedPlace.placeId,
+              name: selectedPlace.name,
+            }
             : undefined,
           gamepassCreated: gamepassInstructionShown,
           backupCode: "",
           // Gamepass: only send identifiers, server recalculates price
           gamepass: gamepassCheckResult?.gamepass
             ? {
-                id: gamepassCheckResult.gamepass.id,
-                name: gamepassCheckResult.gamepass.name,
-                productId: gamepassCheckResult.gamepass.productId,
-                sellerId: gamepassCheckResult.gamepass.sellerId,
-              }
+              id: gamepassCheckResult.gamepass.id,
+              name: gamepassCheckResult.gamepass.name,
+              productId: gamepassCheckResult.gamepass.productId,
+              sellerId: gamepassCheckResult.gamepass.sellerId,
+            }
             : undefined,
         };
       };
@@ -855,18 +842,18 @@ export default function Rbx5Page() {
         rbx5Details: sanitizeRbx5Details(),
         paymentMethodId: selectedPaymentMethod,
         promoCode: appliedPromoCode || undefined,
-        customerInfo: !user 
+        customerInfo: !user
           ? {
-              name: username,
-              email: email,
-              phone: phone,
-            }
+            name: username,
+            email: email,
+            phone: phone,
+          }
           : {
-              name: `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || username,
-              email: email || user.email,
-              phone: phone || user.phone,
-              userId: user.id,
-            },
+            name: `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || username,
+            email: email || user.email,
+            phone: phone || user.phone,
+            userId: user.id,
+          },
         userId: !user ? null : user.id,
       };
 
@@ -874,7 +861,7 @@ export default function Rbx5Page() {
 
       if (result.success) {
         toast.success("Transaksi berhasil dibuat!");
-        
+
         // Redirect to payment page based on response from API
         if (result.data?.qrCodeUrl) {
           if (result.data?.transaction?._id) {
@@ -1098,8 +1085,8 @@ export default function Rbx5Page() {
               <div key={step.num} className="flex flex-col items-center gap-2">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${currentStep >= step.num
-                      ? "bg-gradient-to-br from-primary-100 to-primary-200 text-white shadow-lg shadow-primary-100/30"
-                      : "bg-primary-900/80 text-white/40 border border-primary-200/20"
+                    ? "bg-gradient-to-br from-primary-100 to-primary-200 text-white shadow-lg shadow-primary-100/30"
+                    : "bg-primary-900/80 text-white/40 border border-primary-200/20"
                     }`}
                 >
                   {step.num}
@@ -1144,10 +1131,10 @@ export default function Rbx5Page() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className={`w-full py-4 pl-14 sm:pl-16 pr-10 sm:pr-12 rounded-xl text-white font-medium outline-none transition-all duration-300 backdrop-blur-xl ${userInfo
-                          ? "bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 border-2 border-emerald-400/60"
-                          : username && userSearchError
-                            ? "bg-gradient-to-r from-red-500/20 to-red-600/10 border-2 border-red-400/60"
-                            : "bg-gradient-to-r from-primary-600/20 to-primary-700/10 border-2 border-primary-200/50 focus:border-primary-100/80"
+                        ? "bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 border-2 border-emerald-400/60"
+                        : username && userSearchError
+                          ? "bg-gradient-to-r from-red-500/20 to-red-600/10 border-2 border-red-400/60"
+                          : "bg-gradient-to-r from-primary-600/20 to-primary-700/10 border-2 border-primary-200/50 focus:border-primary-100/80"
                         } placeholder:text-white/50 text-sm sm:text-lg`}
                     />
                     {userInfo ? (
@@ -1165,7 +1152,7 @@ export default function Rbx5Page() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="relative flex rounded-xl overflow-hidden backdrop-blur-xl border border-primary-200/40 focus-within:border-primary-100/60 transition-all duration-300">
                       <div className="bg-gradient-to-r from-primary-100/30 to-primary-200/20 px-4 sm:px-5 flex items-center justify-center border-r border-primary-200/30">
-                        <div 
+                        <div
                           className="w-5 h-5 sm:w-6 sm:h-6 bg-primary-100 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"
                           style={{
                             maskImage: 'url(/robux.png)',
@@ -1190,8 +1177,8 @@ export default function Rbx5Page() {
                           const numValue = parseInt(value.replace(/\D/g, ""));
                           if (!isNaN(numValue)) setRobux(numValue);
                         }}
-                        onBlur={() => { 
-                          if (robux < 25) setRobux(25); 
+                        onBlur={() => {
+                          if (robux < 25) setRobux(25);
                           else if (robux > 5000) setRobux(5000);
                         }}
                         className="flex-1 bg-gradient-to-r from-primary-600/10 to-primary-700/5 text-white text-lg font-bold outline-none px-4 py-4 placeholder:text-white/40"
@@ -1295,9 +1282,8 @@ export default function Rbx5Page() {
                                 setPhoneError("");
                               }
                             }}
-                            className={`w-full py-4 px-5 rounded-xl text-white font-medium outline-none transition-all duration-300 backdrop-blur-xl bg-gradient-to-r from-primary-600/10 to-primary-700/5 border-2 ${
-                              phoneError ? "border-red-400/60" : "border-primary-200/30 focus:border-primary-100/80"
-                            } placeholder-white/30`}
+                            className={`w-full py-4 px-5 rounded-xl text-white font-medium outline-none transition-all duration-300 backdrop-blur-xl bg-gradient-to-r from-primary-600/10 to-primary-700/5 border-2 ${phoneError ? "border-red-400/60" : "border-primary-200/30 focus:border-primary-100/80"
+                              } placeholder-white/30`}
                           />
                           {phoneError && (
                             <p className="text-red-400 text-xs mt-1.5 ml-1 absolute">{phoneError}</p>
@@ -1346,8 +1332,8 @@ export default function Rbx5Page() {
                 }}
                 disabled={!isStep1Valid}
                 className={`font-bold py-3.5 px-12 rounded-xl transition-all shadow-lg ${isStep1Valid
-                    ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105"
-                    : "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                  ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105"
+                  : "bg-gray-600/50 text-gray-400 cursor-not-allowed"
                   }`}
               >
                 Lanjutkan
@@ -1414,10 +1400,10 @@ export default function Rbx5Page() {
                   onClick={checkGamepassExists}
                   disabled={isCheckingGamepass}
                   className={`flex-1 py-4 px-4 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 ${gamepassInstructionShown && lastCheckedRobuxAmount === robux
-                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
-                      : isCheckingGamepass
-                        ? "bg-primary-600/50 text-white/70"
-                        : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:scale-105"
+                    ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
+                    : isCheckingGamepass
+                      ? "bg-primary-600/50 text-white/70"
+                      : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:scale-105"
                     }`}
                 >
                   {isCheckingGamepass ? (
@@ -1455,8 +1441,8 @@ export default function Rbx5Page() {
                   onClick={() => setCurrentStep(3)}
                   disabled={!isStep2Valid}
                   className={`w-full sm:w-auto font-bold py-3 px-8 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 order-1 sm:order-2 ${isStep2Valid
-                      ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg hover:scale-105"
-                      : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
+                    ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg hover:scale-105"
+                    : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
                     }`}
                 >
                   <span>Lanjutkan</span>
@@ -1473,7 +1459,8 @@ export default function Rbx5Page() {
             <div className="bg-gradient-to-br from-primary-900/30 via-primary-800/20 to-primary-700/30 backdrop-blur-xl border border-primary-100/20 rounded-2xl p-6 sm:p-8 shadow-xl shadow-primary-100/10">
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Metode Pembayaran</h3>
-              </div>              {paymentCategories.length > 0 ? (
+              </div>
+              {paymentCategories.length > 0 ? (
                 <PaymentMethodSelector
                   categories={paymentCategories}
                   loading={paymentMethodsLoading}
@@ -1499,8 +1486,8 @@ export default function Rbx5Page() {
                   onClick={() => setCurrentStep(4)}
                   disabled={!isStep3Valid}
                   className={`w-full sm:w-auto font-bold py-3 px-8 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 order-1 sm:order-2 ${isStep3Valid
-                      ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg hover:scale-105"
-                      : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
+                    ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg hover:scale-105"
+                    : "bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-50"
                     }`}
                 >
                   <span>Lanjutkan</span>
@@ -1515,7 +1502,7 @@ export default function Rbx5Page() {
         {currentStep === 4 && (
           <section className="max-w-4xl mx-auto px-4 pb-8 mt-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-gradient-to-br from-primary-900/30 via-primary-800/20 to-primary-700/30 backdrop-blur-xl border border-primary-100/20 rounded-2xl p-6 sm:p-10 shadow-xl shadow-primary-100/10">
-              
+
               <div className="text-center mb-8">
                 <h3 className="text-3xl font-black text-white">
                   <span className="text-transparent bg-gradient-to-r from-primary-100 to-primary-200 bg-clip-text">Ringkasan Pesanan</span>
@@ -1566,8 +1553,8 @@ export default function Rbx5Page() {
                     onClick={handleSubmitOrder}
                     disabled={submitting}
                     className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${submitting
-                        ? "bg-primary-600/50 text-white/50 cursor-not-allowed"
-                        : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg shadow-primary-100/20 hover:scale-105"
+                      ? "bg-primary-600/50 text-white/50 cursor-not-allowed"
+                      : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg shadow-primary-100/20 hover:scale-105"
                       }`}
                   >
                     {submitting ? (
@@ -1601,28 +1588,28 @@ export default function Rbx5Page() {
 
       {/* Popups */}
       {showEstimasiPopup && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in-0 duration-300">
-          <div className="bg-gradient-to-br from-primary-900/95 to-primary-800/95 border border-primary-100/20 backdrop-blur-xl rounded-[2rem] max-w-md w-full overflow-hidden shadow-2xl shadow-primary-100/10 animate-in slide-in-from-bottom-4 duration-300 p-6 sm:p-8 relative">
-            <h3 className="text-xl font-bold text-center text-white mb-4">Estimasi Pengiriman Robux Gamepass</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in-0 duration-300">
+          <div className="bg-gradient-to-br from-primary-900/95 to-primary-800/95 border border-primary-100/20 backdrop-blur-xl rounded-3xl sm:rounded-[2rem] max-w-md w-full max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl shadow-primary-100/10 animate-in slide-in-from-bottom-4 duration-300 p-5 sm:p-8 relative">
+            <h3 className="text-lg sm:text-xl font-bold text-center text-white mb-3 sm:mb-4">Estimasi Pengiriman Robux Gamepass</h3>
 
-            <div className="flex justify-center mb-6">
-              <img src="/Maskot/mascot-pointing.webp" alt="Mascot" className="h-24 object-contain drop-shadow-2xl" />
+            <div className="flex justify-center mb-4 sm:mb-6">
+              <img src="/Maskot/mascot-pointing.webp" alt="Mascot" className="h-20 sm:h-24 object-contain drop-shadow-2xl" />
             </div>
 
-            <p className="text-sm text-white/90 mb-3 text-center">
+            <p className="text-[13px] sm:text-sm text-white/90 mb-3 text-center">
               Estimasi pengiriman Robux Gamepass setelah pembayaran:<br /><strong>7-9 hari</strong>.
             </p>
-            <p className="text-sm text-white/90 mb-2 font-semibold">Rincian proses:</p>
-            <ul className="list-disc pl-5 text-sm text-white/80 mb-6 space-y-2">
+            <p className="text-[13px] sm:text-sm text-white/90 mb-2 font-semibold">Rincian proses:</p>
+            <ul className="list-disc pl-5 text-[13px] sm:text-sm text-white/80 mb-5 sm:mb-6 space-y-1.5 sm:space-y-2">
               <li><strong>2-3 hari pertama:</strong> Robux pending di akunmu.</li>
               <li><strong>±5 hari berikutnya:</strong> Robux masuk dan siap digunakan.</li>
             </ul>
-            <p className="text-xs text-white/50 mb-6 text-center">
+            <p className="text-[11px] sm:text-xs text-white/50 mb-5 sm:mb-6 text-center">
               Waktu ini diperlukan agar transaksi diproses dengan aman oleh Tim Rbxnet
             </p>
 
-            <label className="group flex items-center justify-center gap-3 cursor-pointer mb-6 mx-auto w-fit bg-primary-900/40 py-2.5 px-5 rounded-full border border-primary-100/20 hover:border-primary-100/50 hover:bg-primary-800/40 transition-all">
-              <div className="relative flex items-center justify-center">
+            <label className="group flex items-start sm:items-center justify-center gap-3 cursor-pointer mb-5 sm:mb-6 mx-auto w-full max-w-[90%] sm:max-w-fit bg-primary-900/40 py-2.5 px-4 sm:px-5 rounded-xl sm:rounded-full border border-primary-100/20 hover:border-primary-100/50 hover:bg-primary-800/40 transition-all">
+              <div className="relative flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                 <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="peer sr-only" />
                 <div className="w-4 h-4 rounded-[4px] border border-white/30 peer-checked:bg-primary-100 peer-checked:border-primary-100 transition-all flex items-center justify-center shadow-inner">
                   <svg className={`w-2.5 h-2.5 text-white transition-transform duration-200 ${agreedToTerms ? "scale-100" : "scale-0"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -1630,13 +1617,13 @@ export default function Rbx5Page() {
                   </svg>
                 </div>
               </div>
-              <span className="text-[13px] font-medium text-white/70 group-hover:text-white/90">
+              <span className="text-xs sm:text-[13px] leading-relaxed font-medium text-white/70 group-hover:text-white/90">
                 Saya setuju dengan <span className="text-primary-100">syarat dan ketentuan</span>
               </span>
             </label>
 
-            <div className="flex gap-4">
-              <button onClick={() => setShowEstimasiPopup(false)} className="flex-1 py-3.5 rounded-xl bg-primary-700/50 border border-primary-200/20 text-white font-bold hover:bg-primary-600/50 transition-colors shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button onClick={() => setShowEstimasiPopup(false)} className="w-full sm:flex-1 py-3 sm:py-3.5 rounded-xl bg-primary-700/50 border border-primary-200/20 text-white font-bold hover:bg-primary-600/50 transition-colors shadow-sm text-sm sm:text-base order-2 sm:order-1">
                 Kembali
               </button>
               <button
@@ -1647,7 +1634,7 @@ export default function Rbx5Page() {
                   }
                 }}
                 disabled={!agreedToTerms}
-                className={`flex-1 py-3.5 rounded-xl font-bold text-white transition-all shadow-sm ${agreedToTerms ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:scale-105 shadow-primary-100/30" : "bg-gray-700/50 text-gray-500 cursor-not-allowed border border-gray-600/30"}`}
+                className={`w-full sm:flex-1 py-3 sm:py-3.5 rounded-xl font-bold text-white transition-all shadow-sm text-sm sm:text-base order-1 sm:order-2 ${agreedToTerms ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:scale-[1.02] shadow-primary-100/30" : "bg-gray-700/50 text-gray-500 cursor-not-allowed border border-gray-600/30"}`}
               >
                 Lanjutkan
               </button>
@@ -1675,8 +1662,8 @@ export default function Rbx5Page() {
                       key={place.placeId}
                       onClick={() => setSelectedPlace(place)}
                       className={`w-full p-4 rounded-2xl border-2 text-left transition-all duration-300 flex items-center justify-between group ${selectedPlace?.placeId === place.placeId
-                          ? "border-primary-100 bg-gradient-to-r from-primary-100/20 to-primary-200/10 shadow-lg shadow-primary-100/20"
-                          : "border-primary-600/30 hover:border-primary-100/40 bg-primary-800/20 hover:bg-primary-800/40"
+                        ? "border-primary-100 bg-gradient-to-r from-primary-100/20 to-primary-200/10 shadow-lg shadow-primary-100/20"
+                        : "border-primary-600/30 hover:border-primary-100/40 bg-primary-800/20 hover:bg-primary-800/40"
                         }`}
                     >
                       <div className="flex items-center gap-4">
