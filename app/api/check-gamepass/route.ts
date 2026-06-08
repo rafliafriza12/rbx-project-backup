@@ -7,14 +7,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const placeId = searchParams.get("placeId");
+    const universeId = searchParams.get("universeId");
     const expectedRobux = searchParams.get("expectedRobux");
 
-    if (!placeId || !expectedRobux) {
+    if (!universeId || !expectedRobux) {
       return NextResponse.json(
         {
           success: false,
-          message: "placeId dan expectedRobux diperlukan",
+          message: "universeId dan expectedRobux diperlukan",
         },
         { status: 400 },
       );
@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
 
     const expectedAmount = parseInt(expectedRobux);
 
-    // Use Universe-based GamePass API with placeId
+    // Use Universe-based GamePass API with universeId
     // This endpoint returns all gamepasses for a specific universe/place
-    const apiEndpoint = `https://apis.roblox.com/game-passes/v1/universes/${placeId}/game-passes?passView=Full&pageSize=100`;
+    const apiEndpoint = `https://apis.roblox.com/game-passes/v1/universes/${universeId}/game-passes?passView=Full&pageSize=100`;
 
-    console.log(`\n🔍 Fetching gamepasses for Place ID: ${placeId}`);
+    console.log(`\n🔍 Fetching gamepasses for Universe ID: ${universeId}`);
     console.log(`   Endpoint: ${apiEndpoint}`);
 
     const maxRetries = 3;

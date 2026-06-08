@@ -358,11 +358,11 @@ export async function getUserInfo(username: string) {
 /**
  * Server Action: Check gamepass for a place
  */
-export async function checkGamepass(placeId: number, expectedRobux: number) {
+export async function checkGamepass(universeId: number, expectedRobux: number) {
   try {
     const BASE_URL = getBaseUrl();
     const response = await fetch(
-      `${BASE_URL}/api/check-gamepass?placeId=${placeId}&expectedRobux=${expectedRobux}`,
+      `${BASE_URL}/api/check-gamepass?universeId=${universeId}&expectedRobux=${expectedRobux}`,
       {
         headers: getInternalHeaders(),
         cache: "no-store",

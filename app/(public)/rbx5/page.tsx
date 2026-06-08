@@ -572,15 +572,15 @@ export default function Rbx5Page() {
 
     try {
       const expectedRobux = getGamepassAmount();
-      const placeId = selectedPlace.placeId;
+      const universeId = selectedPlace.universeId;
 
-      if (!placeId) {
-        toast.error("Place ID tidak ditemukan. Mohon pilih game terlebih dahulu.");
+      if (!universeId) {
+        toast.error("Universe ID tidak ditemukan. Mohon pilih game terlebih dahulu.");
         setIsCheckingGamepass(false);
         return;
       }
 
-      const { ok, data } = await checkGamepass(placeId, expectedRobux);
+      const { ok, data } = await checkGamepass(universeId, expectedRobux);
 
       if (!ok || !data) {
         throw new Error(data?.message ? String(data.message) : "Gagal memeriksa gamepass");
