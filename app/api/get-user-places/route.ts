@@ -54,11 +54,11 @@ export async function GET(req: NextRequest) {
     }
 
     const result = places.map((p: any) => ({
-      placeId: p.id,
+      placeId: p.rootPlace?.id || p.id,
       name: p.name,
       description: p.description,
       visits: p.placeVisits,
-      universeId: p.universeId,
+      universeId: p.id,
       creator: p.creator,
       thumbnail: thumbsMap[p.id] || null,
     }));
