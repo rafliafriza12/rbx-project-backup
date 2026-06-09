@@ -130,12 +130,40 @@ export async function verifyGamepassFromRoblox(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(apiEndpoint, {
+    let response = await fetch(apiEndpoint, {
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
+
+    // If HTTP 404, it might be because the client sent a placeId instead of a universeId.
+    // Try to resolve the placeId to a universeId.
+    if (response.status === 404) {
+      console.log(`[Server] Got 404 for universeId=${universeId}, attempting to resolve as placeId...`);
+      try {
+        const resolveRes = await fetch(`https://apis.roblox.com/universes/v1/places/${universeId}/universe`);
+        if (resolveRes.ok) {
+          const resolveData = await resolveRes.json();
+          if (resolveData.universeId) {
+            const realUniverseId = resolveData.universeId;
+            console.log(`[Server] Resolved placeId ${universeId} to real universeId ${realUniverseId}. Retrying gamepass check...`);
+            
+            // Retry the gamepass check with the real universeId
+            const retryEndpoint = `https://apis.roblox.com/game-passes/v1/universes/${realUniverseId}/game-passes?passView=Full&pageSize=100`;
+            const retryController = new AbortController();
+            const retryTimeoutId = setTimeout(() => retryController.abort(), 10000);
+            response = await fetch(retryEndpoint, {
+              headers: { Accept: "application/json" },
+              signal: retryController.signal,
+            });
+            clearTimeout(retryTimeoutId);
+          }
+        }
+      } catch (e) {
+        console.error(`[Server] Failed to resolve placeId to universeId:`, e);
+      }
+    }
 
     if (!response.ok) {
       return {

@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
       description: p.description,
       visits: p.placeVisits,
       universeId: p.id,
+      id: p.id, // For backward compatibility with old cached JS bundles
       creator: p.creator,
       thumbnail: thumbsMap[p.id] || null,
     }));
