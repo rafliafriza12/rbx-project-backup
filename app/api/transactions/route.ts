@@ -1609,7 +1609,7 @@ async function handleSingleItemTransaction(body: any) {
     const expectedGamepassPrice =
       verifiedGamepassAmount || rbx5Details.gamepass.price;
     const robloxCheck = await verifyGamepassFromRoblox(
-      rbx5Details.selectedPlace.placeId,
+      rbx5Details.selectedPlace.universeId || rbx5Details.selectedPlace.placeId,
       expectedGamepassPrice,
     );
     if (!robloxCheck.valid || !robloxCheck.gamepass) {

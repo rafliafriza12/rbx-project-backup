@@ -104,7 +104,7 @@ export async function verifyRobloxUsername(username: string): Promise<{
 // 0b. Verifikasi gamepass via Roblox API (anti-spoof)
 // ============================================================
 export async function verifyGamepassFromRoblox(
-  placeId: number | string,
+  universeId: number | string,
   expectedPrice: number,
 ): Promise<{
   valid: boolean;
@@ -117,14 +117,14 @@ export async function verifyGamepassFromRoblox(
     productId: number;
   };
 }> {
-  if (!placeId || !expectedPrice) {
-    return { valid: false, error: "placeId dan expectedPrice diperlukan" };
+  if (!universeId || !expectedPrice) {
+    return { valid: false, error: "universeId dan expectedPrice diperlukan" };
   }
 
   try {
-    const apiEndpoint = `https://apis.roblox.com/game-passes/v1/universes/${placeId}/game-passes?passView=Full&pageSize=100`;
+    const apiEndpoint = `https://apis.roblox.com/game-passes/v1/universes/${universeId}/game-passes?passView=Full&pageSize=100`;
     console.log(
-      `🔍 [Server] Verifying gamepass at placeId=${placeId}, expectedPrice=${expectedPrice}`,
+      `🔍 [Server] Verifying gamepass at universeId=${universeId}, expectedPrice=${expectedPrice}`,
     );
 
     const controller = new AbortController();
@@ -158,12 +158,12 @@ export async function verifyGamepassFromRoblox(
 
     if (!matching) {
       console.warn(
-        `⚠️ No gamepass found with price=${expectedPrice} at placeId=${placeId}. ` +
+        `⚠️ No gamepass found with price=${expectedPrice} at universeId=${universeId}. ` +
           `Available: ${gamePasses.map((gp: any) => `${gp.name}(${gp.price})`).join(", ")}`,
       );
       return {
         valid: false,
-        error: `GamePass dengan harga ${expectedPrice} Robux tidak ditemukan di place ${placeId}`,
+        error: `GamePass dengan harga ${expectedPrice} Robux tidak ditemukan di place ${universeId}`,
       };
     }
 

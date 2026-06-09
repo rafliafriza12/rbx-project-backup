@@ -746,6 +746,7 @@ export default function Rbx5Page() {
           selectedPlace: selectedPlace
             ? {
               placeId: selectedPlace.placeId,
+              universeId: selectedPlace.universeId,
               name: selectedPlace.name,
             }
             : undefined,
@@ -812,6 +813,7 @@ export default function Rbx5Page() {
           selectedPlace: selectedPlace
             ? {
               placeId: selectedPlace.placeId,
+              universeId: selectedPlace.universeId,
               name: selectedPlace.name,
             }
             : undefined,
@@ -1387,7 +1389,7 @@ export default function Rbx5Page() {
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <a
-                  href={`https://create.roblox.com/dashboard/creations/experiences/${selectedPlace.placeId}/monetization/passes`}
+                  href={`https://create.roblox.com/dashboard/creations/experiences/${selectedPlace.universeId}/monetization/passes`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-4 px-4 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:scale-105"
