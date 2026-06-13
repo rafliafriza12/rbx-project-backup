@@ -1595,6 +1595,13 @@ async function handleSingleItemTransaction(body: any) {
 
   const isTaxable = (["robux", "gamepass", "coin_topup"].includes(serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(serviceCategory)) && serviceCategory !== "robux_instant";
   const ppnAmount = isTaxable ? Math.round(finalAmountBeforeFeeWithPromo * 0.11) : 0;
+  
+  console.log("=== PPN DEBUG ===");
+  console.log("serviceType:", serviceType);
+  console.log("serviceCategory:", serviceCategory);
+  console.log("isTaxable:", isTaxable);
+  console.log("finalAmountBeforeFeeWithPromo:", finalAmountBeforeFeeWithPromo);
+  console.log("ppnAmount:", ppnAmount);
 
   // ============================================================
   // VERIFY GAMEPASS via Roblox API for rbx5_hari (anti-spoof)
