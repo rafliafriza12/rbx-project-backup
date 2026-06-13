@@ -347,19 +347,19 @@ export async function POST(request: NextRequest) {
           packageName: item.rbx5Details.packageName,
           selectedPlace: item.rbx5Details.selectedPlace
             ? {
-                placeId: item.rbx5Details.selectedPlace.placeId,
-                name: item.rbx5Details.selectedPlace.name,
-              }
+              placeId: item.rbx5Details.selectedPlace.placeId,
+              name: item.rbx5Details.selectedPlace.name,
+            }
             : undefined,
           gamepassCreated: item.rbx5Details.gamepassCreated,
           gamepass: verifiedGamepass
             ? {
-                id: verifiedGamepass.id,
-                name: verifiedGamepass.name,
-                price: verifiedGamepass.price,
-                productId: verifiedGamepass.productId,
-                sellerId: verifiedGamepass.sellerId,
-              }
+              id: verifiedGamepass.id,
+              name: verifiedGamepass.name,
+              price: verifiedGamepass.price,
+              productId: verifiedGamepass.productId,
+              sellerId: verifiedGamepass.sellerId,
+            }
             : undefined,
           pricePerRobux: itemValidation.verifiedPricePerHundred
             ? itemValidation.verifiedPricePerHundred / 100
@@ -446,7 +446,7 @@ export async function POST(request: NextRequest) {
     // Validasi Promo Code
     let totalPromoDiscountAmount = 0;
     let appliedPromoCode = "";
-    
+
     if (body.promoCode && typeof body.promoCode === 'string') {
       const Promo = (await import("@/models/Promo")).default;
       const promo = await Promo.findOne({ code: body.promoCode.toUpperCase(), isActive: true });
@@ -462,14 +462,14 @@ export async function POST(request: NextRequest) {
           let isApplicable = true;
           if (promo.applicableTo && promo.applicableTo.length > 0) {
             const cartServices = Array.from(new Set(createdTransactions.map(t => {
-               if (t.serviceCategory === "robux_5_hari") return "rbx5";
-               if (t.serviceCategory === "robux_instant") return "robux_instant";
-               if (t.serviceCategory === "gamepass" || t.serviceType === "gamepass") return "gamepass";
-               return "";
+              if (t.serviceCategory === "robux_5_hari") return "rbx5";
+              if (t.serviceCategory === "robux_instant") return "robux_instant";
+              if (t.serviceCategory === "gamepass" || t.serviceType === "gamepass") return "gamepass";
+              return "";
             }).filter(Boolean)));
             isApplicable = cartServices.some(s => promo.applicableTo.includes(s));
           }
-          
+
           if (!isApplicable) {
             console.warn(`Promo not applicable for cart items: ${body.promoCode}`);
           } else {
@@ -482,7 +482,7 @@ export async function POST(request: NextRequest) {
                 userUses = promo.usedBy[userUsageIndex].count;
               }
             }
-            
+
             if (promo.maxUsesPerUser > 0 && userUses >= promo.maxUsesPerUser) {
               console.warn(`Promo max uses per user reached: ${body.promoCode}`);
             } else {
@@ -493,7 +493,7 @@ export async function POST(request: NextRequest) {
               }
               if (totalPromoDiscountAmount > verifiedFinalAmountBeforeFee) totalPromoDiscountAmount = verifiedFinalAmountBeforeFee;
               appliedPromoCode = promo.code;
-              
+
               promo.currentUses += 1;
               if (userId) {
                 if (userUsageIndex !== -1) {
@@ -521,28 +521,28 @@ export async function POST(request: NextRequest) {
         const itemPromoDiscountAmount = Math.round(totalPromoDiscountAmount * itemRatio);
         const itemFinalAmount = transaction.totalAmount - itemDiscountAmount - itemPromoDiscountAmount;
 
-        const isTaxable = (["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
+        const isTaxable = (["robux", "gamepass", "coin_topup"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
         const itemPpnAmount = isTaxable ? Math.round(itemFinalAmount * 0.11) : 0;
-        
+
         transaction.discountPercentage = verifiedDiscountPercentage;
         transaction.discountAmount = itemDiscountAmount + itemPromoDiscountAmount;
         transaction.ppnAmount = itemPpnAmount;
         transaction.finalAmount = itemFinalAmount + itemPpnAmount;
         if (appliedPromoCode) transaction.promoCode = appliedPromoCode;
-        
+
         await transaction.save();
       }
     } else {
       // Masih harus simpan finalAmount
       for (const transaction of createdTransactions) {
-         const isTaxable = (["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
-         const itemPpnAmount = isTaxable ? Math.round(transaction.totalAmount * 0.11) : 0;
-         
-         transaction.discountPercentage = 0;
-         transaction.discountAmount = 0;
-         transaction.ppnAmount = itemPpnAmount;
-         transaction.finalAmount = transaction.totalAmount + itemPpnAmount;
-         await transaction.save();
+        const isTaxable = (["robux", "gamepass", "coin_topup"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
+        const itemPpnAmount = isTaxable ? Math.round(transaction.totalAmount * 0.11) : 0;
+
+        transaction.discountPercentage = 0;
+        transaction.discountAmount = 0;
+        transaction.ppnAmount = itemPpnAmount;
+        transaction.finalAmount = transaction.totalAmount + itemPpnAmount;
+        await transaction.save();
       }
     }
 
@@ -576,7 +576,7 @@ export async function POST(request: NextRequest) {
           transaction.paymentMethodName = paymentMethodName;
         if (validPaymentMethodId && validPaymentMethodId !== "RBXNET_COIN")
           transaction.paymentMethodId = validPaymentMethodId;
-          
+
         await transaction.save();
       }
     }
@@ -585,24 +585,24 @@ export async function POST(request: NextRequest) {
     if (midtransItems.length > 0) {
       const hasDiscount = verifiedDiscountAmount > 0 || totalPromoDiscountAmount > 0;
       const discountMultiplier = hasDiscount && verifiedFinalAmountBeforeFee > 0 ? finalAmountBeforeFeeWithPromo / subtotal : 1;
-      
+
       midtransItems.forEach((item) => {
         const originalPrice = item.price;
         if (hasDiscount) {
           item.price = Math.round(item.price * discountMultiplier);
         }
-        
+
         // Apply PPN directly to the item price if taxable
-        const isTaxable = (["robux", "gamepass"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category)) && item.category !== "robux_instant";
+        const isTaxable = (["robux", "gamepass", "coin_topup"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category)) && item.category !== "robux_instant";
         if (isTaxable) {
           item.price += Math.round(item.price * 0.11);
         }
 
         if (hasDiscount) {
           if (appliedPromoCode) {
-             item.name = `${item.name} (Promo)`;
+            item.name = `${item.name} (Promo)`;
           } else if (verifiedDiscountPercentage > 0 && !item.name.includes("Diskon")) {
-             item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
+            item.name = `${item.name} (Diskon ${verifiedDiscountPercentage}%)`;
           }
         }
         console.log(
@@ -702,7 +702,7 @@ export async function POST(request: NextRequest) {
         if (!user) {
           throw new Error("User not found");
         }
-        
+
         // PREVENT buying coins with coins (Infinite Money Glitch)
         const hasCoinTopup = createdTransactions.some((t: any) => t.serviceType === "coin_topup");
         if (hasCoinTopup) {
@@ -711,54 +711,54 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        
+
         const coinsRequired = Number((grossAmount / (settings.coinSpendValue || 1000)).toFixed(2));
-        
+
         if ((user.balance || 0) < coinsRequired) {
           return NextResponse.json(
             { error: `Saldo Credits tidak cukup. Dibutuhkan: ${coinsRequired} credits, Saldo: ${user.balance || 0} credits` },
             { status: 400 }
           );
         }
-        
+
         // Deduct balance with 2 decimal precision
         user.balance = Number((user.balance - coinsRequired).toFixed(2));
         await user.save();
-        
+
         // Update all transactions to paid
         const updatePromises = createdTransactions.map(async (transaction) => {
           transaction.paymentStatus = "settlement";
           transaction.paidAt = new Date();
           transaction.midtransOrderId = masterOrderId;
-          
+
           // Adjust order status based on service
           let finalOrderStatus = "processing";
           if (transaction.serviceCategory === "robux_5_hari") {
             finalOrderStatus = "pending";
           }
           transaction.orderStatus = finalOrderStatus;
-          
+
           transaction.statusHistory.push({
             status: "payment:settlement",
             timestamp: new Date(),
             notes: `Paid with RBXNET Credits (${coinsRequired} coins)`,
             updatedBy: "system"
           });
-          
+
           transaction.statusHistory.push({
             status: `order:${finalOrderStatus}`,
             timestamp: new Date(),
             notes: "Pesanan masuk antrean sistem otomatis",
             updatedBy: "system"
           });
-          
+
           return transaction.save();
         });
-        
+
         await Promise.all(updatePromises);
-        
+
         paymentResult = {};
-        
+
       } else if (activeGateway === "duitku") {
         // ===== DUITKU PAYMENT GATEWAY =====
         console.log("Using Duitku payment gateway");
@@ -923,10 +923,10 @@ export async function POST(request: NextRequest) {
         robloxUsername: t.robloxUsername,
         customerInfo: t.customerInfo
           ? {
-              name: t.customerInfo.name,
-              email: t.customerInfo.email,
-              phone: t.customerInfo.phone,
-            }
+            name: t.customerInfo.name,
+            email: t.customerInfo.email,
+            phone: t.customerInfo.phone,
+          }
           : undefined,
         createdAt: t.createdAt,
       }));
