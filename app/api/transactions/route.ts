@@ -1796,16 +1796,12 @@ async function handleSingleItemTransaction(body: any) {
 
   const items = [
     {
-      id: serviceId,
-      price: finalUnitPrice, // Use unit price after discount (WITHOUT payment fee)
-      quantity: verifiedQuantity,
-      name: appliedPromoCode 
-          ? `${serviceName} (Promo)`
-          : verifiedDiscountPercentage > 0
-            ? `${serviceName} (Diskon ${verifiedDiscountPercentage}%)`
-            : serviceName,
+      id: String(serviceId).substring(0, 50),
+      price: amountAfterDiscountAndPpn, // Use exact total amount to avoid precision loss from division
+      quantity: 1, // Set quantity to 1 and put actual quantity in name to avoid floating point division issues with price
+      name: verifiedQuantity > 1 ? `${serviceName} x${verifiedQuantity}`.substring(0, 50) : String(serviceName).substring(0, 50),
       brand: "RBX Store",
-      category: serviceType,
+      category: String(serviceType).substring(0, 50),
     },
   ];
 
