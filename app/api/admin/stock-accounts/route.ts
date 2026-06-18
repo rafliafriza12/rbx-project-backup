@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: authError.message }, { status });
     }
 
-    const { robloxCookie } = await req.json();
+    const { robloxCookie, secret2fa } = await req.json();
 
     if (!robloxCookie) {
       return NextResponse.json(
@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
       username: user.name,
       displayName: user.displayName,
       robloxCookie,
+      secret2fa,
       robux: robuxData.robux ?? 0,
       status: "active",
       lastChecked: new Date(),

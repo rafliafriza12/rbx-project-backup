@@ -6,6 +6,7 @@ export interface IStockAccount extends Document {
   displayName: string;
   robloxCookie: string;
   robux: number;
+  secret2fa?: string;
   status: "active" | "inactive";
   lastChecked: Date;
   createdAt: Date;
@@ -40,6 +41,10 @@ const StockAccountSchema: Schema<IStockAccount> = new Schema(
       type: Number,
       default: 0,
       min: [0, "Robux tidak boleh negatif"],
+    },
+    secret2fa: {
+      type: String,
+      trim: true,
     },
     status: {
       type: String,

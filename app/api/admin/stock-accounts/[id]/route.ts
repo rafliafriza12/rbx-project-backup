@@ -67,7 +67,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { robloxCookie } = await req.json();
+    const { robloxCookie, secret2fa } = await req.json();
 
     if (!robloxCookie) {
       return NextResponse.json(
@@ -113,6 +113,7 @@ export async function PUT(
         username: user.name,
         displayName: user.displayName,
         robloxCookie,
+        secret2fa,
         robux: robuxData.robux ?? 0,
         lastChecked: new Date(),
       },

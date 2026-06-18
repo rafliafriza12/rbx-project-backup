@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/mongodb";
+import StockAccount from "@/models/StockAccount";
+import { generateRoblox2FACode } from "@/utils/totp";
 const noblox = require("noblox.js");
 
 // Vercel serverless function config
@@ -205,7 +208,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ============ STEP 6: Purchase via Economy API (with retry for rate limit) ============
+    // ============ STEP 6: Purchase via Economy API (with retry & 2FA handling) ============
     console.log(
       `🛒 Purchasing gamepass "${productInfo.Name}" (ProductId: ${productInfo.ProductId}) for ${actualPrice} Robux...`,
     );
@@ -213,8 +216,161 @@ export async function POST(req: NextRequest) {
     const maxPurchaseRetries = 5;
     let result: any = null;
 
+    // Helper: melakukan purchase request dengan optional challenge headers
+    async function doPurchaseRequest(extraHeaders: Record<string, string> = {}) {
+      return await fetch(
+        `https://economy.roblox.com/v1/purchases/products/${productInfo.ProductId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+            "X-CSRF-TOKEN": csrfToken,
+            ...extraHeaders,
+          },
+          body: JSON.stringify({
+            expectedCurrency: 1,
+            expectedPrice: actualPrice,
+            expectedSellerId: productInfo.Creator.CreatorTargetId,
+          }),
+        },
+      );
+    }
+
+    // Helper: menyelesaikan 2FA challenge dan mengulangi pembelian
+    // challengeTypeHeader = nilai dari header "rblx-challenge-type" (bukan dari metadata)
+    async function handle2FAChallenge(
+      challengeId: string,
+      challengeMetadataBase64: string,
+      challengeTypeHeader: string,
+    ): Promise<any> {
+      console.warn("⚠️ Terdeteksi 2FA challenge dari Roblox!");
+      console.log(`🔑 Challenge ID: ${challengeId}, Type: ${challengeTypeHeader}`);
+
+      // 1. Ambil secret2fa dari database
+      await connectDB();
+      const account = await StockAccount.findOne({ robloxCookie });
+
+      if (!account || !account.secret2fa) {
+        throw new Error("Akun ini membutuhkan 2FA, tapi secret2fa tidak ditemukan di database! Silakan tambahkan secret 2FA di halaman Admin > Stock Accounts.");
+      }
+
+      // 2. Generate kode TOTP 6 digit
+      const code2fa = generateRoblox2FACode(account.secret2fa);
+      console.log(`🔐 Kode 2FA berhasil di-generate: ${code2fa}`);
+
+      // 3. Parse metadata dari challenge untuk ambil userId
+      let userId: string;
+      try {
+        const challengeMetadata = JSON.parse(
+          Buffer.from(challengeMetadataBase64, "base64").toString("utf-8"),
+        );
+        console.log("📋 Challenge metadata:", challengeMetadata);
+        // userId ada di dalam metadata, fallback ke currentUser jika tidak ada
+        userId = String(challengeMetadata.userId || currentUser.UserID);
+      } catch {
+        console.warn("⚠️ Gagal parse metadata, fallback ke currentUser.UserID");
+        userId = String(currentUser.UserID);
+      }
+
+      // 4. Verifikasi kode TOTP ke endpoint Roblox
+      // actionType "Purchase" sesuai dengan transaksi Economy
+      console.log(`📤 Mengirim kode 2FA ke Roblox untuk user ${userId}...`);
+
+      async function doVerifyRequest(token: string) {
+        return await fetch(
+          `https://twostepverification.roblox.com/v1/users/${userId}/challenges/authenticator/verify`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+              "X-CSRF-TOKEN": token,
+            },
+            body: JSON.stringify({
+              challengeId: challengeId,
+              actionType: "Purchase",
+              code: code2fa,
+            }),
+          },
+        );
+      }
+
+      let verifyResponse = await doVerifyRequest(csrfToken);
+
+      // Handle CSRF token refresh pada verify endpoint
+      if (verifyResponse.status === 403) {
+        const newCsrf = verifyResponse.headers.get("x-csrf-token");
+        if (!newCsrf) {
+          const errBody = await verifyResponse.text();
+          throw new Error(`Verifikasi 2FA gagal (403, no csrf): ${errBody}`);
+        }
+        csrfToken = newCsrf;
+        console.log("🔑 CSRF token diperbarui dari verify response, mencoba ulang...");
+        verifyResponse = await doVerifyRequest(csrfToken);
+      }
+
+      if (!verifyResponse.ok) {
+        const errBody = await verifyResponse.text();
+        throw new Error(`Verifikasi 2FA gagal: HTTP ${verifyResponse.status} - ${errBody}`);
+      }
+
+      const verifyResult = await verifyResponse.json();
+      console.log("✅ Verifikasi 2FA berhasil:", verifyResult);
+
+      const verificationToken: string = verifyResult.verificationToken;
+      if (!verificationToken) {
+        throw new Error("Roblox tidak mengembalikan verificationToken setelah verifikasi 2FA.");
+      }
+
+      // 5. Lanjutkan pembelian dengan challenge token
+      return await continuePurchaseWithChallenge(challengeId, verificationToken, challengeTypeHeader);
+    }
+
+    // Helper: melanjutkan pembelian setelah challenge berhasil diverifikasi
+    async function continuePurchaseWithChallenge(
+      challengeId: string,
+      verificationToken: string,
+      challengeType: string,
+    ): Promise<any> {
+      // redemptionToken adalah bukti challenge sudah diselesaikan yang dikirim ke Economy API
+      const solvedMetadata = Buffer.from(
+        JSON.stringify({
+          redemptionToken: verificationToken,
+          rememberDevice: false,
+          challengeId: challengeId,
+          actionType: "Purchase",
+        }),
+      ).toString("base64");
+
+      console.log("🔄 Mengulang pembelian dengan challenge token...");
+
+      let retryPurchaseResponse = await doPurchaseRequest({
+        "rblx-challenge-id": challengeId,
+        "rblx-challenge-type": challengeType,
+        "rblx-challenge-metadata": solvedMetadata,
+      });
+
+      // Handle CSRF refresh sekali lagi jika perlu
+      if (retryPurchaseResponse.status === 403) {
+        const newCsrf = retryPurchaseResponse.headers.get("x-csrf-token");
+        if (newCsrf) {
+          csrfToken = newCsrf;
+          console.log("🔑 CSRF token diperbarui, mencoba pembelian sekali lagi...");
+          retryPurchaseResponse = await doPurchaseRequest({
+            "rblx-challenge-id": challengeId,
+            "rblx-challenge-type": challengeType,
+            "rblx-challenge-metadata": solvedMetadata,
+          });
+        }
+      }
+
+      return await retryPurchaseResponse.json();
+    }
+
+    // ---- Main purchase loop ----
     for (let attempt = 1; attempt <= maxPurchaseRetries; attempt++) {
-      // Re-fetch CSRF token setiap retry via auth endpoint (same cookie session)
+      // Re-fetch CSRF token setiap retry via auth endpoint
       if (attempt > 1) {
         try {
           const csrfRes = await fetch("https://auth.roblox.com/v2/logout", {
@@ -235,22 +391,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const purchaseResponse = await fetch(
-        `https://economy.roblox.com/v1/purchases/products/${productInfo.ProductId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Cookie: `.ROBLOSECURITY=${robloxCookie}`,
-            "X-CSRF-TOKEN": csrfToken,
-          },
-          body: JSON.stringify({
-            expectedCurrency: 1,
-            expectedPrice: actualPrice,
-            expectedSellerId: productInfo.Creator.CreatorTargetId,
-          }),
-        },
-      );
+      const purchaseResponse = await doPurchaseRequest();
 
       // Handle 429 rate limit
       if (purchaseResponse.status === 429) {
@@ -258,7 +399,7 @@ export async function POST(req: NextRequest) {
           const retryAfter = purchaseResponse.headers.get("retry-after");
           const delay = retryAfter
             ? parseInt(retryAfter) * 1000
-            : 2000 * Math.pow(2, attempt - 1); // 2s, 4s, 8s, 16s
+            : 2000 * Math.pow(2, attempt - 1);
           console.warn(
             `⏳ [Purchase] Rate limited (429). Retry ${attempt}/${maxPurchaseRetries} setelah ${delay}ms...`,
           );
@@ -275,10 +416,42 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Handle 403 (CSRF token expired) - ambil token baru dari response header atau via auth endpoint
+      // Handle 403 - bisa CSRF expired ATAU 2FA challenge
       if (purchaseResponse.status === 403) {
+        // Cek apakah ini 2FA challenge (ada header rblx-challenge-id)
+        const challengeId = purchaseResponse.headers.get("rblx-challenge-id");
+        const challengeType = purchaseResponse.headers.get("rblx-challenge-type");
+        const challengeMetadata = purchaseResponse.headers.get("rblx-challenge-metadata");
+
+        if (challengeId && challengeType && challengeMetadata) {
+          console.log(`🔒 Roblox meminta challenge: type=${challengeType}, id=${challengeId}`);
+
+          // Update CSRF dari response jika ada
+          const headerCsrf = purchaseResponse.headers.get("x-csrf-token");
+          if (headerCsrf) {
+            csrfToken = headerCsrf;
+          }
+
+          try {
+            // Teruskan challengeType dari header langsung ke handler
+            result = await handle2FAChallenge(challengeId, challengeMetadata, challengeType);
+            console.log("📋 Purchase result (after 2FA):", result);
+            break;
+          } catch (challengeError: any) {
+            console.error("❌ Gagal menyelesaikan 2FA challenge:", challengeError.message);
+            return NextResponse.json(
+              {
+                success: false,
+                message: `Gagal menyelesaikan 2FA: ${challengeError.message}`,
+                requires2FA: true,
+              },
+              { status: 403 },
+            );
+          }
+        }
+
+        // Bukan 2FA, kemungkinan CSRF expired biasa
         if (attempt < maxPurchaseRetries) {
-          // Coba ambil dari response header dulu
           const headerCsrf = purchaseResponse.headers.get("x-csrf-token");
           if (headerCsrf) {
             csrfToken = headerCsrf;
@@ -286,7 +459,6 @@ export async function POST(req: NextRequest) {
               `🔄 [Purchase] CSRF expired, got new token from response header. Retry ${attempt}/${maxPurchaseRetries}...`,
             );
           } else {
-            // Jika tidak ada di header, ambil ulang via auth endpoint
             try {
               const csrfRes = await fetch("https://auth.roblox.com/v2/logout", {
                 method: "POST",
@@ -319,7 +491,7 @@ export async function POST(req: NextRequest) {
 
       result = await purchaseResponse.json();
       console.log("📋 Purchase result:", result);
-      break; // Berhasil dapat response, keluar dari loop
+      break;
     }
 
     if (!result) {
@@ -333,7 +505,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ============ STEP 7: Handle response ============
-    // Handle Roblox API error format: { errors: [{code, message}] }
     if (result.errors && Array.isArray(result.errors)) {
       const errorMsg = result.errors
         .map((e: any) => e.message || e.code)
@@ -350,7 +521,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (result.purchased) {
-      console.log(`�� Pembelian berhasil!`);
+      console.log(`🎉 Pembelian berhasil!`);
       return NextResponse.json({
         success: true,
         message: `Gamepass berhasil dibeli`,

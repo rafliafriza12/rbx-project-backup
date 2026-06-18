@@ -14,6 +14,7 @@ import {
   deleteStockAccountAdmin,
   triggerAutoPurchase,
   impersonateUserAction,
+  setupTwoFAAction,
 } from "./actions";
 
 interface User {
@@ -54,6 +55,7 @@ interface StockAccount {
   displayName: string;
   robloxCookie: string;
   robux: number;
+  secret2fa?: string;
   status: "active" | "inactive";
   lastChecked: string;
   createdAt: string;
@@ -68,6 +70,7 @@ export default function UsersPage() {
   const [stockAccounts, setStockAccounts] = useState<StockAccount[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [setup2faLoading, setSetup2faLoading] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedStockAccount, setSelectedStockAccount] =
@@ -86,6 +89,7 @@ export default function UsersPage() {
     resellerPackageId: "",
     password: "",
     robloxCookie: "",
+    secret2fa: "",
   });
 
   // Confirmation modal for auto-purchase
@@ -196,6 +200,7 @@ export default function UsersPage() {
       resellerPackageId: user.resellerPackageId || "",
       password: "", // Always empty for security
       robloxCookie: "",
+      secret2fa: "",
     });
     setShowModal(true);
   };
@@ -235,6 +240,7 @@ export default function UsersPage() {
       resellerPackageId: "",
       password: "",
       robloxCookie: account.robloxCookie,
+      secret2fa: (account as any).secret2fa || "",
     });
     setShowModal(true);
   };
@@ -305,6 +311,7 @@ export default function UsersPage() {
         // Handle stock account creation/update
         const payload = {
           robloxCookie: formData.robloxCookie,
+          secret2fa: formData.secret2fa,
         };
 
         const { ok, data } = await saveStockAccount(
@@ -332,6 +339,7 @@ export default function UsersPage() {
             resellerPackageId: "",
             password: "",
             robloxCookie: "",
+            secret2fa: "",
           });
           fetchStockAccounts();
 
@@ -381,6 +389,7 @@ export default function UsersPage() {
             resellerPackageId: "",
             password: "",
             robloxCookie: "",
+            secret2fa: "",
           });
           fetchUsers();
         } else {
@@ -466,6 +475,7 @@ export default function UsersPage() {
               resellerPackageId: "",
               password: "",
               robloxCookie: "",
+              secret2fa: "",
             });
             setShowModal(true);
           }}
@@ -726,6 +736,43 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
+                          onClick={async () => {
+                            setSetup2faLoading(account._id);
+                            try {
+                              const { ok, data } = await setupTwoFAAction(account._id);
+                              if (ok && data.success) {
+                                if (data.alreadySetup) {
+                                  toast.info(`Akun @${account.username} sudah memiliki 2FA.`);
+                                } else {
+                                  toast.success(`✅ 2FA berhasil diaktifkan untuk @${account.username}! Secret: ${data.secret2fa}`);
+                                  fetchStockAccounts();
+                                }
+                              } else {
+                                toast.error(data.message || "Gagal setup 2FA");
+                              }
+                            } catch (e: any) {
+                              toast.error(e.message || "Error");
+                            } finally {
+                              setSetup2faLoading(null);
+                            }
+                          }}
+                          disabled={setup2faLoading === account._id || !!account.secret2fa}
+                          className={`mr-3 ${
+                            account.secret2fa
+                              ? "text-green-500 cursor-default"
+                              : setup2faLoading === account._id
+                                ? "text-gray-400 cursor-wait"
+                                : "text-yellow-400 hover:text-yellow-300"
+                          }`}
+                          title={account.secret2fa ? `Secret tersimpan: ${account.secret2fa}` : "Aktifkan 2FA otomatis"}
+                        >
+                          {account.secret2fa
+                            ? "🔐 2FA Active"
+                            : setup2faLoading === account._id
+                              ? "⏳ Setting..."
+                              : "🔓 Setup 2FA"}
+                        </button>
+                        <button
                           onClick={() => handleEditStockAccount(account)}
                           className="text-[#60a5fa] hover:text-[#93c5fd] mr-3"
                         >
@@ -917,6 +964,26 @@ export default function UsersPage() {
                       <p className="text-xs text-[#94a3b8] mt-1">
                         The system will automatically validate the cookie and
                         extract user information.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
+                        Secret 2FA (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.secret2fa}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            secret2fa: e.target.value,
+                          })
+                        }
+                        placeholder="Contoh: JUZ5JERKQ63U3BC2UMSEULE6KY"
+                        className="w-full px-3 py-2 border border-[#334155] rounded-lg focus:ring-2 focus:ring-[#3b82f6] bg-[#334155] text-[#f1f5f9] placeholder-[#94a3b8]"
+                      />
+                      <p className="text-xs text-[#94a3b8] mt-1">
+                        Masukkan kunci entri manual untuk otomatisasi kode Authenticator.
                       </p>
                     </div>
                   </>

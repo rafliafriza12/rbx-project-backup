@@ -250,3 +250,29 @@ export async function triggerAutoPurchase(stockAccountId: string) {
     return { ok: false, data: { error: "Error triggering auto-purchase" } };
   }
 }
+
+/**
+ * Setup 2FA otomatis untuk stock account (aktifkan TOTP + simpan secret)
+ */
+export async function setupTwoFAAction(stockAccountId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/admin/stock-accounts/setup-2fa`,
+      {
+        method: "POST",
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        body: JSON.stringify({ stockAccountId }),
+      },
+    );
+    const data = await response.json();
+    return { ok: response.ok, data };
+  } catch (error) {
+    console.error("[Server Action] Error setting up 2FA:", error);
+    return { ok: false, data: { error: "Error setting up 2FA" } };
+  }
+}
