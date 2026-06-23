@@ -311,7 +311,7 @@ async function processGamepassPurchase(transaction: any) {
 
         lastErrorMessage = `Pembelian gamepass gagal: ${purchaseResult.message}`;
         break; // Stop and fail for other errors
-      
+      }
     }
 
     if (!purchaseSuccess) {
