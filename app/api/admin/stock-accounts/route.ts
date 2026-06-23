@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { requireAdmin, requireApiKey } from "@/lib/auth";
+import { checkRobuxPlus } from "@/utils/checkRobuxPlus";
 
 export async function GET(request: NextRequest) {
   const apiKeyError = requireApiKey(request);
@@ -18,11 +19,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: authError.message }, { status });
     }
 
-    const stockAccounts = await StockAccount.find({}).sort({ createdAt: -1 });
+    // SECURITY: Jangan kembalikan robloxCookie (sensitif!) dan secret2fa (nilai TOTP secret)
+    // di response GET. Admin hanya perlu tahu apakah ada atau tidak.
+    const stockAccounts = await StockAccount.find({})
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Strip sensitive fields, hanya kembalikan indikator boolean
+    const sanitized = stockAccounts.map((acc: any) => {
+      const { robloxCookie, secret2fa, ...safe } = acc;
+      return {
+        ...safe,
+        hasCookie: !!robloxCookie,
+        hasSecret2fa: !!secret2fa,
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      stockAccounts,
+      stockAccounts: sanitized,
     });
   } catch (error) {
     console.error("Error fetching stock accounts:", error);
@@ -93,6 +108,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Auto-detect Robux Plus status
+    console.log(`🔍 [AddStock] Mengecek Robux Plus untuk @${user.name}...`);
+    const rbxPlusResult = await checkRobuxPlus(robloxCookie);
+    console.log(
+      `  → isRobuxPlus=${rbxPlusResult.isRobuxPlus}${rbxPlusResult.error ? ` (${rbxPlusResult.error})` : ""}`,
+    );
+
     // Create new stock account
     const stockAccount = new StockAccount({
       userId: user.id,
@@ -101,6 +123,8 @@ export async function POST(req: NextRequest) {
       robloxCookie,
       secret2fa,
       robux: robuxData.robux ?? 0,
+      isRobuxPlus: rbxPlusResult.isRobuxPlus,
+      robuxPlusVerifiedAt: new Date(),
       status: "active",
       lastChecked: new Date(),
     });
@@ -112,7 +136,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Stock account berhasil ditambahkan",
+      message: `Stock account berhasil ditambahkan${rbxPlusResult.isRobuxPlus ? " ⭐ (Robux Plus terdeteksi)" : ""}`,
       stockAccount,
     });
   } catch (error) {

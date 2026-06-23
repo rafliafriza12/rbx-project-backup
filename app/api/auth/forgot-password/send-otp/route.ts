@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
 // Store OTPs temporarily for forgot password (separate from registration OTPs)
 const forgotPasswordOtpStore = new Map<
   string,
-  { code: string; expiresAt: number }
+  { code: string; expiresAt: number; attempts: number }
 >();
 
 // Rate limiter for forgot password OTP requests
@@ -92,12 +92,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: rateCheck.message }, { status: 429 });
     }
 
-    // Check if user exists
+    // Check if user exists — return generic message regardless to prevent email enumeration
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (!existingUser) {
+      // Do NOT reveal whether the email is registered
       return NextResponse.json(
-        { error: "Email tidak terdaftar" },
-        { status: 400 },
+        { success: true, message: "Jika email terdaftar, kode OTP akan dikirim ke email Anda" },
+        { status: 200 },
       );
     }
 
@@ -116,8 +117,8 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    // Store OTP
-    forgotPasswordOtpStore.set(email.toLowerCase(), { code: otp, expiresAt });
+    // Store OTP (reset attempts counter)
+    forgotPasswordOtpStore.set(email.toLowerCase(), { code: otp, expiresAt, attempts: 0 });
 
     // Get email settings from database
     const settings = await Settings.findOne();

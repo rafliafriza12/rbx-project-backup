@@ -38,7 +38,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify OTP
+    // Guard: max 5 failed attempts before OTP is invalidated
+    if ((storedOTP.attempts || 0) >= 5) {
+      forgotPasswordOtpStore.delete(email.toLowerCase());
+      return NextResponse.json(
+        { error: "Terlalu banyak percobaan gagal. Silakan minta kode OTP baru." },
+        { status: 429 },
+      );
+    }
+
     if (storedOTP.code !== otp) {
+      storedOTP.attempts = (storedOTP.attempts || 0) + 1;
       return NextResponse.json(
         { error: "Kode OTP tidak valid" },
         { status: 400 },

@@ -5,6 +5,7 @@
  */
 
 import dbConnect from "@/lib/mongodb";
+import { calculateGamepassAmount } from "@/utils/checkRobuxPlus";
 
 // ============================================================
 // 0a. Verifikasi Roblox username via Roblox API (anti-spoof)
@@ -503,11 +504,28 @@ export async function getVerifiedUnitPrice(
         (robuxAmount / 100) * pricing.pricePerHundred,
       );
 
-      // gamepassAmount ALWAYS calculated server-side (Roblox 30% tax)
+      // gamepassAmount SELALU dihitung dari harga BASE (tidak pre-apply diskon Robux Plus).
+      //
+      // Customer listing gamepass di 143 (untuk 100 Robux).
+      // Saat Robux Plus stock account beli:
+      //   - REST endpoint return PriceInRobux: 129 (Roblox apply 10% otomatis)
+      //   - Sistem kirim expectedPrice: 129 → purchase berhasil
+      //   - Creator tetap terima 143 × 0.7 = 100 Robux ✅
+      //
+      // Jika kita pre-apply diskon (tampilkan 129):
+      //   Customer listing 129 → Robux Plus apply diskon lagi → 117
+      //   Sistem kirim expectedPrice: 117 → PriceChanged ❌ (double discount!)
       const gamepassFeeMultiplier = parseFloat(
         process.env.NEXT_PUBLIC_GAMEPASS_FEE_MULTIPLIER || "1.43",
       );
-      const gamepassAmount = Math.ceil(robuxAmount * gamepassFeeMultiplier);
+
+      const gamepassAmount = calculateGamepassAmount(
+        robuxAmount,
+        false, // selalu base rate, Robux Plus discount ditangani Roblox saat purchase
+        0,
+        gamepassFeeMultiplier,
+      );
+      console.log(`💰 [Rbx5] gamepassAmount=${gamepassAmount} (base ×${gamepassFeeMultiplier})`);
 
       return {
         valid: true,
@@ -515,7 +533,7 @@ export async function getVerifiedUnitPrice(
         robuxAmount,
         gamepassAmount,
         pricePerHundred: pricing.pricePerHundred,
-      };
+      } as any;
     }
 
     // ---- ROBUX INSTANT ----

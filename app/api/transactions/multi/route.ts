@@ -483,7 +483,10 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            if (promo.maxUsesPerUser > 0 && userUses >= promo.maxUsesPerUser) {
+            // Jika promo punya batas per-user tapi user tidak login (guest), tolak
+            if (!userId && promo.maxUsesPerUser > 0) {
+              console.warn(`Promo ${body.promoCode} requires login (maxUsesPerUser=${promo.maxUsesPerUser}) but user is guest. Skipping.`);
+            } else if (promo.maxUsesPerUser > 0 && userUses >= promo.maxUsesPerUser) {
               console.warn(`Promo max uses per user reached: ${body.promoCode}`);
             } else {
               if (promo.discountType === 'percentage') {
@@ -521,7 +524,7 @@ export async function POST(request: NextRequest) {
         const itemPromoDiscountAmount = Math.round(totalPromoDiscountAmount * itemRatio);
         const itemFinalAmount = transaction.totalAmount - itemDiscountAmount - itemPromoDiscountAmount;
 
-        const isTaxable = (["robux", "gamepass", "coin_topup"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
+        const isTaxable = (["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
         const itemPpnAmount = isTaxable ? Math.round(itemFinalAmount * 0.11) : 0;
 
         transaction.discountPercentage = verifiedDiscountPercentage;
@@ -535,7 +538,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Masih harus simpan finalAmount
       for (const transaction of createdTransactions) {
-        const isTaxable = (["robux", "gamepass", "coin_topup"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
+        const isTaxable = (["robux", "gamepass"].includes(transaction.serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(transaction.serviceCategory)) && transaction.serviceCategory !== "robux_instant";
         const itemPpnAmount = isTaxable ? Math.round(transaction.totalAmount * 0.11) : 0;
 
         transaction.discountPercentage = 0;
@@ -593,7 +596,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Apply PPN directly to the item price if taxable
-        const isTaxable = (["robux", "gamepass", "coin_topup"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category)) && item.category !== "robux_instant";
+        const isTaxable = (["robux", "gamepass"].includes(item.category) || ["robux_instant", "robux_5_hari", "gamepass"].includes(item.category)) && item.category !== "robux_instant";
         if (isTaxable) {
           item.price += Math.round(item.price * 0.11);
         }

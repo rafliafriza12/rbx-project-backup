@@ -134,15 +134,26 @@ async function processGamepassPurchase(transaction: any) {
 
     const gamepassPrice = gamepassData.price;
 
-    // Cari SEMUA akun yang memiliki robux sama atau lebih dari price gamepass
-    const suitableAccounts = await StockAccount.find({
+    // Prioritaskan akun Robux Plus terlebih dahulu
+    let suitableAccounts = await StockAccount.find({
       robux: { $gte: gamepassPrice },
       status: "active",
-    }).sort({ robux: 1 }); // Sort ascending untuk menggunakan akun dengan robux paling sedikit yang mencukupi
+      isRobuxPlus: true,
+    }).sort({ robux: 1 });
+
+    if (!suitableAccounts || suitableAccounts.length === 0) {
+      console.log(`[buy-pass] Tidak ada akun Robux Plus aktif dengan robux >= ${gamepassPrice}. Coba akun regular.`);
+      suitableAccounts = await StockAccount.find({
+        robux: { $gte: gamepassPrice },
+        status: "active",
+        isRobuxPlus: { $ne: true },
+      }).sort({ robux: 1 });
+    } else {
+      console.log(`[buy-pass] Ditemukan ${suitableAccounts.length} akun Robux Plus aktif untuk gamepass ${gamepassPrice} R$`);
+    }
 
     if (!suitableAccounts || suitableAccounts.length === 0) {
       console.log("No suitable account found for gamepass purchase");
-      // Update order status to failed
       await transaction.updateStatus(
         "order",
         "pending",

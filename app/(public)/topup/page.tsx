@@ -238,10 +238,7 @@ export default function TopupCoinPage() {
     };
   
     const getPpnAmount = () => {
-      const baseAmount = getCurrentPrice();
-      const discountAmount = Math.round((baseAmount * (user?.diskon || 0)) / 100);
-      const finalAmountBeforeFee = baseAmount - discountAmount - promoDiscount;
-      return Math.round(finalAmountBeforeFee * 0.11);
+      return 0; // PPN dinonaktifkan
     };
   
     const handleSubmitOrder = async () => {

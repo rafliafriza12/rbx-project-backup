@@ -19,8 +19,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Strict Security: Only admin & ONLY ibrahimabdullah102008@gmail.com
-    if (currentUser.accessRole !== "admin" || currentUser.email !== "ibrahimabdullah102008@gmail.com") {
+    // 2. Strict Security: Only admin & ONLY the designated super-admin email (set via SUPER_ADMIN_EMAIL env var)
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+    if (!superAdminEmail) {
+      return NextResponse.json(
+        { error: "Forbidden: SUPER_ADMIN_EMAIL env var tidak dikonfigurasi." },
+        { status: 403 }
+      );
+    }
+    if (currentUser.accessRole !== "admin" || currentUser.email !== superAdminEmail) {
       return NextResponse.json(
         { error: "Forbidden: Hanya super-admin yang bisa melakukan impersonate." },
         { status: 403 }

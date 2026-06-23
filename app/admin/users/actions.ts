@@ -276,3 +276,30 @@ export async function setupTwoFAAction(stockAccountId: string) {
     return { ok: false, data: { error: "Error setting up 2FA" } };
   }
 }
+
+/**
+ * Cek dan update status Robux Plus untuk satu akun stock
+ */
+export async function checkRobuxPlusAction(stockAccountId?: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/admin/stock-accounts/check-robux-plus`,
+      {
+        method: "POST",
+        headers: {
+          ...getInternalHeaders(),
+          Cookie: authCookie,
+        },
+        body: JSON.stringify({ stockAccountId }),
+      },
+    );
+    const data = await response.json();
+    return { ok: response.ok, data };
+  } catch (error) {
+    console.error("[Server Action] Error checking Robux Plus:", error);
+    return { ok: false, data: { error: "Error checking Robux Plus" } };
+  }
+}
+

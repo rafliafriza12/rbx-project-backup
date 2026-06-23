@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { autoPurchasePendingRobux } from "@/lib/auto-purchase-robux";
 import { requireAdmin, requireApiKey } from "@/lib/auth";
+import { checkRobuxPlus } from "@/utils/checkRobuxPlus";
 
 /**
  * Fetch with retry & timeout - handles Roblox socket errors
@@ -105,6 +106,13 @@ export async function PUT(
 
     const robuxData = await robuxRes.json();
 
+    // Auto-detect Robux Plus status
+    console.log(`🔍 [UpdateStock] Mengecek Robux Plus untuk @${user.name}...`);
+    const rbxPlusResult = await checkRobuxPlus(robloxCookie);
+    console.log(
+      `  → isRobuxPlus=${rbxPlusResult.isRobuxPlus}${rbxPlusResult.error ? ` (${rbxPlusResult.error})` : ""}`,
+    );
+
     // Update the stock account
     const updatedAccount = await StockAccount.findByIdAndUpdate(
       id,
@@ -115,6 +123,8 @@ export async function PUT(
         robloxCookie,
         secret2fa,
         robux: robuxData.robux ?? 0,
+        isRobuxPlus: rbxPlusResult.isRobuxPlus,
+        robuxPlusVerifiedAt: new Date(),
         lastChecked: new Date(),
       },
       { new: true },

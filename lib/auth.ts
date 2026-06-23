@@ -5,8 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import connectDB from "@/lib/mongodb";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-this-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error(
+    "FATAL: JWT_SECRET environment variable is not set. Set it in .env.local or your deployment environment.",
+  );
+}
 
 export const hashPassword = async (password: string): Promise<string> => {
   const saltRounds = 12;
@@ -21,14 +25,14 @@ export const comparePassword = async (
 };
 
 export const generateToken = (userId: string, accessRole?: string): string => {
-  return jwt.sign({ userId, accessRole: accessRole || "user" }, JWT_SECRET, {
+  return jwt.sign({ userId, accessRole: accessRole || "user" }, JWT_SECRET as string, {
     expiresIn: "7d",
   });
 };
 
 export const verifyToken = (token: string): any => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET as string);
   } catch (error) {
     return null;
   }

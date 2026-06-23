@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { generateRoblox2FACode } from "@/utils/totp";
+import { calculateGamepassAmount } from "@/utils/checkRobuxPlus";
 const noblox = require("noblox.js");
 
 // Vercel serverless function config
@@ -110,9 +111,6 @@ export async function POST(req: NextRequest) {
         () => noblox.setCookie(robloxCookie),
         "setCookie",
       );
-      console.log(
-        `🔐 Login sebagai: ${currentUser.UserName} (ID: ${currentUser.UserID})`,
-      );
     } catch (loginError: any) {
       console.error("❌ Failed to login with cookie:", loginError.message);
       return NextResponse.json(
@@ -124,20 +122,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ============ STEP 1b: Ambil data stock account dari DB ============
+    await connectDB();
+    const stockAccountData = await StockAccount.findOne({ robloxCookie }).lean();
+    const isRobuxPlus = (stockAccountData as any)?.isRobuxPlus === true;
+
+    // Gunakan username dari DB (lebih reliable daripada noblox.setCookie return value)
+    const accountUsername =
+      (stockAccountData as any)?.username ||
+      currentUser?.UserName ||
+      currentUser?.name ||
+      "unknown";
+
+    console.log(
+      `🔐 Login sebagai: @${accountUsername}` +
+      (isRobuxPlus
+        ? " ⭐ (Robux Plus) — Roblox akan apply diskon 10% ke harga listed. Sistem kirim effective price (misal 129 dari 143 listed)."
+        : " 💰 (Regular) — beli di harga penuh."),
+    );
+
     // ============ STEP 2: Get Product Info untuk validasi ============
+    // PENTING: Gunakan REST fetch langsung (bukan noblox.getGamePassProductInfo)
+    // karena noblox meng-cache hasil per gamepassId, sehingga bisa return harga lama
+    // sebelum Robux Plus discount diterapkan atau sebelum harga diubah customer.
     let productInfo: any;
     try {
-      productInfo = await withRetry(
-        () => noblox.getGamePassProductInfo(gamepassId),
-        "getGamePassProductInfo",
+      const infoRes = await fetch(
+        `https://apis.roblox.com/game-passes/v1/game-passes/${gamepassId}/product-info`,
+        {
+          headers: {
+            Cookie: `.ROBLOSECURITY=${robloxCookie}`,
+            Accept: "application/json",
+          },
+        },
       );
-      console.log("📦 Product Info:", {
+      if (!infoRes.ok) {
+        throw new Error(`HTTP ${infoRes.status}: ${await infoRes.text()}`);
+      }
+      productInfo = await infoRes.json();
+      console.log("📦 Product Info (via REST):", {
         Name: productInfo.Name,
         ProductId: productInfo.ProductId,
-        PriceInRobux: productInfo.PriceInRobux,
+        PriceInRobux: productInfo.PriceInRobux,        // harga efektif untuk akun ini
+        UserBasePriceInRobux: productInfo.UserBasePriceInRobux, // harga listed (sebelum diskon)
         IsForSale: productInfo.IsForSale,
         Creator: productInfo.Creator?.Name,
-        CreatorTargetId: productInfo.Creator?.CreatorTargetId,
+        DiscountDetails: productInfo.PriceDiscountDetails,
       });
     } catch (infoError: any) {
       console.error("❌ Failed to get gamepass info:", infoError.message);
@@ -163,22 +193,33 @@ export async function POST(req: NextRequest) {
     }
 
     // ============ STEP 4: Validasi harga ============
-    const actualPrice = productInfo.PriceInRobux;
-    if (actualPrice !== expectedPrice) {
+    // Gunakan harga live yang dikembalikan server untuk akun ini (sudah mempertimbangkan diskon Premium/Robux Plus)
+    let actualPrice = productInfo.PriceInRobux;
+
+    if (actualPrice > expectedPrice && !isRobuxPlus) {
+      // Harga NAIK dari yang tersimpan di DB — tolak pembelian jika bukan karena anomali Robux Plus
       console.error(
-        `❌ Price mismatch! Expected: ${expectedPrice}, Actual: ${actualPrice}`,
+        `❌ Price NAIK! Expected: ${expectedPrice}, Actual: ${actualPrice}. Pembelian dibatalkan.`,
       );
       return NextResponse.json(
         {
           success: false,
-          message: `Harga gamepass tidak sesuai! Harga di database: ${expectedPrice} Robux, Harga di Roblox: ${actualPrice} Robux. Pembelian dibatalkan untuk keamanan.`,
+          message: `Harga gamepass naik! Harga di database: ${expectedPrice} Robux, Harga live di Roblox: ${actualPrice} Robux.`,
           expectedPrice,
           actualPrice,
         },
         { status: 400 },
       );
     }
-    console.log(`✅ Price validated: ${actualPrice} Robux`);
+
+    if (actualPrice < expectedPrice) {
+      // Harga LEBIH RENDAH — kemungkinan Robux Plus discount dari Roblox (valid & aman)
+      console.log(
+        `💡 Price live lebih rendah dari expected: ${actualPrice} Robux (expected: ${expectedPrice}). Lanjutkan dengan harga live server.`,
+      );
+    } else {
+      console.log(`✅ Price validated: ${actualPrice} Robux`);
+    }
 
     // ============ STEP 5: Get CSRF Token ============
     // Ambil CSRF token langsung menggunakan cookie yang sama (bukan via noblox.js internal session)
@@ -219,7 +260,7 @@ export async function POST(req: NextRequest) {
     // Helper: melakukan purchase request dengan optional challenge headers
     async function doPurchaseRequest(extraHeaders: Record<string, string> = {}) {
       return await fetch(
-        `https://economy.roblox.com/v1/purchases/products/${productInfo.ProductId}`,
+        `https://apis.roblox.com/game-passes/v1/game-passes/${productInfo.ProductId}/purchase`,
         {
           method: "POST",
           headers: {
@@ -231,7 +272,6 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             expectedCurrency: 1,
             expectedPrice: actualPrice,
-            expectedSellerId: productInfo.Creator.CreatorTargetId,
           }),
         },
       );
@@ -436,6 +476,21 @@ export async function POST(req: NextRequest) {
             // Teruskan challengeType dari header langsung ke handler
             result = await handle2FAChallenge(challengeId, challengeMetadata, challengeType);
             console.log("📋 Purchase result (after 2FA):", result);
+            if (
+              result &&
+              result.reason === "PriceChanged" &&
+              attempt < maxPurchaseRetries
+            ) {
+              const newServerPrice = result.price !== undefined ? result.price : productInfo.UserBasePriceInRobux;
+              if (newServerPrice && newServerPrice !== actualPrice && newServerPrice <= expectedPrice) {
+                console.warn(
+                  `🔄 [Purchase (after 2FA)] Price changed. Server bilang harga: ${newServerPrice} Robux. Retry ${attempt}/${maxPurchaseRetries}...`,
+                );
+                actualPrice = newServerPrice;
+                await sleep(1000);
+                continue;
+              }
+            }
             break;
           } catch (challengeError: any) {
             console.error("❌ Gagal menyelesaikan 2FA challenge:", challengeError.message);
@@ -491,6 +546,36 @@ export async function POST(req: NextRequest) {
 
       result = await purchaseResponse.json();
       console.log("📋 Purchase result:", result);
+
+      if (
+        result &&
+        result.reason === "PriceChanged" &&
+        attempt < maxPurchaseRetries
+      ) {
+        // Gunakan field price yang diberikan error payload. Jika undefined (seperti kasus Robux Plus tertentu),
+        // coba gunakan UserBasePriceInRobux dari product-info GET awal
+        const newServerPrice = result.price !== undefined ? result.price : productInfo.UserBasePriceInRobux;
+        
+        if (newServerPrice && newServerPrice !== actualPrice && newServerPrice <= expectedPrice) {
+          console.warn(
+            `🔄 [Purchase] Price changed! Server memberitahu harga yang benar: ${newServerPrice} Robux (sebelumnya ${actualPrice}). Retry ${attempt}/${maxPurchaseRetries}...`,
+          );
+          actualPrice = newServerPrice;
+          
+          // Dapatkan CSRF token baru sebelum retry karena payload body berubah
+          try {
+            const csrfRes = await fetch("https://auth.roblox.com/v2/logout", {
+              method: "POST",
+              headers: { Cookie: `.ROBLOSECURITY=${robloxCookie}` },
+            });
+            const newCsrf = csrfRes.headers.get("x-csrf-token");
+            if (newCsrf) csrfToken = newCsrf;
+          } catch(e) {}
+
+          await sleep(1000);
+          continue;
+        }
+      }
       break;
     }
 

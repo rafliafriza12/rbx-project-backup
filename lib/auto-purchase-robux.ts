@@ -254,14 +254,32 @@ export async function autoPurchasePendingRobux(
       progressDoc.transactions[i].status = "processing";
       await progressDoc.save();
 
-      // Find suitable stock account for this transaction
-      // Sort by robux ascending to use account with least robux that's sufficient
-      const suitableAccount = await StockAccount.findOne({
-        robux: { $gte: gamepassPrice },
+      // ============ Pilih akun stock terbaik untuk transaksi ini ============
+      //
+      // Strategi:
+      // 1. Coba akun Robux Plus dulu (customer sudah listing di harga diskon)
+      //    - Akun Robux Plus bayar 90% dari listed price (Roblox apply diskon otomatis)
+      //    - Contoh: gamepass 129, Robux Plus bayar 117 dari balance
+      //    - CATATAN: Roblox Purchase API mungkin gagal (PriceChanged bug) → fallback
+      // 2. Jika Robux Plus gagal/tidak ada → gunakan akun regular
+      //    - Akun regular bayar harga penuh (129 atau 143)
+
+      // Akun Robux Plus: check dengan efektif price (10% lebih murah dari listed)
+      const rbxPlusEffectivePrice = Math.ceil(gamepassPrice * 0.9);
+      const rbxPlusAccount = await StockAccount.findOne({
+        robux: { $gte: rbxPlusEffectivePrice },
         status: "active",
+        isRobuxPlus: true,
       }).sort({ robux: 1 });
 
-      if (!suitableAccount) {
+      // Akun regular: check dengan harga penuh
+      const regularAccount = await StockAccount.findOne({
+        robux: { $gte: gamepassPrice },
+        status: "active",
+        $or: [{ isRobuxPlus: false }, { isRobuxPlus: { $exists: false } }],
+      }).sort({ robux: 1 });
+
+      if (!rbxPlusAccount && !regularAccount) {
         console.log(
           `⚠️ No suitable stock account found for transaction ${transaction.invoiceId}. Need: ${gamepassPrice} robux. Skipping to next...`,
         );
@@ -277,18 +295,25 @@ export async function autoPurchasePendingRobux(
         continue; // Skip this transaction, try the next one
       }
 
+      // Prioritaskan Robux Plus jika tersedia
+      const primaryAccount = rbxPlusAccount || regularAccount;
+      const fallbackAccount = rbxPlusAccount ? regularAccount : null;
+
       console.log(
-        `✅ Found suitable account: ${suitableAccount.username} (${suitableAccount.robux} robux)`,
+        `✅ Primary account: ${primaryAccount!.username} (${primaryAccount!.robux} robux, isRobuxPlus: ${primaryAccount!.isRobuxPlus})`,
       );
+      if (fallbackAccount) {
+        console.log(`   Fallback account: ${fallbackAccount.username} (${fallbackAccount.robux} robux)`);
+      }
 
       // Update progress: found account
-      progressDoc.transactions[i].usedAccount = suitableAccount.username;
+      progressDoc.transactions[i].usedAccount = primaryAccount!.username;
       await progressDoc.save();
 
-      try {
-        // Purchase gamepass using the buy-pass API logic
+      // ============ Fungsi helper untuk eksekusi purchase dan update state ============
+      const executePurchase = async (account: typeof primaryAccount) => {
         const purchaseResult = await purchaseGamepass(
-          suitableAccount.robloxCookie,
+          account!.robloxCookie,
           transaction.gamepass.id,
           transaction.gamepass.name,
           transaction.gamepass.price,
@@ -300,22 +325,29 @@ export async function autoPurchasePendingRobux(
           await transaction.updateStatus(
             "order",
             "processing",
-            `Gamepass berhasil dibeli `,
+            `Gamepass berhasil dibeli oleh @${account!.username}`,
             null,
           );
 
-          // Deduct robux from stock account
-          suitableAccount.robux -= gamepassPrice;
-          suitableAccount.lastChecked = new Date();
-          await suitableAccount.save();
+          // Deduct robux dari akun yang berhasil beli
+          // Robux Plus: deduct harga efektif (90% dari listed)
+          // Regular: deduct harga penuh
+          const actualDeduction = account!.isRobuxPlus
+            ? Math.ceil(gamepassPrice * 0.9)
+            : gamepassPrice;
+          account!.robux -= actualDeduction;
+          account!.lastChecked = new Date();
+          await account!.save();
 
           processedCount++;
 
           console.log(
-            `✅ Transaction ${transaction.invoiceId} completed successfully. Account ${suitableAccount.username} remaining robux: ${suitableAccount.robux}`,
+            `✅ Transaction ${transaction.invoiceId} completed via @${account!.username}. ` +
+            `Deducted: ${actualDeduction} R$ (${account!.isRobuxPlus ? "Robux Plus rate" : "regular rate"}). ` +
+            `Remaining: ${account!.robux} R$`,
           );
 
-          // Record purchase di stats (untuk mode manual & tracking)
+          // Record purchase di stats
           try {
             await Rbx5Stats.recordPurchase(gamepassPrice, 1);
             console.log("📊 Rbx5Stats updated after purchase");
@@ -325,49 +357,73 @@ export async function autoPurchasePendingRobux(
 
           // Update progress: completed
           progressDoc.transactions[i].status = "completed";
+          progressDoc.transactions[i].usedAccount = account!.username;
           progressDoc.summary.processedCount = processedCount;
 
-          // Update stock account robux in progress
           const stockIdx = progressDoc.stockAccounts.findIndex(
-            (s: {
-              id: string;
-              username: string;
-              robux: number;
-              status: string;
-            }) => s.id === suitableAccount._id.toString(),
+            (s: { id: string; username: string; robux: number; status: string }) =>
+              s.id === account!._id.toString(),
           );
           if (stockIdx !== -1) {
-            progressDoc.stockAccounts[stockIdx].robux = suitableAccount.robux;
+            progressDoc.stockAccounts[stockIdx].robux = account!.robux;
           }
 
           await progressDoc.save();
 
-          // Wait 10 seconds before next purchase (unless this is the last one)
+          // Wait sebelum purchase berikutnya
           const remainingTransactions =
-            pendingTransactions.length -
-            processedCount -
-            skippedCount -
-            failedCount;
+            pendingTransactions.length - processedCount - skippedCount - failedCount;
           if (remainingTransactions > 0) {
-            console.log("⏳ Waiting 10 seconds before next purchase...");
-            progressDoc.currentStep = `Waiting 10 seconds before next purchase... (${processedCount}/${pendingTransactions.length} completed)`;
+            progressDoc.currentStep = `Waiting before next purchase... (${processedCount}/${pendingTransactions.length} completed)`;
             await progressDoc.save();
             await sleep(4000);
           }
-        } else {
-          console.log(
-            `❌ Failed to purchase gamepass for transaction ${transaction.invoiceId}: ${purchaseResult.error}`,
+
+          return true; // success
+        }
+
+        return purchaseResult; // { success: false, error: "..." }
+      };
+
+      try {
+        // Coba primary account (Robux Plus jika ada)
+        const primaryResult = await executePurchase(primaryAccount);
+
+        if (primaryResult === true) {
+          // Purchase berhasil dengan primary account
+        } else if (fallbackAccount) {
+          // Primary gagal — coba fallback (regular account)
+          const primaryError = typeof primaryResult === "object" ? primaryResult.error : "Unknown";
+          console.warn(
+            `⚠️ Primary account @${primaryAccount!.username} gagal: ${primaryError}. ` +
+            `Mencoba fallback account @${fallbackAccount.username}...`,
           );
 
-          // Update progress: failed
-          progressDoc.transactions[i].status = "failed";
-          progressDoc.transactions[i].error =
-            purchaseResult.error || "Purchase failed";
-          progressDoc.summary.failedCount = ++failedCount;
+          progressDoc.transactions[i].usedAccount = fallbackAccount.username;
           await progressDoc.save();
 
+          const fallbackResult = await executePurchase(fallbackAccount);
+
+          if (fallbackResult !== true) {
+            const fallbackError = typeof fallbackResult === "object" ? fallbackResult.error : "Unknown";
+            console.error(
+              `❌ Fallback juga gagal untuk ${transaction.invoiceId}: ${fallbackError}`,
+            );
+            progressDoc.transactions[i].status = "failed";
+            progressDoc.transactions[i].error = `Primary: ${primaryError} | Fallback: ${fallbackError}`;
+            progressDoc.summary.failedCount = ++failedCount;
+            await progressDoc.save();
+            skippedCount++;
+          }
+        } else {
+          // Tidak ada fallback
+          const errorMsg = typeof primaryResult === "object" ? primaryResult.error : "Purchase failed";
+          console.error(`❌ Failed to purchase for ${transaction.invoiceId}: ${errorMsg}`);
+          progressDoc.transactions[i].status = "failed";
+          progressDoc.transactions[i].error = errorMsg || "Purchase failed";
+          progressDoc.summary.failedCount = ++failedCount;
+          await progressDoc.save();
           skippedCount++;
-          // Don't break, try next transaction
         }
       } catch (error) {
         console.error(

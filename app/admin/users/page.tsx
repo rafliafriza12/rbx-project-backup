@@ -15,6 +15,7 @@ import {
   triggerAutoPurchase,
   impersonateUserAction,
   setupTwoFAAction,
+  checkRobuxPlusAction,
 } from "./actions";
 
 interface User {
@@ -55,7 +56,10 @@ interface StockAccount {
   displayName: string;
   robloxCookie: string;
   robux: number;
-  secret2fa?: string;
+  secret2fa?: string;        // Hanya ada saat form (input), TIDAK dari API response
+  hasSecret2fa?: boolean;    // Dari API response (boolean indikator)
+  isRobuxPlus?: boolean;
+  robuxPlusVerifiedAt?: string;
   status: "active" | "inactive";
   lastChecked: string;
   createdAt: string;
@@ -71,6 +75,7 @@ export default function UsersPage() {
   const [tableLoading, setTableLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [setup2faLoading, setSetup2faLoading] = useState<string | null>(null);
+  const [checkRbxPlusLoading, setCheckRbxPlusLoading] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedStockAccount, setSelectedStockAccount] =
@@ -90,6 +95,7 @@ export default function UsersPage() {
     password: "",
     robloxCookie: "",
     secret2fa: "",
+    hasSecret2fa: false,
   });
 
   // Confirmation modal for auto-purchase
@@ -240,7 +246,9 @@ export default function UsersPage() {
       resellerPackageId: "",
       password: "",
       robloxCookie: account.robloxCookie,
-      secret2fa: (account as any).secret2fa || "",
+      secret2fa: "",  // Kosongkan saat edit (jangan pre-fill secret dari server)
+      // hasSecret2fa diambil dari data akun untuk UI
+      hasSecret2fa: (account as any).hasSecret2fa || false,
     });
     setShowModal(true);
   };
@@ -724,9 +732,15 @@ export default function UsersPage() {
                           {account.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#94a3b8]">
-                        {new Date(account.lastChecked).toLocaleDateString(
-                          "id-ID",
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {account.isRobuxPlus ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-900/50 text-yellow-300 border border-yellow-600/50">
+                            ⭐ Robux Plus
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-400">
+                            Regular
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -735,6 +749,37 @@ export default function UsersPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={async () => {
+                            setCheckRbxPlusLoading(account._id);
+                            try {
+                              const { ok, data } = await checkRobuxPlusAction(account._id);
+                              if (ok && data.success) {
+                                if (data.isRobuxPlus) {
+                                  toast.success(`⭐ @${account.username} memiliki Robux Plus aktif!`);
+                                } else {
+                                  toast.info(`@${account.username} tidak memiliki Robux Plus.`);
+                                }
+                                fetchStockAccounts();
+                              } else {
+                                toast.error(data.message || "Gagal cek Robux Plus");
+                              }
+                            } catch (e: any) {
+                              toast.error(e.message || "Error");
+                            } finally {
+                              setCheckRbxPlusLoading(null);
+                            }
+                          }}
+                          disabled={checkRbxPlusLoading === account._id}
+                          className={`mr-3 text-xs ${
+                            checkRbxPlusLoading === account._id
+                              ? "text-gray-400 cursor-wait"
+                              : "text-amber-400 hover:text-amber-300"
+                          }`}
+                          title="Sync status Robux Plus"
+                        >
+                          {checkRbxPlusLoading === account._id ? "⏳" : "🔄"} Sync
+                        </button>
                         <button
                           onClick={async () => {
                             setSetup2faLoading(account._id);
@@ -756,17 +801,17 @@ export default function UsersPage() {
                               setSetup2faLoading(null);
                             }
                           }}
-                          disabled={setup2faLoading === account._id || !!account.secret2fa}
+                          disabled={setup2faLoading === account._id || !!account.hasSecret2fa}
                           className={`mr-3 ${
-                            account.secret2fa
+                            account.hasSecret2fa
                               ? "text-green-500 cursor-default"
                               : setup2faLoading === account._id
                                 ? "text-gray-400 cursor-wait"
                                 : "text-yellow-400 hover:text-yellow-300"
                           }`}
-                          title={account.secret2fa ? `Secret tersimpan: ${account.secret2fa}` : "Aktifkan 2FA otomatis"}
+                          title={account.hasSecret2fa ? "Secret 2FA tersimpan ✓" : "Aktifkan 2FA otomatis"}
                         >
-                          {account.secret2fa
+                          {account.hasSecret2fa
                             ? "🔐 2FA Active"
                             : setup2faLoading === account._id
                               ? "⏳ Setting..."

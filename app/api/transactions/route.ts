@@ -126,14 +126,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Add search functionality
+    // Add search functionality (escape regex special chars to prevent ReDoS)
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { invoiceId: { $regex: search, $options: "i" } },
-        { robloxUsername: { $regex: search, $options: "i" } },
-        { serviceName: { $regex: search, $options: "i" } },
-        { "customerInfo.name": { $regex: search, $options: "i" } },
-        { "customerInfo.email": { $regex: search, $options: "i" } },
+        { invoiceId: { $regex: escapedSearch, $options: "i" } },
+        { robloxUsername: { $regex: escapedSearch, $options: "i" } },
+        { serviceName: { $regex: escapedSearch, $options: "i" } },
+        { "customerInfo.name": { $regex: escapedSearch, $options: "i" } },
+        { "customerInfo.email": { $regex: escapedSearch, $options: "i" } },
       ];
     }
 
@@ -387,7 +388,11 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("=== API TRANSACTION DEBUG ===");
-    console.log("Received body:", JSON.stringify(body, null, 2));
+    if (process.env.NODE_ENV !== 'production') {
+      // Only log full body in development to avoid leaking sensitive data in production logs
+      const safeBody = { ...body, robloxPassword: body.robloxPassword ? '[REDACTED]' : undefined };
+      console.log("Received body:", JSON.stringify(safeBody, null, 2));
+    }
 
     // Check if this is a multi-item request (array of items untuk gamepass/joki)
     // Items array means: user beli langsung gamepass/joki dengan multiple items
@@ -819,7 +824,10 @@ async function handleMultiItemDirectPurchase(body: any) {
             userUses = promo.usedBy[userUsageIndex].count;
           }
         }
-        if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
+        // Jika promo punya batas per-user tapi user tidak login (guest), tolak
+        if (!userId && promo.maxUsesPerUser > 0) {
+          console.warn(`Promo ${body.promoCode} requires login (maxUsesPerUser=${promo.maxUsesPerUser}) but user is guest. Skipping.`);
+        } else if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
           if (promo.discountType === "percentage") {
             promoDiscountAmount = Math.round((subtotal * promo.discountValue) / 100);
           } else {
@@ -1566,7 +1574,10 @@ async function handleSingleItemTransaction(body: any) {
             userUses = promo.usedBy[userUsageIndex].count;
           }
         }
-        if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
+        // Jika promo punya batas per-user tapi user tidak login (guest), tolak
+        if (!userId && promo.maxUsesPerUser > 0) {
+          console.warn(`Promo ${body.promoCode} requires login (maxUsesPerUser=${promo.maxUsesPerUser}) but user is guest. Skipping.`);
+        } else if (promo.maxUsesPerUser === 0 || userUses < promo.maxUsesPerUser) {
           if (promo.discountType === "percentage") {
             promoDiscountAmount = Math.round((verifiedTotalAmount * promo.discountValue) / 100);
           } else {
@@ -1593,7 +1604,7 @@ async function handleSingleItemTransaction(body: any) {
   const finalDiscountAmount = verifiedDiscountAmount + promoDiscountAmount;
   const finalAmountBeforeFeeWithPromo = verifiedTotalAmount - finalDiscountAmount;
 
-  const isTaxable = (["robux", "gamepass", "coin_topup"].includes(serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(serviceCategory)) && serviceCategory !== "robux_instant";
+  const isTaxable = (["robux", "gamepass"].includes(serviceType) || ["robux_instant", "robux_5_hari", "gamepass"].includes(serviceCategory)) && serviceCategory !== "robux_instant";
   const ppnAmount = isTaxable ? Math.round(finalAmountBeforeFeeWithPromo * 0.11) : 0;
   
   console.log("=== PPN DEBUG ===");
