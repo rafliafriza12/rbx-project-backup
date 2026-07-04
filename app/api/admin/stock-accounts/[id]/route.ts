@@ -114,19 +114,28 @@ export async function PUT(
     );
 
     // Update the stock account
+    // BUG FIX: Hanya sertakan secret2fa dalam update jika nilainya dikirimkan (non-empty).
+    // Ketika webhook internal memanggil endpoint ini untuk refresh cookie/robux (tanpa secret2fa),
+    // kita TIDAK boleh menimpa secret yang sudah ada dengan undefined — itu akan menghapus 2FA secret!
+    const updatePayload: Record<string, any> = {
+      userId: user.id,
+      username: user.name,
+      displayName: user.displayName,
+      robloxCookie,
+      robux: robuxData.robux ?? 0,
+      isRobuxPlus: rbxPlusResult.isRobuxPlus,
+      robuxPlusVerifiedAt: new Date(),
+      lastChecked: new Date(),
+    };
+
+    // Hanya update secret2fa jika dikirimkan secara eksplisit (ada dan non-empty string)
+    if (secret2fa !== undefined && secret2fa !== null && secret2fa !== "") {
+      updatePayload.secret2fa = secret2fa;
+    }
+
     const updatedAccount = await StockAccount.findByIdAndUpdate(
       id,
-      {
-        userId: user.id,
-        username: user.name,
-        displayName: user.displayName,
-        robloxCookie,
-        secret2fa,
-        robux: robuxData.robux ?? 0,
-        isRobuxPlus: rbxPlusResult.isRobuxPlus,
-        robuxPlusVerifiedAt: new Date(),
-        lastChecked: new Date(),
-      },
+      updatePayload,
       { new: true },
     );
 

@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
       }
 
       // 2. Generate kode TOTP 6 digit
-      const code2fa = generateRoblox2FACode(account.secret2fa);
+      let code2fa = generateRoblox2FACode(account.secret2fa);
       console.log(`🔐 Kode 2FA berhasil di-generate: ${code2fa}`);
 
       // 3. Parse metadata dari challenge untuk ambil userId
@@ -317,7 +317,8 @@ export async function POST(req: NextRequest) {
       // actionType "Purchase" sesuai dengan transaksi Economy
       console.log(`📤 Mengirim kode 2FA ke Roblox untuk user ${userId}...`);
 
-      async function doVerifyRequest(token: string) {
+      // BUG FIX: Terima `code` sebagai parameter agar bisa retry dengan kode baru
+      async function doVerifyRequest(token: string, code: string) {
         return await fetch(
           `https://twostepverification.roblox.com/v1/users/${userId}/challenges/authenticator/verify`,
           {
@@ -330,13 +331,13 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
               challengeId: challengeId,
               actionType: "Purchase",
-              code: code2fa,
+              code: code,
             }),
           },
         );
       }
 
-      let verifyResponse = await doVerifyRequest(csrfToken);
+      let verifyResponse = await doVerifyRequest(csrfToken, code2fa);
 
       // Handle CSRF token refresh pada verify endpoint
       if (verifyResponse.status === 403) {
@@ -347,7 +348,45 @@ export async function POST(req: NextRequest) {
         }
         csrfToken = newCsrf;
         console.log("🔑 CSRF token diperbarui dari verify response, mencoba ulang...");
-        verifyResponse = await doVerifyRequest(csrfToken);
+        verifyResponse = await doVerifyRequest(csrfToken, code2fa);
+      }
+
+      // BUG FIX: Jika kode TOTP expired/invalid (400/422), generate kode baru dan retry sekali.
+      // Ini terjadi ketika ada delay (rate limit sleep, dll) yang melewati window 30 detik TOTP.
+      if (!verifyResponse.ok && (verifyResponse.status === 400 || verifyResponse.status === 422)) {
+        const errBodyText = await verifyResponse.text();
+        console.warn(`⚠️ Kode 2FA expired/invalid (HTTP ${verifyResponse.status}: ${errBodyText}). Menunggu window TOTP baru (3s) lalu retry...`);
+
+        // Tunggu sebentar agar lebih dekat ke window 30 detik berikutnya
+        await sleep(3000);
+
+        // Generate kode TOTP baru
+        code2fa = generateRoblox2FACode(account.secret2fa!);
+        console.log(`🔐 Kode 2FA baru (retry): ${code2fa}`);
+
+        // Perbarui CSRF token sebelum retry
+        try {
+          const csrfRefresh = await fetch("https://auth.roblox.com/v2/logout", {
+            method: "POST",
+            headers: { Cookie: `.ROBLOSECURITY=${robloxCookie}` },
+          });
+          const freshCsrf = csrfRefresh.headers.get("x-csrf-token");
+          if (freshCsrf) {
+            csrfToken = freshCsrf;
+            console.log("🔑 CSRF token diperbarui sebelum retry 2FA...");
+          }
+        } catch {}
+
+        verifyResponse = await doVerifyRequest(csrfToken, code2fa);
+
+        // Handle CSRF refresh lagi jika perlu pada retry
+        if (verifyResponse.status === 403) {
+          const newCsrf = verifyResponse.headers.get("x-csrf-token");
+          if (newCsrf) {
+            csrfToken = newCsrf;
+            verifyResponse = await doVerifyRequest(csrfToken, code2fa);
+          }
+        }
       }
 
       if (!verifyResponse.ok) {
