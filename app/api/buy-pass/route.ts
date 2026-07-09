@@ -258,9 +258,13 @@ export async function POST(req: NextRequest) {
     let result: any = null;
 
     // Helper: melakukan purchase request dengan optional challenge headers
+    // BUG FIX KRITIS: Pakai `gamepassId` (bukan `productInfo.ProductId`) di URL purchase!
+    // ProductId dari product-info API adalah ID product/catalog yang BERBEDA dari gamepassId.
+    // Contoh: gamepassId=1600745234 tapi ProductId=3464368840 (angka sama sekali beda).
+    // Kalau pakai ProductId di URL, Roblox bisa membeli gamepass YANG SALAH.
     async function doPurchaseRequest(extraHeaders: Record<string, string> = {}) {
       return await fetch(
-        `https://apis.roblox.com/game-passes/v1/game-passes/${productInfo.ProductId}/purchase`,
+        `https://apis.roblox.com/game-passes/v1/game-passes/${gamepassId}/purchase`,
         {
           method: "POST",
           headers: {
@@ -276,6 +280,7 @@ export async function POST(req: NextRequest) {
         },
       );
     }
+
 
     // Helper: menyelesaikan 2FA challenge dan mengulangi pembelian
     // challengeTypeHeader = nilai dari header "rblx-challenge-type" (bukan dari metadata)

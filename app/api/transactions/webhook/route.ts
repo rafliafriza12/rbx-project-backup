@@ -833,7 +833,7 @@ export async function GET(request: NextRequest) {
           try {
             // Update spendedMoney user only once for the first transaction
             const isFirstTransaction = transactions.findIndex((t) => t._id.equals(transaction._id)) === 0;
-
+ 
             if (isFirstTransaction) {
               const user = await User.findById(transaction.customerInfo.userId);
               if (user) {
