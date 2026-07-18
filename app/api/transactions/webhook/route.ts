@@ -118,6 +118,33 @@ async function processGamepassPurchase(transaction: any) {
       transaction.invoiceId,
     );
 
+    // ============================================================
+    // ATOMIC CLAIM — Mencegah double purchase jika 2 webhook datang bersamaan.
+    // findOneAndUpdate dengan kondisi orderStatus "pending/waiting_payment" bersifat atomic.
+    // Jika webhook lain sudah mengklaim transaksi ini, result akan null → return langsung.
+    // ============================================================
+    const claimed = await Transaction.findOneAndUpdate(
+      {
+        _id: transaction._id,
+        orderStatus: { $in: ["pending", "waiting_payment"] }, // Hanya claim jika belum diproses
+      },
+      {
+        $set: { orderStatus: "in_progress" },
+      },
+      { new: false }, // Kembalikan dokumen LAMA untuk validasi
+    );
+
+    if (!claimed) {
+      console.log(
+        `🔒 Transaction ${transaction.invoiceId} sudah di-claim oleh proses lain (orderStatus sudah bukan pending). Skip double-purchase.`,
+      );
+      return; // Webhook lain sudah menangani ini — aman dari double purchase
+    }
+
+    console.log(
+      `✅ Atomic claim berhasil untuk ${transaction.invoiceId}. Lanjutkan purchase...`,
+    );
+
     // Ambil gamepass data dari root level, fallback ke rbx5Details.gamepass
     const gamepassData =
       (transaction.gamepass?.id ? transaction.gamepass : null) ||
@@ -147,6 +174,7 @@ async function processGamepassPurchase(transaction: any) {
       );
       return;
     }
+
 
     const gamepassPrice = gamepassData.price;
 
@@ -429,25 +457,42 @@ export async function POST(request: NextRequest) {
       const previousPaymentStatus = transaction.paymentStatus;
       const previousOrderStatus = transaction.orderStatus;
 
-      // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan webhook mengubah status lagi
-      if (transaction.paymentStatus === "settlement") {
+      // 🛡️ GUARD: Jika payment sudah settlement, jangan update status payment lagi.
+      // TAPI: jangan skip fulfillment! Jika orderStatus masih pending, artinya robux belum
+      // terkirim (mungkin error sebelumnya) → tetap harus diproses ulang.
+      const alreadySettled = transaction.paymentStatus === "settlement";
+
+      if (alreadySettled) {
         console.log(
-          `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update dari webhook (incoming: ${statusMapping.paymentStatus})`,
+          `🛡️ Transaction ${transaction.invoiceId} sudah settlement (orderStatus: ${transaction.orderStatus}), skip payment status update.`,
         );
-        updatedTransactions.push({
-          invoiceId: transaction.invoiceId,
-          previousPaymentStatus,
-          newPaymentStatus: transaction.paymentStatus,
-          previousOrderStatus,
-          newOrderStatus: transaction.orderStatus,
-          skipped: true,
-          reason: "Already settled",
-        });
-        continue;
+
+        // Cek apakah fulfillment masih perlu diproses (orderStatus masih pending/waiting)
+        const needsFulfillment =
+          transaction.orderStatus === "pending" ||
+          transaction.orderStatus === "waiting_payment";
+
+        if (needsFulfillment) {
+          console.log(
+            `🔄 Transaction ${transaction.invoiceId} sudah settlement tapi orderStatus masih "${transaction.orderStatus}" → akan dicoba kirim ulang fulfillment.`,
+          );
+          // Jatuhkan ke bawah agar fulfillment dijalankan
+        } else {
+          updatedTransactions.push({
+            invoiceId: transaction.invoiceId,
+            previousPaymentStatus,
+            newPaymentStatus: transaction.paymentStatus,
+            previousOrderStatus,
+            newOrderStatus: transaction.orderStatus,
+            skipped: true,
+            reason: "Already settled and fulfilled",
+          });
+          continue;
+        }
       }
 
-      // Update payment status jika berubah
-      if (transaction.paymentStatus !== statusMapping.paymentStatus) {
+      // Update payment status jika berubah (hanya jika belum settlement)
+      if (!alreadySettled && transaction.paymentStatus !== statusMapping.paymentStatus) {
         await transaction.updateStatus(
           "payment",
           statusMapping.paymentStatus,
@@ -490,13 +535,18 @@ export async function POST(request: NextRequest) {
             // Don't fail the webhook if user update fails
           }
         }
+      }
 
-        // Activate reseller package if this is a reseller purchase
-        if (
-          statusMapping.paymentStatus === "settlement" &&
-          previousPaymentStatus !== "settlement" &&
-          transaction.serviceType === "reseller"
-        ) {
+      // ============================================================
+      // FULFILLMENT — dijalankan jika payment settlement, terlepas
+      // dari apakah status baru berubah atau tidak.
+      // Ini memungkinkan retry jika sebelumnya gagal (orderStatus masih pending).
+      // ============================================================
+      const isSettlement = alreadySettled || statusMapping.paymentStatus === "settlement";
+
+      if (isSettlement) {
+        // --- Reseller activation ---
+        if (transaction.serviceType === "reseller") {
           try {
             console.log(
               "Processing reseller package activation for transaction:",
@@ -506,21 +556,12 @@ export async function POST(request: NextRequest) {
 
             if (activationResult) {
               console.log(
-                `✅ Reseller package activated: Tier ${activationResult.newTier
-                } (${activationResult.packageName}), Discount: ${activationResult.discount
-                }%, Expires: ${activationResult.expiryDate.toLocaleDateString(
-                  "id-ID",
-                )}`,
+                `✅ Reseller package activated: Tier ${activationResult.newTier} (${activationResult.packageName})`,
               );
-
-              // Update order status to completed on successful activation
               await transaction.updateStatus(
                 "order",
                 "completed",
-                `Reseller Tier ${activationResult.newTier
-                } berhasil diaktifkan hingga ${activationResult.expiryDate.toLocaleDateString(
-                  "id-ID",
-                )}`,
+                `Reseller Tier ${activationResult.newTier} berhasil diaktifkan hingga ${activationResult.expiryDate.toLocaleDateString("id-ID")}`,
                 null,
               );
             } else {
@@ -528,8 +569,6 @@ export async function POST(request: NextRequest) {
                 "❌ Reseller package activation failed for transaction:",
                 transaction.invoiceId,
               );
-
-              // Update order status to pending if activation fails
               await transaction.updateStatus(
                 "order",
                 "pending",
@@ -539,54 +578,55 @@ export async function POST(request: NextRequest) {
             }
           } catch (resellerError) {
             console.error("Error activating reseller package:", resellerError);
-
-            // Update order status to pending on error
             await transaction.updateStatus(
               "order",
               "pending",
-              `Error saat mengaktifkan reseller: ${resellerError instanceof Error
-                ? resellerError.message
-                : "Unknown error"
-              }`,
+              `Error saat mengaktifkan reseller: ${resellerError instanceof Error ? resellerError.message : "Unknown error"}`,
               null,
             );
           }
         }
 
-        // Collect Rbx5 transactions for processing (setelah semua updated)
-        // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
+        // --- Coin Top Up ---
+        if (transaction.serviceType === "coin_topup") {
+          await activateCoinTopup(transaction);
+        }
+
+        // --- Robux 5 Hari (Gamepass) ---
+        // BUG FIX: Cek gamepass dari root level ATAU rbx5Details.gamepass
         const hasValidGamepassData =
           (transaction.gamepass?.id && transaction.gamepass?.price) ||
           (transaction.rbx5Details?.gamepass?.id &&
             transaction.rbx5Details?.gamepass?.price);
 
         if (
-          statusMapping.paymentStatus === "settlement" &&
-          previousPaymentStatus !== "settlement" &&
           transaction.serviceType === "robux" &&
           transaction.serviceCategory === "robux_5_hari" &&
           hasValidGamepassData
         ) {
-          rbx5TransactionsToProcess.push(transaction);
-        }
-      }
+          // BUG FIX: Push ke array untuk diproses, baik itu pertama kali settlement
+          // MAUPUN retry (orderStatus masih pending meski sudah settlement).
+          // Gunakan flag di transaksi untuk cegah double-purchase jika sudah processing/completed.
+          const canRetry =
+            transaction.orderStatus === "pending" ||
+            transaction.orderStatus === "waiting_payment";
 
-      // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
-      // to allow retries if fulfillment failed in a previous webhook attempt.
-      if (statusMapping.paymentStatus === "settlement") {
-        // Activate reseller if this is a reseller package purchase
-        if (transaction.serviceType === "reseller") {
-          await activateResellerPackage(transaction);
-        }
-
-        // Activate Coin Top Up if this is a coin purchase
-        if (transaction.serviceType === "coin_topup") {
-          await activateCoinTopup(transaction);
+          if (canRetry) {
+            console.log(
+              `📦 Queuing robux_5_hari purchase for ${transaction.invoiceId} (orderStatus: ${transaction.orderStatus})`,
+            );
+            rbx5TransactionsToProcess.push(transaction);
+          } else {
+            console.log(
+              `ℹ️ Skip robux_5_hari purchase for ${transaction.invoiceId} — sudah ${transaction.orderStatus}`,
+            );
+          }
         }
       }
 
       // Handle payment expired - force order status to cancelled
       if (
+        !alreadySettled &&
         transaction_status === "expire" &&
         statusMapping.paymentStatus === "expired"
       ) {
@@ -602,6 +642,7 @@ export async function POST(request: NextRequest) {
       }
       // Handle payment cancelled or denied - force order status to cancelled
       else if (
+        !alreadySettled &&
         (transaction_status === "cancel" || transaction_status === "deny") &&
         statusMapping.paymentStatus === "cancelled"
       ) {
@@ -611,13 +652,12 @@ export async function POST(request: NextRequest) {
         await transaction.updateStatus(
           "order",
           "cancelled",
-          `Pesanan dibatalkan karena pembayaran ${transaction_status === "cancel" ? "dibatalkan" : "ditolak"
-          }`,
+          `Pesanan dibatalkan karena pembayaran ${transaction_status === "cancel" ? "dibatalkan" : "ditolak"}`,
           null,
         );
       }
       // Update order status jika berubah dan sesuai kondisi (untuk status lainnya)
-      else if (transaction.orderStatus !== statusMapping.orderStatus) {
+      else if (!alreadySettled && transaction.orderStatus !== statusMapping.orderStatus) {
         // Hanya update order status jika payment status memungkinkan
         const allowedOrderStatusUpdates: { [key: string]: string[] } = {
           waiting_payment: ["pending", "processing", "cancelled"],
@@ -833,7 +873,7 @@ export async function GET(request: NextRequest) {
           try {
             // Update spendedMoney user only once for the first transaction
             const isFirstTransaction = transactions.findIndex((t) => t._id.equals(transaction._id)) === 0;
- 
+
             if (isFirstTransaction) {
               const user = await User.findById(transaction.customerInfo.userId);
               if (user) {

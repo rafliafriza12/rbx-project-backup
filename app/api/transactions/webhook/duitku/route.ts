@@ -505,24 +505,40 @@ export async function POST(request: NextRequest) {
       const previousPaymentStatus = transaction.paymentStatus;
       const previousOrderStatus = transaction.orderStatus;
 
-      // 🛡️ GUARD: Jika payment sudah settlement, jangan izinkan webhook mengubah status lagi
-      if (transaction.paymentStatus === "settlement") {
+      // 🛡️ GUARD: Jika payment sudah settlement, jangan update payment status lagi.
+      // TAPI: jangan skip fulfillment! Jika orderStatus masih pending, artinya robux belum
+      // terkirim (mungkin error sebelumnya) → tetap harus diproses ulang.
+      const alreadySettled = transaction.paymentStatus === "settlement";
+
+      if (alreadySettled) {
         console.log(
-          `🛡️ Transaction ${transaction.invoiceId} sudah settlement, skip update dari webhook Duitku (incoming: ${statusMapping.paymentStatus})`,
+          `🛡️ Transaction ${transaction.invoiceId} sudah settlement (orderStatus: ${transaction.orderStatus}), skip payment status update (Duitku).`,
         );
-        updatedTransactions.push({
-          invoiceId: transaction.invoiceId,
-          previousStatus: previousPaymentStatus,
-          newStatus: transaction.paymentStatus,
-          orderStatus: transaction.orderStatus,
-          skipped: true,
-          reason: "Already settled",
-        });
-        continue;
+
+        const needsFulfillment =
+          transaction.orderStatus === "pending" ||
+          transaction.orderStatus === "waiting_payment";
+
+        if (needsFulfillment) {
+          console.log(
+            `🔄 Transaction ${transaction.invoiceId} sudah settlement tapi orderStatus masih "${transaction.orderStatus}" → retry fulfillment.`,
+          );
+          // Jatuhkan ke bawah agar fulfillment dijalankan
+        } else {
+          updatedTransactions.push({
+            invoiceId: transaction.invoiceId,
+            previousStatus: previousPaymentStatus,
+            newStatus: transaction.paymentStatus,
+            orderStatus: transaction.orderStatus,
+            skipped: true,
+            reason: "Already settled and fulfilled",
+          });
+          continue;
+        }
       }
 
-      // Update payment status jika berubah
-      if (transaction.paymentStatus !== statusMapping.paymentStatus) {
+      // Update payment status jika berubah (hanya jika belum settlement)
+      if (!alreadySettled && transaction.paymentStatus !== statusMapping.paymentStatus) {
         const statusMessage = settlementDate
           ? `Payment ${statusMapping.paymentStatus} via Duitku (${paymentCode}). Reference: ${reference}. Settlement: ${settlementDate}`
           : `Payment ${statusMapping.paymentStatus} via Duitku (${paymentCode}). Reference: ${reference}`;
@@ -572,9 +588,13 @@ export async function POST(request: NextRequest) {
         await sendPaymentNotification(transaction, statusMapping.paymentStatus);
       }
 
-      // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
-      // to allow retries if fulfillment failed in a previous webhook attempt.
-      if (statusMapping.paymentStatus === "settlement") {
+      // ============================================================
+      // FULFILLMENT — dijalankan jika payment settlement, terlepas
+      // dari apakah status baru berubah atau tidak (untuk retry).
+      // ============================================================
+      const isSettlement = alreadySettled || statusMapping.paymentStatus === "settlement";
+
+      if (isSettlement) {
         // Activate reseller package if this is a reseller purchase
         if (transaction.serviceType === "reseller") {
           await activateResellerPackage(transaction);
@@ -586,7 +606,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if this is a robux_5_hari transaction that needs processing
-        // Cek gamepass data dari root level ATAU rbx5Details.gamepass (fallback)
+        // BUG FIX: Hapus kondisi previousPaymentStatus !== "settlement" agar retry bisa berjalan
         const hasValidGamepassData =
           (transaction.gamepass?.id && transaction.gamepass?.price) ||
           (transaction.rbx5Details?.gamepass?.id &&
@@ -595,10 +615,23 @@ export async function POST(request: NextRequest) {
         if (
           transaction.serviceType === "robux" &&
           transaction.serviceCategory === "robux_5_hari" &&
-          hasValidGamepassData &&
-          previousPaymentStatus !== "settlement"
+          hasValidGamepassData
         ) {
-          rbx5TransactionsToProcess.push(transaction);
+          // BUG FIX: Hanya proses jika orderStatus masih pending (belum dibeli)
+          const canRetry =
+            transaction.orderStatus === "pending" ||
+            transaction.orderStatus === "waiting_payment";
+
+          if (canRetry) {
+            console.log(
+              `📦 Queuing robux_5_hari purchase for ${transaction.invoiceId} (orderStatus: ${transaction.orderStatus})`,
+            );
+            rbx5TransactionsToProcess.push(transaction);
+          } else {
+            console.log(
+              `ℹ️ Skip robux_5_hari purchase for ${transaction.invoiceId} — sudah ${transaction.orderStatus}`,
+            );
+          }
         }
       }
 
@@ -609,8 +642,9 @@ export async function POST(request: NextRequest) {
         targetOrderStatus = "completed";
       }
 
-      // Update order status jika ada dan berubah
+      // Update order status jika ada dan berubah (hanya jika belum settled)
       if (
+        !alreadySettled &&
         targetOrderStatus &&
         transaction.orderStatus !== targetOrderStatus
       ) {
