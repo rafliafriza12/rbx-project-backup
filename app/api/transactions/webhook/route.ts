@@ -446,7 +446,7 @@ export async function POST(request: NextRequest) {
     // Map status Midtrans ke status aplikasi
     const statusMapping = midtransService.mapMidtransStatus(
       transaction_status,
-      payment_type,
+      fraud_status,
     );
 
     // Process each transaction
