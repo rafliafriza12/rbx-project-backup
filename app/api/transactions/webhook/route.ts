@@ -399,39 +399,44 @@ export async function POST(request: NextRequest) {
 
     // Verifikasi signature
     const midtransService = new MidtransService();
-    if (
-      !(await midtransService.verifyNotificationSignature(
+    const isValidSignature = await midtransService.verifyNotificationSignature(
+      order_id,
+      status_code,
+      gross_amount,
+      signature_key,
+    );
+
+    if (!isValidSignature) {
+      console.error("❌ Invalid signature from Midtrans webhook!", {
         order_id,
         status_code,
         gross_amount,
-        signature_key,
-      ))
-    ) {
-      console.error("Invalid signature from Midtrans webhook");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+        signature_key_present: !!signature_key,
+        // NOTE: Penyebab paling umum: Server Key di DB/env tidak cocok dengan mode (sandbox vs production)
+        // Atau Server Key sudah diupdate tapi cached instance menggunakan key lama
+        hint: "Pastikan MIDTRANS_SERVER_KEY di .env/.env.production cocok dengan key yang terdaftar di Midtrans dashboard",
+      });
+      // Return 200 (bukan 401) agar Midtrans tidak terus retry dengan signature yang sama
+      // Tapi catat di log untuk investigasi manual
+      return NextResponse.json({ error: "Invalid signature", hint: "Check server key configuration" }, { status: 200 });
     }
 
-    // CRITICAL FIX: Cari SEMUA transaksi dengan masterOrderId yang sama
-    // Untuk multi-item checkout, bisa ada multiple transactions dengan same order_id
+    // Cari SEMUA transaksi dengan masterOrderId yang sama
     const transactions = await Transaction.find({
       midtransOrderId: order_id,
     });
 
     if (!transactions || transactions.length === 0) {
-      console.error("Transaction not found for order_id:", order_id);
+      console.error(`❌ [WEBHOOK] Transaction NOT FOUND for order_id: ${order_id} | status: ${transaction_status}`);
       return NextResponse.json(
         { error: "Transaction not found" },
         { status: 404 },
       );
     }
 
-    console.log(
-      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`,
-    );
-
-    console.log(
-      `Found ${transactions.length} transaction(s) with order_id: ${order_id}`,
-    );
+    const invoiceList = transactions.map(t => t.invoiceId).join(", ");
+    console.log(`✅ [WEBHOOK] Found ${transactions.length} transaction(s) for order_id: ${order_id}`);
+    console.log(`✅ [WEBHOOK] Invoices: ${invoiceList} | Midtrans status: ${transaction_status}`);
 
     // Update transaction ID dari Midtrans untuk semua transactions
     const updateTransactionIdPromises = transactions
@@ -493,12 +498,19 @@ export async function POST(request: NextRequest) {
 
       // Update payment status jika berubah (hanya jika belum settlement)
       if (!alreadySettled && transaction.paymentStatus !== statusMapping.paymentStatus) {
-        await transaction.updateStatus(
-          "payment",
-          statusMapping.paymentStatus,
-          `Payment ${transaction_status} via ${payment_type}. Midtrans Transaction ID: ${transaction_id}`,
-          null,
-        );
+        console.log(`↪️ [WEBHOOK] Updating ${transaction.invoiceId}: ${transaction.paymentStatus} → ${statusMapping.paymentStatus}`);
+        try {
+          await transaction.updateStatus(
+            "payment",
+            statusMapping.paymentStatus,
+            `Payment ${transaction_status} via ${payment_type}. Midtrans Transaction ID: ${transaction_id}`,
+            null,
+          );
+          console.log(`✅ [WEBHOOK] Payment status updated OK: ${transaction.invoiceId} → ${statusMapping.paymentStatus}`);
+        } catch (updateErr: any) {
+          console.error(`❌ [WEBHOOK] Payment status update FAILED: ${transaction.invoiceId}`, updateErr?.message);
+          throw updateErr;
+        }
 
         // Jika payment status berubah menjadi settlement dan transaksi memiliki userId
         if (

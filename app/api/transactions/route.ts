@@ -763,7 +763,13 @@
 
       // Create transaction
       const transaction = new Transaction(transactionData);
-      await transaction.save();
+      try {
+        await transaction.save();
+        console.log(`✅ [STEP 1/3] Transaction created & saved: ${transaction.invoiceId}`);
+      } catch (saveErr: any) {
+        console.error(`❌ [STEP 1/3] FAILED to save transaction ${transaction.invoiceId}:`, saveErr?.message);
+        throw saveErr;
+      }
 
       createdTransactions.push(transaction);
 
@@ -776,8 +782,6 @@
         brand: "RBX Store",
         category: item.serviceType,
       });
-
-      console.log(`Transaction created: ${transaction.invoiceId}`);
     }
 
     if (createdTransactions.length === 0) {
@@ -870,22 +874,22 @@
     // Update each transaction with VERIFIED proportional discount
     if (totalDiscountAmount > 0 && createdTransactions.length > 0) {
       for (const transaction of createdTransactions) {
-        // Calculate proportion of this item to subtotal
         const itemProportion = transaction.totalAmount / subtotal;
-
-        // Calculate proportional discount for this item
-        const itemDiscountAmount = Math.round(
-          totalDiscountAmount * itemProportion,
-        );
+        const itemDiscountAmount = Math.round(totalDiscountAmount * itemProportion);
         const itemFinalAmount = transaction.totalAmount - itemDiscountAmount;
 
-        // Update transaction with VERIFIED discount info
         transaction.discountPercentage = verifiedDiscountPercentage;
         transaction.discountAmount = itemDiscountAmount;
         transaction.finalAmount = itemFinalAmount;
         transaction.promoCode = appliedPromoCode || undefined;
 
-        await transaction.save();
+        try {
+          await transaction.save();
+          console.log(`✅ [STEP 2/3] Discount updated for: ${transaction.invoiceId}`);
+        } catch (discountSaveErr: any) {
+          console.error(`❌ [STEP 2/3] FAILED discount save for ${transaction.invoiceId}:`, discountSaveErr?.message);
+          // Don't throw — discount save failure is non-critical, continue
+        }
       }
     }
 
@@ -1130,26 +1134,44 @@
             transaction.duitkuReference = duitkuResult.reference || "";
             transaction.duitkuVaNumber = duitkuResult.vaNumber || "";
             transaction.duitkuQrString = duitkuResult.qrString || "";
-            transaction.redirectUrl = duitkuResult.paymentUrl; // For backward compatibility
+            transaction.redirectUrl = duitkuResult.paymentUrl;
 
-            // Explicitly set VERIFIED payment fee for first transaction
             if (index === 0 && verifiedPaymentFee > 0) {
               transaction.paymentFee = verifiedPaymentFee;
               transaction.markModified("paymentFee");
-              console.log(
-                "First transaction paymentFee before save:",
-                transaction.paymentFee,
-              );
             }
 
             await transaction.save();
           },
         );
 
-        await Promise.all(updatePromises);
+        await Promise.allSettled(updatePromises);
+
+        // SAFETY NET: Direct DB updateOne untuk Duitku — menjamin duitkuOrderId selalu tersimpan
+        await Promise.all(
+          createdTransactions.map((transaction, index) =>
+            Transaction.updateOne(
+              { _id: transaction._id },
+              {
+                $set: {
+                  duitkuOrderId: masterOrderId,
+                  paymentGateway: "duitku",
+                  duitkuPaymentUrl: duitkuResult.paymentUrl,
+                  duitkuReference: duitkuResult.reference || "",
+                  duitkuVaNumber: duitkuResult.vaNumber || "",
+                  duitkuQrString: duitkuResult.qrString || "",
+                  redirectUrl: duitkuResult.paymentUrl,
+                  ...(index === 0 && verifiedPaymentFee > 0 ? { paymentFee: verifiedPaymentFee } : {}),
+                  ...(paymentMethodName ? { paymentMethodName } : {}),
+                  ...(validPaymentMethodId && validPaymentMethodId !== "RBXNET_COIN" ? { paymentMethodId: validPaymentMethodId } : {}),
+                }
+              }
+            )
+          )
+        );
 
         console.log(
-          `All ${createdTransactions.length} transactions updated with Duitku data`,
+          `All ${createdTransactions.length} transactions saved with Duitku duitkuOrderId: ${masterOrderId}`,
         );
       } else {
         // ===== MIDTRANS PAYMENT GATEWAY =====
@@ -1235,34 +1257,63 @@
             transaction.paymentGateway = "midtrans";
             transaction.snapToken = snapResult.token;
             transaction.redirectUrl = snapResult.redirect_url;
-            // CRITICAL FIX: Explicitly re-assign midtransOrderId here so Mongoose
-            // tracks the change and persists it to DB. Without this, webhook lookup
-            // via midtransOrderId fails and payment status is never updated.
             transaction.midtransOrderId = masterOrderId;
             transaction.markModified("midtransOrderId");
+            transaction.markModified("paymentGateway");
 
-            // Explicitly set VERIFIED payment fee for first transaction
             if (index === 0 && verifiedPaymentFee > 0) {
               transaction.paymentFee = verifiedPaymentFee;
               transaction.markModified("paymentFee");
-              console.log(
-                "First transaction paymentFee before save:",
-                transaction.paymentFee,
-              );
             }
 
-            console.log(
-              `Saving transaction ${transaction.invoiceId} with midtransOrderId: ${transaction.midtransOrderId}`,
-            );
-
-            await transaction.save();
+            try {
+              await transaction.save();
+              console.log(`✅ [STEP 3a/3] Mongoose save OK: ${transaction.invoiceId} midtransOrderId=${masterOrderId}`);
+            } catch (err: any) {
+              console.error(`❌ [STEP 3a/3] Mongoose save FAILED: ${transaction.invoiceId}`, err?.message);
+              // Will be covered by safety net below
+            }
           },
         );
 
-        await Promise.all(updatePromises);
+        // Use allSettled so one failure doesn't block others from saving
+        const saveResults = await Promise.allSettled(updatePromises);
+        const failedCount = saveResults.filter(r => r.status === "rejected").length;
+        if (failedCount > 0) {
+          console.error(`⚠️ [STEP 3a/3] ${failedCount} Mongoose save(s) failed. Fallback via direct DB update...`);
+        }
+
+        // SAFETY NET: Direct DB updateOne — guarantees midtransOrderId is saved
+        const safetyResults = await Promise.allSettled(
+          createdTransactions.map(async (transaction, index) => {
+            const result = await Transaction.updateOne(
+              { _id: transaction._id },
+              {
+                $set: {
+                  midtransOrderId: masterOrderId,
+                  paymentGateway: "midtrans",
+                  snapToken: snapResult.token,
+                  redirectUrl: snapResult.redirect_url,
+                  ...(index === 0 && verifiedPaymentFee > 0 ? { paymentFee: verifiedPaymentFee } : {}),
+                  ...(paymentMethodName ? { paymentMethodName } : {}),
+                  ...(validPaymentMethodId && validPaymentMethodId !== "RBXNET_COIN" ? { paymentMethodId: validPaymentMethodId } : {}),
+                }
+              }
+            );
+            if (result.modifiedCount > 0 || result.matchedCount > 0) {
+              console.log(`✅ [STEP 3b/3] Safety net DB update OK: ${transaction.invoiceId} midtransOrderId=${masterOrderId}`);
+            } else {
+              console.error(`❌ [STEP 3b/3] Safety net DB update DID NOT MATCH: ${transaction.invoiceId} (_id=${transaction._id})`);
+            }
+          })
+        );
+        const safetyFailed = safetyResults.filter(r => r.status === "rejected");
+        if (safetyFailed.length > 0) {
+          console.error(`❌ [STEP 3b/3] Safety net failed for ${safetyFailed.length} transaction(s)!`);
+        }
 
         console.log(
-          `All ${createdTransactions.length} transactions updated with Midtrans data and midtransOrderId: ${masterOrderId}`,
+          `✅ [CHECKOUT] All ${createdTransactions.length} transactions linked to masterOrderId: ${masterOrderId}`,
         );
       }
 
