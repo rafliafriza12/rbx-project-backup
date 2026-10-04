@@ -76,6 +76,16 @@ interface Settings {
   instagramUrl: string;
   twitterUrl: string;
   youtubeUrl: string;
+
+  // Service Availability (Buka/Tutup Layanan)
+  serviceAvailability?: {
+    robux5Hari?: { enabled: boolean; closedMessage: string };
+    robuxInstan?: { enabled: boolean; closedMessage: string };
+    gamepass?: { enabled: boolean; closedMessage: string };
+    coinTopup?: { enabled: boolean; closedMessage: string };
+    joki?: { enabled: boolean; closedMessage: string };
+    reseller?: { enabled: boolean; closedMessage: string };
+  };
 }
 
 export default function SettingsPage() {
@@ -188,6 +198,25 @@ export default function SettingsPage() {
         </svg>
       ),
     },
+    {
+      id: "services",
+      label: "Buka / Tutup Layanan",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
+        </svg>
+      ),
+    },
   ];
 
   // Fetch settings data
@@ -222,6 +251,70 @@ export default function SettingsPage() {
       ...prev!,
       [field]: value,
     }));
+    setHasChanges(true);
+  };
+
+  const handleServiceToggle = (
+    serviceKey:
+      | "robux5Hari"
+      | "robuxInstan"
+      | "gamepass"
+      | "coinTopup"
+      | "joki"
+      | "reseller",
+    field: "enabled" | "closedMessage",
+    value: any,
+  ) => {
+    if (!settings) return;
+
+    const currentAvail = settings.serviceAvailability || {
+      robux5Hari: {
+        enabled: true,
+        closedMessage:
+          "Layanan Robux 5 Hari sedang tutup sementara karena stok habis. Cek lagi nanti!",
+      },
+      robuxInstan: {
+        enabled: true,
+        closedMessage:
+          "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!",
+      },
+      gamepass: {
+        enabled: true,
+        closedMessage:
+          "Layanan Gamepass sedang tutup sementara. Cek lagi nanti!",
+      },
+      coinTopup: {
+        enabled: true,
+        closedMessage:
+          "Layanan Top Up Koin sedang tutup sementara. Cek lagi nanti!",
+      },
+      joki: {
+        enabled: true,
+        closedMessage:
+          "Layanan Joki sedang tutup sementara. Cek lagi nanti!",
+      },
+      reseller: {
+        enabled: true,
+        closedMessage:
+          "Layanan Reseller sedang tutup sementara. Cek lagi nanti!",
+      },
+    };
+
+    const currentService = (currentAvail as any)[serviceKey] || {
+      enabled: true,
+      closedMessage: "",
+    };
+
+    setSettings({
+      ...settings,
+      serviceAvailability: {
+        ...currentAvail,
+        [serviceKey]: {
+          ...currentService,
+          [field]: value,
+        },
+      },
+    });
     setHasChanges(true);
   };
 
@@ -1825,6 +1918,275 @@ export default function SettingsPage() {
             </div>
           </div>
         );
+
+      case "services": {
+        const currentAvail = settings.serviceAvailability || {
+          robux5Hari: {
+            enabled: true,
+            closedMessage:
+              "Layanan Robux 5 Hari sedang tutup sementara karena stok habis. Cek lagi nanti!",
+          },
+          robuxInstan: {
+            enabled: true,
+            closedMessage:
+              "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!",
+          },
+          gamepass: {
+            enabled: true,
+            closedMessage:
+              "Layanan Gamepass sedang tutup sementara. Cek lagi nanti!",
+          },
+          coinTopup: {
+            enabled: true,
+            closedMessage:
+              "Layanan Top Up Koin sedang tutup sementara. Cek lagi nanti!",
+          },
+          joki: {
+            enabled: true,
+            closedMessage:
+              "Layanan Joki sedang tutup sementara. Cek lagi nanti!",
+          },
+          reseller: {
+            enabled: true,
+            closedMessage:
+              "Layanan Reseller sedang tutup sementara. Cek lagi nanti!",
+          },
+        };
+
+        const serviceList = [
+          {
+            key: "robux5Hari" as const,
+            title: "Robux 5 Hari (Pending Gamepass)",
+            desc: "Pengiriman Robux via pesanan Gamepass dengan holding time 5 hari dari Roblox. Matikan switch ini jika stok robux sedang habis.",
+            icon: "💎",
+            tag: "Robux Pending",
+            badgeColor: "from-blue-500/20 to-indigo-500/20 text-blue-400 border-blue-500/30",
+          },
+          {
+            key: "robuxInstan" as const,
+            title: "Robux Instan (Direct API / Transfer)",
+            desc: "Pengiriman Robux langsung instan ke akun Roblox pembeli via API Transfer. Matikan jika saldo akun transfer habis atau sedang error.",
+            icon: "⚡",
+            tag: "Robux Instan",
+            badgeColor: "from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30",
+          },
+          {
+            key: "gamepass" as const,
+            title: "Gamepass Items",
+            desc: "Item Gamepass berbagai game Roblox (Blox Fruits, Blade Ball, King Legacy, dll).",
+            icon: "🎮",
+            tag: "Game Item",
+            badgeColor: "from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30",
+          },
+          {
+            key: "coinTopup" as const,
+            title: "Top Up Koin Saldo",
+            desc: "Top up koin saldo internal akun user untuk berbelanja di website.",
+            icon: "🪙",
+            tag: "Saldo Koin",
+            badgeColor: "from-yellow-500/20 to-amber-500/20 text-yellow-400 border-yellow-500/30",
+          },
+          {
+            key: "joki" as const,
+            title: "Jasa Joki",
+            desc: "Layanan joki leveling dan joki quest/item game Roblox.",
+            icon: "🚀",
+            tag: "Jasa Joki",
+            badgeColor: "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30",
+          },
+          {
+            key: "reseller" as const,
+            title: "Pendaftaran Reseller",
+            desc: "Pendaftaran upgrade akun member ke status Reseller VIP.",
+            icon: "💼",
+            tag: "Membership",
+            badgeColor: "from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/30",
+          },
+        ];
+
+        const totalActive = serviceList.filter(
+          (s) => ((currentAvail as any)[s.key]?.enabled !== false)
+        ).length;
+
+        return (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border border-blue-500/30 rounded-xl p-5 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-2xl shadow-inner">
+                    ⚡
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      Kontrol Buka / Tutup Layanan
+                      <span className="text-xs font-normal px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                        {totalActive} dari {serviceList.length} Layanan Buka
+                      </span>
+                    </h3>
+                    <p className="text-sm text-[#94a3b8] mt-0.5">
+                      Buka atau tutup layanan secara instan jika stok sedang habis, sedang maintenance, atau restock.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Service Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {serviceList.map((srv) => {
+                const conf = (currentAvail as any)[srv.key] || {
+                  enabled: true,
+                  closedMessage: "",
+                };
+                const isEnabled = conf.enabled !== false;
+
+                return (
+                  <div
+                    key={srv.key}
+                    className={`rounded-xl border transition-all duration-300 overflow-hidden flex flex-col justify-between ${
+                      isEnabled
+                        ? "bg-[#1e293b]/90 border-[#334155] shadow-sm hover:border-blue-500/50"
+                        : "bg-red-950/20 border-red-800/50 shadow-inner"
+                    }`}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-[#0f172a] border border-[#334155] flex items-center justify-center text-2xl shrink-0">
+                            {srv.icon}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-bold text-[#f1f5f9] text-base">
+                                {srv.title}
+                              </h4>
+                              <span
+                                className={`text-[11px] font-semibold px-2 py-0.5 rounded border bg-gradient-to-r ${srv.badgeColor}`}
+                              >
+                                {srv.tag}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[#94a3b8] mt-1 leading-relaxed">
+                              {srv.desc}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Switch & Status Badge */}
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isEnabled}
+                              onChange={(e) =>
+                                handleServiceToggle(
+                                  srv.key,
+                                  "enabled",
+                                  e.target.checked,
+                                )
+                              }
+                              className="sr-only peer"
+                            />
+                            <div className="w-13 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-emerald-500"></div>
+                          </label>
+                          <span
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                              isEnabled
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                : "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+                            }`}
+                          >
+                            {isEnabled ? "🟢 Dibuka" : "🔴 Ditutup"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Custom Closed Message Input */}
+                      <div className="mt-4 pt-4 border-t border-[#334155]/60">
+                        <label className="block text-xs font-medium text-[#cbd5e1] mb-1.5">
+                          Pesan Saat Ditutup (Akan Tampil ke Pembeli):
+                        </label>
+                        <input
+                          type="text"
+                          value={conf.closedMessage || ""}
+                          onChange={(e) =>
+                            handleServiceToggle(
+                              srv.key,
+                              "closedMessage",
+                              e.target.value,
+                            )
+                          }
+                          placeholder={`Contoh: Stok ${srv.title} sedang habis, cek lagi nanti!`}
+                          className="w-full text-sm px-3 py-2 bg-[#0f172a] border border-[#334155] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-[#f1f5f9] placeholder-[#64748b] transition"
+                        />
+                        <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                          <span
+                            className={
+                              isEnabled
+                                ? "text-[#94a3b8]"
+                                : "text-amber-400 font-medium"
+                            }
+                          >
+                            {isEnabled
+                              ? "Pesan ini tampil jika toggle dimatikan."
+                              : "⚠️ Pesan ini sedang aktif & tampil di website."}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleServiceToggle(
+                                srv.key,
+                                "closedMessage",
+                                `Layanan ${srv.title} sedang tutup sementara karena stok habis. Cek lagi nanti!`,
+                              )
+                            }
+                            className="text-blue-400 hover:text-blue-300 underline"
+                          >
+                            Pakai template default
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Status bar */}
+                    <div
+                      className={`px-5 py-2 text-xs font-medium border-t flex items-center gap-2 ${
+                        isEnabled
+                          ? "bg-[#0f172a]/50 text-emerald-400 border-[#334155]/40"
+                          : "bg-red-950/40 text-red-300 border-red-900/50"
+                      }`}
+                    >
+                      <span>{isEnabled ? "✓ Pembelian aktif" : "✕ Pembelian & keranjang dinonaktifkan"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Instruction / Note */}
+            <div className="bg-blue-900/20 border border-blue-700/50 rounded-xl p-4.5">
+              <h4 className="font-semibold text-blue-400 mb-2 text-sm flex items-center gap-2">
+                💡 Panduan:
+              </h4>
+              <ul className="text-xs text-blue-200/90 space-y-1.5 list-disc list-inside leading-relaxed">
+                <li>
+                  Saat layanan dimatikan, halaman pembelian produk akan otomatis memunculkan <strong>banner informasi</strong> dengan pesan yang kamu atur.
+                </li>
+                <li>
+                  Tombol beli, tambah ke keranjang, dan formulir checkout akan otomatis dikunci agar pembeli tidak salah bayar.
+                </li>
+                <li>
+                  API transaksi server juga memverifikasi status ini, sehingga tidak ada pesanan yang bisa tembus.
+                </li>
+                <li>
+                  Setelah mengubah toggle, klik tombol <strong>"Simpan Perubahan"</strong> di pojok kanan atas halaman.
+                </li>
+              </ul>
+            </div>
+          </div>
+        );
+      }
 
       default:
         return <div>Tab tidak ditemukan</div>;

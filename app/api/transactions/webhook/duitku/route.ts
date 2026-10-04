@@ -13,6 +13,7 @@ import {
   notifyPaymentStatusChange,
   notifyOrderStatusChange,
 } from "@/lib/discord";
+import { autoTransferInstantRobux } from "@/lib/robux-transfer";
 
 // Activate reseller package for user after payment settlement
 async function activateResellerPackage(transaction: any) {
@@ -500,6 +501,7 @@ export async function POST(request: NextRequest) {
     // Process each transaction
     const updatedTransactions = [];
     const rbx5TransactionsToProcess = [];
+    const robuxInstantTransactionsToProcess = [];
 
     for (const transaction of targetTransactions) {
       const previousPaymentStatus = transaction.paymentStatus;
@@ -633,6 +635,25 @@ export async function POST(request: NextRequest) {
             );
           }
         }
+
+        // ✅ Robux Instant: Auto-trigger Transfer API jika payment baru settle
+        if (transaction.serviceCategory === "robux_instant" || transaction.serviceCategory === "robux_instan") {
+          const canTransfer =
+            transaction.orderStatus === "pending" ||
+            transaction.orderStatus === "waiting_payment" ||
+            transaction.orderStatus === "processing";
+
+          if (canTransfer) {
+            console.log(
+              `⚡ Queuing Robux Instant transfer for ${transaction.invoiceId} (orderStatus: ${transaction.orderStatus})`,
+            );
+            robuxInstantTransactionsToProcess.push(transaction);
+          } else {
+            console.log(
+              `ℹ️ Skip Robux Instant transfer for ${transaction.invoiceId} — sudah ${transaction.orderStatus}`,
+            );
+          }
+        }
       }
 
       let targetOrderStatus = statusMapping.orderStatus;
@@ -640,6 +661,9 @@ export async function POST(request: NextRequest) {
         targetOrderStatus = "pending";
       } else if (statusMapping.paymentStatus === "settlement" && transaction.serviceType === "coin_topup") {
         targetOrderStatus = "completed";
+      } else if (statusMapping.paymentStatus === "settlement" && (transaction.serviceCategory === "robux_instant" || transaction.serviceCategory === "robux_instan")) {
+        // Jaga agar tetap "pending" — auto-transfer akan mengubahnya ke completed/bermasalah
+        targetOrderStatus = "pending";
       }
 
       // Update order status jika ada dan berubah (hanya jika belum settled)
@@ -698,6 +722,44 @@ export async function POST(request: NextRequest) {
         `Processing robux_5_hari transaction: ${transaction.invoiceId}`,
       );
       await processGamepassPurchase(transaction);
+    }
+
+    // ⚡ Process Robux Instant transactions sequentially via Transfer API
+    for (const transaction of robuxInstantTransactionsToProcess) {
+      console.log(
+        `⚡ Processing Robux Instant transfer for: ${transaction.invoiceId}`,
+      );
+      try {
+        const transferResult = await autoTransferInstantRobux(
+          transaction,
+          { executedBy: "duitku_webhook" },
+        );
+        if (transferResult.success) {
+          console.log(
+            `✅ Robux Instant transfer sukses untuk ${transaction.invoiceId}: ${transferResult.message}`,
+          );
+          // Kirim notifikasi Discord untuk completed
+          try {
+            await notifyOrderStatusChange(
+              transaction,
+              "pending",
+              "completed",
+              `Robux Instant otomatis terkirim (Duitku webhook)`,
+            );
+          } catch (discordErr) {
+            console.error("[Duitku] Discord notify error:", discordErr);
+          }
+        } else {
+          console.warn(
+            `⚠️ Robux Instant transfer gagal untuk ${transaction.invoiceId}: ${transferResult.message}`,
+          );
+        }
+      } catch (transferErr: any) {
+        console.error(
+          `[Duitku] Error during Robux Instant auto-transfer for ${transaction.invoiceId}:`,
+          transferErr,
+        );
+      }
     }
 
     console.log("✅ Duitku Webhook processed successfully:", {

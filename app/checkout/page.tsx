@@ -152,12 +152,9 @@ function CheckoutContent() {
 
       if (!isNoRobloxCredsRequired && !robloxUsername.trim()) return false;
 
-      // Check password requirement
+      // Check password requirement (only joki requires password)
       const requiresPassword = checkoutData.items.some((item) => {
-        return (
-          item.serviceType === "joki" ||
-          (item.serviceType === "robux" && item.robuxInstantDetails)
-        );
+        return item.serviceType === "joki";
       });
 
       if (requiresPassword && !robloxPassword.trim()) return false;
@@ -706,12 +703,9 @@ function CheckoutContent() {
         return;
       }
 
-      // Check if any item requires password
+      // Check if any item requires password (only joki requires password)
       const requiresPassword = checkoutData.items.some((item) => {
-        return (
-          item.serviceType === "joki" ||
-          (item.serviceType === "robux" && item.robuxInstantDetails)
-        );
+        return item.serviceType === "joki";
       });
 
       if (requiresPassword && !robloxPassword.trim()) {
@@ -1802,12 +1796,9 @@ function CheckoutContent() {
                           />
                         )}
                       </div>
-                      {/* Password hanya diperlukan untuk robux instant dan joki */}
+                      {/* Password hanya diperlukan untuk joki */}
                       {checkoutData.items.some(
-                        (item) =>
-                          item.serviceType === "joki" ||
-                          (item.serviceType === "robux" &&
-                            item.robuxInstantDetails),
+                        (item) => item.serviceType === "joki",
                       ) && (
                         <div>
                           <label className="block text-sm font-medium text-primary-200 mb-2">

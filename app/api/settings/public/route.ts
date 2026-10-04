@@ -26,6 +26,14 @@ export async function GET(req: NextRequest) {
         facebookUrl: "",
         twitterUrl: "",
         youtubeUrl: "",
+        serviceAvailability: {
+          robux5Hari: { enabled: true, closedMessage: "Layanan Robux 5 Hari sedang tutup sementara. Cek lagi nanti!" },
+          robuxInstan: { enabled: true, closedMessage: "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!" },
+          gamepass: { enabled: true, closedMessage: "Layanan Gamepass sedang tutup sementara. Cek lagi nanti!" },
+          coinTopup: { enabled: true, closedMessage: "Layanan Top Up Koin sedang tutup sementara. Cek lagi nanti!" },
+          joki: { enabled: true, closedMessage: "Layanan Joki sedang tutup sementara. Cek lagi nanti!" },
+          reseller: { enabled: true, closedMessage: "Layanan Reseller sedang tutup sementara. Cek lagi nanti!" },
+        },
       };
       return NextResponse.json(
         {
@@ -68,6 +76,16 @@ export async function GET(req: NextRequest) {
       popupBannerEnabled: settings.popupBannerEnabled || false,
       popupBannerImageUrl: settings.popupBannerImageUrl || "",
       popupBannerTargetUrl: settings.popupBannerTargetUrl || "",
+
+      // Service Availability (Buka / Tutup Layanan)
+      serviceAvailability: settings.serviceAvailability || {
+        robux5Hari: { enabled: true, closedMessage: "Layanan Robux 5 Hari sedang tutup sementara. Cek lagi nanti!" },
+        robuxInstan: { enabled: true, closedMessage: "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!" },
+        gamepass: { enabled: true, closedMessage: "Layanan Gamepass sedang tutup sementara. Cek lagi nanti!" },
+        coinTopup: { enabled: true, closedMessage: "Layanan Top Up Koin sedang tutup sementara. Cek lagi nanti!" },
+        joki: { enabled: true, closedMessage: "Layanan Joki sedang tutup sementara. Cek lagi nanti!" },
+        reseller: { enabled: true, closedMessage: "Layanan Reseller sedang tutup sementara. Cek lagi nanti!" },
+      },
 
       // Coin Settings
       coinTopupPrice: settings.coinTopupPrice || 1000,

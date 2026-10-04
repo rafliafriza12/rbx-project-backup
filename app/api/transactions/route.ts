@@ -549,14 +549,9 @@
       item.robloxUsername = usernameVerification.verifiedUsername!;
       const itemRobloxUserId = usernameVerification.userId;
 
-      // Check if password is required
+      // Check if password is required (only for joki)
       let passwordRequired = false;
       if (item.serviceType === "joki") {
-        passwordRequired = !item.robloxPassword;
-      } else if (
-        item.serviceType === "robux" &&
-        item.serviceCategory === "robux_instant"
-      ) {
         passwordRequired = !item.robloxPassword;
       }
 
@@ -1477,8 +1472,8 @@
       usernameRequired = false;
       passwordRequired = false;
     } else if (serviceType === "robux") {
-      // Untuk robux, cek kategori
-      passwordRequired = serviceCategory === "robux_instant" && !robloxPassword;
+      // Robux Instant menggunakan Direct Transfer API (hanya username, tanpa password)
+      passwordRequired = false;
     } else if (serviceType === "joki") {
       // Untuk joki, password selalu diperlukan
       passwordRequired = !robloxPassword;

@@ -13,6 +13,7 @@ import {
 import {
   fetchTransactionById,
   triggerManualGamepassPurchase,
+  triggerManualRobuxTransfer,
 } from "../actions";
 
 interface Transaction {
@@ -54,6 +55,18 @@ interface Transaction {
   };
   robuxInstantDetails?: {
     notes?: string;
+    additionalInfo?: string;
+    robuxAmount?: number;
+    productName?: string;
+    description?: string;
+    recipientId?: number;
+    rxtToken?: string;
+    stockAccountId?: string;
+    stockAccountUsername?: string;
+    transferredAt?: string;
+    transferStatus?: string;
+    transferError?: string;
+    failureReasonCode?: number;
   };
   gamepass?: {
     id: number;
@@ -190,16 +203,47 @@ export default function TransactionDetailPage() {
     }
   };
 
+  const handleManualRobuxTransfer = async () => {
+    setProcessingPurchase(true);
+    try {
+      const { ok, data } = await triggerManualRobuxTransfer(transaction._id);
+      if (ok && data?.success) {
+        toast.success(data.message || "Robux Instant berhasil dikirim via Transfer API!");
+        fetchTransaction(transaction._id);
+      } else {
+        toast.error(data?.message || data?.error || "Gagal mentransfer Robux Instant");
+        fetchTransaction(transaction._id);
+      }
+    } catch (error: any) {
+      toast.error("Gagal mentransfer Robux Instant: " + error.message);
+    } finally {
+      setProcessingPurchase(false);
+    }
+  };
+
   // Check if this is robux_5_hari with non-ObjectId serviceId
   const isRobux5Hari =
     transaction?.serviceType === "robux" &&
     transaction?.serviceCategory === "robux_5_hari";
-  // Check if manual purchase button should be shown
+
+  // Check if this is robux_instant
+  const isRobuxInstant =
+    transaction?.serviceType === "robux" &&
+    (transaction?.serviceCategory === "robux_instant" ||
+      transaction?.serviceCategory === "robux_instan");
+
+  // Check if manual purchase button should be shown for gamepass
   const showManualPurchaseButton =
     isRobux5Hari &&
     transaction?.paymentStatus === "settlement" &&
     transaction?.orderStatus === "pending" &&
     transaction?.gamepass;
+
+  // Check if manual instant transfer button should be shown
+  const showManualInstantTransferButton =
+    isRobuxInstant &&
+    transaction?.paymentStatus === "settlement" &&
+    transaction?.orderStatus !== "completed";
 
   if (loading) {
     return (
@@ -456,6 +500,109 @@ export default function TransactionDetailPage() {
                   {transaction.gamepass.price} Robux
                 </span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Robux Instant Transfer Information - For robux_instant */}
+        {isRobuxInstant && (
+          <div className="bg-[#1e293b] rounded-lg shadow-lg p-6 border border-[#334155]">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚡</span>
+                <h2 className="text-lg font-semibold text-[#f1f5f9]">
+                  Robux Instant Transfer
+                </h2>
+              </div>
+              {showManualInstantTransferButton && (
+                <button
+                  onClick={handleManualRobuxTransfer}
+                  disabled={processingPurchase}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center space-x-2 shadow-lg shadow-purple-600/30"
+                >
+                  {processingPurchase ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Mentransfer...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>⚡</span>
+                      <span>
+                        {transaction.orderStatus === "bermasalah" || transaction.robuxInstantDetails?.transferStatus === "failed"
+                          ? "Retry Transfer"
+                          : "Transfer Sekarang"}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[#94a3b8]">Username Penerima:</span>
+                <span className="font-mono font-bold text-white">
+                  @{transaction.robloxUsername}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94a3b8]">Nominal Robux:</span>
+                <span className="font-bold text-emerald-400">
+                  {transaction.robuxInstantDetails?.robuxAmount || transaction.quantity || transaction.totalAmount} Robux
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#94a3b8]">Status Transfer:</span>
+                <div>
+                  {transaction.orderStatus === "completed" || transaction.robuxInstantDetails?.transferStatus === "success" ? (
+                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                      ✓ Berhasil Ditransfer
+                    </span>
+                  ) : transaction.robuxInstantDetails?.transferStatus === "failed" || transaction.orderStatus === "bermasalah" ? (
+                    <span className="bg-red-500/20 text-red-400 border border-red-500/40 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                      ✕ Gagal Transfer
+                    </span>
+                  ) : (
+                    <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                      ⏳ Menunggu Proses
+                    </span>
+                  )}
+                </div>
+              </div>
+              {transaction.robuxInstantDetails?.rxtToken && (
+                <div className="flex justify-between">
+                  <span className="text-[#94a3b8]">RXT Token:</span>
+                  <span className="font-mono text-xs text-purple-300 bg-purple-950/40 px-2 py-0.5 rounded border border-purple-800/40">
+                    {transaction.robuxInstantDetails.rxtToken}
+                  </span>
+                </div>
+              )}
+              {transaction.robuxInstantDetails?.stockAccountUsername && (
+                <div className="flex justify-between">
+                  <span className="text-[#94a3b8]">Akun Pengirim (Stock):</span>
+                  <span className="font-mono text-white">
+                    @{transaction.robuxInstantDetails.stockAccountUsername}
+                  </span>
+                </div>
+              )}
+              {transaction.robuxInstantDetails?.transferredAt && (
+                <div className="flex justify-between">
+                  <span className="text-[#94a3b8]">Waktu Transfer:</span>
+                  <span className="text-[#f1f5f9]">
+                    {formatDate(transaction.robuxInstantDetails.transferredAt)}
+                  </span>
+                </div>
+              )}
+              {transaction.robuxInstantDetails?.transferError && (
+                <div className="mt-2 p-3 bg-red-900/30 border border-red-500/40 rounded-lg">
+                  <span className="text-red-400 text-xs font-semibold block mb-1">
+                    Penyebab Gagal (Failure Reason):
+                  </span>
+                  <p className="text-red-200 text-xs">
+                    {transaction.robuxInstantDetails.transferError}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

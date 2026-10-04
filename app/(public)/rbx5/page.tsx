@@ -96,6 +96,14 @@ interface SiteSettings {
   facebookUrl?: string;
   twitterUrl?: string;
   youtubeUrl?: string;
+  serviceAvailability?: {
+    robux5Hari?: { enabled: boolean; closedMessage: string };
+    robuxInstan?: { enabled: boolean; closedMessage: string };
+    gamepass?: { enabled: boolean; closedMessage: string };
+    coinTopup?: { enabled: boolean; closedMessage: string };
+    joki?: { enabled: boolean; closedMessage: string };
+    reseller?: { enabled: boolean; closedMessage: string };
+  };
 }
 
 
@@ -178,10 +186,16 @@ export default function Rbx5Page() {
 
   const router = useRouter();
 
+  const isServiceClosed =
+    settings.serviceAvailability?.robux5Hari?.enabled === false;
+  const closedMessage =
+    settings.serviceAvailability?.robux5Hari?.closedMessage ||
+    "Layanan Robux 5 Hari sedang tutup sementara karena stok habis. Cek lagi nanti!";
+
   const fetchSettings = async () => {
     try {
       const data = await getPublicSettings();
-      if (data.success) {
+      if (data.success && data.settings) {
         setSettings({
           whatsappNumber: data.settings.whatsappNumber,
           instagramUrl: data.settings.instagramUrl,
@@ -189,9 +203,11 @@ export default function Rbx5Page() {
           facebookUrl: data.settings.facebookUrl,
           twitterUrl: data.settings.twitterUrl,
           youtubeUrl: data.settings.youtubeUrl,
+          serviceAvailability: data.settings.serviceAvailability,
         });
       }
     } catch (error) {
+      console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
     }
@@ -340,7 +356,7 @@ export default function Rbx5Page() {
     };
 
     checkHomepageData();
-    // fetchSettings();
+    fetchSettings();
   }, []);
 
   // Fetch products from database
@@ -787,6 +803,11 @@ export default function Rbx5Page() {
     };
 
     const handleAddToCart = async () => {
+      if (isServiceClosed) {
+        toast.error(closedMessage);
+        return;
+      }
+
       if (!isStep1Valid || !isStep2Valid || robux <= 0) {
         toast.error("Mohon lengkapi data dan pilih gamepass terlebih dahulu!");
         return;
@@ -858,6 +879,10 @@ export default function Rbx5Page() {
 
     const handleSubmitOrder = async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
+      if (isServiceClosed) {
+        toast.error(closedMessage);
+        return;
+      }
       if (!isStep1Valid || !isStep2Valid || !isStep3Valid || robux <= 0 || submitting) return;
 
       setSubmitting(true);
@@ -1130,6 +1155,35 @@ export default function Rbx5Page() {
             </div>
           </section>
 
+          {/* Banner Tutup Layanan Jika Admin Menonaktifkan Robux 5 Hari */}
+          {isServiceClosed && (
+            <section className="max-w-4xl mx-auto px-4 mt-6 mb-2">
+              <div className="bg-gradient-to-r from-red-950/90 via-red-900/70 to-rose-950/90 border-2 border-red-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+                  <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+                    🔒
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-2">
+                      <h3 className="text-xl sm:text-2xl font-black text-white">
+                        Layanan Robux 5 Hari Sedang Ditutup
+                      </h3>
+                      <span className="px-3 py-1 rounded-full bg-red-500/30 text-red-200 border border-red-400/40 text-xs font-bold animate-pulse">
+                        STOK HABIS
+                      </span>
+                    </div>
+                    <p className="text-gray-200 text-sm sm:text-base leading-relaxed">
+                      {closedMessage}
+                    </p>
+                    <div className="mt-3 flex items-center justify-center sm:justify-start gap-2 text-xs text-red-300 font-medium">
+                      <span>⚠️ Pemesanan dan checkout dinonaktifkan sementara sampai stok tersedia kembali.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Stepper UI */}
           <section className="max-w-4xl mx-auto px-4 mt-8 mb-4">
             <div className="flex items-center justify-between relative">
@@ -1391,16 +1445,21 @@ export default function Rbx5Page() {
               <section className="max-w-4xl mx-auto mt-6 px-4 flex justify-end gap-4">
                 <button
                   onClick={() => {
+                    if (isServiceClosed) {
+                      toast.error(closedMessage);
+                      return;
+                    }
                     if (isStep1Valid) setShowEstimasiPopup(true);
                     else toast.error("Mohon lengkapi semua data dengan benar.");
                   }}
-                  disabled={!isStep1Valid}
-                  className={`font-bold py-3.5 px-12 rounded-xl transition-all shadow-lg ${isStep1Valid
-                    ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105"
-                    : "bg-gray-600/50 text-gray-400 cursor-not-allowed"
-                    }`}
+                  disabled={!isStep1Valid || isServiceClosed}
+                  className={`font-bold py-3.5 px-12 rounded-xl transition-all shadow-lg ${
+                    isStep1Valid && !isServiceClosed
+                      ? "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white hover:scale-105"
+                      : "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                  }`}
                 >
-                  Lanjutkan
+                  {isServiceClosed ? "Layanan Ditutup" : "Lanjutkan"}
                 </button>
               </section>
 
@@ -1608,20 +1667,31 @@ export default function Rbx5Page() {
                   <div className="flex flex-col sm:flex-row w-full sm:w-2/3 gap-4">
                     <button
                       onClick={handleAddToCart}
-                      disabled={isAddingToCart}
+                      disabled={isAddingToCart || isServiceClosed}
                       className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 bg-primary-800/50 border border-primary-100/30 text-primary-100 transition-all hover:bg-primary-800 hover:border-primary-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isAddingToCart ? <><Loader2 className="w-5 h-5 animate-spin" /> Memproses...</> : <><ShoppingCart className="w-5 h-5" /> Masukkan Keranjang</>}
+                      {isAddingToCart ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" /> Memproses...
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-5 h-5" /> Masukkan Keranjang
+                        </>
+                      )}
                     </button>
                     <button
                       onClick={handleSubmitOrder}
-                      disabled={submitting}
-                      className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${submitting
-                        ? "bg-primary-600/50 text-white/50 cursor-not-allowed"
-                        : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg shadow-primary-100/20 hover:scale-105"
-                        }`}
+                      disabled={submitting || isServiceClosed}
+                      className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${
+                        submitting || isServiceClosed
+                          ? "bg-primary-600/50 text-white/50 cursor-not-allowed"
+                          : "bg-gradient-to-r from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-100 text-white shadow-lg shadow-primary-100/20 hover:scale-105"
+                      }`}
                     >
-                      {submitting ? (
+                      {isServiceClosed ? (
+                        <span>Layanan Sedang Ditutup</span>
+                      ) : submitting ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
                           <span>Memproses...</span>

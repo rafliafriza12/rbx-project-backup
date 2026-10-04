@@ -15,6 +15,7 @@ import {
 } from "@/lib/discord";
 import { maskEmail, maskUsername, maskName } from "@/lib/mask";
 import ResellerPackage from "@/models/ResellerPackage";
+import { autoTransferInstantRobux } from "@/lib/robux-transfer";
 
 // Activate Reseller Package for user after payment settlement
 async function activateResellerPackage(transaction: any) {
@@ -629,6 +630,26 @@ export async function PUT(
     ) {
       console.log("Admin changed status - activating coin top up");
       await activateCoinTopup(transaction);
+    }
+
+    // Auto-transfer Robux Instant saat admin set payment ke settlement
+    if (
+      isPaymentSettled &&
+      (transaction.serviceType === "robux_instant" || transaction.serviceCategory === "robux_instant")
+    ) {
+      console.log(`[Admin] 🚀 Auto-transfer Robux Instant untuk Invoice: ${transaction.invoiceId}`);
+      try {
+        const transferResult = await autoTransferInstantRobux(transaction, {
+          executedBy: "admin-settlement",
+        });
+        if (transferResult.success) {
+          console.log(`[Admin] ✅ Robux Instant berhasil dikirim ke @${transaction.robloxUsername}`);
+        } else {
+          console.warn(`[Admin] ⚠️ Robux Instant gagal: ${transferResult.message}`);
+        }
+      } catch (transferErr) {
+        console.error(`[Admin] ❌ Error auto-transfer Robux Instant:`, transferErr);
+      }
     }
 
     if (statusType === "payment" && newStatus === "settlement") {

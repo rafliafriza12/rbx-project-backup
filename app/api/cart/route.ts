@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Cart, { ICartItem } from "@/models/Cart";
 import { authenticateToken, requireApiKey } from "@/lib/auth";
+import { checkServiceAvailability } from "@/lib/serverValidation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -102,6 +103,29 @@ export async function POST(request: NextRequest) {
           : type === "joki"
             ? "joki"
             : "robux");
+
+    // Validasi apakah layanan sedang dibuka / ditutup oleh admin
+    const availCategory =
+      serviceCategory ||
+      (type === "rbx5"
+        ? "robux_5_hari"
+        : type === "rbx-instant"
+          ? "robux_instant"
+          : undefined);
+    const availCheck = await checkServiceAvailability(
+      finalServiceType,
+      availCategory,
+    );
+    if (!availCheck.available) {
+      return NextResponse.json(
+        {
+          error:
+            availCheck.error || "Layanan sedang ditutup sementara oleh admin.",
+        },
+        { status: 400 },
+      );
+    }
+
     const finalServiceId = serviceId || gameId || itemName;
     const finalServiceName = serviceName || itemName;
     const finalServiceImage = serviceImage || imgUrl || ""; // Allow empty image

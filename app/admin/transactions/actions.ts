@@ -156,6 +156,37 @@ export async function triggerManualGamepassPurchase(transactionId: string) {
 }
 
 /**
+ * Server Action: Trigger manual Robux Instant transfer (admin)
+ */
+export async function triggerManualRobuxTransfer(transactionId: string, stockAccountId?: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/transactions/${transactionId}/manual-robux-transfer`,
+      {
+        method: "POST",
+        headers: getInternalHeaders({
+          ...(authCookie ? { Cookie: authCookie } : {}),
+        }),
+        body: JSON.stringify({ stockAccountId }),
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error(
+      "[Server Action] Error triggering manual robux transfer:",
+      error,
+    );
+    return {
+      ok: false,
+      data: { error: "Gagal memproses transfer manual Robux Instant" },
+    };
+  }
+}
+
+/**
  * Server Action: Delete transaction (admin)
  */
 export async function deleteTransaction(transactionId: string) {

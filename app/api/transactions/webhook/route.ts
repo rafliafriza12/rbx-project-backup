@@ -13,6 +13,7 @@ import {
   notifyPaymentStatusChange,
   notifyOrderStatusChange,
 } from "@/lib/discord";
+import { transferRobuxToUsername } from "@/lib/robux-transfer";
 
 // Helper to activate Coin Top Up
 async function activateCoinTopup(transaction: any) {
@@ -52,6 +53,100 @@ async function activateCoinTopup(transaction: any) {
   } catch (error) {
     console.error("[Webhook Route] ❌ Error in activateCoinTopup:", error);
     return null;
+  }
+}
+
+// Process robux_instan transfer — kirim robux langsung ke username pembeli
+async function processRobuxInstanTransfer(transaction: any) {
+  try {
+    const invoiceId = transaction.invoiceId;
+    console.log(`[robux-instan] Memproses transfer untuk ${invoiceId}`);
+
+    // Atomic claim — hindari double transfer
+    const claimed = await Transaction.findOneAndUpdate(
+      {
+        _id: transaction._id,
+        orderStatus: { $in: ["pending", "waiting_payment"] },
+      },
+      { $set: { orderStatus: "in_progress" } },
+      { new: false },
+    );
+
+    if (!claimed) {
+      console.log(`🔒 [robux-instan] ${invoiceId} sudah di-claim proses lain. Skip.`);
+      return;
+    }
+
+    const recipientUsername = transaction.robloxUsername;
+    const robuxAmount = transaction.quantity; // quantity = jumlah robux yang dikirim
+
+    if (!recipientUsername) {
+      console.error(`❌ [robux-instan] ${invoiceId}: robloxUsername kosong`);
+      await transaction.updateStatus("order", "pending", "Gagal: username penerima tidak ditemukan", null);
+      return;
+    }
+
+    if (!robuxAmount || robuxAmount <= 0) {
+      console.error(`❌ [robux-instan] ${invoiceId}: quantity/robuxAmount tidak valid: ${robuxAmount}`);
+      await transaction.updateStatus("order", "pending", "Gagal: jumlah robux tidak valid", null);
+      return;
+    }
+
+    // Cari stock account dengan robux cukup
+    const stockAccount = await StockAccount.findOne({
+      status: "active",
+      robux: { $gte: robuxAmount },
+    }).sort({ robux: -1 });
+
+    if (!stockAccount) {
+      console.error(`❌ [robux-instan] ${invoiceId}: Tidak ada stock account dengan robux cukup (butuh ${robuxAmount})`);
+      await transaction.updateStatus("order", "pending", `Pesanan sedang diproses: Menunggu ketersediaan stok robux (${robuxAmount} R$)`, null);
+      return;
+    }
+
+    console.log(`[robux-instan] ${invoiceId}: Menggunakan akun ${stockAccount.username} (${stockAccount.robux} R$) → kirim ${robuxAmount} R$ ke "${recipientUsername}"`);
+
+    const result = await transferRobuxToUsername(
+      stockAccount.robloxCookie,
+      recipientUsername,
+      robuxAmount,
+    );
+
+    if (result.success) {
+      // Update saldo akun
+      stockAccount.robux = Math.max(0, stockAccount.robux - robuxAmount);
+      stockAccount.lastChecked = new Date();
+      await stockAccount.save();
+
+      // Update status order → completed
+      await transaction.updateStatus(
+        "order",
+        "completed",
+        `${robuxAmount} R$ berhasil dikirim ke "${recipientUsername}" menggunakan akun ${stockAccount.username}. RXT: ${result.rxtId}`,
+        null,
+      );
+
+      console.log(`✅ [robux-instan] ${invoiceId}: Transfer berhasil! ${robuxAmount} R$ → "${recipientUsername}". RXT: ${result.rxtId}`);
+    } else {
+      // Jika akun diblokir (failureReason=13), tandai inactive
+      if (result.failureReason === 13) {
+        console.warn(`⚠️ [robux-instan] Akun ${stockAccount.username} diblokir (failureReason=13). Menandai inactive.`);
+        stockAccount.status = "inactive";
+        await stockAccount.save();
+      }
+
+      await transaction.updateStatus(
+        "order",
+        "pending",
+        `Transfer gagal: ${result.failureMessage || "Gagal tanpa kode alasan"} (kode: ${result.failureReason ?? "-"})`,
+        null,
+      );
+
+      console.error(`❌ [robux-instan] ${invoiceId}: Transfer gagal. Alasan: ${result.failureMessage} (kode: ${result.failureReason})`);
+    }
+  } catch (err: any) {
+    console.error(`❌ [robux-instan] Error tidak terduga:`, err);
+    await transaction.updateStatus("order", "pending", `Error saat transfer: ${err?.message || "Unknown error"}`, null);
   }
 }
 
@@ -907,13 +1002,20 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Process fulfillment (Reseller, Coins, etc.) outside the status change guard
+      // Process fulfillment (Reseller, Coins, Robux Instan, etc.) outside the status change guard
       if (statusMapping.paymentStatus === "settlement") {
         if (transaction.serviceType === "reseller") {
           await activateResellerPackage(transaction);
         }
         if (transaction.serviceType === "coin_topup") {
           await activateCoinTopup(transaction);
+        }
+        // Robux Instan — kirim robux langsung via Transfer API
+        if (
+          transaction.serviceType === "robux" &&
+          transaction.serviceCategory === "robux_instan"
+        ) {
+          await processRobuxInstanTransfer(transaction);
         }
       }
 

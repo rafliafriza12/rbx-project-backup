@@ -59,6 +59,14 @@ export interface RobuxInstantDetails {
   robuxAmount?: number;
   productName?: string;
   description?: string;
+  recipientId?: number;
+  rxtToken?: string;
+  transferStatus?: string;
+  transferError?: string;
+  failureReasonCode?: number;
+  stockAccountId?: string;
+  stockAccountUsername?: string;
+  transferredAt?: string | Date;
 }
 
 export interface Transaction {

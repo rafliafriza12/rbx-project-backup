@@ -220,6 +220,129 @@ export async function verifyGamepassFromRoblox(
 }
 
 // ============================================================
+// 0b2. Validasi Ketersediaan Layanan (Buka / Tutup Layanan Admin)
+// ============================================================
+export async function checkServiceAvailability(
+  serviceType: string,
+  serviceCategory?: string,
+): Promise<{ available: boolean; error?: string }> {
+  try {
+    await dbConnect();
+    const Settings = (await import("@/models/Settings")).default;
+    const settings = await Settings.getSiteSettings();
+    const avail = settings?.serviceAvailability;
+    if (!avail) return { available: true };
+
+    const typeLower = (serviceType || "").toLowerCase().trim();
+    const catLower = (serviceCategory || "").toLowerCase().trim();
+
+    // 1. Robux Instan
+    const isInstant =
+      typeLower === "robux_instant" ||
+      typeLower === "robux_instan" ||
+      typeLower === "rbx-instant" ||
+      (typeLower === "robux" &&
+        (catLower === "robux_instan" ||
+          catLower === "robux_instant" ||
+          catLower === "instant"));
+
+    if (isInstant) {
+      if (avail.robuxInstan && avail.robuxInstan.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.robuxInstan.closedMessage ||
+            "Layanan Robux Instan sedang tutup sementara.",
+        };
+      }
+      return { available: true };
+    }
+
+    // 2. Robux 5 Hari
+    const isRbx5 =
+      typeLower === "rbx5" ||
+      (typeLower === "robux" &&
+        (catLower === "robux_5_hari" ||
+          catLower === "5hari" ||
+          !catLower ||
+          catLower === "robux"));
+
+    if (isRbx5) {
+      if (avail.robux5Hari && avail.robux5Hari.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.robux5Hari.closedMessage ||
+            "Layanan Robux 5 Hari sedang tutup sementara.",
+        };
+      }
+      return { available: true };
+    }
+
+    // 3. Gamepass
+    if (typeLower === "gamepass") {
+      if (avail.gamepass && avail.gamepass.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.gamepass.closedMessage ||
+            "Layanan Gamepass sedang tutup sementara.",
+        };
+      }
+      return { available: true };
+    }
+
+    // 4. Coin Topup
+    if (
+      typeLower === "coin_topup" ||
+      typeLower === "topup" ||
+      typeLower === "coin"
+    ) {
+      if (avail.coinTopup && avail.coinTopup.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.coinTopup.closedMessage ||
+            "Layanan Top Up Koin sedang tutup sementara.",
+        };
+      }
+      return { available: true };
+    }
+
+    // 5. Joki
+    if (typeLower === "joki") {
+      if (avail.joki && avail.joki.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.joki.closedMessage ||
+            "Layanan Joki sedang tutup sementara.",
+        };
+      }
+      return { available: true };
+    }
+
+    // 6. Reseller
+    if (typeLower === "reseller") {
+      if (avail.reseller && avail.reseller.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.reseller.closedMessage ||
+            "Layanan Reseller sedang tutup sementara.",
+        };
+      }
+      return { available: true };
+    }
+
+    return { available: true };
+  } catch (error) {
+    console.error("Error in checkServiceAvailability:", error);
+    return { available: true };
+  }
+}
+
+// ============================================================
 // 0c. Validasi & enforce quantity dari server side
 // ============================================================
 const MAX_QUANTITY = 100; // Batas maksimum quantity per transaksi
@@ -941,6 +1064,31 @@ export async function validateSingleTransaction(body: any): Promise<{
     serviceName,
   } = body;
 
+  // 0a. Validasi ketersediaan layanan (Buka/Tutup oleh admin)
+  const availCheck = await checkServiceAvailability(
+    serviceType,
+    serviceCategory || (rbx5Details ? "robux_5_hari" : undefined),
+  );
+  if (!availCheck.available) {
+    return {
+      valid: false,
+      error: availCheck.error || "Layanan sedang ditutup sementara oleh admin",
+      verified: {
+        quantity: 0,
+        unitPrice: 0,
+        totalAmount: 0,
+        discountPercentage: 0,
+        discountAmount: 0,
+        finalAmountBeforeFee: 0,
+        paymentFee: 0,
+        finalAmountWithFee: 0,
+        paymentMethodName: null,
+        validPaymentMethodId: null,
+        paymentMethodDoc: null,
+      },
+    };
+  }
+
   // 0. Validasi & enforce quantity dari server
   const quantityCheck = getVerifiedQuantity(
     serviceType,
@@ -1147,6 +1295,21 @@ export async function validateMultiTransactionItem(
     serviceName: string;
   };
 }> {
+  // 0a. Validasi ketersediaan layanan (Buka/Tutup oleh admin)
+  const availCheck = await checkServiceAvailability(
+    item.serviceType,
+    item.serviceCategory || (item.rbx5Details ? "robux_5_hari" : undefined),
+  );
+  if (!availCheck.available) {
+    return {
+      valid: false,
+      error: `Item ${index + 1} (${item.serviceName}): ${availCheck.error || "Layanan sedang ditutup sementara."}`,
+      verifiedQuantity: 0,
+      verifiedUnitPrice: 0,
+      verifiedTotalAmount: 0,
+    };
+  }
+
   // 0. Validasi & enforce quantity dari server
   const quantityCheck = getVerifiedQuantity(
     item.serviceType,

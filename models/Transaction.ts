@@ -17,7 +17,7 @@ const transactionSchema = new mongoose.Schema(
     // Detail Layanan
     serviceType: {
       type: String,
-      enum: ["robux", "gamepass", "joki", "reseller", "coin_topup"],
+      enum: ["robux", "gamepass", "joki", "reseller", "coin_topup", "robux_instant"],
       required: true,
     },
     serviceCategory: {
@@ -116,6 +116,17 @@ const transactionSchema = new mongoose.Schema(
       robuxAmount: Number,
       productName: String,
       description: String,
+      recipientId: Number,
+      rxtToken: String,
+      stockAccountId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "StockAccount",
+      },
+      stockAccountUsername: String,
+      transferredAt: Date,
+      transferStatus: String,
+      transferError: String,
+      failureReasonCode: Number,
     },
 
     // Data Tambahan untuk Robux 5 Hari

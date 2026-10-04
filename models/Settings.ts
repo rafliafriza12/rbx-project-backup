@@ -295,6 +295,36 @@ const settingsSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // ============================================================
+    // Service Availability — Buka/Tutup layanan secara individual
+    // ============================================================
+    serviceAvailability: {
+      robux5Hari: {
+        enabled: { type: Boolean, default: true },
+        closedMessage: { type: String, default: "Layanan Robux 5 Hari sedang tutup sementara. Cek lagi nanti!" },
+      },
+      robuxInstan: {
+        enabled: { type: Boolean, default: true },
+        closedMessage: { type: String, default: "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!" },
+      },
+      gamepass: {
+        enabled: { type: Boolean, default: true },
+        closedMessage: { type: String, default: "Layanan Gamepass sedang tutup sementara. Cek lagi nanti!" },
+      },
+      coinTopup: {
+        enabled: { type: Boolean, default: true },
+        closedMessage: { type: String, default: "Layanan Top Up Koin sedang tutup sementara. Cek lagi nanti!" },
+      },
+      joki: {
+        enabled: { type: Boolean, default: true },
+        closedMessage: { type: String, default: "Layanan Joki sedang tutup sementara. Cek lagi nanti!" },
+      },
+      reseller: {
+        enabled: { type: Boolean, default: true },
+        closedMessage: { type: String, default: "Layanan Reseller sedang tutup sementara. Cek lagi nanti!" },
+      },
+    },
   },
   {
     timestamps: true,

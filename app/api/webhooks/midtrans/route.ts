@@ -5,6 +5,7 @@ import User from "@/models/User";
 import ResellerPackage from "@/models/ResellerPackage";
 import { midtransService } from "@/lib/midtrans";
 import EmailService from "@/lib/email";
+import { autoTransferInstantRobux } from "@/lib/robux-transfer";
 
 // Helper to activate Reseller Package
 async function activateResellerPackage(transaction: any) {
@@ -168,6 +169,13 @@ export async function POST(request: NextRequest) {
       } else if (statusMapping.paymentStatus === "settlement" && transaction.serviceType === "coin_topup") {
         finalOrderStatus = "completed";
         orderNote = "Pesanan selesai dan credits berhasil ditambahkan ke akun";
+      } else if (
+        statusMapping.paymentStatus === "settlement" &&
+        (transaction.serviceType === "robux_instant" || transaction.serviceCategory === "robux_instant")
+      ) {
+        // Robux Instant: set ke processing dulu, auto-transfer akan ubah ke completed
+        finalOrderStatus = "processing";
+        orderNote = "Pembayaran diterima, mengirim Robux Instant...";
       }
 
       transaction.paymentStatus = statusMapping.paymentStatus;
@@ -236,7 +244,7 @@ export async function POST(request: NextRequest) {
       statusMapping.paymentStatus === "settlement" &&
       transactions.length > 0
     ) {
-      // Process fulfillment (Reseller, Coins, etc.)
+      // Process fulfillment (Reseller, Coins, Robux Instant, etc.)
       for (const transaction of transactions) {
           // Activate reseller if this is a reseller package purchase
           if (transaction.serviceType === "reseller") {
@@ -246,6 +254,29 @@ export async function POST(request: NextRequest) {
           // Activate Coin Top Up if this is a coin purchase
           if (transaction.serviceType === "coin_topup") {
             await activateCoinTopup(transaction);
+          }
+
+          // Auto-transfer Robux Instant
+          // Cek serviceType === "robux_instant" ATAU serviceCategory === "robux_instant"
+          const isRobuxInstant =
+            transaction.serviceType === "robux_instant" ||
+            transaction.serviceCategory === "robux_instant";
+
+          if (isRobuxInstant) {
+            console.log(`[Midtrans Webhook] 🚀 Memulai auto-transfer Robux Instant untuk Invoice: ${transaction.invoiceId} (serviceType: ${transaction.serviceType}, serviceCategory: ${transaction.serviceCategory})`);
+            try {
+              const transferResult = await autoTransferInstantRobux(
+                transaction,
+                { executedBy: "webhook" },
+              );
+              if (transferResult.success) {
+                console.log(`[Midtrans Webhook] ✅ Robux Instant berhasil dikirim ke @${transaction.robloxUsername} - Invoice: ${transaction.invoiceId}`);
+              } else {
+                console.warn(`[Midtrans Webhook] ⚠️ Robux Instant gagal untuk Invoice: ${transaction.invoiceId}: ${transferResult.message}`);
+              }
+            } catch (transferErr) {
+              console.error(`[Midtrans Webhook] ❌ Error auto-transfer Robux Instant untuk Invoice: ${transaction.invoiceId}:`, transferErr);
+            }
           }
         }
 
