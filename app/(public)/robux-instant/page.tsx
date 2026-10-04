@@ -311,6 +311,10 @@ export default function RobuxInstan() {
         toast.error("Username Roblox harus valid dan ditemukan!");
         return;
       }
+      if (!password) {
+        toast.error("Password Roblox wajib diisi!");
+        return;
+      }
       if (!email || !phone) {
         toast.error("Email dan nomor WhatsApp wajib diisi!");
         return;
@@ -387,7 +391,7 @@ export default function RobuxInstan() {
         quantity: 1,
         unitPrice: getFinalPrice(selectedProduct),
         robloxUsername: username,
-        robloxPassword: "",
+        robloxPassword: password,
         robuxInstantDetails: {
           robuxAmount: selectedProduct.robuxAmount,
           productName: selectedProduct.name,
@@ -428,7 +432,7 @@ export default function RobuxInstan() {
         serviceCategory: "robux_instant",
         quantity: 1,
         robloxUsername: username,
-        robloxPassword: "",
+        robloxPassword: password,
         robuxInstantDetails: {
           robuxAmount: selectedProduct!.robuxAmount,
           productName: selectedProduct!.name,
@@ -542,10 +546,10 @@ export default function RobuxInstan() {
               </div>
               <div className="flex-1 text-center ">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-[0.9] tracking-tight">
-                  Robux <span className="text-primary-100">Instant</span>
+                  Robux <span className="text-primary-100">Reguler</span>
                 </h1>
                 <p className="text-lg sm:text-base text-white/80 max-w-3xl mb-8 font-light">
-                  Dapatkan <span className="text-primary-100 font-medium">Robux</span> langsung ke akun Anda dalam <span className="text-primary-200 font-medium">hitungan menit</span>!
+                  Top-up Robux via Login akun Roblox. Proses cepat dalam <span className="text-primary-200 font-medium">15-30 menit</span>!
                 </p>
 
                 <div className=" gap-2 sm:gap-3 justify-center grid grid-cols-2">
@@ -774,77 +778,37 @@ export default function RobuxInstan() {
                   )}
                 </div>
 
-                {/* Info Fitur Baru: Transfer Langsung via Username */}
-                <div className="p-4 bg-gradient-to-r from-primary-900/60 via-purple-900/40 to-primary-800/60 border border-primary-100/40 rounded-xl flex items-start gap-3 shadow-inner">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center flex-shrink-0 text-white font-bold text-xl shadow-lg shadow-primary-100/30">
-                    ⚡
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
-                      Robux Instant Transfer API
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
-                        Langsung Masuk
-                      </span>
-                    </h4>
-                    <p className="text-xs text-white/80 leading-relaxed">
-                      Cukup masukkan <strong className="text-primary-100">Username Roblox</strong> Anda. <strong className="text-emerald-400">Tanpa Password</strong> &amp; <strong className="text-emerald-400">Tanpa Perlu Buat Gamepass</strong>! Robux akan otomatis ditransfer ke akun Anda setelah pembayaran berhasil.
-                    </p>
+                                <div className="group/field">
+                  <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
+                    <Lock className="w-4 h-4 text-primary-100" /> Password <span className="text-red-400">*</span>
+                  </label>
+                  <div className="flex items-center border border-primary-100/30 rounded-lg overflow-hidden bg-gradient-to-r from-primary-900/50 to-primary-800/50 backdrop-blur-sm w-full focus-within:border-primary-100/80 transition-all">
+                    <input
+                      type="password"
+                      placeholder="Masukkan Password RBX"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="py-3 px-4 outline-none text-sm text-white placeholder-white/50 flex-1 bg-transparent w-full"
+                    />
                   </div>
                 </div>
 
-
-                {/* Warning syarat penerima */}
-                <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/80 via-orange-950/60 to-amber-900/40 shadow-lg shadow-amber-900/20">
-                  {/* Glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none" />
-                  {/* Top accent bar */}
-                  <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
-
-                  <div className="p-5">
-                    {/* Header */}
-                    <div className="flex items-center gap-2.5 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/30 to-orange-500/20 border border-amber-400/40 flex items-center justify-center text-lg flex-shrink-0 shadow-inner">
-                        ⚠️
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-amber-300 tracking-wide">Syarat Akun Penerima</h4>
-                        <p className="text-[11px] text-amber-500/70 mt-0.5">Harap baca sebelum melakukan pembelian</p>
-                      </div>
-                    </div>
-
-                    {/* Items */}
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-[10px] font-bold text-amber-400">1</span>
-                        </div>
-                        <p className="text-[13px] text-amber-100/80 leading-relaxed">
-                          Untuk akun <span className="font-semibold text-amber-300">Roblox Kids</span> &amp; <span className="font-semibold text-amber-300">Roblox Select</span>, pastikan akun sudah punya <span className="font-semibold text-amber-300">email pemulihan orang tua</span> untuk meng-klaim Robux-nya.
-                        </p>
-                      </div>
-
-                      <div className="h-px bg-amber-500/10" />
-
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-[10px] font-bold text-amber-400">2</span>
-                        </div>
-                        <p className="text-[13px] text-amber-100/80 leading-relaxed">
-                          Pastikan akun kamu sudah <span className="font-semibold text-amber-300">verifikasi umur 18+</span> di Roblox.
-                        </p>
-                      </div>
-
-                      <div className="h-px bg-amber-500/10" />
-
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-[10px] font-bold text-amber-400">3</span>
-                        </div>
-                        <p className="text-[13px] text-amber-100/80 leading-relaxed">
-                          Untuk pembelian di atas <span className="font-semibold text-amber-300">500 Robux per hari</span>, akun kamu juga harus sudah aktifkan <span className="font-semibold text-amber-300">verifikasi 2 langkah (2FA)</span>.
-                        </p>
-                      </div>
-                    </div>
+                <div className="group/field">
+                  <label className="flex items-center gap-2 text-sm font-bold mb-2 text-white">
+                    <Shield className="w-4 h-4 text-primary-100" /> Backup Code <span className="text-xs text-white/60 font-normal">(Opsional)</span>
+                  </label>
+                  <textarea
+                    placeholder="Masukkan backup code RBX jika akun memiliki 2-step verification"
+                    value={additionalInfo}
+                    onChange={(e) => setAdditionalInfo(e.target.value)}
+                    rows={2}
+                    className="w-full py-3 px-4 outline-none text-sm text-white placeholder-white/50 border border-primary-100/30 rounded-lg bg-gradient-to-br from-primary-900/50 to-primary-800/50 focus:border-primary-100/80 resize-none transition-all"
+                  />
+                  <div className="flex items-center gap-2 mt-2">
+                    <Info className="w-3 h-3 text-blue-400" />
+                    <p className="text-xs text-white/70">
+                      Cara lihat backup code: <button type="button" onClick={() => setShowVideoModal(true)} className="underline text-primary-100 hover:text-primary-200 transition-colors">Klik di sini</button>
+                    </p>
                   </div>
                 </div>
 
@@ -864,7 +828,7 @@ export default function RobuxInstan() {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={nextStep}
-                  disabled={!username || !userInfo || isSearchingUser || (!user && (!email || !phone))}
+                  disabled={!username || !password || !userInfo || isSearchingUser || (!user && (!email || !phone))}
                   className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold rounded-xl transition-all disabled:opacity-50 hover:shadow-lg"
                 >
                   Pilih Pembayaran

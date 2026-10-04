@@ -146,7 +146,7 @@ export interface Review {
   _id: string;
   username: string;
   serviceType: "robux" | "gamepass" | "joki";
-  serviceCategory?: "robux_instant" | "robux_5_hari";
+  serviceCategory?: "robux_instant" | "robux_5_hari" | "robux_username";
   serviceId?: string;
   serviceName?: string;
   rating: number;

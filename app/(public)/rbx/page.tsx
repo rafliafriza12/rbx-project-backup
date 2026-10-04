@@ -10,7 +10,9 @@ import {
   Check,
   ChevronDown,
   Star,
+  SendHorizonal,
 } from "lucide-react";
+
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,7 +36,7 @@ const faqData = [
   {
     question: "Berapa lama waktu pengiriman Robux?",
     answer:
-      "Pengiriman Robux dibagi menjadi dua metode:\n\n1. Robux via Gamepass (5 Hari)\nRobux akan masuk ke akun kamu dalam waktu sekitar 5 hari. Estimasi ini mengikuti sistem dan kebijakan dari Roblox.\n\n2. Robux via Login (Reguler)\nRobux akan diproses lebih cepat, yaitu sekitar 15-30 menit setelah pembayaran dikonfirmasi.",
+      "Pengiriman Robux dibagi menjadi tiga metode:\n\n1. Robux via Gamepass (5 Hari)\nRobux akan masuk ke akun kamu dalam waktu sekitar 5 hari. Estimasi ini mengikuti sistem dan kebijakan dari Roblox.\n\n2. Robux via Login (Reguler)\nRobux akan diproses lebih cepat, yaitu sekitar 15-30 menit setelah pembayaran dikonfirmasi.\n\n3. Robux via Username (Instan)\nRobux langsung dikirim otomatis ke akun kamu via Transfer API Roblox. Masuk dalam hitungan detik/menit setelah bayar!",
   },
   {
     question: "Apa yang harus dilakukan jika Robux belum masuk?",
@@ -202,7 +204,7 @@ export default function RBXLandingPage() {
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {/* RBX 5 Hari Card */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -330,6 +332,78 @@ export default function RBXLandingPage() {
                 </div>
               </Link>
             </motion.div>
+
+            {/* RBX via Username Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Link href="/rbx-username" className="block group h-full">
+                <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-emerald-400/30 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-400/10 h-full flex flex-col">
+                  {/* Top accent bar */}
+                  <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
+
+                  {/* NEW badge */}
+                  <div className="absolute top-4 right-4 z-10">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500/30 to-teal-500/20 border border-emerald-400/40 rounded-full text-[10px] text-emerald-300 font-bold">
+                      ✨ BARU
+                    </span>
+                  </div>
+
+                  <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1">
+                    {/* Badge */}
+                    <div className="flex items-center justify-between mb-4 sm:mb-5">
+                      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-emerald-400/15 to-teal-400/10 border border-emerald-400/30 rounded-full text-[10px] sm:text-xs text-emerald-300 font-bold">
+                        <SendHorizonal className="w-3 h-3" />
+                        TANPA PASSWORD
+                      </span>
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                        <SendHorizonal className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">
+                      Topup RBX via Username
+                    </h2>
+                    <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via Transfer API langsung ke akun</p>
+
+                    {/* Divider */}
+                    <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
+
+                    {/* Features */}
+                    <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-3 sm:mb-4">Yang didapatkan:</p>
+                    <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
+                      {[
+                        "Cukup masukkan Username Roblox kamu!",
+                        "Tanpa password, tanpa login akun",
+                        "Robux langsung masuk otomatis via API",
+                        "Proses instan setelah pembayaran berhasil",
+                        "Cocok buat akun yang nggak mau kasih password",
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-400/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
+                          </div>
+                          <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CTA Button */}
+                    <div className="relative overflow-hidden rounded-xl mt-auto">
+                      <div className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm sm:text-base group-hover:from-emerald-400 group-hover:to-teal-400 transition-all duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                        <span className="relative z-10">Beli Sekarang</span>
+                        <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+
           </div>
         </div>
       </section>

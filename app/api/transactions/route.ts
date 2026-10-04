@@ -549,9 +549,12 @@
       item.robloxUsername = usernameVerification.verifiedUsername!;
       const itemRobloxUserId = usernameVerification.userId;
 
-      // Check if password is required (only for joki)
+      // Check if password is required
       let passwordRequired = false;
-      if (item.serviceType === "joki") {
+      if (
+        item.serviceType === "joki" ||
+        (item.serviceType === "robux" && item.serviceCategory === "robux_instant")
+      ) {
         passwordRequired = !item.robloxPassword;
       }
 
@@ -1471,9 +1474,12 @@
     if (serviceType === "reseller" || serviceType === "coin_topup") {
       usernameRequired = false;
       passwordRequired = false;
-    } else if (serviceType === "robux") {
-      // Robux Instant menggunakan Direct Transfer API (hanya username, tanpa password)
+    } else if (serviceCategory === "robux_username" || serviceType === "robux_instant") {
+      // Robux Instant Transfer API via Username (hanya username, tanpa password)
       passwordRequired = false;
+    } else if (serviceType === "robux" && serviceCategory === "robux_instant") {
+      // Robux Reguler via Login (membutuhkan password)
+      passwordRequired = !robloxPassword;
     } else if (serviceType === "joki") {
       // Untuk joki, password selalu diperlukan
       passwordRequired = !robloxPassword;
@@ -1524,6 +1530,22 @@
         { error: "Customer information required for guest checkout" },
         { status: 400 },
       );
+    }
+
+    // Validasi minimal Robux untuk Topup via Username
+    if (serviceCategory === "robux_username") {
+      const RobuxUsernamePricing = (
+        await import("@/models/RobuxUsernamePricing")
+      ).default;
+      const pricing = await RobuxUsernamePricing.findOne().sort({ updatedAt: -1 });
+      const minRobux = pricing?.minRobux || 50;
+      const robuxAmt = Number(robuxInstantDetails?.robuxAmount || 0);
+      if (robuxAmt < minRobux) {
+        return NextResponse.json(
+          { error: `Minimal pembelian untuk Topup via Username adalah ${minRobux} Robux` },
+          { status: 400 },
+        );
+      }
     }
 
     // ============================================================

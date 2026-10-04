@@ -236,14 +236,15 @@ export async function checkServiceAvailability(
     const typeLower = (serviceType || "").toLowerCase().trim();
     const catLower = (serviceCategory || "").toLowerCase().trim();
 
-    // 1. Robux Instan
     const isInstant =
       typeLower === "robux_instant" ||
       typeLower === "robux_instan" ||
       typeLower === "rbx-instant" ||
+      typeLower === "robux_username" ||
       (typeLower === "robux" &&
         (catLower === "robux_instan" ||
           catLower === "robux_instant" ||
+          catLower === "robux_username" ||
           catLower === "instant"));
 
     if (isInstant) {
@@ -357,7 +358,10 @@ export function getVerifiedQuantity(
     serviceType === "joki" ||
     serviceType === "reseller" ||
     (serviceType === "robux" && serviceCategory === "robux_5_hari") ||
-    (serviceType === "robux" && serviceCategory === "robux_instant");
+    (serviceType === "robux" && serviceCategory === "robux_instant") ||
+    (serviceType === "robux" && serviceCategory === "robux_username") ||
+    serviceType === "robux_instant" ||
+    serviceCategory === "robux_username";
 
   if (forceQuantityOne) {
     if (clientQuantity && parseInt(clientQuantity, 10) !== 1) {
@@ -425,6 +429,7 @@ export async function getVerifiedUnitPrice(
   quantity?: number,
   gamepassDetails?: any,
   serviceName?: string,
+  robuxInstantDetails?: any,
 ): Promise<{
   valid: boolean;
   unitPrice: number;
@@ -438,6 +443,7 @@ export async function getVerifiedUnitPrice(
     discount: number;
     features: string[];
   };
+  verifiedCoinDetails?: any;
   verifiedServiceName?: string;
   verifiedRobuxInstantDetails?: {
     robuxAmount: number;
@@ -659,9 +665,70 @@ export async function getVerifiedUnitPrice(
       } as any;
     }
 
-    // ---- ROBUX INSTANT ----
+    // ---- ROBUX USERNAME (API TRANSFER - DYNAMIC RATE) ----
     if (
-      serviceType === "robux" &&
+      serviceCategory === "robux_username" ||
+      (typeof serviceId === "string" && serviceId.startsWith("username_"))
+    ) {
+      const RobuxUsernamePricing = (
+        await import("@/models/RobuxUsernamePricing")
+      ).default;
+      let pricing = await RobuxUsernamePricing.findOne().sort({ updatedAt: -1 });
+      const pricePerHundred = pricing?.pricePerHundred || 13000;
+      const minRobux = pricing?.minRobux ?? 50;
+      const maxRobux = pricing?.maxRobux ?? 10000;
+
+      let robuxAmount = parseInt(
+        robuxInstantDetails?.robuxAmount ||
+          (typeof serviceId === "string" && serviceId.startsWith("username_")
+            ? serviceId.replace("username_", "")
+            : 0) ||
+          quantity ||
+          0,
+        10,
+      );
+
+      if (isNaN(robuxAmount) || robuxAmount < minRobux) {
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: `Minimal pembelian untuk Topup via Username adalah ${minRobux} Robux`,
+        };
+      }
+
+      if (maxRobux && robuxAmount > maxRobux) {
+        return {
+          valid: false,
+          unitPrice: 0,
+          error: `Maksimal pembelian untuk Topup via Username adalah ${maxRobux.toLocaleString("id-ID")} Robux`,
+        };
+      }
+
+      const calculatedPrice = Math.ceil(
+        (robuxAmount / 100) * pricePerHundred,
+      );
+
+      console.log(
+        `✅ Robux Username price verified: robuxAmount=${robuxAmount}, pricePerHundred=${pricePerHundred}, unitPrice=${calculatedPrice}`,
+      );
+
+      return {
+        valid: true,
+        unitPrice: calculatedPrice,
+        robuxAmount: robuxAmount,
+        pricePerHundred: pricePerHundred,
+        verifiedRobuxInstantDetails: {
+          robuxAmount: robuxAmount,
+          productName: `${robuxAmount} Robux via Username`,
+          description: `Transfer ${robuxAmount} Robux langsung ke akun username`,
+        },
+        verifiedServiceName: `Topup RBX via Username - ${robuxAmount} Robux`,
+      };
+    }
+
+    // ---- ROBUX INSTANT (PACKAGE) ----
+    if (
+      (serviceType === "robux" || serviceType === "robux_instant") &&
       (serviceCategory === "robux_instant" || !serviceCategory)
     ) {
       const Product = (await import("@/models/Product")).default;
@@ -742,6 +809,7 @@ export async function getVerifiedUnitPrice(
       const Settings = (await import("@/models/Settings")).default;
       const settings = await Settings.getSiteSettings();
       const coinTopupPrice = settings?.coinTopupPrice || 1000;
+      const coinQty = quantity || 1;
 
       // Calculate bonus based on number of coins (quantity) using coinBonusTiers
       let bonusAmount = 0;
@@ -749,7 +817,7 @@ export async function getVerifiedUnitPrice(
         // Find the tier with the highest minAmount that the quantity qualifies for
         let applicableTier = null;
         for (const tier of settings.coinBonusTiers) {
-          if (quantity >= tier.minAmount) {
+          if (coinQty >= tier.minAmount) {
             if (!applicableTier || tier.minAmount > applicableTier.minAmount) {
               applicableTier = tier;
             }
@@ -760,22 +828,22 @@ export async function getVerifiedUnitPrice(
           if (applicableTier.bonusType === "fixed") {
             bonusAmount = applicableTier.fixedBonus || 0;
           } else {
-            bonusAmount = Math.floor(quantity * ((applicableTier.percentage || 0) / 100));
+            bonusAmount = Math.floor(coinQty * ((applicableTier.percentage || 0) / 100));
           }
         }
       }
       
       const verifiedCoinDetails = {
-        amount: quantity,
+        amount: coinQty,
         bonusAmount: bonusAmount,
-        totalCoins: quantity + bonusAmount,
+        totalCoins: coinQty + bonusAmount,
       };
 
       const Product = (await import("@/models/Product")).default;
 
       if (serviceId === "custom_coin") {
         // Cek apakah ada paket credits yang jumlahnya sama persis dengan input custom
-        const matchingProduct = await Product.findOne({ category: "coin", robuxAmount: quantity, isActive: true });
+        const matchingProduct = await Product.findOne({ category: "coin", robuxAmount: coinQty, isActive: true });
         
         let customFinalBonus = bonusAmount;
         if (matchingProduct && !matchingProduct.useBonusTiers) {
@@ -787,9 +855,9 @@ export async function getVerifiedUnitPrice(
           valid: true,
           unitPrice: coinTopupPrice,
           verifiedCoinDetails: {
-            amount: quantity,
+            amount: coinQty,
             bonusAmount: customFinalBonus,
-            totalCoins: quantity + customFinalBonus,
+            totalCoins: coinQty + customFinalBonus,
           }
         };
       } else {
@@ -808,9 +876,9 @@ export async function getVerifiedUnitPrice(
             valid: true,
             unitPrice: coinTopupPrice, // Price per single coin
             verifiedCoinDetails: {
-              amount: quantity,
+              amount: coinQty,
               bonusAmount: finalBonusAmount,
-              totalCoins: quantity + finalBonusAmount,
+              totalCoins: coinQty + finalBonusAmount,
             }
           };
         }
@@ -1062,6 +1130,7 @@ export async function validateSingleTransaction(body: any): Promise<{
     paymentMethodId,
     gamepassDetails,
     serviceName,
+    robuxInstantDetails,
   } = body;
 
   // 0a. Validasi ketersediaan layanan (Buka/Tutup oleh admin)
@@ -1125,6 +1194,7 @@ export async function validateSingleTransaction(body: any): Promise<{
     quantity,
     gamepassDetails,
     serviceName,
+    robuxInstantDetails,
   );
 
   if (!priceCheck.valid) {
@@ -1150,11 +1220,12 @@ export async function validateSingleTransaction(body: any): Promise<{
   const verifiedUnitPrice = priceCheck.unitPrice;
 
   // 2. Hitung total amount
-  // Untuk rbx5, quantity selalu 1, unitPrice = total harga
+  // Untuk rbx5 dan robux_username, quantity selalu 1, unitPrice = total harga
   const verifiedTotalAmount =
-    serviceType === "robux" &&
-    (serviceCategory === "robux_5_hari" || rbx5Details)
-      ? verifiedUnitPrice // unitPrice sudah total untuk rbx5
+    (serviceType === "robux" &&
+      (serviceCategory === "robux_5_hari" || rbx5Details)) ||
+    serviceCategory === "robux_username"
+      ? verifiedUnitPrice // unitPrice sudah total untuk rbx5 dan robux_username
       : verifiedUnitPrice * (quantity || 1);
 
   // 3. Validasi diskon dari DB
@@ -1335,6 +1406,7 @@ export async function validateMultiTransactionItem(
     verifiedQuantity,
     item.gamepassDetails,
     item.serviceName,
+    item.robuxInstantDetails,
   );
 
   if (!priceCheck.valid) {
@@ -1349,10 +1421,11 @@ export async function validateMultiTransactionItem(
 
   const verifiedUnitPrice = priceCheck.unitPrice;
 
-  // Untuk rbx5, quantity selalu 1, unitPrice = total harga
+  // Untuk rbx5 dan robux_username, quantity selalu 1, unitPrice = total harga
   const verifiedTotalAmount =
-    item.serviceType === "robux" &&
-    (item.serviceCategory === "robux_5_hari" || item.rbx5Details)
+    (item.serviceType === "robux" &&
+      (item.serviceCategory === "robux_5_hari" || item.rbx5Details)) ||
+    item.serviceCategory === "robux_username"
       ? verifiedUnitPrice
       : verifiedUnitPrice * verifiedQuantity;
 

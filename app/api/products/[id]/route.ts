@@ -78,6 +78,13 @@ export async function PUT(
     const { name, description, robuxAmount, price, isActive, category, productType, customBonusAmount, useBonusTiers } = body;
     console.log("Extracted productType:", productType);
 
+    if (category === "robux_username" && Number(robuxAmount) < 50) {
+      return NextResponse.json(
+        { error: "Minimal jumlah Robux untuk Topup via Username adalah 50 Robux" },
+        { status: 400 },
+      );
+    }
+
     // Find and update product
     const updatedProduct = await Product.findByIdAndUpdate(
       id,

@@ -144,6 +144,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (category === "robux_username" && Number(robuxAmount) < 50) {
+      return NextResponse.json(
+        { error: "Minimal jumlah Robux untuk Topup via Username adalah 50 Robux" },
+        { status: 400 },
+      );
+    }
+
     let finalPrice = price;
 
     // Auto-calculate price for robux_5_hari category

@@ -134,3 +134,59 @@ export async function saveRobuxSetting(payload: {
     };
   }
 }
+
+/**
+ * Server Action: Fetch Robux via Username pricing (GET /api/robux-username-pricing)
+ */
+export async function fetchRobuxUsernamePricingAdmin() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(`${BASE_URL}/api/robux-username-pricing`, {
+      headers: {
+        ...getInternalHeaders(),
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      },
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error fetching robux username pricing:", error);
+    return {
+      ok: false,
+      data: { success: false, message: "Gagal mengambil data harga Robux via Username" },
+    };
+  }
+}
+
+/**
+ * Server Action: Save Robux via Username pricing (PUT /api/robux-username-pricing)
+ */
+export async function saveRobuxUsernamePricing(payload: {
+  pricePerHundred: number;
+  minRobux: number;
+  maxRobux: number;
+  description?: string;
+}) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(`${BASE_URL}/api/robux-username-pricing`, {
+      method: "PUT",
+      headers: {
+        ...getInternalHeaders(),
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error saving robux username pricing:", error);
+    return {
+      ok: false,
+      data: { success: false, message: "Gagal menyimpan harga Robux via Username" },
+    };
+  }
+}

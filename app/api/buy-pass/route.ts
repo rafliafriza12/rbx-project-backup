@@ -3,7 +3,23 @@ import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
 import { generateRoblox2FACode } from "@/utils/totp";
 import { calculateGamepassAmount } from "@/utils/checkRobuxPlus";
-const noblox = require("noblox.js");
+
+// Validate Roblox cookie and get current user info directly (no noblox.js dependency)
+async function validateRobloxCookie(cookie: string): Promise<{ UserID: number; UserName: string; RobuxBalance: number } | null> {
+  try {
+    const res = await fetch("https://users.roblox.com/v1/users/authenticated", {
+      headers: {
+        Cookie: `.ROBLOSECURITY=${cookie}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { UserID: data.id, UserName: data.name, RobuxBalance: 0 };
+  } catch {
+    return null;
+  }
+}
 
 // Vercel serverless function config
 // export const maxDuration = 60;
@@ -104,15 +120,15 @@ export async function POST(req: NextRequest) {
       cookie: robloxCookie ? "[PRESENT]" : "[MISSING]",
     });
 
-    // ============ STEP 1: Login dengan cookie ============
+    // ============ STEP 1: Validasi cookie via Roblox API langsung ============
     let currentUser: any;
     try {
-      currentUser = await withRetry(
-        () => noblox.setCookie(robloxCookie),
-        "setCookie",
-      );
+      currentUser = await validateRobloxCookie(robloxCookie);
+      if (!currentUser) {
+        throw new Error("Cookie tidak valid atau sudah expired");
+      }
     } catch (loginError: any) {
-      console.error("❌ Failed to login with cookie:", loginError.message);
+      console.error("❌ Failed to validate cookie:", loginError.message);
       return NextResponse.json(
         {
           success: false,

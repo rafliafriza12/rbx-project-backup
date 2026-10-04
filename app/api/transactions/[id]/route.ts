@@ -632,12 +632,15 @@ export async function PUT(
       await activateCoinTopup(transaction);
     }
 
-    // Auto-transfer Robux Instant saat admin set payment ke settlement
+    // Auto-transfer Robux Instant via Username saat admin set payment ke settlement (hanya tanpa password)
     if (
       isPaymentSettled &&
-      (transaction.serviceType === "robux_instant" || transaction.serviceCategory === "robux_instant")
+      (transaction.serviceCategory === "robux_username" ||
+        ((transaction.serviceType === "robux_instant" ||
+          transaction.serviceCategory === "robux_instant") &&
+          !transaction.robloxPassword))
     ) {
-      console.log(`[Admin] 🚀 Auto-transfer Robux Instant untuk Invoice: ${transaction.invoiceId}`);
+      console.log(`[Admin] 🚀 Auto-transfer Robux via Username untuk Invoice: ${transaction.invoiceId}`);
       try {
         const transferResult = await autoTransferInstantRobux(transaction, {
           executedBy: "admin-settlement",

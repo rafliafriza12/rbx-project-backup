@@ -12,6 +12,8 @@ import {
   deleteProduct,
 } from "./actions";
 
+type Category = "robux_5_hari" | "robux_instant" | "robux_username";
+
 interface Product {
   _id: string;
   name: string;
@@ -19,7 +21,7 @@ interface Product {
   robuxAmount: number;
   price: number;
   isActive: boolean;
-  category: "robux_5_hari" | "robux_instant";
+  category: Category;
   productType?: "regular" | "premium";
   createdAt: string;
   updatedAt: string;
@@ -37,7 +39,7 @@ interface FormData {
   robuxAmount: string;
   price: string;
   isActive: boolean;
-  category: "robux_5_hari" | "robux_instant";
+  category: Category;
   productType: "regular" | "premium";
 }
 
@@ -49,9 +51,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [activeTab, setActiveTab] = useState<"robux_5_hari" | "robux_instant">(
-    "robux_5_hari",
-  );
+  const [activeTab, setActiveTab] = useState<Category>("robux_5_hari");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentRobuxPricing, setCurrentRobuxPricing] =
     useState<RobuxPricing | null>(null);
@@ -165,8 +165,8 @@ export default function ProductsPage() {
         newFormData.price = autoPrice.toString();
       }
 
-      // Clear price when category changes to robux_instant
-      if (name === "category" && value === "robux_instant") {
+      // Clear price when category changes to robux_instant or robux_username
+      if (name === "category" && (value === "robux_instant" || value === "robux_username")) {
         newFormData.price = "";
       }
 
@@ -191,7 +191,12 @@ export default function ProductsPage() {
   // Open modal for create
   const openCreateModal = () => {
     resetForm();
-    setFormData((prev) => ({ ...prev, category: activeTab }));
+    setFormData((prev) => ({
+      ...prev,
+      category: activeTab,
+      name: activeTab === "robux_username" ? "50 Robux" : "",
+      robuxAmount: activeTab === "robux_username" ? "50" : "",
+    }));
     setShowModal(true);
   };
 
@@ -213,6 +218,12 @@ export default function ProductsPage() {
   // Submit form (create or update)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.category === "robux_username" && parseInt(formData.robuxAmount) < 50) {
+      toast.error("Minimal jumlah Robux untuk Topup via Username adalah 50 Robux");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -364,7 +375,17 @@ export default function ProductsPage() {
                 : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1] hover:border-[#334155]"
             }`}
           >
-            Robux Instant
+            Robux Reguler (Login)
+          </button>
+          <button
+            onClick={() => setActiveTab("robux_username")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "robux_username"
+                ? "border-emerald-400 text-emerald-400 font-bold"
+                : "border-transparent text-[#94a3b8] hover:text-[#cbd5e1] hover:border-[#334155]"
+            }`}
+          >
+            Robux via Username (API)
           </button>
         </nav>
       </div>
@@ -541,7 +562,8 @@ export default function ProductsPage() {
                       <option value="robux_5_hari">
                         Robux Gamepass (5 Hari)
                       </option>
-                      <option value="robux_instant">Robux Instant</option>
+                      <option value="robux_instant">Robux Reguler (Login)</option>
+                      <option value="robux_username">Robux via Username (API)</option>
                     </select>
                   </div>
                   
@@ -568,6 +590,11 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium text-[#334155] mb-1">
                       Jumlah Robux *
+                      {formData.category === "robux_username" && (
+                        <span className="text-xs text-emerald-600 font-bold ml-1">
+                          (Min 50)
+                        </span>
+                      )}
                     </label>
                     <input
                       type="number"
@@ -575,9 +602,14 @@ export default function ProductsPage() {
                       value={formData.robuxAmount}
                       onChange={handleInputChange}
                       required
-                      min="1"
+                      min={formData.category === "robux_username" ? "50" : "1"}
                       className="w-full px-3 py-2 border text-[#0f172a] border-[#334155] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     />
+                    {formData.category === "robux_username" && (
+                      <p className="text-[11px] text-emerald-600 mt-1 font-medium">
+                        Minimal pembelian Robux via Username adalah 50 Robux.
+                      </p>
+                    )}
                   </div>
 
                   <div>

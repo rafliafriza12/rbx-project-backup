@@ -6,7 +6,7 @@ export interface IProduct extends Document {
   robuxAmount: number;
   price: number;
   isActive: boolean;
-  category: "robux_5_hari" | "robux_instant" | "coin";
+  category: "robux_5_hari" | "robux_instant" | "coin" | "robux_username";
   productType?: "regular" | "premium"; // newly added
   customBonusAmount?: number;
   useBonusTiers?: boolean;
@@ -44,7 +44,7 @@ const ProductSchema: Schema = new Schema(
     },
     category: {
       type: String,
-      enum: ["robux_5_hari", "robux_instant", "coin"],
+      enum: ["robux_5_hari", "robux_instant", "coin", "robux_username"],
       required: [true, "Kategori produk diperlukan"],
     },
     productType: {

@@ -134,7 +134,7 @@ export async function getGamepassBySlug(slug: string) {
  * Server Action: Fetch products by category (public)
  */
 export async function getProductsByCategory(
-  category: "robux_5_hari" | "robux_instant" | "coin",
+  category: "robux_5_hari" | "robux_instant" | "coin" | "robux_username",
 ) {
   try {
     const BASE_URL = getBaseUrl();
@@ -168,6 +168,31 @@ export async function getRobuxPricing() {
   } catch (error) {
     console.error("[Server Action] Error fetching robux pricing:", error);
     return { success: false, data: null };
+  }
+}
+
+/**
+ * Server Action: Fetch robux username pricing (public)
+ */
+export async function getRobuxUsernamePricing() {
+  try {
+    const BASE_URL = getBaseUrl();
+    const response = await fetch(`${BASE_URL}/api/robux-username-pricing`, {
+      headers: getInternalHeaders(),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("[Server Action] Error fetching robux username pricing:", error);
+    return {
+      success: false,
+      data: {
+        pricePerHundred: 13000,
+        minRobux: 50,
+        maxRobux: 10000,
+      },
+    };
   }
 }
 

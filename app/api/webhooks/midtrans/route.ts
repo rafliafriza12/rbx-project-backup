@@ -256,14 +256,15 @@ export async function POST(request: NextRequest) {
             await activateCoinTopup(transaction);
           }
 
-          // Auto-transfer Robux Instant
-          // Cek serviceType === "robux_instant" ATAU serviceCategory === "robux_instant"
-          const isRobuxInstant =
-            transaction.serviceType === "robux_instant" ||
-            transaction.serviceCategory === "robux_instant";
+          // Auto-transfer Robux Instant via Username (hanya untuk pesanan tanpa password / transfer API)
+          const isRobuxUsernameTransfer =
+            transaction.serviceCategory === "robux_username" ||
+            ((transaction.serviceType === "robux_instant" ||
+              transaction.serviceCategory === "robux_instant") &&
+              !transaction.robloxPassword);
 
-          if (isRobuxInstant) {
-            console.log(`[Midtrans Webhook] 🚀 Memulai auto-transfer Robux Instant untuk Invoice: ${transaction.invoiceId} (serviceType: ${transaction.serviceType}, serviceCategory: ${transaction.serviceCategory})`);
+          if (isRobuxUsernameTransfer) {
+            console.log(`[Midtrans Webhook] 🚀 Memulai auto-transfer Robux via Username untuk Invoice: ${transaction.invoiceId} (serviceType: ${transaction.serviceType}, serviceCategory: ${transaction.serviceCategory})`);
             try {
               const transferResult = await autoTransferInstantRobux(
                 transaction,

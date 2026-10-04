@@ -960,11 +960,15 @@ export async function GET(request: NextRequest) {
         if (transaction.serviceType === "coin_topup") {
           await activateCoinTopup(transaction);
         }
-        // Robux Instan — kirim robux langsung via Transfer API
-        if (
-          transaction.serviceType === "robux" &&
-          transaction.serviceCategory === "robux_instan"
-        ) {
+        // Robux Instant Transfer API via Username (hanya tanpa password)
+        const isRobuxUsernameTransfer =
+          transaction.serviceCategory === "robux_username" ||
+          ((transaction.serviceType === "robux_instant" ||
+            transaction.serviceCategory === "robux_instant" ||
+            transaction.serviceCategory === "robux_instan") &&
+            !transaction.robloxPassword);
+
+        if (isRobuxUsernameTransfer) {
           await processRobuxInstanTransfer(transaction);
         }
       }

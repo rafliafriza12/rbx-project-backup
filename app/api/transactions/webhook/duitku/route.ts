@@ -636,8 +636,15 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // ✅ Robux Instant: Auto-trigger Transfer API jika payment baru settle
-        if (transaction.serviceCategory === "robux_instant" || transaction.serviceCategory === "robux_instan") {
+        // ✅ Robux Instant Transfer API via Username (hanya tanpa password)
+        const isRobuxUsernameTransfer =
+          transaction.serviceCategory === "robux_username" ||
+          ((transaction.serviceCategory === "robux_instant" ||
+            transaction.serviceCategory === "robux_instan" ||
+            transaction.serviceType === "robux_instant") &&
+            !transaction.robloxPassword);
+
+        if (isRobuxUsernameTransfer) {
           const canTransfer =
             transaction.orderStatus === "pending" ||
             transaction.orderStatus === "waiting_payment" ||
@@ -661,7 +668,13 @@ export async function POST(request: NextRequest) {
         targetOrderStatus = "pending";
       } else if (statusMapping.paymentStatus === "settlement" && transaction.serviceType === "coin_topup") {
         targetOrderStatus = "completed";
-      } else if (statusMapping.paymentStatus === "settlement" && (transaction.serviceCategory === "robux_instant" || transaction.serviceCategory === "robux_instan")) {
+      } else if (
+        statusMapping.paymentStatus === "settlement" &&
+        (transaction.serviceCategory === "robux_username" ||
+          ((transaction.serviceCategory === "robux_instant" ||
+            transaction.serviceCategory === "robux_instan") &&
+            !transaction.robloxPassword))
+      ) {
         // Jaga agar tetap "pending" — auto-transfer akan mengubahnya ke completed/bermasalah
         targetOrderStatus = "pending";
       }

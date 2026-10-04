@@ -6,6 +6,8 @@ import {
   saveRobuxPricing,
   fetchRobuxSettingAdmin,
   saveRobuxSetting,
+  fetchRobuxUsernamePricingAdmin,
+  saveRobuxUsernamePricing,
 } from "./actions";
 import {
   Settings,
@@ -13,6 +15,8 @@ import {
   TrendingUp,
   AlertTriangle,
   Gamepad2,
+  User,
+  Hash,
 } from "lucide-react";
 
 interface RobuxPricing {
@@ -28,6 +32,15 @@ interface RobuxSetting {
   pricePerRobux: number;
   updatedBy: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+interface RobuxUsernamePricing {
+  _id: string;
+  pricePerHundred: number;
+  minRobux: number;
+  maxRobux: number;
+  description: string;
   updatedAt: string;
 }
 
@@ -47,6 +60,17 @@ export default function RobuxPricingPage() {
   const [gamepassLoading, setGamepassLoading] = useState(true);
   const [gamepassPrice, setGamepassPrice] = useState("");
   const [isGamepassSaving, setIsGamepassSaving] = useState(false);
+
+  // Robux via Username Pricing States
+  const [usernamePricing, setUsernamePricing] = useState<RobuxUsernamePricing | null>(null);
+  const [usernameLoading, setUsernameLoading] = useState(true);
+  const [usernameFormData, setUsernameFormData] = useState({
+    pricePerHundred: "",
+    minRobux: "50",
+    maxRobux: "10000",
+    description: "",
+  });
+  const [isUsernameSaving, setIsUsernameSaving] = useState(false);
 
   const fetchPricing = async () => {
     try {
@@ -85,9 +109,31 @@ export default function RobuxPricingPage() {
     }
   };
 
+  // Fetch Robux via Username Pricing
+  const fetchUsernamePricing = async () => {
+    try {
+      setUsernameLoading(true);
+      const { ok, data } = await fetchRobuxUsernamePricingAdmin();
+      if (data.success && data.data) {
+        setUsernamePricing(data.data);
+        setUsernameFormData({
+          pricePerHundred: data.data.pricePerHundred.toString(),
+          minRobux: data.data.minRobux.toString(),
+          maxRobux: data.data.maxRobux.toString(),
+          description: data.data.description || "",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch username pricing:", error);
+    } finally {
+      setUsernameLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPricing();
     fetchGamepassSetting();
+    fetchUsernamePricing();
   }, []);
 
   const handleSubmit = async () => {
@@ -159,6 +205,44 @@ export default function RobuxPricingPage() {
     }
   };
 
+  // Handle Robux via Username Pricing Save
+  const handleUsernameSave = async () => {
+    const price = Number(usernameFormData.pricePerHundred);
+    const minR = Number(usernameFormData.minRobux);
+    const maxR = Number(usernameFormData.maxRobux);
+    if (!price || price <= 0) {
+      toast.error("Harga per 100 Robux harus lebih dari 0");
+      return;
+    }
+    if (!minR || minR < 50) {
+      toast.error("Minimal Robux tidak boleh kurang dari 50");
+      return;
+    }
+    if (!maxR || maxR < minR) {
+      toast.error("Maksimal Robux tidak boleh lebih kecil dari minimal");
+      return;
+    }
+    setIsUsernameSaving(true);
+    try {
+      const { data } = await saveRobuxUsernamePricing({
+        pricePerHundred: price,
+        minRobux: minR,
+        maxRobux: maxR,
+        description: usernameFormData.description || "Harga Robux via Username (API Transfer)",
+      });
+      if (data.success) {
+        toast.success("Harga Robux via Username berhasil diperbarui!", { autoClose: 4000 });
+        fetchUsernamePricing();
+      } else {
+        toast.error(data.message || "Gagal memperbarui harga");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menyimpan");
+    } finally {
+      setIsUsernameSaving(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -167,7 +251,7 @@ export default function RobuxPricingPage() {
     }).format(amount);
   };
 
-  if (loading || gamepassLoading) {
+  if (loading || gamepassLoading || usernameLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#0f172a]">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
@@ -590,6 +674,140 @@ export default function RobuxPricingPage() {
         {/* END RIGHT COLUMN */}
       </div>
       {/* END GRID */}
+
+      {/* ROBUX VIA USERNAME PRICING SECTION */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-4">
+          <User className="w-6 h-6 text-emerald-400" />
+          <h2 className="text-xl font-bold text-[#f1f5f9]">Harga Robux via Username (Transfer API)</h2>
+        </div>
+        <p className="text-[#94a3b8] text-sm mb-6">
+          Atur harga per 100 Robux, minimal, dan maksimal pembelian untuk layanan <strong className="text-emerald-400">Topup RBX via Username</strong>.
+          Harga akan dihitung otomatis berdasarkan jumlah Robux yang dimasukkan pelanggan.
+        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Preview Card */}
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-[#f1f5f9] mb-4 flex items-center gap-2">
+              <Hash className="w-5 h-5 text-emerald-400" />
+              Konfigurasi Saat Ini
+            </h3>
+            {usernamePricing ? (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-[#334155]">
+                  <span className="text-[#94a3b8] text-sm">Harga per 100 Robux</span>
+                  <span className="text-emerald-400 font-bold text-lg">{formatCurrency(usernamePricing.pricePerHundred)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#334155]">
+                  <span className="text-[#94a3b8] text-sm">Harga per 1 Robux</span>
+                  <span className="text-[#f1f5f9] font-semibold">{formatCurrency(usernamePricing.pricePerHundred / 100)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#334155]">
+                  <span className="text-[#94a3b8] text-sm">Minimal Pembelian</span>
+                  <span className="text-yellow-400 font-semibold">{usernamePricing.minRobux} Robux</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#334155]">
+                  <span className="text-[#94a3b8] text-sm">Maksimal Pembelian</span>
+                  <span className="text-[#f1f5f9] font-semibold">{usernamePricing.maxRobux.toLocaleString("id-ID")} Robux</span>
+                </div>
+                <div className="mt-4 p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-lg">
+                  <p className="text-emerald-300 text-xs font-semibold mb-2">Contoh harga:</p>
+                  {[50, 100, 200, 500, 1000].map(r => (
+                    <div key={r} className="flex justify-between text-xs py-0.5">
+                      <span className="text-[#94a3b8]">{r} Robux</span>
+                      <span className="text-[#f1f5f9]">{formatCurrency(Math.ceil(r / 100 * usernamePricing.pricePerHundred))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[#94a3b8] text-sm">Belum ada konfigurasi. Silakan atur di form sebelah.</p>
+            )}
+          </div>
+
+          {/* Form Card */}
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-[#f1f5f9] mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-emerald-400" />
+              Atur Harga
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Harga per 100 Robux (IDR)</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="contoh: 13000"
+                  value={usernameFormData.pricePerHundred}
+                  onChange={(e) => setUsernameFormData(prev => ({ ...prev, pricePerHundred: e.target.value }))}
+                  className="w-full bg-[#0f172a] border border-[#334155] text-[#f1f5f9] rounded-lg px-4 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                />
+                {usernameFormData.pricePerHundred && Number(usernameFormData.pricePerHundred) > 0 && (
+                  <p className="text-emerald-400 text-xs mt-1">
+                    = {formatCurrency(Math.ceil(Number(usernameFormData.pricePerHundred) / 100))} per 1 Robux
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Minimal Robux</label>
+                  <input
+                    type="number"
+                    min="50"
+                    placeholder="50"
+                    value={usernameFormData.minRobux}
+                    onChange={(e) => setUsernameFormData(prev => ({ ...prev, minRobux: e.target.value }))}
+                    className="w-full bg-[#0f172a] border border-[#334155] text-[#f1f5f9] rounded-lg px-4 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <p className="text-[#64748b] text-xs mt-1">Min. 50 Robux</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Maksimal Robux</label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="10000"
+                    value={usernameFormData.maxRobux}
+                    onChange={(e) => setUsernameFormData(prev => ({ ...prev, maxRobux: e.target.value }))}
+                    className="w-full bg-[#0f172a] border border-[#334155] text-[#f1f5f9] rounded-lg px-4 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Keterangan (opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Harga Robux via Username (API Transfer)"
+                  value={usernameFormData.description}
+                  onChange={(e) => setUsernameFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-[#0f172a] border border-[#334155] text-[#f1f5f9] rounded-lg px-4 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+              <button
+                onClick={handleUsernameSave}
+                disabled={isUsernameSaving}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 text-white font-semibold rounded-lg px-4 py-3 transition-colors flex items-center justify-center gap-2"
+              >
+                {isUsernameSaving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4" />
+                    {usernamePricing ? "Update Harga Username" : "Simpan Harga Username"}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
