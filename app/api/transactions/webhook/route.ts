@@ -13,7 +13,7 @@ import {
   notifyPaymentStatusChange,
   notifyOrderStatusChange,
 } from "@/lib/discord";
-import { transferRobuxToUsername } from "@/lib/robux-transfer";
+import { autoTransferInstantRobux } from "@/lib/robux-transfer";
 
 // Helper to activate Coin Top Up
 async function activateCoinTopup(transaction: any) {
@@ -66,9 +66,9 @@ async function processRobuxInstanTransfer(transaction: any) {
     const claimed = await Transaction.findOneAndUpdate(
       {
         _id: transaction._id,
-        orderStatus: { $in: ["pending", "waiting_payment"] },
+        orderStatus: { $in: ["pending", "waiting_payment", "processing"] },
       },
-      { $set: { orderStatus: "in_progress" } },
+      { $set: { orderStatus: "processing" } },
       { new: false },
     );
 
@@ -77,76 +77,26 @@ async function processRobuxInstanTransfer(transaction: any) {
       return;
     }
 
-    const recipientUsername = transaction.robloxUsername;
-    const robuxAmount = transaction.quantity; // quantity = jumlah robux yang dikirim
-
-    if (!recipientUsername) {
-      console.error(`❌ [robux-instan] ${invoiceId}: robloxUsername kosong`);
-      await transaction.updateStatus("order", "pending", "Gagal: username penerima tidak ditemukan", null);
-      return;
-    }
-
-    if (!robuxAmount || robuxAmount <= 0) {
-      console.error(`❌ [robux-instan] ${invoiceId}: quantity/robuxAmount tidak valid: ${robuxAmount}`);
-      await transaction.updateStatus("order", "pending", "Gagal: jumlah robux tidak valid", null);
-      return;
-    }
-
-    // Cari stock account dengan robux cukup
-    const stockAccount = await StockAccount.findOne({
-      status: "active",
-      robux: { $gte: robuxAmount },
-    }).sort({ robux: -1 });
-
-    if (!stockAccount) {
-      console.error(`❌ [robux-instan] ${invoiceId}: Tidak ada stock account dengan robux cukup (butuh ${robuxAmount})`);
-      await transaction.updateStatus("order", "pending", `Pesanan sedang diproses: Menunggu ketersediaan stok robux (${robuxAmount} R$)`, null);
-      return;
-    }
-
-    console.log(`[robux-instan] ${invoiceId}: Menggunakan akun ${stockAccount.username} (${stockAccount.robux} R$) → kirim ${robuxAmount} R$ ke "${recipientUsername}"`);
-
-    const result = await transferRobuxToUsername(
-      stockAccount.robloxCookie,
-      recipientUsername,
-      robuxAmount,
-    );
+    // Delegate ke autoTransferInstantRobux yang sudah handle:
+    // - resolve username, csrf token, initiate+process transfer
+    // - fallback ke akun stock lain jika gagal
+    // - update saldo akun stock
+    // - update status transaksi → completed / bermasalah
+    // - catat di purchase_runs
+    const result = await autoTransferInstantRobux(transaction, {
+      executedBy: "webhook",
+    });
 
     if (result.success) {
-      // Update saldo akun
-      stockAccount.robux = Math.max(0, stockAccount.robux - robuxAmount);
-      stockAccount.lastChecked = new Date();
-      await stockAccount.save();
-
-      // Update status order → completed
-      await transaction.updateStatus(
-        "order",
-        "completed",
-        `${robuxAmount} R$ berhasil dikirim ke "${recipientUsername}" menggunakan akun ${stockAccount.username}. RXT: ${result.rxtId}`,
-        null,
-      );
-
-      console.log(`✅ [robux-instan] ${invoiceId}: Transfer berhasil! ${robuxAmount} R$ → "${recipientUsername}". RXT: ${result.rxtId}`);
+      console.log(`✅ [robux-instan] ${invoiceId}: ${result.message}`);
     } else {
-      // Jika akun diblokir (failureReason=13), tandai inactive
-      if (result.failureReason === 13) {
-        console.warn(`⚠️ [robux-instan] Akun ${stockAccount.username} diblokir (failureReason=13). Menandai inactive.`);
-        stockAccount.status = "inactive";
-        await stockAccount.save();
-      }
-
-      await transaction.updateStatus(
-        "order",
-        "pending",
-        `Transfer gagal: ${result.failureMessage || "Gagal tanpa kode alasan"} (kode: ${result.failureReason ?? "-"})`,
-        null,
-      );
-
-      console.error(`❌ [robux-instan] ${invoiceId}: Transfer gagal. Alasan: ${result.failureMessage} (kode: ${result.failureReason})`);
+      console.warn(`⚠️ [robux-instan] ${invoiceId}: ${result.message}`);
     }
   } catch (err: any) {
     console.error(`❌ [robux-instan] Error tidak terduga:`, err);
-    await transaction.updateStatus("order", "pending", `Error saat transfer: ${err?.message || "Unknown error"}`, null);
+    try {
+      await transaction.updateStatus("order", "bermasalah", `Error saat transfer: ${err?.message || "Unknown error"}`, null);
+    } catch (_) {}
   }
 }
 
