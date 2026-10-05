@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: authError.message }, { status });
     }
 
-    const { robloxCookie, secret2fa } = await req.json();
+    const { robloxCookie, secret2fa, accountType } = await req.json();
 
     if (!robloxCookie) {
       return NextResponse.json(
@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
       robux: robuxData.robux ?? 0,
       isRobuxPlus: rbxPlusResult.isRobuxPlus,
       robuxPlusVerifiedAt: new Date(),
+      accountType: accountType || "gamepass",
       status: "active",
       lastChecked: new Date(),
     });

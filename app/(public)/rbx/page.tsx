@@ -444,7 +444,7 @@ export default function RBXLandingPage() {
                       {[
                         "Cukup masukkan Username Roblox kamu!",
                         "Tanpa password, tanpa login akun",
-                        "Robux langsung masuk otomatis via",
+                        "Robux langsung masuk otomatis",
                         "Proses instan setelah pembayaran berhasil",
                         "Cocok buat akun yang nggak mau kasih password",
                       ].map((item, i) => (

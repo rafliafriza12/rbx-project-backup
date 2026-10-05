@@ -16,6 +16,7 @@ import {
   uploadTransactionImage,
   deleteTransaction,
   exportTransactionsAdmin,
+  retryTransactionTransfer,
 } from "./actions";
 
 interface Transaction {
@@ -320,6 +321,22 @@ export default function TransactionsPage() {
     );
   };
 
+  const handleRetryTransfer = async (transactionId: string) => {
+    try {
+      toast.info("Retrying transfer...");
+      const { ok, data } = await retryTransactionTransfer(transactionId);
+      if (ok && data.success) {
+        toast.success(data.message || "Retry berhasil");
+        fetchTransactions();
+      } else {
+        toast.error(data.message || data.error || "Gagal retry transaksi");
+      }
+    } catch (error) {
+      console.error("Retry failed:", error);
+      toast.error("Terjadi kesalahan saat retry");
+    }
+  };
+
   const columns = [
     {
       key: "invoiceId",
@@ -479,6 +496,18 @@ export default function TransactionsPage() {
           >
             View Detail
           </Link>
+          {row.orderStatus === "pending" &&
+            (row.serviceCategory === "robux_username" ||
+              row.serviceType === "robux_instant" ||
+              row.serviceCategory === "robux_instant") && (
+              <button
+                onClick={() => handleRetryTransfer(row._id)}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                title="Kirim ulang Robux Instant"
+              >
+                Retry
+              </button>
+            )}
           <button
             onClick={() => openStatusModal(row)}
             className="bg-[#3b82f6] hover:bg-[#2563eb] text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"

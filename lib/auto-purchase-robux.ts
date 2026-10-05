@@ -269,6 +269,7 @@ export async function autoPurchasePendingRobux(
       const rbxPlusAccount = await StockAccount.findOne({
         robux: { $gte: rbxPlusEffectivePrice },
         status: "active",
+        $or: [{ accountType: "gamepass" }, { accountType: { $exists: false } }, { accountType: null }],
         isRobuxPlus: true,
       }).sort({ robux: 1 });
 
@@ -276,7 +277,12 @@ export async function autoPurchasePendingRobux(
       const regularAccount = await StockAccount.findOne({
         robux: { $gte: gamepassPrice },
         status: "active",
-        $or: [{ isRobuxPlus: false }, { isRobuxPlus: { $exists: false } }],
+        $or: [
+          { accountType: "gamepass" },
+          { accountType: { $exists: false } },
+          { accountType: null },
+        ],
+        $and: [{ $or: [{ isRobuxPlus: false }, { isRobuxPlus: { $exists: false } }] }],
       }).sort({ robux: 1 });
 
       if (!rbxPlusAccount && !regularAccount) {

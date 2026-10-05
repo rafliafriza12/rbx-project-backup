@@ -1,110 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
-import MidtransService from "@/lib/midtrans";
-import { authenticateToken, requireAdmin, requireApiKey } from "@/lib/auth";
+import { requireAdmin, requireApiKey } from "@/lib/auth";
+import { autoTransferInstantRobux } from "@/lib/robux-transfer";
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const apiKeyError = requireApiKey(request);
+  const apiKeyError = requireApiKey(req);
   if (apiKeyError) return apiKeyError;
 
   try {
-    await connectDB();
+    // Auth check - hanya admin
     try {
-      await requireAdmin(request);
+      await requireAdmin(req);
     } catch (authError: any) {
       const status = authError.message.includes("Forbidden") ? 403 : 401;
       return NextResponse.json({ error: authError.message }, { status });
     }
 
-    // Verify user is authenticated
-    let currentUser: any;
-    try {
-      currentUser = await authenticateToken(request);
-    } catch {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { id } = await params;
+    await connectDB();
+
     const transaction = await Transaction.findById(id);
     if (!transaction) {
       return NextResponse.json(
-        { error: "Transaksi tidak ditemukan" },
-        { status: 404 },
+        { success: false, message: "Transaksi tidak ditemukan" },
+        { status: 404 }
       );
     }
 
-    // Verify ownership (user can only retry their own transactions)
-    const txUserId = transaction.customerInfo?.userId?.toString();
-    if (
-      txUserId &&
-      currentUser._id.toString() !== txUserId &&
-      currentUser.accessRole !== "admin"
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Only allow retry for failed payments
-    if (transaction.paymentStatus !== "failed") {
+    if (transaction.orderStatus === "completed") {
       return NextResponse.json(
-        { error: "Hanya transaksi yang gagal yang dapat dicoba ulang" },
-        { status: 400 },
+        { success: false, message: "Transaksi ini sudah completed" },
+        { status: 400 }
       );
     }
 
-    const midtransService = new MidtransService();
+    // Tentukan aksi berdasarkan kategori layanan
+    const isRobuxUsernameTransfer =
+      transaction.serviceCategory === "robux_username" ||
+      ((transaction.serviceType === "robux_instant" ||
+        transaction.serviceCategory === "robux_instant") &&
+        !transaction.robloxPassword);
 
-    // Create new Snap transaction with same details
-    const snapTransaction = await midtransService.createSnapTransaction({
-      orderId: transaction.midtransOrderId,
-      amount: transaction.totalAmount,
-      customer: {
-        first_name:
-          transaction.customerInfo?.name || transaction.robloxUsername,
-        email: transaction.customerInfo?.email || "",
-        phone: transaction.customerInfo?.phone || "",
-      },
-      items: [
-        {
-          id: transaction.serviceId.toString(),
-          name: transaction.serviceName,
-          price: Math.floor(transaction.totalAmount / transaction.quantity),
-          quantity: transaction.quantity,
-          brand: "RBX Store",
-          category: transaction.serviceType,
-        },
-      ],
-    });
+    if (isRobuxUsernameTransfer) {
+      console.log(`[Admin] 🚀 Retrying auto-transfer Robux via Username untuk Invoice: ${transaction.invoiceId}`);
+      
+      const transferResult = await autoTransferInstantRobux(transaction, {
+        executedBy: "admin-retry",
+      });
 
-    // Update transaction status back to pending
-    transaction.paymentStatus = "pending";
-    transaction.orderStatus = "waiting_payment";
-    transaction.statusHistory.push({
-      status: "pending",
-      timestamp: new Date(),
-      note: "Payment retry initiated",
-    });
-
-    await transaction.save();
-
-    return NextResponse.json({
-      success: true,
-      snapToken: snapTransaction.token,
-      data: {
-        _id: transaction._id.toString(),
-        invoiceId: transaction.invoiceId,
-        paymentStatus: transaction.paymentStatus,
-        orderStatus: transaction.orderStatus,
-      },
-    });
-  } catch (error) {
-    console.error("Retry payment error:", error);
+      return NextResponse.json({
+        success: transferResult.success,
+        message: transferResult.message,
+        transaction: transferResult.transaction
+      });
+    } else {
+      return NextResponse.json(
+        { success: false, message: "Fitur retry saat ini hanya didukung untuk Robux via Username" },
+        { status: 400 }
+      );
+    }
+  } catch (error: any) {
+    console.error("Error retrying transaction:", error);
     return NextResponse.json(
-      { error: "Gagal membuat ulang pembayaran" },
-      { status: 500 },
+      { success: false, message: error.message || "Terjadi kesalahan pada server" },
+      { status: 500 }
     );
   }
 }

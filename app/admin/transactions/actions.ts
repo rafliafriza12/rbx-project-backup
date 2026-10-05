@@ -125,6 +125,27 @@ export async function fetchTransactionById(id: string) {
   }
 }
 
+export async function retryTransactionTransfer(transactionId: string) {
+  try {
+    const BASE_URL = getBaseUrl();
+    const authCookie = await getAuthCookie();
+    const response = await fetch(
+      `${BASE_URL}/api/transactions/${transactionId}/retry`,
+      {
+        method: "POST",
+        headers: getInternalHeaders({
+          ...(authCookie ? { Cookie: authCookie } : {}),
+        }),
+      },
+    );
+    const result = await response.json();
+    return { ok: response.ok, data: result };
+  } catch (error) {
+    console.error("[Server Action] Error retrying transaction:", error);
+    return { ok: false, data: { error: "Gagal retry transaksi" } };
+  }
+}
+
 /**
  * Server Action: Trigger manual gamepass purchase (admin)
  */

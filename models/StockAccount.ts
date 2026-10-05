@@ -10,6 +10,7 @@ export interface IStockAccount extends Document {
   isRobuxPlus: boolean;
   robuxPlusVerifiedAt?: Date;
   status: "active" | "inactive";
+  accountType: "gamepass" | "username";
   lastChecked: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +60,12 @@ const StockAccountSchema: Schema<IStockAccount> = new Schema(
       type: String,
       enum: ["active", "inactive"],
       default: "active",
+      required: true,
+    },
+    accountType: {
+      type: String,
+      enum: ["gamepass", "username"],
+      default: "gamepass",
       required: true,
     },
     lastChecked: {

@@ -58,6 +58,7 @@ interface StockAccount {
   robux: number;
   secret2fa?: string;        // Hanya ada saat form (input), TIDAK dari API response
   hasSecret2fa?: boolean;    // Dari API response (boolean indikator)
+  accountType: "gamepass" | "username";
   isRobuxPlus?: boolean;
   robuxPlusVerifiedAt?: string;
   status: "active" | "inactive";
@@ -125,7 +126,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
     fetchResellerPackages();
-    if (activeTab === "stock") {
+    if (activeTab === "stock" || activeTab === "stock_username") {
       fetchStockAccounts();
     }
   }, [activeTab]);
@@ -315,11 +316,12 @@ export default function UsersPage() {
     setSubmitLoading(true);
 
     try {
-      if (activeTab === "stock") {
+      if (activeTab === "stock" || activeTab === "stock_username") {
         // Handle stock account creation/update
         const payload = {
           robloxCookie: formData.robloxCookie,
           secret2fa: formData.secret2fa,
+          accountType: activeTab === "stock" ? "gamepass" : "username",
         };
 
         const { ok, data } = await saveStockAccount(
@@ -449,7 +451,7 @@ export default function UsersPage() {
 
   const getColumns = () => {
     if (activeTab === "users") return userColumns;
-    if (activeTab === "stock") return stockColumns;
+    if (activeTab === "stock" || activeTab === "stock_username") return stockColumns;
     return adminColumns;
   };
 
@@ -505,7 +507,7 @@ export default function UsersPage() {
           Add{" "}
           {activeTab === "users"
             ? "User"
-            : activeTab === "stock"
+            : (activeTab === "stock" || activeTab === "stock_username")
               ? "Stock Account"
               : "Admin"}
         </button>
@@ -555,7 +557,21 @@ export default function UsersPage() {
               }`}
             >
               <span className="mr-2">💰</span>
-              Stock Accounts
+              Stock Gamepass
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("stock_username");
+                setSearchTerm("");
+              }}
+              className={`py-2 px-6 text-sm font-medium ${
+                activeTab === "stock_username"
+                  ? "border-b-2 border-emerald-400 text-emerald-400"
+                  : "text-[#94a3b8] hover:text-[#cbd5e1]"
+              }`}
+            >
+              <span className="mr-2">💎</span>
+              Stock via Username
             </button>
           </nav>
         </div>
@@ -595,15 +611,14 @@ export default function UsersPage() {
             ) : activeTab === "stock" ? (
               <>
                 <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
-                  <p className="text-sm text-[#f1f5f9]">Total Accounts</p>
-                  <p className="text-2xl font-bold">{stockAccounts.length}</p>
+                  <p className="text-sm text-[#f1f5f9]">Total Accounts (Gamepass)</p>
+                  <p className="text-2xl font-bold">{stockAccounts.filter(s => s.accountType === "gamepass").length}</p>
                 </div>
                 <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
                   <p className="text-sm text-[#f1f5f9]">Active Accounts</p>
                   <p className="text-2xl font-bold text-green-600">
                     {
-                      stockAccounts.filter((acc) => acc.status === "active")
-                        .length
+                      stockAccounts.filter((acc) => acc.status === "active" && acc.accountType === "gamepass").length
                     }
                   </p>
                 </div>
@@ -611,21 +626,33 @@ export default function UsersPage() {
                   <p className="text-sm text-[#f1f5f9]">Total Robux</p>
                   <p className="text-2xl font-bold text-[#3b82f6]">
                     {stockAccounts
+                      .filter(s => s.accountType === "gamepass")
                       .reduce((sum, acc) => sum + (acc.robux || 0), 0)
                       .toLocaleString("id-ID")}
                   </p>
                 </div>
+              </>
+            ) : activeTab === "stock_username" ? (
+              <>
                 <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
-                  <p className="text-sm text-[#f1f5f9]">Avg. Robux</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {stockAccounts.length > 0
-                      ? Math.round(
-                          stockAccounts.reduce(
-                            (sum, acc) => sum + (acc.robux || 0),
-                            0,
-                          ) / stockAccounts.length,
-                        ).toLocaleString("id-ID")
-                      : "0"}
+                  <p className="text-sm text-[#f1f5f9]">Total Accounts (Username API)</p>
+                  <p className="text-2xl font-bold">{stockAccounts.filter(s => s.accountType === "username").length}</p>
+                </div>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Active Accounts</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {
+                      stockAccounts.filter((acc) => acc.status === "active" && acc.accountType === "username").length
+                    }
+                  </p>
+                </div>
+                <div className="border border-[#334155] rounded-lg p-4 bg-[#334155] hover:bg-[#475569] transition-colors ">
+                  <p className="text-sm text-[#f1f5f9]">Total Robux</p>
+                  <p className="text-2xl font-bold text-[#3b82f6]">
+                    {stockAccounts
+                      .filter(s => s.accountType === "username")
+                      .reduce((sum, acc) => sum + (acc.robux || 0), 0)
+                      .toLocaleString("id-ID")}
                   </p>
                 </div>
               </>
@@ -682,16 +709,17 @@ export default function UsersPage() {
                     </div>
                   </td>
                 </tr>
-              ) : activeTab === "stock" ? (
+              ) : (activeTab === "stock" || activeTab === "stock_username") ? (
                 stockAccounts
                   .filter(
                     (account) =>
-                      account.username
+                      account.accountType === (activeTab === "stock" ? "gamepass" : "username") &&
+                      (account.username
                         .toLowerCase()
                         .includes(searchTerm.toLowerCase()) ||
                       account.displayName
                         .toLowerCase()
-                        .includes(searchTerm.toLowerCase()),
+                        .includes(searchTerm.toLowerCase())),
                   )
                   .map((account) => (
                     <tr key={account._id} className="hover:bg-[#334155]">
@@ -976,18 +1004,26 @@ export default function UsersPage() {
           <div className="bg-[#1e293b]/70 backdrop-blur-2xl border border-white/10 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-[#f1f5f9] shadow-2xl">
             <h3 className="text-lg font-semibold mb-4">
               {selectedUser || selectedStockAccount
-                ? `Edit ${activeTab === "stock" ? "Stock Account" : "User"}`
+                ? `Edit ${
+                    activeTab === "stock"
+                      ? "Stock Account (Gamepass)"
+                      : activeTab === "stock_username"
+                        ? "Stock Account (Username API)"
+                        : "User"
+                  }`
                 : `Add New ${
                     activeTab === "stock"
-                      ? "Stock Account"
-                      : activeTab === "admins"
-                        ? "Admin"
-                        : "User"
+                      ? "Stock Account (Gamepass)"
+                      : activeTab === "stock_username"
+                        ? "Stock Account (Username API)"
+                        : activeTab === "admins"
+                          ? "Admin"
+                          : "User"
                   }`}
             </h3>
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
-                {activeTab === "stock" ? (
+                {(activeTab === "stock" || activeTab === "stock_username") ? (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
@@ -1105,7 +1141,7 @@ export default function UsersPage() {
                   </>
                 )}
 
-                {activeTab !== "stock" && (
+                {activeTab !== "stock" && activeTab !== "stock_username" && (
                   <div>
                     <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Password
@@ -1225,7 +1261,7 @@ export default function UsersPage() {
                   </>
                 )}
 
-                {!selectedUser && activeTab !== "stock" && (
+                {!selectedUser && activeTab !== "stock" && activeTab !== "stock_username" && (
                   <div>
                     <label className="block text-sm font-medium text-[#cbd5e1] mb-1">
                       Password

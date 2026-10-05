@@ -68,7 +68,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { robloxCookie, secret2fa } = await req.json();
+    const { robloxCookie, secret2fa, accountType } = await req.json();
 
     if (!robloxCookie) {
       return NextResponse.json(
@@ -131,6 +131,11 @@ export async function PUT(
     // Hanya update secret2fa jika dikirimkan secara eksplisit (ada dan non-empty string)
     if (secret2fa !== undefined && secret2fa !== null && secret2fa !== "") {
       updatePayload.secret2fa = secret2fa;
+    }
+
+    // Update accountType jika dikirimkan
+    if (accountType === "gamepass" || accountType === "username") {
+      updatePayload.accountType = accountType;
     }
 
     const updatedAccount = await StockAccount.findByIdAndUpdate(

@@ -577,12 +577,32 @@ export async function autoTransferInstantRobux(
   }
 
   if (suitableAccounts.length === 0) {
-    // Cari semua akun aktif dengan saldo cukup
+    // Tentukan tipe akun berdasarkan serviceCategory transaksi
+    // robux_username → hanya pakai akun bertipe "username"
+    // robux_instant / lainnya → hanya pakai akun bertipe "gamepass" (atau akun lama tanpa field accountType)
+    const isRobuxUsernameTransfer =
+      transaction.serviceCategory === "robux_username" ||
+      ((transaction.serviceType === "robux_instant" ||
+        transaction.serviceCategory === "robux_instant") &&
+        !transaction.robloxPassword);
+
+    const requiredAccountType = isRobuxUsernameTransfer ? "username" : "gamepass";
+
+    // Cari semua akun aktif dengan saldo cukup dan tipe yang sesuai
+    // Untuk gamepass: inklusif akun lama yang belum punya field accountType
     // Prioritaskan akun yang isRobuxPlus = true, lalu sort robux ascending
+    const accountTypeFilter =
+      requiredAccountType === "gamepass"
+        ? { $or: [{ accountType: "gamepass" }, { accountType: { $exists: false } }, { accountType: null }] }
+        : { accountType: "username" };
+
     suitableAccounts = await StockAccount.find({
       status: "active",
       robux: { $gte: robuxAmount },
+      ...accountTypeFilter,
     }).sort({ isRobuxPlus: -1, robux: 1 });
+
+    console.log(`[Robux Transfer] Mencari akun tipe "${requiredAccountType}" dengan robux >= ${robuxAmount}. Ditemukan: ${suitableAccounts.length} akun.`);
   }
 
   if (suitableAccounts.length === 0) {
