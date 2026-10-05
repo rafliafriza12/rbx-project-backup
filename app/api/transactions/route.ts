@@ -1752,6 +1752,7 @@
     // Buat transaksi baru - GUNAKAN DATA TERVERIFIKASI DARI DATABASE
     const transactionData: any = {
       serviceType,
+      serviceCategory: serviceCategory || undefined,
       serviceId,
       // Use verified name from DB to prevent spoofing:
       // - reseller: verifiedServiceName from ResellerPackage DB
@@ -2030,7 +2031,35 @@
           updatedBy: "system"
         });
         
-        paymentResult = {};
+        // Auto-transfer Robux Instant via Username for Coin Payment
+        const isRobuxUsernameTransfer =
+          transaction.serviceCategory === "robux_username" ||
+          ((transaction.serviceCategory === "robux_instant" ||
+            transaction.serviceCategory === "robux_instan" ||
+            transaction.serviceType === "robux_instant") &&
+            !transaction.robloxPassword);
+            
+        if (isRobuxUsernameTransfer) {
+          console.log(`⚡ Processing Robux Instant transfer for Coin Payment: ${orderId}`);
+          try {
+            const { autoTransferInstantRobux } = await import("@/lib/robux-transfer");
+            const transferResult = await autoTransferInstantRobux(
+              transaction,
+              { executedBy: "coin_payment" }
+            );
+            if (transferResult.success) {
+              console.log(`✅ Robux Instant transfer sukses: ${orderId}`);
+            } else {
+              console.warn(`⚠️ Robux Instant transfer gagal: ${orderId} - ${transferResult.message}`);
+            }
+          } catch (err) {
+            console.error(`❌ Error transfer Robux Instant untuk Coin Payment:`, err);
+          }
+        }
+        
+        paymentResult = {
+          redirect_url: `${baseUrl}/riwayat/${transaction._id}`,
+        };
         
       } else if (activeGateway === "duitku") {
         // ===== DUITKU PAYMENT GATEWAY =====
