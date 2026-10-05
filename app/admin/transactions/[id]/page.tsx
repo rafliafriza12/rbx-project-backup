@@ -208,7 +208,7 @@ export default function TransactionDetailPage() {
     try {
       const { ok, data } = await triggerManualRobuxTransfer(transaction._id);
       if (ok && data?.success) {
-        toast.success(data.message || "Robux Instant berhasil dikirim via Transfer API!");
+        toast.success(data.message || "Robux Instant berhasil dikirim via Transfer!");
         fetchTransaction(transaction._id);
       } else {
         toast.error(data?.message || data?.error || "Gagal mentransfer Robux Instant");

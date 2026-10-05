@@ -688,7 +688,7 @@ export async function autoTransferInstantRobux(
     // Catat di statusHistory
     transaction.statusHistory.push({
       status: "completed",
-      notes: `Robux Instant (${robuxAmount} Robux) berhasil dikirim langsung ke @${username} via Transfer API menggunakan akun ${successfulAccount.username} (RXT: ${successfulResult.rxtToken || "-"})`,
+      notes: `Robux Instant (${robuxAmount} Robux) berhasil dikirim langsung ke @${username}`,
       updatedBy: options?.executedBy || "system",
       timestamp: new Date(),
     });
