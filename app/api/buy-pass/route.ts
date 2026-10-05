@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import StockAccount from "@/models/StockAccount";
+import Settings from "@/models/Settings";
 import { generateRoblox2FACode } from "@/utils/totp";
 import { calculateGamepassAmount } from "@/utils/checkRobuxPlus";
 
@@ -79,6 +80,24 @@ export async function POST(req: NextRequest) {
 
     const { robloxCookie, gamepassId, gamepassName, price, sellerId } =
       await req.json();
+
+    // ========== CEK SERVICE AVAILABILITY (STOK HABIS) ==========
+    try {
+      await connectDB();
+      const siteSettings = await Settings.findOne({}).lean();
+      const robux5HariEnabled = (siteSettings as any)?.serviceAvailability?.robux5Hari?.enabled;
+      if (robux5HariEnabled === false) {
+        const closedMsg = (siteSettings as any)?.serviceAvailability?.robux5Hari?.closedMessage
+          || "Layanan Robux 5 Hari sedang tutup sementara karena stok habis.";
+        return NextResponse.json(
+          { success: false, message: closedMsg, code: "SERVICE_UNAVAILABLE" },
+          { status: 503 },
+        );
+      }
+    } catch (settingsErr) {
+      console.warn("⚠️ Gagal cek serviceAvailability, lanjut proses:", settingsErr);
+      // Jangan block jika settings gagal diambil
+    }
 
     if (!robloxCookie || !gamepassId) {
       return NextResponse.json(

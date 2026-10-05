@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       pricing = await RobuxUsernamePricing.create({
         pricePerHundred: 13000,
         minRobux: 50,
-        maxRobux: 10000,
+        maxRobux: 5000,
         description: "Harga Robux via Username (API Transfer)",
         updatedBy: "system",
       });
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const parsedMax = maxRobux !== undefined ? Number(maxRobux) : 10000;
+    const parsedMax = maxRobux !== undefined ? Math.min(Number(maxRobux), 5000) : 5000;
     if (isNaN(parsedMax) || parsedMax < parsedMin) {
       return NextResponse.json(
         {

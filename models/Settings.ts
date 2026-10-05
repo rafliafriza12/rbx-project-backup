@@ -318,7 +318,7 @@ const settingsSchema = new mongoose.Schema(
       },
       joki: {
         enabled: { type: Boolean, default: true },
-        closedMessage: { type: String, default: "Layanan Joki sedang tutup sementara. Cek lagi nanti!" },
+        closedMessage: { type: String, default: "Layanan RBX Reguler sedang tutup sementara. Cek lagi nanti!" },
       },
       reseller: {
         enabled: { type: Boolean, default: true },

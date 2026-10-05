@@ -1539,10 +1539,17 @@
       ).default;
       const pricing = await RobuxUsernamePricing.findOne().sort({ updatedAt: -1 });
       const minRobux = pricing?.minRobux || 50;
+      const maxRobux = Math.min(Number(pricing?.maxRobux || 5000), 5000); // HARD LIMIT 5K
       const robuxAmt = Number(robuxInstantDetails?.robuxAmount || 0);
       if (robuxAmt < minRobux) {
         return NextResponse.json(
           { error: `Minimal pembelian untuk Topup via Username adalah ${minRobux} Robux` },
+          { status: 400 },
+        );
+      }
+      if (robuxAmt > maxRobux) {
+        return NextResponse.json(
+          { error: `Maksimal pembelian untuk Topup via Username adalah ${maxRobux} Robux` },
           { status: 400 },
         );
       }

@@ -190,7 +190,7 @@ export async function getRobuxUsernamePricing() {
       data: {
         pricePerHundred: 13000,
         minRobux: 50,
-        maxRobux: 10000,
+        maxRobux: 5000,
       },
     };
   }

@@ -93,6 +93,10 @@ export default function RobuxInstan() {
 
   const router = useRouter();
 
+  // Stock availability state (RBX Reguler pakai key 'joki')
+  const [isServiceClosed, setIsServiceClosed] = useState(false);
+  const [closedMessage, setClosedMessage] = useState("");
+
   const searchUserInfo = async (username: string) => {
     if (!username || username.trim().length < 2) {
       setUserInfo(null);
@@ -226,6 +230,18 @@ export default function RobuxInstan() {
             }
           }
         }
+
+        // Cek service availability untuk RBX Reguler (key: joki)
+        const pubSettings = settingsRes?.settings || settingsRes?.data || settingsRes;
+        const rbxRegularAvail = pubSettings?.serviceAvailability?.joki;
+        if (rbxRegularAvail?.enabled === false) {
+          setIsServiceClosed(true);
+          setClosedMessage(rbxRegularAvail.closedMessage || "Layanan RBX Reguler sedang tutup sementara karena stok habis. Cek lagi nanti!");
+        } else {
+          setIsServiceClosed(false);
+          setClosedMessage("");
+        }
+
       } catch (error) {
       } finally {
         setPaymentMethodsLoading(false);
@@ -301,6 +317,10 @@ export default function RobuxInstan() {
   };
 
   const nextStep = () => {
+    if (isServiceClosed) {
+      toast.error("Layanan RBX Reguler sedang tidak tersedia karena stok habis. Silakan cek kembali nanti!");
+      return;
+    }
     if (currentStep === 1) {
       if (!selectedProduct) {
         toast.error("Pilih paket Robux terlebih dahulu!");
@@ -366,6 +386,10 @@ export default function RobuxInstan() {
   };
 
   const handleAddToCart = async () => {
+    if (isServiceClosed) {
+      toast.error("Layanan RBX Reguler sedang tidak tersedia karena stok habis.");
+      return;
+    }
     if (!agreedToTerms || !selectedProduct) {
       toast.error("Mohon lengkapi pilihan dan setujui syarat & ketentuan!");
       return;
@@ -418,6 +442,10 @@ export default function RobuxInstan() {
   };
 
   const handleSubmitOrder = async () => {
+    if (isServiceClosed) {
+      toast.error("Layanan RBX Reguler sedang tidak tersedia karena stok habis.");
+      return;
+    }
     if (!agreedToTerms) {
       toast.error("Anda harus menyetujui syarat & ketentuan");
       return;
@@ -500,6 +528,30 @@ export default function RobuxInstan() {
 
   return (
     <main className="px-4 sm:px-6 md:px-8">
+
+      {/* === BANNER STOK HABIS RBX REGULER === */}
+      {isServiceClosed && (
+        <div className="max-w-6xl mx-auto px-2 mb-6 mt-4">
+          <div className="relative bg-gradient-to-r from-red-950/90 via-red-900/70 to-rose-950/90 border-2 border-red-500/60 rounded-2xl p-5 sm:p-7 shadow-2xl overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(239,68,68,0.15),transparent_60%)] pointer-events-none" />
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+                🚫
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-1.5">
+                  <h3 className="text-lg sm:text-xl font-black text-white">Layanan RBX Reguler Ditutup Sementara</h3>
+                  <span className="px-3 py-0.5 rounded-full bg-red-500/30 text-red-200 border border-red-400/40 text-xs font-bold animate-pulse">STOK HABIS</span>
+                </div>
+                <p className="text-gray-200 text-sm leading-relaxed">{closedMessage}</p>
+                <div className="mt-2 flex items-center justify-center sm:justify-start gap-2 text-xs text-red-300 font-medium">
+                  <span>⚠️ Pemesanan dan checkout dinonaktifkan sementara sampai stok tersedia kembali.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; }

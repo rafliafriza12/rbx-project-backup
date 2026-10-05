@@ -94,6 +94,10 @@ export default function RobuxViaUsernamePage() {
 
   const router = useRouter();
 
+  // Stock availability state (Robux via Username pakai robuxInstan)
+  const [isServiceClosed, setIsServiceClosed] = useState(false);
+  const [closedMessage, setClosedMessage] = useState("");
+
   // Fetch dynamic pricing from admin settings via Server Action
   useEffect(() => {
     const fetchPricing = async () => {
@@ -102,7 +106,7 @@ export default function RobuxViaUsernamePage() {
         const res = await getRobuxUsernamePricing();
         if (res.success && res.data) {
           const minR = Number(res.data.minRobux) || 50;
-          const maxR = Number(res.data.maxRobux) || 10000;
+          const maxR = Math.min(Number(res.data.maxRobux) || 5000, 5000); // Batasi maksimal 5000
           const priceHundred = Number(res.data.pricePerHundred) || 13000;
 
           setPricing({
@@ -305,6 +309,18 @@ export default function RobuxViaUsernamePage() {
             setSelectedPaymentMethod(firstWithMethods.methods[0].id);
           }
         }
+
+        // Fetch service availability (cek apakah robux instan / username sedang tutup)
+        const pubSettings = settingsRes?.settings || settingsRes?.data;
+        const robuxInstanAvail = pubSettings?.serviceAvailability?.robuxInstan;
+        if (robuxInstanAvail?.enabled === false) {
+          setIsServiceClosed(true);
+          setClosedMessage(robuxInstanAvail.closedMessage || "Layanan Robux via Username sedang tutup sementara karena stok habis. Cek lagi nanti!");
+        } else {
+          setIsServiceClosed(false);
+          setClosedMessage("");
+        }
+
       } catch (error) {
         console.error("Error loading payment data:", error);
       } finally {
@@ -366,6 +382,10 @@ export default function RobuxViaUsernamePage() {
   };
 
   const nextStep = () => {
+    if (isServiceClosed) {
+      toast.error("Layanan sedang tidak tersedia karena stok habis. Silakan cek kembali nanti!");
+      return;
+    }
     if (currentStep === 1) {
       if (!robux || robux < pricing.minRobux) {
         toast.error(`Minimal pembelian adalah ${pricing.minRobux} Robux!`);
@@ -490,6 +510,10 @@ export default function RobuxViaUsernamePage() {
   };
 
   const handleSubmitOrder = async () => {
+    if (isServiceClosed) {
+      toast.error("Layanan sedang tidak tersedia karena stok habis. Silakan cek kembali nanti!");
+      return;
+    }
     if (!robux || robux < pricing.minRobux) {
       toast.error(`Minimal pembelian adalah ${pricing.minRobux} Robux!`);
       return;
@@ -557,9 +581,9 @@ export default function RobuxViaUsernamePage() {
   };
 
   // Quick Preset Nominals (Popular options)
-  const defaultPresets = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
+  const defaultPresets = [50, 100, 200, 500, 1000, 2000, 5000]; // Hapus 10000
   const activePresets = defaultPresets.filter(
-    (p) => p >= (pricing?.minRobux || 50) && p <= (pricing?.maxRobux || 10000)
+    (p) => p >= (pricing?.minRobux || 50) && p <= (pricing?.maxRobux || 5000)
   );
 
   if (pricingLoading) {
@@ -575,6 +599,30 @@ export default function RobuxViaUsernamePage() {
 
   return (
     <main className="px-3 sm:px-6 md:px-8 pb-16 pt-2">
+
+      {/* === BANNER STOK HABIS (jika layanan ditutup admin) === */}
+      {isServiceClosed && (
+        <div className="max-w-6xl mx-auto px-2 mb-6 mt-4">
+          <div className="relative bg-gradient-to-r from-red-950/90 via-red-900/70 to-rose-950/90 border-2 border-red-500/60 rounded-2xl p-5 sm:p-7 shadow-2xl overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(239,68,68,0.15),transparent_60%)] pointer-events-none" />
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+                🚫
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-1.5">
+                  <h3 className="text-lg sm:text-xl font-black text-white">Layanan Robux via Username Ditutup Sementara</h3>
+                  <span className="px-3 py-0.5 rounded-full bg-red-500/30 text-red-200 border border-red-400/40 text-xs font-bold animate-pulse">STOK HABIS</span>
+                </div>
+                <p className="text-gray-200 text-sm leading-relaxed">{closedMessage}</p>
+                <div className="mt-2 flex items-center justify-center sm:justify-start gap-2 text-xs text-red-300 font-medium">
+                  <span>⚠️ Pemesanan dan checkout dinonaktifkan sementara sampai stok tersedia kembali.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Banner Header */}
       <div className="max-w-6xl mx-auto px-2 mb-6">
@@ -592,7 +640,7 @@ export default function RobuxViaUsernamePage() {
           <div className="absolute bottom-5 left-5 sm:bottom-7 sm:left-7 z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-100/20 border border-primary-100/40 text-primary-50 text-xs font-semibold backdrop-blur-md mb-2 shadow-sm">
               <Zap className="w-3.5 h-3.5 text-primary-100 animate-pulse" />
-              <span>Transfer Otomatis API • Tanpa Password</span>
+              <span>Transfer Otomatis • Tanpa Password</span>
             </div>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-md">
               Top Up Robux via{" "}

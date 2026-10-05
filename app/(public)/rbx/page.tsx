@@ -30,6 +30,14 @@ interface Banner {
 interface Settings {
   whatsappNumber: string;
   siteName: string;
+  serviceAvailability?: {
+    robux5Hari?: { enabled: boolean; closedMessage: string };
+    robuxInstan?: { enabled: boolean; closedMessage: string };
+    gamepass?: { enabled: boolean; closedMessage: string };
+    coinTopup?: { enabled: boolean; closedMessage: string };
+    joki?: { enabled: boolean; closedMessage: string };
+    reseller?: { enabled: boolean; closedMessage: string };
+  };
 }
 
 const faqData = [
@@ -108,11 +116,20 @@ export default function RBXLandingPage() {
   const fetchSettings = async () => {
     try {
       const data = await getPublicSettings();
-      if (data.success && data.data) {
-        setSettings(data.data);
+      if (data.success && (data.data || data.settings)) {
+        setSettings(data.data || data.settings);
       }
     } catch (error) {}
   };
+
+  // Stock status helpers
+  const isRbx5Closed = settings?.serviceAvailability?.robux5Hari?.enabled === false;
+  const isRbxInstanClosed = settings?.serviceAvailability?.joki?.enabled === false; // RBX Reguler (login) pakai key joki
+  const isRbxUsernameClosed = settings?.serviceAvailability?.robuxInstan?.enabled === false; // RBX via Username pakai key robuxInstan
+
+  const rbx5ClosedMsg = settings?.serviceAvailability?.robux5Hari?.closedMessage || "Stok Robux 5 Hari sedang habis. Cek lagi nanti!";
+  const rbxInstanClosedMsg = settings?.serviceAvailability?.joki?.closedMessage || "Stok RBX Reguler sedang habis. Cek lagi nanti!";
+  const rbxUsernameClosedMsg = settings?.serviceAvailability?.robuxInstan?.closedMessage || "Stok Robux via Username sedang habis. Cek lagi nanti!";
 
   const handleWhatsAppClick = () => {
     const phoneNumber = settings?.whatsappNumber || "+628123456789";
@@ -211,62 +228,77 @@ export default function RBXLandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Link href="/rbx5" className="block group h-full">
-                <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-primary-100/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary-100/10 h-full flex flex-col">
-                  {/* Top accent bar */}
-                  <div className="h-1 bg-gradient-to-r from-primary-100 via-pink-400 to-primary-200" />
+              {isRbx5Closed ? (
+                <div className="block h-full cursor-not-allowed">
+                  <div className="relative rounded-2xl border border-red-800/50 bg-gradient-to-b from-red-950/30 to-red-950/10 overflow-hidden h-full flex flex-col opacity-75">
+                    {/* Top accent bar - merah saat stok habis */}
+                    <div className="h-1 bg-gradient-to-r from-red-700 via-red-500 to-red-700" />
 
-                  <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1">
-                    {/* Badge */}
-                    <div className="flex items-center justify-between mb-4 sm:mb-5">
-                      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-yellow-400/15 to-amber-400/10 border border-yellow-400/30 rounded-full text-[10px] sm:text-xs text-yellow-300 font-bold">
-                        <Star className="w-3 h-3 fill-yellow-300" />
-                        TERMURAH
-                      </span>
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary-100/10 border border-primary-100/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary-100" />
+                    {/* STOK HABIS overlay badge */}
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                      <div className="bg-red-900/80 backdrop-blur-sm border-2 border-red-500/70 rounded-2xl px-6 py-3 shadow-2xl rotate-[-6deg]">
+                        <span className="text-red-200 font-black text-xl tracking-widest uppercase">🚫 Stok Habis</span>
                       </div>
                     </div>
 
-                    {/* Title */}
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">
-                      Topup RBX 5 Hari
-                    </h2>
-                    <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via pembelian Gamepass</p>
-
-                    {/* Divider */}
-                    <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
-
-                    {/* Features */}
-                    <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-3 sm:mb-4">Yang didapatkan:</p>
-                    <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
-                      {[
-                        "Harga Robux super murah, paling hemat!",
-                        "Pengiriman sekitar 5 hari ya~",
-                        "Pas buat kamu yang santai & nggak buru-buru",
-                        "Stok selalu ada, bisa beli kapan aja!",
-                        "Bisa pakai kode promo biar makin irit!",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-2 sm:gap-3">
-                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-primary-100/20 to-pink-400/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-100" />
-                          </div>
-                          <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{item}</span>
+                    <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1 filter blur-[1px]">
+                      <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-red-500/20 to-red-400/10 border border-red-500/30 rounded-full text-[10px] sm:text-xs text-red-300 font-bold animate-pulse">
+                          🔴 STOK HABIS
+                        </span>
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
                         </div>
-                      ))}
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="relative overflow-hidden rounded-xl mt-auto">
-                      <div className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold text-sm sm:text-base group-hover:from-primary-100/90 group-hover:to-pink-400 transition-all duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                        <span className="relative z-10">Beli Sekarang</span>
-                        <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white/60 mb-0.5 sm:mb-1">Topup RBX 5 Hari</h2>
+                      <p className="text-white/30 text-xs sm:text-sm mb-4 sm:mb-6">Via pembelian Gamepass</p>
+                      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
+                      <p className="text-red-300/80 text-xs sm:text-sm leading-relaxed flex-1">{rbx5ClosedMsg}</p>
+                      <div className="mt-6 flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-red-900/60 to-red-800/40 border border-red-700/40 rounded-xl text-red-300 font-bold text-sm">
+                        <span>🚫 Tidak Tersedia</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              </Link>
+              ) : (
+                <Link href="/rbx5" className="block group h-full">
+                  <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-primary-100/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary-100/10 h-full flex flex-col">
+                    <div className="h-1 bg-gradient-to-r from-primary-100 via-pink-400 to-primary-200" />
+                    <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1">
+                      <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-yellow-400/15 to-amber-400/10 border border-yellow-400/30 rounded-full text-[10px] sm:text-xs text-yellow-300 font-bold">
+                          <Star className="w-3 h-3 fill-yellow-300" />
+                          TERMURAH
+                        </span>
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary-100/10 border border-primary-100/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary-100" />
+                        </div>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">Topup RBX 5 Hari</h2>
+                      <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via pembelian Gamepass</p>
+                      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
+                      <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-3 sm:mb-4">Yang didapatkan:</p>
+                      <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
+                        {["Harga Robux super murah, paling hemat!","Pengiriman sekitar 5 hari ya~","Pas buat kamu yang santai & nggak buru-buru","Stok selalu ada, bisa beli kapan aja!","Bisa pakai kode promo biar makin irit!"].map((item, i) => (
+                          <div key={i} className="flex items-start gap-2 sm:gap-3">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-primary-100/20 to-pink-400/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-100" />
+                            </div>
+                            <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="relative overflow-hidden rounded-xl mt-auto">
+                        <div className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-primary-100 to-primary-200 text-white font-bold text-sm sm:text-base group-hover:from-primary-100/90 group-hover:to-pink-400 transition-all duration-500">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                          <span className="relative z-10">Beli Sekarang</span>
+                          <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </motion.div>
 
             {/* RBX Reguler Card */}
@@ -275,62 +307,71 @@ export default function RBXLandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <Link href="/robux-instant" className="block group h-full">
-                <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-amber-400/30 transition-all duration-500 hover:shadow-xl hover:shadow-amber-400/10 h-full flex flex-col">
-                  {/* Top accent bar */}
-                  <div className="h-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500" />
-
-                  <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1">
-                    {/* Badge */}
-                    <div className="flex items-center justify-between mb-4 sm:mb-5">
-                      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-amber-400/15 to-yellow-400/10 border border-amber-400/30 rounded-full text-[10px] sm:text-xs text-amber-300 font-bold">
-                        <Zap className="w-3 h-3 fill-amber-300" />
-                        TERCEPAT
-                      </span>
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+              {isRbxInstanClosed ? (
+                <div className="block h-full cursor-not-allowed">
+                  <div className="relative rounded-2xl border border-red-800/50 bg-gradient-to-b from-red-950/30 to-red-950/10 overflow-hidden h-full flex flex-col opacity-75">
+                    <div className="h-1 bg-gradient-to-r from-red-700 via-red-500 to-red-700" />
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                      <div className="bg-red-900/80 backdrop-blur-sm border-2 border-red-500/70 rounded-2xl px-6 py-3 shadow-2xl rotate-[-6deg]">
+                        <span className="text-red-200 font-black text-xl tracking-widest uppercase">🚫 Stok Habis</span>
                       </div>
                     </div>
-
-                    {/* Title */}
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">
-                      Topup RBX Reguler
-                    </h2>
-                    <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via Login (username & password)</p>
-
-                    {/* Divider */}
-                    <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
-
-                    {/* Features */}
-                    <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-3 sm:mb-4">Yang didapatkan:</p>
-                    <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
-                      {[
-                        "Top-up Robux jadi super cepat & gampang!",
-                        "Cukup pakai username + password aja~",
-                        "Nggak perlu ribet bikin Gamepass",
-                        "Aman dipakai & bisa beli banyak!",
-                        "Robux dikirim cepat, tanpa pending",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-2 sm:gap-3">
-                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-amber-400/20 to-yellow-400/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400" />
-                          </div>
-                          <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{item}</span>
+                    <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1 filter blur-[1px]">
+                      <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-red-500/20 to-red-400/10 border border-red-500/30 rounded-full text-[10px] sm:text-xs text-red-300 font-bold animate-pulse">🔴 STOK HABIS</span>
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                          <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
                         </div>
-                      ))}
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="relative overflow-hidden rounded-xl mt-auto">
-                      <div className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold text-sm sm:text-base group-hover:from-amber-400 group-hover:to-yellow-400 transition-all duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                        <span className="relative z-10">Beli Sekarang</span>
-                        <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white/60 mb-0.5 sm:mb-1">Topup RBX Reguler</h2>
+                      <p className="text-white/30 text-xs sm:text-sm mb-4 sm:mb-6">Via Login (username & password)</p>
+                      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
+                      <p className="text-red-300/80 text-xs sm:text-sm leading-relaxed flex-1">{rbxInstanClosedMsg}</p>
+                      <div className="mt-6 flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-red-900/60 to-red-800/40 border border-red-700/40 rounded-xl text-red-300 font-bold text-sm">
+                        <span>🚫 Tidak Tersedia</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              </Link>
+              ) : (
+                <Link href="/robux-instant" className="block group h-full">
+                  <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-amber-400/30 transition-all duration-500 hover:shadow-xl hover:shadow-amber-400/10 h-full flex flex-col">
+                    <div className="h-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500" />
+                    <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1">
+                      <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-amber-400/15 to-yellow-400/10 border border-amber-400/30 rounded-full text-[10px] sm:text-xs text-amber-300 font-bold">
+                          <Zap className="w-3 h-3 fill-amber-300" />
+                          TERCEPAT
+                        </span>
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                          <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                        </div>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">Topup RBX Reguler</h2>
+                      <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via Login (username & password)</p>
+                      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
+                      <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-3 sm:mb-4">Yang didapatkan:</p>
+                      <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
+                        {["Top-up Robux jadi super cepat & gampang!","Cukup pakai username + password aja~","Nggak perlu ribet bikin Gamepass","Aman dipakai & bisa beli banyak!","Robux dikirim cepat, tanpa pending"].map((item, i) => (
+                          <div key={i} className="flex items-start gap-2 sm:gap-3">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-amber-400/20 to-yellow-400/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400" />
+                            </div>
+                            <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="relative overflow-hidden rounded-xl mt-auto">
+                        <div className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold text-sm sm:text-base group-hover:from-amber-400 group-hover:to-yellow-400 transition-all duration-500">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                          <span className="relative z-10">Beli Sekarang</span>
+                          <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </motion.div>
 
             {/* RBX via Username Card */}
@@ -339,17 +380,42 @@ export default function RBXLandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <Link href="/rbx-username" className="block group h-full">
-                <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-emerald-400/30 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-400/10 h-full flex flex-col">
-                  {/* Top accent bar */}
-                  <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
-
-                  {/* NEW badge */}
-                  <div className="absolute top-4 right-4 z-10">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500/30 to-teal-500/20 border border-emerald-400/40 rounded-full text-[10px] text-emerald-300 font-bold">
-                      ✨ BARU
-                    </span>
+              {isRbxUsernameClosed ? (
+                <div className="block h-full cursor-not-allowed">
+                  <div className="relative rounded-2xl border border-red-800/50 bg-gradient-to-b from-red-950/30 to-red-950/10 overflow-hidden h-full flex flex-col opacity-75">
+                    <div className="h-1 bg-gradient-to-r from-red-700 via-red-500 to-red-700" />
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                      <div className="bg-red-900/80 backdrop-blur-sm border-2 border-red-500/70 rounded-2xl px-6 py-3 shadow-2xl rotate-[-6deg]">
+                        <span className="text-red-200 font-black text-xl tracking-widest uppercase">🚫 Stok Habis</span>
+                      </div>
+                    </div>
+                    <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1 filter blur-[1px]">
+                      <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 bg-gradient-to-r from-red-500/20 to-red-400/10 border border-red-500/30 rounded-full text-[10px] sm:text-xs text-red-300 font-bold animate-pulse">🔴 STOK HABIS</span>
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                          <SendHorizonal className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+                        </div>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white/60 mb-0.5 sm:mb-1">Topup RBX via Username</h2>
+                      <p className="text-white/30 text-xs sm:text-sm mb-4 sm:mb-6">Via Transfer langsung ke akun</p>
+                      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
+                      <p className="text-red-300/80 text-xs sm:text-sm leading-relaxed flex-1">{rbxUsernameClosedMsg}</p>
+                      <div className="mt-6 flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-gradient-to-r from-red-900/60 to-red-800/40 border border-red-700/40 rounded-xl text-red-300 font-bold text-sm">
+                        <span>🚫 Tidak Tersedia</span>
+                      </div>
+                    </div>
                   </div>
+                </div>
+              ) : (
+                <Link href="/rbx-username" className="block group h-full">
+                  <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] overflow-hidden hover:border-emerald-400/30 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-400/10 h-full flex flex-col">
+                    <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
+                    {/* NEW badge */}
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500/30 to-teal-500/20 border border-emerald-400/40 rounded-full text-[10px] text-emerald-300 font-bold">
+                        ✨ BARU
+                      </span>
+                    </div>
 
                   <div className="p-5 sm:p-6 md:p-8 flex flex-col flex-1">
                     {/* Badge */}
@@ -367,7 +433,7 @@ export default function RBXLandingPage() {
                     <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">
                       Topup RBX via Username
                     </h2>
-                    <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via Transfer API langsung ke akun</p>
+                    <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via Transfer langsung ke akun</p>
 
                     {/* Divider */}
                     <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
@@ -378,7 +444,7 @@ export default function RBXLandingPage() {
                       {[
                         "Cukup masukkan Username Roblox kamu!",
                         "Tanpa password, tanpa login akun",
-                        "Robux langsung masuk otomatis via API",
+                        "Robux langsung masuk otomatis via",
                         "Proses instan setelah pembayaran berhasil",
                         "Cocok buat akun yang nggak mau kasih password",
                       ].map((item, i) => (
@@ -402,6 +468,7 @@ export default function RBXLandingPage() {
                   </div>
                 </div>
               </Link>
+              )}
             </motion.div>
 
           </div>

@@ -1988,10 +1988,10 @@ export default function SettingsPage() {
           },
           {
             key: "joki" as const,
-            title: "Jasa Joki",
-            desc: "Layanan joki leveling dan joki quest/item game Roblox.",
-            icon: "🚀",
-            tag: "Jasa Joki",
+            title: "RBX Reguler (Via Login)",
+            desc: "Pengiriman Robux via login akun (username + password). Matikan jika akun Robux Reguler sedang habis atau error.",
+            icon: "🔐",
+            tag: "RBX Reguler",
             badgeColor: "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30",
           },
           {

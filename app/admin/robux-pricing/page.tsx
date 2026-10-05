@@ -679,7 +679,7 @@ export default function RobuxPricingPage() {
       <div className="mt-8">
         <div className="flex items-center gap-2 mb-4">
           <User className="w-6 h-6 text-emerald-400" />
-          <h2 className="text-xl font-bold text-[#f1f5f9]">Harga Robux via Username (Transfer API)</h2>
+          <h2 className="text-xl font-bold text-[#f1f5f9]">Harga Robux via Username </h2>
         </div>
         <p className="text-[#94a3b8] text-sm mb-6">
           Atur harga per 100 Robux, minimal, dan maksimal pembelian untuk layanan <strong className="text-emerald-400">Topup RBX via Username</strong>.

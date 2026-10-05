@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
           robuxInstan: { enabled: true, closedMessage: "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!" },
           gamepass: { enabled: true, closedMessage: "Layanan Gamepass sedang tutup sementara. Cek lagi nanti!" },
           coinTopup: { enabled: true, closedMessage: "Layanan Top Up Koin sedang tutup sementara. Cek lagi nanti!" },
-          joki: { enabled: true, closedMessage: "Layanan Joki sedang tutup sementara. Cek lagi nanti!" },
+          joki: { enabled: true, closedMessage: "Layanan RBX Reguler sedang tutup sementara. Cek lagi nanti!" },
           reseller: { enabled: true, closedMessage: "Layanan Reseller sedang tutup sementara. Cek lagi nanti!" },
         },
       };
