@@ -2001,9 +2001,20 @@
           );
         }
         
-        // Deduct balance with 2 decimal precision
-        user.balance = Number((user.balance - coinsRequired).toFixed(2));
-        await user.save();
+        // Deduct balance atomically (cegah double-spend lewat request paralel)
+        const deducted = await User.findOneAndUpdate(
+          { _id: user._id, balance: { $gte: coinsRequired } },
+          { $inc: { balance: -coinsRequired } },
+          { new: true },
+        );
+        if (!deducted) {
+          return NextResponse.json(
+            { error: "Saldo Credits tidak cukup atau transaksi lain sedang berjalan" },
+            { status: 400 },
+          );
+        }
+        deducted.balance = Number(deducted.balance.toFixed(2));
+        await deducted.save();
         
         // Mark transaction as paid
         transaction.paymentStatus = "settlement";
@@ -2031,6 +2042,9 @@
           updatedBy: "system"
         });
         
+        // Persist settlement dulu karena auto-transfer memakai lock di database
+        await transaction.save();
+
         // Auto-transfer Robux Instant via Username for Coin Payment
         const isRobuxUsernameTransfer =
           transaction.serviceCategory === "robux_username" ||

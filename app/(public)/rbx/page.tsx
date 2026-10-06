@@ -44,7 +44,7 @@ const faqData = [
   {
     question: "Berapa lama waktu pengiriman Robux?",
     answer:
-      "Pengiriman Robux dibagi menjadi tiga metode:\n\n1. Robux via Gamepass (5 Hari)\nRobux akan masuk ke akun kamu dalam waktu sekitar 5 hari. Estimasi ini mengikuti sistem dan kebijakan dari Roblox.\n\n2. Robux via Login (Reguler)\nRobux akan diproses lebih cepat, yaitu sekitar 15-30 menit setelah pembayaran dikonfirmasi.\n\n3. Robux via Username (Instan)\nRobux langsung dikirim otomatis ke akun kamu via Transfer . Masuk dalam hitungan detik/menit setelah bayar!",
+      "Pengiriman Robux dibagi menjadi tiga metode:\n\n1. Robux via Gamepass (5 Hari)\nRobux akan masuk ke akun kamu dalam waktu sekitar 5 hari. Estimasi ini mengikuti sistem dan kebijakan dari Roblox.\n\n2. Robux via Login (Reguler)\nRobux akan diproses lebih cepat, yaitu sekitar 15-30 menit setelah pembayaran dikonfirmasi.\n\n3. Robux via Username (Instan)\nRobux langsung dikirim otomatis ke akun kamu via Transfer API Roblox. Masuk dalam hitungan detik/menit setelah bayar!",
   },
   {
     question: "Apa yang harus dilakukan jika Robux belum masuk?",

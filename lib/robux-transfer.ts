@@ -492,13 +492,23 @@ export async function executeRobuxTransfer(
   }
 }
 
+type AutoTransferResult = {
+  success: boolean;
+  message: string;
+  transaction?: any;
+  purchaseRun?: any;
+};
+
+// Lock dianggap basi (mis. server crash saat transfer) setelah 10 menit
+const TRANSFER_LOCK_TTL_MS = 10 * 60 * 1000;
+
 /**
- * Otomatis memproses transfer Robux Instant untuk sebuah Transaksi:
- * 1. Ambil transaksi dari database
- * 2. Cari akun stock yang aktif & mencukupi robux
- * 3. Eksekusi transfer
- * 4. Kurangi saldo robux akun stock
- * 5. Update status transaksi menjadi completed / bermasalah
+ * Otomatis memproses transfer Robux Instant untuk sebuah Transaksi.
+ *
+ * Pengaman:
+ * - Hanya jalan jika paymentStatus === "settlement"
+ * - Atomic lock di database: mencegah transfer ganda saat webhook/retry/admin
+ *   berjalan bersamaan atau webhook dikirim berulang oleh payment gateway.
  */
 export async function autoTransferInstantRobux(
   transactionIdOrDoc: string | any,
@@ -506,12 +516,91 @@ export async function autoTransferInstantRobux(
     specificStockAccountId?: string;
     executedBy?: string;
   },
-): Promise<{
-  success: boolean;
-  message: string;
-  transaction?: any;
-  purchaseRun?: any;
-}> {
+): Promise<AutoTransferResult> {
+  await dbConnect();
+
+  let transaction: any =
+    typeof transactionIdOrDoc === "string"
+      ? await Transaction.findById(transactionIdOrDoc)
+      : transactionIdOrDoc;
+
+  if (!transaction) {
+    return { success: false, message: "Transaksi tidak ditemukan" };
+  }
+
+  if (transaction.orderStatus === "completed") {
+    return {
+      success: true,
+      message: `Transaksi ${transaction.invoiceId} sudah completed sebelumnya`,
+      transaction,
+    };
+  }
+
+  if (transaction.paymentStatus !== "settlement") {
+    return {
+      success: false,
+      message: "Pembayaran belum settlement, transfer Robux ditolak",
+      transaction,
+    };
+  }
+
+  const staleBefore = new Date(Date.now() - TRANSFER_LOCK_TTL_MS);
+  const locked = await Transaction.findOneAndUpdate(
+    {
+      _id: transaction._id,
+      paymentStatus: "settlement",
+      orderStatus: { $ne: "completed" },
+      $or: [
+        { "robuxInstantDetails.transferStatus": { $nin: ["sending", "success"] } },
+        { "robuxInstantDetails.transferLockedAt": { $lt: staleBefore } },
+      ],
+    },
+    {
+      $set: {
+        "robuxInstantDetails.transferStatus": "sending",
+        "robuxInstantDetails.transferLockedAt": new Date(),
+      },
+    },
+    { new: false },
+  );
+
+  if (!locked) {
+    return {
+      success: false,
+      message: `Transfer untuk ${transaction.invoiceId} sedang diproses atau sudah terkirim`,
+      transaction,
+    };
+  }
+
+  try {
+    return await runInstantRobuxTransfer(transaction, options);
+  } finally {
+    // Lepas lock. Jika transfer tidak sukses, tandai failed agar bisa di-retry.
+    await Transaction.updateOne(
+      { _id: transaction._id, "robuxInstantDetails.transferStatus": "sending" },
+      { $set: { "robuxInstantDetails.transferStatus": "failed" } },
+    );
+    await Transaction.updateOne(
+      { _id: transaction._id },
+      { $unset: { "robuxInstantDetails.transferLockedAt": "" } },
+    );
+  }
+}
+
+/**
+ * Eksekusi transfer (tanpa lock) untuk sebuah Transaksi:
+ * 1. Cari akun stock yang aktif & mencukupi robux
+ * 2. Eksekusi transfer
+ * 3. Kurangi saldo robux akun stock
+ * 4. Update status transaksi menjadi completed / bermasalah
+ */
+async function runInstantRobuxTransfer(
+  transactionIdOrDoc: string | any,
+  options?: {
+    specificStockAccountId?: string;
+    executedBy?: string;
+  },
+): Promise<AutoTransferResult> {
   await dbConnect();
 
   let transaction: any = null;
@@ -663,9 +752,12 @@ export async function autoTransferInstantRobux(
 
   if (transferSuccess && successfulAccount && successfulResult) {
     // 1. Kurangi saldo akun stock
+    // Atomic decrement agar tidak terjadi race antar transaksi
+    await StockAccount.updateOne(
+      { _id: successfulAccount._id },
+      { $inc: { robux: -robuxAmount }, $set: { lastChecked: new Date() } },
+    );
     successfulAccount.robux = Math.max(0, successfulAccount.robux - robuxAmount);
-    successfulAccount.lastChecked = new Date();
-    await successfulAccount.save();
     console.log(`[Robux Transfer] Saldo @${successfulAccount.username} dikurangi ${robuxAmount} → Sisa ${successfulAccount.robux}`);
 
     // 2. Update status transaksi menjadi completed

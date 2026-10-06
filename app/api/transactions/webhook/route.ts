@@ -502,6 +502,7 @@ export async function POST(request: NextRequest) {
     // Process each transaction
     const updatedTransactions = [];
     const rbx5TransactionsToProcess = [];
+    const robuxInstantTransactionsToProcess: any[] = [];
 
     for (const transaction of transactions) {
       const previousPaymentStatus = transaction.paymentStatus;
@@ -679,6 +680,32 @@ export async function POST(request: NextRequest) {
             );
           }
         }
+
+        // --- Robux Instant via Username (Transfer API, tanpa password) ---
+        const isRobuxUsernameTransfer =
+          transaction.serviceCategory === "robux_username" ||
+          ((transaction.serviceType === "robux_instant" ||
+            transaction.serviceCategory === "robux_instant" ||
+            transaction.serviceCategory === "robux_instan") &&
+            !transaction.robloxPassword);
+
+        if (isRobuxUsernameTransfer) {
+          const canTransfer =
+            transaction.orderStatus === "pending" ||
+            transaction.orderStatus === "waiting_payment" ||
+            transaction.orderStatus === "processing";
+
+          if (canTransfer) {
+            console.log(
+              `⚡ Queuing Robux Username transfer for ${transaction.invoiceId} (orderStatus: ${transaction.orderStatus})`,
+            );
+            robuxInstantTransactionsToProcess.push(transaction);
+          } else {
+            console.log(
+              `ℹ️ Skip Robux Username transfer for ${transaction.invoiceId} — sudah ${transaction.orderStatus}`,
+            );
+          }
+        }
       }
 
       // Handle payment expired - force order status to cancelled
@@ -800,6 +827,11 @@ export async function POST(request: NextRequest) {
           // Continue with other transactions even if one fails
         }
       }
+    }
+
+    // Process Robux Username instant transfers (kirim langsung via Transfer API)
+    for (const instantTransaction of robuxInstantTransactionsToProcess) {
+      await processRobuxInstanTransfer(instantTransaction);
     }
 
     // Send invoice email if payment is settled

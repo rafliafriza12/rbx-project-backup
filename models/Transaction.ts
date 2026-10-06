@@ -125,6 +125,7 @@ const transactionSchema = new mongoose.Schema(
       stockAccountUsername: String,
       transferredAt: Date,
       transferStatus: String,
+      transferLockedAt: Date,
       transferError: String,
       failureReasonCode: Number,
     },

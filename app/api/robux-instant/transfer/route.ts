@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
   try {
     const internalSecret = request.headers.get("x-internal-secret");
     const isInternal =
-      internalSecret &&
-      internalSecret === (process.env.INTERNAL_API_SECRET || "internal_secret");
+      !!process.env.INTERNAL_API_SECRET &&
+      internalSecret === process.env.INTERNAL_API_SECRET;
 
     // Jika bukan internal call, wajibkan API key dan admin auth
     if (!isInternal) {
