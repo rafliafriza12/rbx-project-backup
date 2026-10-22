@@ -1920,7 +1920,7 @@ function CheckoutContent() {
                             <>
                               <li>• Target rank atau level yang diinginkan</li>
                               <li>• Waktu pengerjaan yang diharapkan</li>
-                              <li>• Instruksi khusus untuk joki</li>
+                              <li>• Instruksi khusus untuk Top Up via Login</li>
                             </>
                           )}
                           {checkoutData.items.some(

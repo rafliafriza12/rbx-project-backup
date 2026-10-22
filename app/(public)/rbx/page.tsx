@@ -57,9 +57,9 @@ const faqData = [
       "Tentu! Kami sudah melayani ribuan transaksi dengan aman. Data kamu dijaga kerahasiaannya dan proses pembelian dilakukan sesuai prosedur yang aman.",
   },
   {
-    question: "Apa bedanya RBX 5 Hari dan RBX Reguler?",
+    question: "Apa bedanya RBX 5 Hari dan Top Up via Login?",
     answer:
-      "RBX 5 Hari menggunakan metode gamepass dengan harga lebih murah, tapi Robux masuk dalam 5 hari. RBX Reguler menggunakan metode login dengan harga sedikit lebih tinggi, tapi Robux masuk lebih cepat (15-30 menit).",
+      "RBX 5 Hari menggunakan metode gamepass dengan harga lebih murah, tapi Robux masuk dalam 5 hari. Top Up via Login menggunakan metode login dengan harga sedikit lebih tinggi, tapi Robux masuk lebih cepat (15-30 menit).",
   },
   {
     question: "Bagaimana cara melakukan refund?",
@@ -124,11 +124,11 @@ export default function RBXLandingPage() {
 
   // Stock status helpers
   const isRbx5Closed = settings?.serviceAvailability?.robux5Hari?.enabled === false;
-  const isRbxInstanClosed = settings?.serviceAvailability?.joki?.enabled === false; // RBX Reguler (login) pakai key joki
+  const isRbxInstanClosed = settings?.serviceAvailability?.joki?.enabled === false; // Top Up via Login (login) pakai key joki
   const isRbxUsernameClosed = settings?.serviceAvailability?.robuxInstan?.enabled === false; // RBX via Username pakai key robuxInstan
 
   const rbx5ClosedMsg = settings?.serviceAvailability?.robux5Hari?.closedMessage || "Stok Robux 5 Hari sedang habis. Cek lagi nanti!";
-  const rbxInstanClosedMsg = settings?.serviceAvailability?.joki?.closedMessage || "Stok RBX Reguler sedang habis. Cek lagi nanti!";
+  const rbxInstanClosedMsg = settings?.serviceAvailability?.joki?.closedMessage || "Stok Top Up via Login sedang habis. Cek lagi nanti!";
   const rbxUsernameClosedMsg = settings?.serviceAvailability?.robuxInstan?.closedMessage || "Stok Robux via Username sedang habis. Cek lagi nanti!";
 
   const handleWhatsAppClick = () => {
@@ -301,7 +301,7 @@ export default function RBXLandingPage() {
               )}
             </motion.div>
 
-            {/* RBX Reguler Card */}
+            {/* Top Up via Login Card */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -323,7 +323,7 @@ export default function RBXLandingPage() {
                           <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
                         </div>
                       </div>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white/60 mb-0.5 sm:mb-1">Topup RBX Reguler</h2>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white/60 mb-0.5 sm:mb-1">Top Up via Login</h2>
                       <p className="text-white/30 text-xs sm:text-sm mb-4 sm:mb-6">Via Login (username & password)</p>
                       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
                       <p className="text-red-300/80 text-xs sm:text-sm leading-relaxed flex-1">{rbxInstanClosedMsg}</p>
@@ -347,7 +347,7 @@ export default function RBXLandingPage() {
                           <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                         </div>
                       </div>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">Topup RBX Reguler</h2>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-0.5 sm:mb-1">Top Up via Login</h2>
                       <p className="text-white/40 text-xs sm:text-sm mb-4 sm:mb-6">Via Login (username & password)</p>
                       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 sm:mb-6" />
                       <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-3 sm:mb-4">Yang didapatkan:</p>

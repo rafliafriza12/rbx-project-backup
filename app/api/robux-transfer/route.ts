@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
       stockAccount = await StockAccount.findOne({
         status: "active",
         robux: { $gte: robuxAmount },
+        accountType: "username",
       }).sort({ isRobuxPlus: -1, robux: 1 });
 
       if (!stockAccount) {

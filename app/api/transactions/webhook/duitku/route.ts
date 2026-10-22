@@ -155,10 +155,19 @@ async function processGamepassPurchase(transaction: any) {
 
     const gamepassPrice = gamepassData.price;
 
-    // Cari SEMUA akun yang memiliki robux sama atau lebih dari price gamepass
+    // Cari SEMUA akun bertipe gamepass yang memiliki robux sama atau lebih dari price gamepass
+    const gamepassAccountFilter = {
+      $or: [
+        { accountType: "gamepass" },
+        { accountType: { $exists: false } },
+        { accountType: null },
+      ],
+    };
+
     const suitableAccounts = await StockAccount.find({
       robux: { $gte: gamepassPrice },
       status: "active",
+      ...gamepassAccountFilter,
     }).sort({ robux: 1 });
 
     if (!suitableAccounts || suitableAccounts.length === 0) {
@@ -639,6 +648,10 @@ export async function POST(request: NextRequest) {
         // ✅ Robux Instant Transfer API via Username (hanya tanpa password)
         const isRobuxUsernameTransfer =
           transaction.serviceCategory === "robux_username" ||
+          transaction.serviceType === "robux_username" ||
+          (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+          Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+          Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
           ((transaction.serviceCategory === "robux_instant" ||
             transaction.serviceCategory === "robux_instan" ||
             transaction.serviceType === "robux_instant") &&
@@ -671,8 +684,11 @@ export async function POST(request: NextRequest) {
       } else if (
         statusMapping.paymentStatus === "settlement" &&
         (transaction.serviceCategory === "robux_username" ||
+          transaction.serviceType === "robux_username" ||
+          (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
           ((transaction.serviceCategory === "robux_instant" ||
-            transaction.serviceCategory === "robux_instan") &&
+            transaction.serviceCategory === "robux_instan" ||
+            transaction.serviceType === "robux_instant") &&
             !transaction.robloxPassword))
       ) {
         // Jaga agar tetap "pending" — auto-transfer akan mengubahnya ke completed/bermasalah

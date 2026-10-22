@@ -171,7 +171,7 @@ class EmailService {
       const labels: { [key: string]: string } = {
         robux: "Robux",
         gamepass: "Gamepass",
-        joki: "Jasa Joki",
+        joki: "Top Up via Login",
       };
       return labels[type] || type;
     };
@@ -881,7 +881,7 @@ class EmailService {
             <h3>${settings.siteName || "RBXNET"}</h3>
             <p>${
               settings.siteDescription ||
-              "Platform jual beli Robux, Gamepass, dan Jasa Joki terpercaya"
+              "Platform jual beli Robux, Gamepass, dan Top Up via Login terpercaya"
             }</p>
             
             <div class="contact-info">

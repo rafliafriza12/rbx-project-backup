@@ -225,6 +225,7 @@ export async function verifyGamepassFromRoblox(
 export async function checkServiceAvailability(
   serviceType: string,
   serviceCategory?: string,
+  hasPassword?: boolean,
 ): Promise<{ available: boolean; error?: string }> {
   try {
     await dbConnect();
@@ -236,16 +237,38 @@ export async function checkServiceAvailability(
     const typeLower = (serviceType || "").toLowerCase().trim();
     const catLower = (serviceCategory || "").toLowerCase().trim();
 
+    // 1. Top Up via Login (Via Login / Username + Password)
+    // Ditandai dengan hasPassword = true ATAU serviceType = "joki"
+    const isLoginTopup =
+      typeLower === "joki" ||
+      (Boolean(hasPassword) &&
+        (typeLower === "robux" || typeLower === "robux_instant") &&
+        (catLower === "robux_instant" || catLower === "robux_instan" || !catLower));
+
+    if (isLoginTopup) {
+      if (avail.joki && avail.joki.enabled === false) {
+        return {
+          available: false,
+          error:
+            avail.joki.closedMessage ||
+            "Layanan Top Up via Login sedang tutup sementara. Cek lagi nanti!",
+        };
+      }
+      return { available: true };
+    }
+
+    // 2. Robux Instan (Direct API / Transfer via Username TANPA password)
     const isInstant =
-      typeLower === "robux_instant" ||
-      typeLower === "robux_instan" ||
-      typeLower === "rbx-instant" ||
       typeLower === "robux_username" ||
-      (typeLower === "robux" &&
-        (catLower === "robux_instan" ||
-          catLower === "robux_instant" ||
-          catLower === "robux_username" ||
-          catLower === "instant"));
+      catLower === "robux_username" ||
+      (!hasPassword &&
+        (typeLower === "robux_instant" ||
+          typeLower === "robux_instan" ||
+          typeLower === "rbx-instant" ||
+          (typeLower === "robux" &&
+            (catLower === "robux_instan" ||
+              catLower === "robux_instant" ||
+              catLower === "instant"))));
 
     if (isInstant) {
       if (avail.robuxInstan && avail.robuxInstan.enabled === false) {
@@ -253,7 +276,7 @@ export async function checkServiceAvailability(
           available: false,
           error:
             avail.robuxInstan.closedMessage ||
-            "Layanan Robux Instan sedang tutup sementara.",
+            "Layanan Robux Instan sedang tutup sementara. Cek lagi nanti!",
         };
       }
       return { available: true };
@@ -310,14 +333,14 @@ export async function checkServiceAvailability(
       return { available: true };
     }
 
-    // 5. Joki
+    // 5. Joki / Top Up via Login
     if (typeLower === "joki") {
       if (avail.joki && avail.joki.enabled === false) {
         return {
           available: false,
           error:
             avail.joki.closedMessage ||
-            "Layanan Joki sedang tutup sementara.",
+            "Layanan Top Up via Login sedang tutup sementara. Cek lagi nanti!",
         };
       }
       return { available: true };
@@ -445,6 +468,7 @@ export async function getVerifiedUnitPrice(
   };
   verifiedCoinDetails?: any;
   verifiedServiceName?: string;
+  verifiedServiceCategory?: string;
   verifiedRobuxInstantDetails?: {
     robuxAmount: number;
     productName: string;
@@ -723,6 +747,7 @@ export async function getVerifiedUnitPrice(
           description: `Transfer ${robuxAmount} Robux langsung ke akun username`,
         },
         verifiedServiceName: `Topup RBX via Username - ${robuxAmount} Robux`,
+        verifiedServiceCategory: "robux_username",
       };
     }
 
@@ -1104,6 +1129,7 @@ export async function validateSingleTransaction(body: any): Promise<{
     };
     verifiedCoinDetails?: any;
     verifiedServiceName?: string;
+    verifiedServiceCategory?: string;
     // Robux Instant verified values from DB
     verifiedRobuxInstantDetails?: {
       robuxAmount: number;
@@ -1137,6 +1163,7 @@ export async function validateSingleTransaction(body: any): Promise<{
   const availCheck = await checkServiceAvailability(
     serviceType,
     serviceCategory || (rbx5Details ? "robux_5_hari" : undefined),
+    Boolean(body.robloxPassword),
   );
   if (!availCheck.available) {
     return {
@@ -1319,17 +1346,14 @@ export async function validateSingleTransaction(body: any): Promise<{
       paymentMethodName: feeCheck.paymentMethodName,
       validPaymentMethodId: feeCheck.validPaymentMethodId,
       paymentMethodDoc: feeCheck.paymentMethodDoc,
-      // Rbx5 verified values from DB
       verifiedRobuxAmount: priceCheck.robuxAmount,
       verifiedGamepassAmount: priceCheck.gamepassAmount,
       verifiedPricePerHundred: priceCheck.pricePerHundred,
-      // Reseller verified values from DB
       verifiedResellerDetails: priceCheck.verifiedResellerDetails,
       verifiedCoinDetails: priceCheck.verifiedCoinDetails,
       verifiedServiceName: priceCheck.verifiedServiceName,
-      // Robux Instant verified values from DB
+      verifiedServiceCategory: priceCheck.verifiedServiceCategory,
       verifiedRobuxInstantDetails: priceCheck.verifiedRobuxInstantDetails,
-      // Gamepass verified values from DB
       verifiedGamepassDetails: priceCheck.verifiedGamepassDetails,
     },
   };
@@ -1353,6 +1377,7 @@ export async function validateMultiTransactionItem(
   verifiedResellerDetails?: any;
   verifiedCoinDetails?: any;
   verifiedServiceName?: string;
+  verifiedServiceCategory?: string;
   verifiedRobuxInstantDetails?: {
     robuxAmount: number;
     productName: string;
@@ -1370,6 +1395,7 @@ export async function validateMultiTransactionItem(
   const availCheck = await checkServiceAvailability(
     item.serviceType,
     item.serviceCategory || (item.rbx5Details ? "robux_5_hari" : undefined),
+    Boolean(item.robloxPassword),
   );
   if (!availCheck.available) {
     return {
@@ -1447,6 +1473,7 @@ export async function validateMultiTransactionItem(
     verifiedResellerDetails: priceCheck.verifiedResellerDetails,
     verifiedCoinDetails: priceCheck.verifiedCoinDetails,
     verifiedServiceName: priceCheck.verifiedServiceName,
+    verifiedServiceCategory: priceCheck.verifiedServiceCategory,
     verifiedRobuxInstantDetails: priceCheck.verifiedRobuxInstantDetails,
     verifiedGamepassDetails: priceCheck.verifiedGamepassDetails,
   };

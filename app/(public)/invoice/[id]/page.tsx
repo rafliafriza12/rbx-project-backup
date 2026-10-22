@@ -213,7 +213,7 @@ function UniversalInvoiceContent() {
       case "robux-instant":
         return `⚡ Invoice Robux Instant`;
       case "joki":
-        return `👤 Invoice Jasa Joki`;
+        return `👤 Invoice Top Up via Login`;
       default:
         return `🧾 Invoice Pemesanan`;
     }
@@ -230,7 +230,7 @@ function UniversalInvoiceContent() {
       case "robux-instant":
         return "Lengkapi data dan pilih metode pembayaran untuk mendapatkan Robux instant";
       case "joki":
-        return "Lengkapi data dan pilih metode pembayaran untuk layanan joki";
+        return "Lengkapi data dan pilih metode pembayaran untuk layanan Top Up via Login";
       default:
         return "Lengkapi data dan pilih metode pembayaran untuk menyelesaikan pesanan";
     }
@@ -512,7 +512,7 @@ function UniversalInvoiceContent() {
                       {orderData.type === "robux-instant" &&
                         " Robux akan dikirim dalam 5-15 menit setelah pembayaran dikonfirmasi. Pastikan username RBX benar."}
                       {orderData.type === "joki" &&
-                        " Pastikan username dan display name RBX benar. Layanan joki akan dimulai setelah pembayaran dikonfirmasi."}
+                        " Pastikan username dan display name RBX benar. Layanan Top Up via Login akan dimulai setelah pembayaran dikonfirmasi."}
                     </div>
                   </div>
                 </div>
@@ -592,7 +592,7 @@ function UniversalInvoiceContent() {
                         {orderData.type === "robux-instant" &&
                           "Robux akan dikirim dalam 5-15 menit setelah pembayaran"}
                         {orderData.type === "joki" &&
-                          "Layanan joki akan dimulai setelah pembayaran dikonfirmasi"}
+                          "Layanan Top Up via Login akan dimulai setelah pembayaran dikonfirmasi"}
                       </li>
                       <li>• Jika ada kendala, hubungi customer service kami</li>
                     </ul>

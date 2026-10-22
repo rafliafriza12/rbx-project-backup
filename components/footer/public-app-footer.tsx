@@ -512,7 +512,7 @@ const PublicAppFooter: React.FC = () => {
                     className="text-white/70 hover:text-[#f63ae6] transition-colors duration-300 flex items-center gap-2 group"
                   >
                     <span className="w-1 h-1 bg-neon-pink rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                    RBX Reguler
+                    Top Up via Login
                   </Link>
                 </li>
                 <li>

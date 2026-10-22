@@ -135,11 +135,20 @@ async function processGamepassPurchase(transaction: any) {
 
     const gamepassPrice = gamepassData.price;
 
+    const gamepassAccountFilter = {
+      $or: [
+        { accountType: "gamepass" },
+        { accountType: { $exists: false } },
+        { accountType: null },
+      ],
+    };
+
     // Prioritaskan akun Robux Plus terlebih dahulu
     let suitableAccounts = await StockAccount.find({
       robux: { $gte: gamepassPrice },
       status: "active",
       isRobuxPlus: true,
+      ...gamepassAccountFilter,
     }).sort({ robux: 1 });
 
     if (!suitableAccounts || suitableAccounts.length === 0) {
@@ -148,6 +157,7 @@ async function processGamepassPurchase(transaction: any) {
         robux: { $gte: gamepassPrice },
         status: "active",
         isRobuxPlus: { $ne: true },
+        ...gamepassAccountFilter,
       }).sort({ robux: 1 });
     } else {
       console.log(`[buy-pass] Ditemukan ${suitableAccounts.length} akun Robux Plus aktif untuk gamepass ${gamepassPrice} R$`);
@@ -636,6 +646,10 @@ export async function PUT(
     if (
       isPaymentSettled &&
       (transaction.serviceCategory === "robux_username" ||
+        transaction.serviceType === "robux_username" ||
+        (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+        Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+        Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
         ((transaction.serviceType === "robux_instant" ||
           transaction.serviceCategory === "robux_instant") &&
           !transaction.robloxPassword))

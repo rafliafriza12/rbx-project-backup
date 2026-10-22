@@ -621,8 +621,18 @@
       };
 
       // Add service-specific details
-      if (item.serviceCategory) {
-        transactionData.serviceCategory = item.serviceCategory;
+      const isItemUsernameOrder =
+        item.serviceCategory === "robux_username" ||
+        item.serviceType === "robux_username" ||
+        (typeof item.serviceId === "string" && item.serviceId.startsWith("username_")) ||
+        itemValidation.verifiedServiceCategory === "robux_username";
+
+      const finalItemCategory = isItemUsernameOrder
+        ? "robux_username"
+        : (itemValidation.verifiedServiceCategory || item.serviceCategory || undefined);
+
+      if (finalItemCategory) {
+        transactionData.serviceCategory = finalItemCategory;
       }
 
       if (itemValidation.verifiedCoinDetails) {
@@ -1749,10 +1759,21 @@
       }
     }
 
+    // Pastikan serviceCategory akurat, khususnya untuk pesanan via username
+    const isUsernameOrder =
+      serviceCategory === "robux_username" ||
+      serviceType === "robux_username" ||
+      (typeof serviceId === "string" && serviceId.startsWith("username_")) ||
+      validation.verified.verifiedServiceCategory === "robux_username";
+
+    const finalServiceCategory = isUsernameOrder
+      ? "robux_username"
+      : (validation.verified.verifiedServiceCategory || serviceCategory || undefined);
+
     // Buat transaksi baru - GUNAKAN DATA TERVERIFIKASI DARI DATABASE
     const transactionData: any = {
       serviceType,
-      serviceCategory: serviceCategory || undefined,
+      serviceCategory: finalServiceCategory,
       serviceId,
       // Use verified name from DB to prevent spoofing:
       // - reseller: verifiedServiceName from ResellerPackage DB
@@ -1860,12 +1881,9 @@
       transactionData.customerInfo,
     );
 
-    // Add serviceCategory for robux and reseller services
-    if (
-      (serviceType === "robux" || serviceType === "reseller") &&
-      serviceCategory
-    ) {
-      transactionData.serviceCategory = serviceCategory;
+    // Pastikan serviceCategory selalu tersimpan
+    if (finalServiceCategory) {
+      transactionData.serviceCategory = finalServiceCategory;
     }
 
     const transaction = new Transaction(transactionData);

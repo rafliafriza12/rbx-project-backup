@@ -656,35 +656,44 @@ async function runInstantRobuxTransfer(
     };
   }
 
+  // Tentukan tipe akun berdasarkan transaksi
+  // robux_username → hanya pakai akun bertipe "username"
+  // robux_instant / lainnya → hanya pakai akun bertipe "gamepass" (atau akun lama tanpa field accountType)
+  const isRobuxUsernameTransfer =
+    transaction.serviceCategory === "robux_username" ||
+    transaction.serviceType === "robux_username" ||
+    (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+    Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+    Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
+    ((transaction.serviceType === "robux_instant" ||
+      transaction.serviceCategory === "robux_instant") &&
+      !transaction.robloxPassword);
+
+  const requiredAccountType = isRobuxUsernameTransfer ? "username" : "gamepass";
+
+  // Filter ketat akun stock:
+  // - username transfer: HANYA akun dengan accountType "username"
+  // - gamepass: HANYA akun dengan accountType "gamepass" (atau akun lama tanpa field accountType)
+  const accountTypeFilter =
+    requiredAccountType === "username"
+      ? { accountType: "username" }
+      : { $or: [{ accountType: "gamepass" }, { accountType: { $exists: false } }, { accountType: null }] };
+
   // Cari akun stock yang tersedia
   let suitableAccounts: any[] = [];
   if (options?.specificStockAccountId) {
-    const specific = await StockAccount.findById(options.specificStockAccountId);
-    if (specific && specific.status === "active" && specific.robux >= robuxAmount) {
+    const specific = await StockAccount.findOne({
+      _id: options.specificStockAccountId,
+      status: "active",
+      robux: { $gte: robuxAmount },
+      ...accountTypeFilter,
+    });
+    if (specific) {
       suitableAccounts = [specific];
     }
   }
 
   if (suitableAccounts.length === 0) {
-    // Tentukan tipe akun berdasarkan serviceCategory transaksi
-    // robux_username → hanya pakai akun bertipe "username"
-    // robux_instant / lainnya → hanya pakai akun bertipe "gamepass" (atau akun lama tanpa field accountType)
-    const isRobuxUsernameTransfer =
-      transaction.serviceCategory === "robux_username" ||
-      ((transaction.serviceType === "robux_instant" ||
-        transaction.serviceCategory === "robux_instant") &&
-        !transaction.robloxPassword);
-
-    const requiredAccountType = isRobuxUsernameTransfer ? "username" : "gamepass";
-
-    // Cari semua akun aktif dengan saldo cukup dan tipe yang sesuai
-    // Untuk gamepass: inklusif akun lama yang belum punya field accountType
-    // Prioritaskan akun yang isRobuxPlus = true, lalu sort robux ascending
-    const accountTypeFilter =
-      requiredAccountType === "gamepass"
-        ? { $or: [{ accountType: "gamepass" }, { accountType: { $exists: false } }, { accountType: null }] }
-        : { accountType: "username" };
-
     suitableAccounts = await StockAccount.find({
       status: "active",
       robux: { $gte: robuxAmount },

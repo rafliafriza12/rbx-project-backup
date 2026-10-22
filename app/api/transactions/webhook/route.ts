@@ -227,10 +227,19 @@ async function processGamepassPurchase(transaction: any) {
     // sehingga bisa membeli gamepass dengan lebih sedikit robux
     // Contoh: gamepassPrice=129 (dengan discount 10%) → akun Robux Plus butuh ~114 robux aktual
     // Tapi untuk safety, kita tetap filter yang punya robux >= gamepassPrice
+    const gamepassAccountFilter = {
+      $or: [
+        { accountType: "gamepass" },
+        { accountType: { $exists: false } },
+        { accountType: null },
+      ],
+    };
+
     let suitableAccounts = await StockAccount.find({
       robux: { $gte: gamepassPrice },
       status: "active",
       isRobuxPlus: true,
+      ...gamepassAccountFilter,
     }).sort({ robux: 1 }); // Pakai akun paling sedikit robux yang cukup
 
     if (!suitableAccounts || suitableAccounts.length === 0) {
@@ -240,6 +249,7 @@ async function processGamepassPurchase(transaction: any) {
         robux: { $gte: gamepassPrice },
         status: "active",
         isRobuxPlus: { $ne: true },
+        ...gamepassAccountFilter,
       }).sort({ robux: 1 });
     } else {
       console.log(`[buy-pass] Ditemukan ${suitableAccounts.length} akun Robux Plus aktif untuk gamepass ${gamepassPrice} R$`);
@@ -684,6 +694,10 @@ export async function POST(request: NextRequest) {
         // --- Robux Instant via Username (Transfer API, tanpa password) ---
         const isRobuxUsernameTransfer =
           transaction.serviceCategory === "robux_username" ||
+          transaction.serviceType === "robux_username" ||
+          (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+          Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+          Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
           ((transaction.serviceType === "robux_instant" ||
             transaction.serviceCategory === "robux_instant" ||
             transaction.serviceCategory === "robux_instan") &&
@@ -995,6 +1009,10 @@ export async function GET(request: NextRequest) {
         // Robux Instant Transfer API via Username (hanya tanpa password)
         const isRobuxUsernameTransfer =
           transaction.serviceCategory === "robux_username" ||
+          transaction.serviceType === "robux_username" ||
+          (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+          Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+          Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
           ((transaction.serviceType === "robux_instant" ||
             transaction.serviceCategory === "robux_instant" ||
             transaction.serviceCategory === "robux_instan") &&

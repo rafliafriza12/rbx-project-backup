@@ -10,7 +10,7 @@ const settingsSchema = new mongoose.Schema(
     },
     siteDescription: {
       type: String,
-      default: "Platform jual beli Robux, Gamepass, dan Jasa Joki terpercaya",
+      default: "Platform jual beli Robux, Gamepass, dan Top Up via Login terpercaya",
     },
     contactEmail: {
       type: String,
@@ -261,11 +261,11 @@ const settingsSchema = new mongoose.Schema(
     metaDescription: {
       type: String,
       default:
-        "Platform terpercaya untuk jual beli Robux, Gamepass, dan jasa joki game. Harga murah, proses cepat, dan aman.",
+        "Platform terpercaya untuk jual beli Robux, Gamepass, dan Top Up via Login. Harga murah, proses cepat, dan aman.",
     },
     metaKeywords: {
       type: String,
-      default: "robux, gamepass, joki, roblox, game, murah",
+      default: "robux, gamepass, top up login, roblox, game, murah",
     },
 
     // Social Media
@@ -318,7 +318,7 @@ const settingsSchema = new mongoose.Schema(
       },
       joki: {
         enabled: { type: Boolean, default: true },
-        closedMessage: { type: String, default: "Layanan RBX Reguler sedang tutup sementara. Cek lagi nanti!" },
+        closedMessage: { type: String, default: "Layanan Top Up via Login sedang tutup sementara. Cek lagi nanti!" },
       },
       reseller: {
         enabled: { type: Boolean, default: true },

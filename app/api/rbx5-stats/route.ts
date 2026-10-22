@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
     // 1. Total Stok - Jumlahkan robux dari semua akun stok yang aktif
     const stockAccounts = await StockAccount.find({
       status: "active",
+      $or: [{ accountType: "gamepass" }, { accountType: { $exists: false } }, { accountType: null }],
     }).select("robux username");
 
     const totalStok = stockAccounts.reduce(

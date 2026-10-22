@@ -41,6 +41,10 @@ export async function POST(
     // Tentukan aksi berdasarkan kategori layanan
     const isRobuxUsernameTransfer =
       transaction.serviceCategory === "robux_username" ||
+      transaction.serviceType === "robux_username" ||
+      (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+      Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+      Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
       ((transaction.serviceType === "robux_instant" ||
         transaction.serviceCategory === "robux_instant") &&
         !transaction.robloxPassword);

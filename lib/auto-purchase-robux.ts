@@ -105,7 +105,17 @@ export async function autoPurchasePendingRobux(
     progressDoc.currentStep = "Checking available stock accounts...";
     await progressDoc.save();
 
-    const allStockAccounts = await StockAccount.find({ status: "active" });
+    const gamepassAccountFilter = {
+      $or: [
+        { accountType: "gamepass" },
+        { accountType: { $exists: false } },
+        { accountType: null },
+      ],
+    };
+    const allStockAccounts = await StockAccount.find({
+      status: "active",
+      ...gamepassAccountFilter,
+    });
     progressDoc.stockAccounts = allStockAccounts.map((acc) => ({
       id: acc._id.toString(),
       username: acc.username,

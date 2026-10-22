@@ -291,7 +291,7 @@ export default function SettingsPage() {
       joki: {
         enabled: true,
         closedMessage:
-          "Layanan Joki sedang tutup sementara. Cek lagi nanti!",
+          "Layanan Top Up via Login sedang tutup sementara. Cek lagi nanti!",
       },
       reseller: {
         enabled: true,
@@ -527,7 +527,7 @@ export default function SettingsPage() {
                 }
                 rows={3}
                 className="w-full p-3 bg-[#334155] border border-[#334155] rounded-lg focus:ring-[#3b82f6] focus:border-[#3b82f6] text-[#f1f5f9] placeholder-[#94a3b8]"
-                placeholder="Platform Top Up Robux, Gamepass, dan Jasa Joki terpercaya"
+                placeholder="Platform Top Up Robux, Gamepass, dan Top Up via Login terpercaya"
               />
             </div>
 
@@ -1944,7 +1944,7 @@ export default function SettingsPage() {
           joki: {
             enabled: true,
             closedMessage:
-              "Layanan Joki sedang tutup sementara. Cek lagi nanti!",
+              "Layanan Top Up via Login sedang tutup sementara. Cek lagi nanti!",
           },
           reseller: {
             enabled: true,
@@ -1988,10 +1988,10 @@ export default function SettingsPage() {
           },
           {
             key: "joki" as const,
-            title: "RBX Reguler (Via Login)",
-            desc: "Pengiriman Robux via login akun (username + password). Matikan jika akun Robux Reguler sedang habis atau error.",
+            title: "Top Up via Login",
+            desc: "Pengiriman Robux via login akun (username + password). Matikan jika stok Top Up via Login sedang habis atau error.",
             icon: "🔐",
-            tag: "RBX Reguler",
+            tag: "Top Up via Login",
             badgeColor: "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30",
           },
           {

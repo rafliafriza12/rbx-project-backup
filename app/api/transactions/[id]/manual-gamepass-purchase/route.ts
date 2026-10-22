@@ -52,10 +52,19 @@ async function processGamepassPurchase(transaction: any) {
 
     const gamepassPrice = gamepassData.price;
 
-    // Cari SEMUA akun yang memiliki robux sama atau lebih dari price gamepass
+    // Cari SEMUA akun bertipe gamepass yang memiliki robux sama atau lebih dari price gamepass
+    const gamepassAccountFilter = {
+      $or: [
+        { accountType: "gamepass" },
+        { accountType: { $exists: false } },
+        { accountType: null },
+      ],
+    };
+
     const suitableAccounts = await StockAccount.find({
       robux: { $gte: gamepassPrice },
       status: "active",
+      ...gamepassAccountFilter,
     }).sort({ robux: 1 }); // Sort ascending untuk menggunakan akun dengan robux paling sedikit yang mencukupi
 
     if (!suitableAccounts || suitableAccounts.length === 0) {

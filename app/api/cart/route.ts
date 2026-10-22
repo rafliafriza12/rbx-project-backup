@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
     const availCheck = await checkServiceAvailability(
       finalServiceType,
       availCategory,
+      Boolean(robloxPassword),
     );
     if (!availCheck.available) {
       return NextResponse.json(

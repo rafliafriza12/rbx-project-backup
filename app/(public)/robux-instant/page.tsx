@@ -93,7 +93,7 @@ export default function RobuxInstan() {
 
   const router = useRouter();
 
-  // Stock availability state (RBX Reguler pakai key 'joki')
+  // Stock availability state (Top Up via Login pakai key 'joki')
   const [isServiceClosed, setIsServiceClosed] = useState(false);
   const [closedMessage, setClosedMessage] = useState("");
 
@@ -231,12 +231,12 @@ export default function RobuxInstan() {
           }
         }
 
-        // Cek service availability untuk RBX Reguler (key: joki)
+        // Cek service availability untuk Top Up via Login (key: joki)
         const pubSettings = settingsRes?.settings || settingsRes?.data || settingsRes;
         const rbxRegularAvail = pubSettings?.serviceAvailability?.joki;
         if (rbxRegularAvail?.enabled === false) {
           setIsServiceClosed(true);
-          setClosedMessage(rbxRegularAvail.closedMessage || "Layanan RBX Reguler sedang tutup sementara karena stok habis. Cek lagi nanti!");
+          setClosedMessage(rbxRegularAvail.closedMessage || "Layanan Top Up via Login sedang tutup sementara karena stok habis. Cek lagi nanti!");
         } else {
           setIsServiceClosed(false);
           setClosedMessage("");
@@ -318,7 +318,7 @@ export default function RobuxInstan() {
 
   const nextStep = () => {
     if (isServiceClosed) {
-      toast.error("Layanan RBX Reguler sedang tidak tersedia karena stok habis. Silakan cek kembali nanti!");
+      toast.error("Layanan Top Up via Login sedang tidak tersedia karena stok habis. Silakan cek kembali nanti!");
       return;
     }
     if (currentStep === 1) {
@@ -387,7 +387,7 @@ export default function RobuxInstan() {
 
   const handleAddToCart = async () => {
     if (isServiceClosed) {
-      toast.error("Layanan RBX Reguler sedang tidak tersedia karena stok habis.");
+      toast.error("Layanan Top Up via Login sedang tidak tersedia karena stok habis.");
       return;
     }
     if (!agreedToTerms || !selectedProduct) {
@@ -443,7 +443,7 @@ export default function RobuxInstan() {
 
   const handleSubmitOrder = async () => {
     if (isServiceClosed) {
-      toast.error("Layanan RBX Reguler sedang tidak tersedia karena stok habis.");
+      toast.error("Layanan Top Up via Login sedang tidak tersedia karena stok habis.");
       return;
     }
     if (!agreedToTerms) {
@@ -529,7 +529,7 @@ export default function RobuxInstan() {
   return (
     <main className="px-4 sm:px-6 md:px-8">
 
-      {/* === BANNER STOK HABIS RBX REGULER === */}
+      {/* === BANNER STOK HABIS TOP UP VIA LOGIN === */}
       {isServiceClosed && (
         <div className="max-w-6xl mx-auto px-2 mb-6 mt-4">
           <div className="relative bg-gradient-to-r from-red-950/90 via-red-900/70 to-rose-950/90 border-2 border-red-500/60 rounded-2xl p-5 sm:p-7 shadow-2xl overflow-hidden">
@@ -540,7 +540,7 @@ export default function RobuxInstan() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-1.5">
-                  <h3 className="text-lg sm:text-xl font-black text-white">Layanan RBX Reguler Ditutup Sementara</h3>
+                  <h3 className="text-lg sm:text-xl font-black text-white">Layanan Top Up via Login Ditutup Sementara</h3>
                   <span className="px-3 py-0.5 rounded-full bg-red-500/30 text-red-200 border border-red-400/40 text-xs font-bold animate-pulse">STOK HABIS</span>
                 </div>
                 <p className="text-gray-200 text-sm leading-relaxed">{closedMessage}</p>

@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status"); // active, inactive, atau all
     const includeInactive = searchParams.get("includeInactive") === "true";
+    const accountType = searchParams.get("accountType");
 
     // Build query
     const query: any = {};
@@ -25,6 +26,14 @@ export async function GET(request: NextRequest) {
       query.status = status;
     } else if (!includeInactive) {
       query.status = "active"; // Default hanya active
+    }
+
+    if (accountType) {
+      if (accountType === "gamepass") {
+        query.$or = [{ accountType: "gamepass" }, { accountType: { $exists: false } }, { accountType: null }];
+      } else {
+        query.accountType = accountType;
+      }
     }
 
     // Get stock accounts

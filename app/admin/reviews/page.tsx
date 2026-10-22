@@ -245,7 +245,7 @@ export default function AdminReviewsPage() {
             <option value="">All Services</option>
             <option value="robux">Robux</option>
             <option value="gamepass">Gamepass</option>
-            <option value="joki">Joki</option>
+            <option value="joki">Top Up via Login</option>
           </select>
 
           <button

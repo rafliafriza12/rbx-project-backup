@@ -171,7 +171,10 @@ export async function POST(request: NextRequest) {
         orderNote = "Pesanan selesai dan credits berhasil ditambahkan ke akun";
       } else if (
         statusMapping.paymentStatus === "settlement" &&
-        (transaction.serviceType === "robux_instant" || transaction.serviceCategory === "robux_instant")
+        (transaction.serviceType === "robux_instant" ||
+          transaction.serviceCategory === "robux_instant" ||
+          transaction.serviceCategory === "robux_username" ||
+          transaction.serviceType === "robux_username")
       ) {
         // Robux Instant: set ke processing dulu, auto-transfer akan ubah ke completed
         finalOrderStatus = "processing";
@@ -259,6 +262,10 @@ export async function POST(request: NextRequest) {
           // Auto-transfer Robux Instant via Username (hanya untuk pesanan tanpa password / transfer API)
           const isRobuxUsernameTransfer =
             transaction.serviceCategory === "robux_username" ||
+            transaction.serviceType === "robux_username" ||
+            (typeof transaction.serviceId === "string" && transaction.serviceId.startsWith("username_")) ||
+            Boolean(transaction.robuxInstantDetails?.productName?.toLowerCase().includes("username")) ||
+            Boolean(transaction.serviceName?.toLowerCase().includes("username")) ||
             ((transaction.serviceType === "robux_instant" ||
               transaction.serviceCategory === "robux_instant") &&
               !transaction.robloxPassword);

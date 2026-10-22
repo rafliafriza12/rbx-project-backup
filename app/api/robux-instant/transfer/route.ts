@@ -108,10 +108,11 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // Auto-pilih akun aktif dengan saldo cukup
+      // Auto-pilih akun aktif bertipe username dengan saldo cukup
       selectedAccount = await StockAccount.findOne({
         status: "active",
         robux: { $gte: amount },
+        accountType: "username",
       }).sort({ isRobuxPlus: -1, robux: 1 });
 
       if (!selectedAccount) {

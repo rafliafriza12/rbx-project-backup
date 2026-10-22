@@ -258,8 +258,18 @@ export async function POST(request: NextRequest) {
       };
 
       // Add service-specific details
-      if (item.serviceCategory) {
-        transactionData.serviceCategory = item.serviceCategory;
+      const isItemUsernameOrder =
+        item.serviceCategory === "robux_username" ||
+        item.serviceType === "robux_username" ||
+        (typeof item.serviceId === "string" && item.serviceId.startsWith("username_")) ||
+        itemValidation.verifiedServiceCategory === "robux_username";
+
+      const finalItemCategory = isItemUsernameOrder
+        ? "robux_username"
+        : (itemValidation.verifiedServiceCategory || item.serviceCategory || undefined);
+
+      if (finalItemCategory) {
+        transactionData.serviceCategory = finalItemCategory;
       }
 
       if (item.jokiDetails) {
